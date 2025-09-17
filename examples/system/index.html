@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>
+        <span>系统基础功能</span>
+        <ul>
+            <li><a href="./00_system/01_ssystem_base_1.html"> 全屏，棋盘格，基础配置;色彩空间:P3 默认</a></li>
+            <li><a href="./00_system/02_ssystem_load_p3.html">色彩空间:P3 from JSON</a></li>
+            <li><a href="./00_system/02_ssystem_load_srgb.html">色彩空间:sRGB from JSON</a></li>
+            <li><a href="./00_system/03_render_1.html">onEnvet;更新循环;渲染循环;DC提交(用户模式);渲染分类通道;reSize Observer;</a></li>
+        </ul>
+
+        <span>camera</span>
+        <ul>
+
+            <li><a href="./01_camera/otrho_1.html">camera:GBuffer;cameras管理器;正交相机: systemMVP:group0 binding0 在shader
+                    RAW</a></li>
+            <li><a href="./01_camera/PerspectiveCamera_1.html">透视相机: systemMVP:group0 binding0; shader raw</a></li>
+            <li><a href="./01_camera/PerspectiveCamera_child.html">透视相机: camera wolrd position; camera model
+                    matrix(world);一个无输出的父节点(world matrix,更新)</a></li>
+            <li><a href="./01_camera/reservedZ.html">透视相机: reversedZ</a></li>
+            <li><a href="./01_camera/viewport_1.html">camera:viewport</a></li>
+            <li><a href="./01_camera/backgroudColor_1.html">camera:预乘与透明,独立于canvas</a></li>
+            <li><a href="./01_camera/backgroudColor_2.html">camera:预乘与透明,独立于canvas,viewport;
+                    <br>!!!注意：还是底色的范围还是全屏的，如果要实现viewport范围的底色，预计是在输出管理器的copy实现（不透明的）</a></li>
+            <li><a href="./01_camera/arcballCTL.html">arcball 控制器</a></li>
+            <li><a href="./01_camera/arcballControl_lookat.html">arcball 控制器:lookat 不在原点</a></li>
+            <li><a href="./01_camera/arcballCTL_clild.html">arcball 控制器:子节点；update循环没有跑起来，延迟</a></li>
+            <li><a href="./01_camera/wasdControl_1.html">wasd控制器</a></li>
+            <li><a href="">透视相机:变焦</a></li>
+        </ul>
+
+        <span>geometry </span>
+        <ul>
+            <li><a href="./geometry/base_attribute_array_1.html">基础Geometry的 attribue 数组</a></li>
+            <li><a href="./geometry/box.html">box</a></li>
+            <li><a href="./geometry/sphere.html">sphere</a></li>
+            <li><a href="./geometry/CircleGeometry.html">circle</a></li>
+            <li><a href="./geometry/ConeGeometry.html">cone</a></li>
+            <li><a href="./geometry/CylinderGeometry.html">cylinder</a></li>
+            <li><a href="./geometry/DodecahedronGeometry.html">dodecahedron</a></li>
+            <li><a href="./geometry/IcosahedronGeometry.html">icosahedron</a></li>
+            <li><a href="./geometry/LatheGeometry.html">lathe</a></li>
+            <li><a href="./geometry/OctahedronGeometry.html">octahedron</a></li>
+            <li><a href="./geometry/PlaneGeometry.html">plane</a></li>
+            <li><a href="./geometry/RingGeometry.html">ring</a></li>
+            <li><a href="./geometry/TetrahedronGeometry.html">TetrahedronGeometry</a></li>
+            <li><a href="./geometry/TorusGeometry.html">TorusGeometry</a></li>
+        </ul>
+
+        <span>实体</span>
+        <ul>
+            <li><a href="./entity/root_manager_triangl.html">root + entity manager: triangle </a></li>
+            <li><a href="./entity/root_manager_box.html">root + entity manager: box </a></li>
+            <li><a href="./entity/root_manager_boxGeometry.html">root + entity manager: box geometry</a></li>
+            <br>
+            <li><a href="./entity/wireframe_box_only.html">mesh: box only wireframe</a></li>
+            <li><a href="./entity/wireframe_box_1.html">mesh: box + wireframe</a></li>
+            <li><a href="./entity/mesh_instance_1.html">mesh:box instance 简单,位置不同</a></li>
+            <li><a href="./entity/points_array_sphere.html">point: 属性数组 </a></li>
+            <li><a href="./entity/points_EMU_square.html">point: 模拟 方块</a></li>
+            <li><a href="./entity/points_EMU_circular.html">point: 模拟 圆</a></li>
+            <li><a href="./entity/points_EMU_box.html">point: 模拟 方盒</a></li>
+            <li><a href="./entity/points_EMU_sphere.html">point: 模拟 球</a></li>
+            <li><a href="./entity/points_EMU_sprite.html">point: 模拟 精灵</a></li>
+            <li><a href="">point: 模拟 方块+纹理(滞后)</a></li>
+            <li><a href="./entity/line_array_1.html">line: 属性数组</a></li>
+            <li><a href="./entity/line_list_1.html">line: line-list 模式</a></li>
+            <li><a href="./entity/line_strip_1.html">line: line-strip 模式</a></li>
+            <li><a href="./entity/sprite_color_1.html">sprite: 颜色</a></li>
+            <li><a href="./entity/oneColorCube.html"> one color cube</a></li>
+        </ul>
+
+        <span>shader 模板</span>
+        <ul>
+            <li><a href="./shader/template/colorTemplate_1.html">验证:material部分的shader 模板正确性,console输出string和结构</a></li>
+        </ul>
+
+        <span>纹理</span>
+        <ul>
+            <li><a href="./material/basecolor/vertexColor.html">顶点着色材质</a></li>
+            <li><a href="./material/basecolor/sphere.html">基础颜色材质</a></li>
+            <li><a href="./material/baseTexture/texture_1.html">基础 texture</a></li>
+            <li><a href="">sRGB</a></li>
+            <li><a href="">线性</a></li>
+            <li><a href="">深度</a></li>
+            <li><a href="">单通道</a></li>
+            <li><a href="">压缩纹理</a></li>
+            <li><a href="">压缩纹理</a></li>
+            <li><a href="">压缩纹理</a></li>
+
+            <li><a href="">cube</a></li>
+
+            <li><a href="">video 标签</a></li>
+            <li><a href="">video url</a></li>
+            <li><a href="">video videoFrame</a></li>
+            <li><a href="">video 视频流</a></li>
+
+            <li><a href=""></a></li>
+            <li><a href="">layout 测试</a></li>
+
+            <li><a href="">HDR</a></li>
+            <li><a href="">EXR</a></li>
+        </ul>
+
+        <span>材质</span>
+        <ul>
+            <li><a href="./material/basecolor/box.html">base color</a></li>
+            <li><a href="./material/basecolor/vertexColor.html">vertex color</a></li>
+            <li><a href="./material/basecolor/vertexColor.html">vertex color</a></li>
+            <li><a href="">texture</a></li>
+            <li><a href="">cube </a></li>
+            <li><a href="">BulinnPhong color</a></li>
+            <li><a href="">BulinnPhong specular texture</a></li>
+            <li><a href="">BulinnPhong normal texture</a></li>
+            <li><a href="">BulinnPhong diffuse texture</a></li>
+            <li><a href="">BulinnPhong 视差</a></li>
+            <li><a href="">BulinnPhong 视差 校正</a></li>
+            <li><a href="">PBR standard </a></li>
+        </ul>
+
+        <span>光源</span>
+        <ul>
+            <li><a href="">lightManager</a></li>
+            <li><a href="">环境光</a></li>
+            <li><a href="">方向光</a></li>
+            <li><a href="">点光源</a></li>
+            <li><a href="">spot</a></li>
+            <li><a href="">面积光</a></li>
+        </ul>
+
+        <span>阴影</span>
+        <ul>
+            <li><a href="">lightManager's uniform : matrix(DYN),shadowmap texture(DYN)</a></li>
+            <li><a href="">hard</a></li>
+            <li><a href="">PCF</a></li>
+            <li><a href="">PCF 3*3</a></li>
+            <li><a href="">PCSS </a></li>
+            <li><a href="">级联阴影</a></li>
+
+            <li><a href="">lightManager 透明阴影: depth ,color(几层？)</a></li>
+            <li><a href="">贴花阴影:只有depth(shadowmap,color=0,0,0,0)</a></li>
+            <li><a href="">贴花单层半透明阴影:有单独的depth和color(0.5,0,0,a=强度衰减系数)</a></li>
+            <li><a href="">贴花多(3)层半透明阴影:有单独的depth和color(混合后)(0.5,0,0,a=强度衰减系数)</a></li>
+        </ul>
+
+        <span>post Process</span>
+        <ul>
+            <li><a href="">后处理管理者 postProcessManager : root,update,render 队列</a></li>
+            <li><a href="">bure 3*3</a></li>
+        </ul>
+
+        <span>延迟渲染</span>
+        <ul>
+            <li><a href=""></a></li>
+        </ul>
+        <span>BVH</span>
+        <ul>
+            <li><a href=""></a></li>
+        </ul>
+
+        <span>简单数据模型</span>
+        <ul>
+            <li><a href=""></a></li>
+        </ul>
+        <span>帧输出管理器</span>
+        <ul>
+            <li><a href="">输出管理器:copy,MSAA render,viewport,colorSpace编码,</a></li>
+
+            <li><a href="">多相机:多个viewport</a></li>
+            <li><a href="">camera:viewport Z值范围;</a></li>
+            <li><a href="">多相机:默认相机切换,多控制器切换</a></li>
+            <li><a href="">多相机:viewport 切换控制器(按照viewport区域)</a></li>
+            <li><a href="">scene input与cameraInput 的切换与焦点获取</a></li>
+        </ul>
+
+        <span>GBuffer</span>
+        <ul>
+            <li><a href="">GBuffer 可视化</a></li>
+        </ul>
+
+        <span>深入管理器</span>
+        <ul>
+            <li><a href="">输入管理器：lisener，注册，激活（监听、独占、互斥）</a></li>
+            <li><a href="">相机控制器：注册、激活</a></li>
+            <li><a href="">orbit轨道控制器</a></li>
+            <li><a href="">对象控制器：注册、激活；位移、旋转、缩放</a></li>
+            <li><a href="">pickup:状态，注册、激活</a></li>
+        </ul>
+
+        <span>observer</span>
+        <ul>
+            <li><a href="">resize</a></li>
+        </ul>
+    </div>
+</body>
+
+</html>

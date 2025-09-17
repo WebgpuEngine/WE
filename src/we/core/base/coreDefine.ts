@@ -1,0 +1,82 @@
+
+export var limitsOfWE = {
+    maxColorAttachmentBytesPerSample: 64,
+}
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+/** 通用的用户自定义的function */
+export type userFN = (scope: any) => any;
+/** 通用的用户自定义的function，返回Promise */
+export type userPromiseFN = (scope: any) => Promise<any>;
+/** 简单的自定义function，没有返回 */
+export type SimpleFunction = () => void;
+
+////////////////////////////////////////////////////////////////////////////////////////
+//单体对象的用户自定义的interface
+
+/** 用户自定义功能接口的update interface */
+export interface I_Update {
+    /**自定义更新functon() */
+    update?: (scope: any) =>void,
+}
+
+/** 渲染类型，用于shadow map 或者camera */
+// export type E_renderForDC = "camera" | "light"
+/** 渲染类型，用于shadow map 或者camera */
+export enum E_renderForDC {
+    "camera" = "camrea",
+    "light" = "light"
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+//color define
+/**RGBA四个数值的颜色interface，0--1 */
+export type Color4 =[number, number, number, number]
+/**RGBA四个数值的颜色interface，0--255 */
+export type Color3 =[ number, number, number]
+
+
+/**texture的alphaT为0的float的zero值 */
+export var V_textureAlphaZero = 0.001
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+//shadowMapSize
+/**shadow map的大小 */
+export var V_shadowMapSize = 2048;
+
+/** 最大的light数量 */
+export var V_lightNumber = 8;//在scene.ts中的getWGSLOfSystemShader()进行了shader的替换。
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//通用
+
+/**始化状态 */
+export enum E_lifeState {
+    /**未开始 */
+    unstart,
+    /**正在构造中 */
+    constructing,
+    /** 已构造 */
+    constructed,
+    /** 已初始化 */
+    initialized,
+    /** 正在初始化中 */
+    initializing,
+    /** 初始化完成     */
+    finished,
+    /** 正在更新中 */
+    updating,
+    /** 更新完成 */
+    updated,
+    /** 销毁 */
+    destroyed,
+    /** 错误 */
+    error,
+}
+
+

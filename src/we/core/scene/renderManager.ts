@@ -1,0 +1,406 @@
+import { commmandType, I_PipelineStructure } from "../command/base";
+import { DrawCommand } from "../command/DrawCommand";
+import { Scene } from "./scene";
+
+/**
+ * 合批命令
+ * command：绘制命令
+ * pipeline：绘制命令对应的pipeline：Map集合
+ */
+export interface run_commandAndPipeline {
+    DCCC: commmandType[],
+    pipeline: Map<I_PipelineStructure, commmandType[]>,
+}
+
+/**
+ * 渲染通道
+ */
+export enum renderPassName {
+    compute = "compute",
+    texture = "texture",
+    material = "material",
+    renderTarget = "renderTarget",
+    shadowmapOpacity = "shadowmapOpacity",
+    shadowmapTransparent = "shadowmapTransparent",
+    depth = "depth",
+    forward = "forward",
+    transparent = "transparent",
+    postprocess = "postprocess",
+    ui = "ui",
+    sprite = "sprite",
+    spriteTransparent = "spriteTransparent",
+}
+/**DrawCommand 通道 */
+interface I_renderDrawCommand {
+    [name: string]: Map<I_PipelineStructure, commmandType[]>,
+}
+/**
+ * 是否正确需要验证，20250915
+ * 透明shadowmap通道
+ */
+interface I_renderDrawTransparentCommandOfShadowMap {
+    [name: string]: {
+        depth: Map<I_PipelineStructure, commmandType[]>,//只有VS
+        color: Map<I_PipelineStructure, commmandType[]>,//有VS和FS，输出color和depth
+    }
+}
+
+/**
+ * 渲染管理器
+ * 1、分类渲染通道
+ * 2、对于DC进行合批
+ */
+export class RenderManager {
+    scene: Scene;
+    device: GPUDevice;
+    /**
+     * 渲染命令:
+     * 1、有内容和时间两条线；
+     * 2、pipeline合批，只合并有内容线的，不合并有时间线的（简单情况下无法保障顺序，如果保障了顺序，JS效率是否合算需要再议）；
+     * 3、目前明确只有内容线的：depth、forward、transparency、shadowmapOpacity,shadowmapTransparent，即都是和渲染相关的命令；
+     */
+    // renderCommand: {
+    //     [name: string]: run_commandAndPipeline
+    // }
+
+    renderCompute: commmandType[] = [];
+    renderTexutre: commmandType[] = [];
+    renderMaterial: commmandType[] = [];
+    renderRenderTarget: commmandType[] = [];
+    renderShadowMapOpacityCommand: {
+        [name: string]: Map<I_PipelineStructure, commmandType[]>,//只有VS 
+    } = {};
+
+    renderShadowMapTransparentCommand: I_renderDrawTransparentCommandOfShadowMap = {};
+
+    renderCameraForwardCommand: I_renderDrawCommand = {};
+
+    renderCameraDeferDepthCommand: I_renderDrawCommand = {};
+
+    renderCameraTransParentCommand: I_renderDrawCommand = {};
+
+    renderPostProcessCommand: commmandType[] = [];
+    renderUICommand: commmandType[] = [];
+
+    renderSpriteCommand: I_renderDrawCommand = {};
+    renderSpriteTransparentCommand: I_renderDrawCommand = {};
+
+    listCommandType: any[] = [];
+    constructor(scene: Scene) {
+        this.scene = scene;
+        this.device = scene.device;
+        this.listCommandType = [
+            this.renderCompute,
+            this.renderTexutre,
+            this.renderMaterial,
+            this.renderRenderTarget,
+            // this.renderPostProcessCommand,
+            // this.renderUICommand,
+        ]
+    }
+    initRenderCommandForCamera(UUID: string) {
+        if (!this.renderCameraForwardCommand[UUID]) {
+            this.renderCameraForwardCommand[UUID] = new Map();
+        }
+        if (!this.renderCameraDeferDepthCommand[UUID]) {
+            this.renderCameraDeferDepthCommand[UUID] = new Map();
+        }
+        if (!this.renderCameraTransParentCommand[UUID]) {
+            this.renderCameraTransParentCommand[UUID] = new Map();
+        }
+        if (!this.renderSpriteCommand[UUID]) {
+            this.renderSpriteCommand[UUID] = new Map();
+        }
+        if (!this.renderSpriteTransparentCommand[UUID]) {
+            this.renderSpriteTransparentCommand[UUID] = new Map();
+        }
+    }
+    initRenderCommandForLight(UUID: string) {
+        if (!this.renderShadowMapOpacityCommand[UUID]) {
+            this.renderShadowMapOpacityCommand[UUID] = new Map();
+        }
+        if (!this.renderShadowMapTransparentCommand[UUID]) {
+            this.renderShadowMapTransparentCommand[UUID] = {
+                depth: new Map(),
+                color: new Map(),
+            };
+        }
+    }
+
+    /**
+     * 每帧清除
+     */
+    clean() {
+        this.renderCompute = [];
+        this.renderTexutre = [];
+        this.renderMaterial = [];
+        this.renderRenderTarget = [];
+        for (let UUID in this.renderShadowMapOpacityCommand) {
+            let shadowMapCommand = this.renderShadowMapOpacityCommand[UUID as renderPassName];
+            shadowMapCommand.clear();
+        }
+        for (let UUID in this.renderShadowMapTransparentCommand) {
+            let shadowMapCommand = this.renderShadowMapTransparentCommand[UUID as renderPassName];
+            shadowMapCommand.depth.clear();
+            shadowMapCommand.color.clear();
+        }
+        for (let UUID in this.renderCameraForwardCommand) {
+            let cameraCommand = this.renderCameraForwardCommand[UUID as renderPassName];
+            cameraCommand.clear();
+        }
+        for (let UUID in this.renderCameraDeferDepthCommand) {
+            let cameraCommand = this.renderCameraDeferDepthCommand[UUID as renderPassName];
+            cameraCommand.clear();
+        }
+        for (let UUID in this.renderCameraTransParentCommand) {
+            let cameraCommand = this.renderCameraTransParentCommand[UUID as renderPassName];
+            cameraCommand.clear()
+        }
+        for (let UUID in this.renderSpriteCommand) {
+            let spriteCommand = this.renderSpriteCommand[UUID as renderPassName];
+            spriteCommand.clear();
+        }
+        for (let UUID in this.renderSpriteTransparentCommand) {
+            let spriteCommand = this.renderSpriteTransparentCommand[UUID as renderPassName];
+            spriteCommand.clear();
+        }
+        this.renderPostProcessCommand = [];
+        this.renderUICommand = [];
+    }
+
+    /**
+     * 推送绘制命令到队列
+     * @param command 绘制命令
+     * @param kind 渲染通道
+     */
+    push(command: commmandType, kind: renderPassName, _UUID?: string) {
+        if (!_UUID) {
+            if (kind == renderPassName.forward || kind == renderPassName.transparent || kind == renderPassName.depth) {
+                if (this.scene.cameraManager.defaultCamera)
+                    _UUID = this.scene.cameraManager.defaultCamera.UUID;
+                else {
+                    console.warn("渲染通道为forward、transparent、depth时，必须有默认相机");
+                    return;
+                }
+            }
+        }
+        let flag;
+        switch (kind) {
+            case renderPassName.compute:
+                this.renderCompute.push(command);
+                break;
+            case renderPassName.texture:
+                this.renderTexutre.push(command);
+                break;
+            case renderPassName.material:
+                this.renderMaterial.push(command);
+                break;
+            case renderPassName.renderTarget:
+                this.renderRenderTarget.push(command);
+                break;
+            case renderPassName.postprocess:
+                this.renderPostProcessCommand.push(command);
+                break;
+            case renderPassName.ui:
+                this.renderUICommand.push(command);
+                break;
+            case renderPassName.shadowmapOpacity:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderShadowMapOpacityCommand[_UUID!].has(flag)) {                            //是否有map
+                    this.renderShadowMapOpacityCommand[_UUID!].get(flag)?.push(command);               //push command
+                } else {                                                                               //没有map
+                    this.renderShadowMapOpacityCommand[_UUID!].set(flag, [command]);                   //set map
+                }
+                break;
+            case renderPassName.shadowmapTransparent:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderShadowMapTransparentCommand[_UUID!].color.has(flag)) {                            //是否有map
+                    this.renderShadowMapTransparentCommand[_UUID!].color.get(flag)?.push(command);               //push command
+                } else {                                                                                         //没有map
+                    this.renderShadowMapTransparentCommand[_UUID!].color.set(flag, [command]);                   //set map
+                }
+                break;
+            case renderPassName.forward:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderCameraForwardCommand[_UUID!].has(flag)) {                            //是否有map
+                    this.renderCameraForwardCommand[_UUID!].get(flag)?.push(command);               //push command
+                } else {                                                                            //没有map
+                    this.renderCameraForwardCommand[_UUID!].set(flag, [command]);                   //set map
+                }
+                break;
+            case renderPassName.depth:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderCameraDeferDepthCommand[_UUID!].has(flag)) {                            //是否有map
+                    this.renderCameraDeferDepthCommand[_UUID!].get(flag)?.push(command);               //push command
+                } else {                                                                               //没有map
+                    this.renderCameraDeferDepthCommand[_UUID!].set(flag, [command]);                   //set map
+                }
+                break;
+            case renderPassName.transparent:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderCameraTransParentCommand[_UUID!].has(flag)) {                             //是否有map
+                    this.renderCameraTransParentCommand[_UUID!].get(flag)?.push(command);                //push command
+                } else {                                                                                 //没有map
+                    this.renderCameraTransParentCommand[_UUID!].set(flag, [command]);                    //set map
+                }
+                break;
+            case renderPassName.sprite:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderSpriteCommand[_UUID!].has(flag)) {                            //是否有map
+                    this.renderSpriteCommand[_UUID!].get(flag)?.push(command);               //push command
+                } else {                                                                               //没有map
+                    this.renderSpriteCommand[_UUID!].set(flag, [command]);                   //set map
+                }
+                break;
+            case renderPassName.spriteTransparent:
+                flag = (command as DrawCommand).getPipeLineStructure();
+                if (this.renderSpriteTransparentCommand[_UUID!].has(flag)) {                            //是否有map
+                    this.renderSpriteTransparentCommand[_UUID!].get(flag)?.push(command);               //push command
+                } else {                                                                               //没有map
+                    this.renderSpriteTransparentCommand[_UUID!].set(flag, [command]);                   //set map
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    renderForwareDC(commands: I_renderDrawCommand) {
+        let cameraRendered: {
+            [name: string]: number
+        } = {};
+        for (let UUID in commands) {
+            let perOne = commands[UUID];
+            //pipeline passEncoder 部分
+            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
+            // forward render by pipeline
+            for (const [key2, value] of perOne.entries()) {
+
+                //camera pipeline submit count  and rpd loadOP chang part 
+                if (cameraRendered[UUID] == undefined) {//没有记录，增加UUID记录
+                    cameraRendered[UUID] = 0;
+                    let rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+                    if (rpd !== false) {                                        //forward render loadOp="clear"
+                        for (let perColorAttachment of rpd.colorAttachments) {
+                            if (perColorAttachment)
+                                perColorAttachment.loadOp = "clear";
+                        }
+                        rpd.depthStencilAttachment!.depthLoadOp = "clear";
+                    }
+                }
+                if (cameraRendered[UUID] > 0) {// forward render
+                    let rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+                    if (rpd !== false) {
+                        for (let perColorAttachment of rpd.colorAttachments) {
+                            if (perColorAttachment)
+                                perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
+                        }
+                        rpd.depthStencilAttachment!.depthLoadOp = "load";
+                    }
+                }
+
+                let { passEncoder, commandEncoder } = (value[0] as DrawCommand).doEncoderStart();//获取encoder
+                for (let i = 0; i < value.length; i++) {
+                    (value[i] as DrawCommand).doEncoder(passEncoder);                           //绘制命令
+                }
+                let commandBuffer = (value[0] as DrawCommand).dotEncoderEnd(passEncoder, commandEncoder);//结束encoder
+                submitCommand.push(commandBuffer);
+                cameraRendered[UUID]++;//更改camera forward loadOP计数器
+                //push commandBuffer
+            }
+            //submit part
+            if (submitCommand.length > 0)
+                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+        }
+    }
+    renderTransparentDC(commands: I_renderDrawTransparentCommandOfShadowMap) {
+
+    }
+    /**
+     * 渲染
+     * 1、根据渲染通道分类
+     * 2、DC根据pipeline分类
+     * 3、其他渲染通道直接提交commandBuffer数组
+     */
+    render() {
+        for (let onePass of this.listCommandType) {
+            let submitCommand: GPUCommandBuffer[] = [];
+            for (let perCommand of onePass) {
+                submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
+            }
+            this.device.queue.submit(submitCommand);
+        }
+
+        // let cameraRendered: {
+        //     [name: string]: number
+        // } = {};
+        // for (let UUID in this.renderCameraForwardCommand) {
+        //     let perOne = this.renderCameraForwardCommand[UUID];
+        //     //pipeline passEncoder 部分
+        //     let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
+        //     // forward render by pipeline
+        //     for (const [key2, value] of perOne.entries()) {
+
+        //         //camera pipeline submit count  and rpd loadOP chang part 
+        //         if (cameraRendered[UUID] == undefined) {//没有记录，增加UUID记录
+        //             cameraRendered[UUID] = 0;
+        //             let rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+        //             if (rpd !== false) {                                        //forward render loadOp="clear"
+        //                 for (let perColorAttachment of rpd.colorAttachments) {
+        //                     if (perColorAttachment)
+        //                         perColorAttachment.loadOp = "clear";
+        //                 }
+        //                 rpd.depthStencilAttachment!.depthLoadOp = "clear";
+        //             }
+        //         }
+        //         if (cameraRendered[UUID] > 0) {// forward render
+        //             let rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+        //             if (rpd !== false) {
+        //                 for (let perColorAttachment of rpd.colorAttachments) {
+        //                     if (perColorAttachment)
+        //                         perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
+        //                 }
+        //                 rpd.depthStencilAttachment!.depthLoadOp = "load";
+        //             }
+        //         }
+
+        //         let { passEncoder, commandEncoder } = (value[0] as DrawCommand).doEncoderStart();//获取encoder
+        //         for (let i = 0; i < value.length; i++) {
+        //             (value[i] as DrawCommand).doEncoder(passEncoder);                           //绘制命令
+        //         }
+        //         let commandBuffer = (value[0] as DrawCommand).dotEncoderEnd(passEncoder, commandEncoder);//结束encoder
+        //         submitCommand.push(commandBuffer);
+        //         cameraRendered[UUID]++;//更改camera forward loadOP计数器
+        //         //push commandBuffer
+        //     }
+        //     //submit part
+        //     if (submitCommand.length > 0)
+        //         this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+        // }
+
+        this.renderForwareDC(this.renderCameraForwardCommand);
+
+        this.renderForwareDC(this.renderCameraDeferDepthCommand);
+        this.renderForwareDC(this.renderCameraTransParentCommand);
+
+
+
+        // this.renderForwareByUUID(this.renderCameraTransParentCommand);
+        this.renderForwareDC(this.renderSpriteCommand);
+        this.renderForwareDC(this.renderSpriteTransparentCommand);
+
+        this.renderForwareDC(this.renderShadowMapOpacityCommand);
+        this.renderTransparentDC(this.renderShadowMapTransparentCommand);
+
+
+        let submitCommand: GPUCommandBuffer[] = [];
+        for (let perCommand of this.renderPostProcessCommand) {
+            submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
+        }
+        for (let perCommand of this.renderUICommand) {
+            submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
+        }
+
+        this.device.queue.submit(submitCommand);
+    }
+}
