@@ -4,12 +4,13 @@ import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_uniformGroup } from "../command/base";
 import { CamreaControl } from "../control/cameracCntrol";
 import { EntityManager } from "../entity/entityManager";
+import { LightsManager } from "../light/lightsManager";
 import { MaterialManager } from "../material/materialManager";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
 import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { RootOfGPU, RootOfOrganization } from "../organization/root";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
-import { I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { TextureManager } from "../texture/textureManger";
 import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall } from "./base";
 import { Clock } from "./clock";
@@ -205,6 +206,8 @@ export class Scene {
 
     /*** 材质管理器 */
     materialManager!: MaterialManager;
+    /**光源管理器 */
+    lightsManager!: LightsManager;
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -322,6 +325,7 @@ export class Scene {
         this.entityManager = new EntityManager(this);
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);
+        this.lightsManager = new LightsManager(this);
 
         const devicePixelRatio = window.devicePixelRatio;//设备像素比
         const width = this.canvas.clientWidth * devicePixelRatio;
@@ -820,11 +824,12 @@ export class Scene {
                 throw new Error("获取ColorAttachmentTargets失败");
         }
         else {
-            let CATs = this.lightsManager.getColorAttachmentTargetsByUUID(UUID)
-            if (CATs)
-                return CATs;
-            else
-                throw new Error("获取ColorAttachmentTargets失败");
+            return [];//shadowmap 的depth 没有 colorAttachemnetTargets，只有深度。不透明todo
+            // let CATs = this.lightsManager.getColorAttachmentTargetsByUUID(UUID)
+            // if (CATs)
+            //     return CATs;
+            // else
+            //     throw new Error("获取ColorAttachmentTargets失败");
         }
     }
 
@@ -834,18 +839,16 @@ export class Scene {
             code += perOne.code;
         }
         for (let perOne of template.replace as I_shaderTemplateReplace[]) {
-
-            //延迟 到light
-            // if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-            //     if (perOne.name == "lightNumber") {
-            //         code = code.replace(perOne.replace, this.lightsManager.getLightNumber());
-            //     }
-            // }
-            // if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-            //     if (perOne.name == "shadowMapNumber") {
-            //         code = code.replace(perOne.replace, this.lightsManager.getShadowMapNumber());
-            //     }
-            // }
+            if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+                if (perOne.name == "lightNumber") {
+                    code = code.replace(perOne.replace, this.lightsManager.getLightNumber().toString());
+                }
+            }
+            if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+                if (perOne.name == "shadowMapNumber") {
+                    code = code.replace(perOne.replace, this.lightsManager.getShadowMapNumber().toString());
+                }
+            }
         }
         let outputFormat: I_ShaderTemplate_Final = {
             scene: {

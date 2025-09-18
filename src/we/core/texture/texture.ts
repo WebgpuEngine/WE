@@ -15,7 +15,7 @@ export class Texture extends BaseTexture {
 
     declare inputValues: I_BaseTexture;
     declare texture: GPUTexture;
-    constructor(input: I_BaseTexture, device: GPUDevice, scene: Scene) {
+    constructor(input: I_BaseTexture, device: GPUDevice, scene?: Scene) {
         super(input, device, scene);
         this.inputValues = input;
 

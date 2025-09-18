@@ -91,6 +91,19 @@ export class Mesh extends BaseEntity {
         indexes: [],
     };
 
+    invertNormal(){
+        if(this.attributes.vertices.has("normal")){
+            let normal = this.attributes.vertices.get("normal") as number[];
+            if(normal){
+                for(let i = 0; i < normal.length; i += 3){
+                    normal[i] = -normal[i];
+                    normal[i + 1] = -normal[i + 1];
+                    normal[i + 2] = -normal[i + 2];
+                }
+            }
+        }
+    }
+
     constructor(input: IV_MeshEntity) {
         super(input);
         this.inputValues = input;

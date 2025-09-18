@@ -100,7 +100,7 @@ export class WASDCameraControl extends CamreaControl {
         position = vec3.addScaled(position, this.velocity, deltaTime);
         this.camera.updateByPositionYawPitch(position, this.yaw, this.pitch);
 
-        this.camera.updateWorldPositionByPosition(position);
+        // this.camera.updateWorldPositionByPosition(position);
         return true;
     }
 

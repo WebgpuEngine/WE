@@ -420,8 +420,8 @@ export abstract class BaseCamera extends RootOfGPU {
     else {
       // this.updateProjectionMatrix();//构造投影矩阵
       this.updateByPositionDirection(this.worldPosition, this.lookAt, false);//这里需要是world position
-
     }
+    this.updateWorldPositionByPosition(this.position);
     this.updateBufferOfSystemMVP();//更新GPUBuffer of Uniform
   }
 

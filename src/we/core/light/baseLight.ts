@@ -1,30 +1,33 @@
-import * as coreConst from "../const/coreConst";
-import { mat4, Mat4, Vec3, } from "wgpu-matrix";
-import { RootOfOrganization } from "../organization/root";
+import { mat4, Mat4, vec3, Vec3, } from "wgpu-matrix";
+import { RootOfGPU, RootOfOrganization } from "../organization/root";
 import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
-import { I_Update } from "../const/coreConst";
+import { weColor3, I_Update, weVec3 } from "../base/coreDefine";
+import { Clock } from "../scene/clock";
+import { isWeColor3 } from "../base/coreFunction";
 
-
-export enum lightType {
+/**
+ * 光源的类型
+ * 需要与WGSL shader中的struct ST_Light 的kind匹配
+ */
+export enum E_lightType {
     direction,
     point,
     spot,
-    ambient,
     area
 }
-export interface optionBaseLight extends I_Update {
+export interface I_optionBaseLight extends I_Update {
     /**
      * 位置
      * position
      */
-    position?: Vec3,
+    position?: weVec3,
 
     /**
      * 颜色
      * color
      */
-    color?: coreConst.color3F,
+    color?: weColor3,
 
     /**
      * 光的强度 ， 默认=1.0
@@ -41,7 +44,7 @@ export interface optionBaseLight extends I_Update {
      * 方向: 方向光源和聚光灯需要
      * direction: direction light and spot light need
      */
-    direction?: Vec3,
+    direction?: weVec3,
 
     /**
      * decay
@@ -77,16 +80,6 @@ export interface optionBaseLight extends I_Update {
      * visibility,  
      */
     visible?: boolean
-
-    /**
-     * 光源与stage的关系
-     * 默认（undefined）：照亮所有stage
-     * 有数组：["World"] || ["Room"],则代表仅在当前的一个或几个stage中有效
-     * 
-     * 若投射阴影，也仅在相关的stage中进行，比如室内不考虑室外
-     */
-    stage?: coreConst.stageName,
-    // update?: (scope: any,  deltaTime: number,startTime:number,lastTime:number) => Promise<any>,
 }
 
 /**
@@ -115,12 +108,12 @@ interface optionBaseShadowMapOfST_Light {
     shadow_map_enable: number,  //depth texture array 会在light add之后的下一帧生效，这个是标志位
 }
 
-export abstract class BaseLight extends RootOfOrganization {
+export abstract class BaseLight extends RootOfGPU {
     /**
      * type of lights
      * 光源的类型
      */
-    _kind!: lightType;
+    _kind!: E_lightType;
     /**
      * light's uniform buffer
      * 光源的uniform的buffer
@@ -130,7 +123,16 @@ export abstract class BaseLight extends RootOfOrganization {
      * light's input values
      * 输入参数=input 
      * */
-    inputValues: optionBaseLight;
+    declare inputValues: I_optionBaseLight;
+    _color: Vec3 = vec3.create(1, 1, 1);
+    _distance: number = 0;
+    _visible: boolean = true;
+    _enable: boolean = true;
+    _direction: Vec3 = vec3.create(0, 0, 0);
+    _intensity: number = 1.0;
+    _decay: number = 0;
+    _angle: number = 0;
+    _angleOut: number = 0;
 
     /**
      * light's enable
@@ -141,21 +143,22 @@ export abstract class BaseLight extends RootOfOrganization {
      * light's visible
      * 是否可见，未使用(当光源被移除时，会被设置为false)，即_parent==undefined
      * */
-    visible: boolean;
-    enable: boolean;
+    visible: boolean = true;
+    enable: boolean = true;
     /////////////////////////////////////////////////
     //about  shadow map 
     /**
      * matrix of MVP ,for shadow map .point light has 6 MVP,other have one MVP,so use array .
      * MVP 矩阵，shadowmap使用 。点光源有6个MVP，其他的有一个MVP，所以使用数组
      * */
+    //这个与lightsManager中shadowArrayOfDepthMapAndMVP的重复，而且冲突了，目前（20250918）来看，这个应该是没有在
     MVP: Mat4[];
 
     /**
      * light's shadow enable
      * 是否启用阴影
      * */
-    shadow: boolean;
+    _shadow: boolean = false;
 
     /**
      * light's epsilon for matirx MVP
@@ -193,96 +196,117 @@ export abstract class BaseLight extends RootOfOrganization {
         shadow_map_enable: 0,
     }
 
-    constructor(input: optionBaseLight, kind: lightType) {
+    constructor(input: I_optionBaseLight, kind: E_lightType) {
         super();
-        this.type="Light";
+        this.type = "Light";
         this.ID = WeGenerateID();
 
         this.UUID = WeGenerateUUID();
         this.enable = false;
         this.inputValues = input;
         this.MVP = [];
-        if (this.inputValues.position == undefined) this.inputValues.position = [0.0, 0.0, 0.0];
-        if (this.inputValues.color == undefined) this.inputValues.color = { red: 1, green: 1, blue: 1 };
-        if (this.inputValues.distance == undefined) this.inputValues.distance = 0.0;
-        if (this.inputValues.decay == undefined) this.inputValues.decay = 1;
-        if (this.inputValues.visible == undefined) this.inputValues.visible = true;
-        if (this.inputValues.intensity == undefined) this.inputValues.intensity = 1.0;
+        if (input.position) this.Position = input.position;
+        if (input.color) this.Color = vec3.create(...input.color);
+        if (input.distance) this._distance = input.distance;
+        if (input.decay) this._decay = input.decay;
+        if (input.visible !== undefined) this.inputValues.visible = input.visible;
+        if (input.intensity) this._intensity = input.intensity;
         this._kind = kind;
-        this.shadow = false;
-        if (input.shadow) this.shadow = input.shadow;
-        this.visible = false;
-        if (input.visible) this.visible = input.visible;
+        if (input.shadow) this._shadow = input.shadow;
+        if (input.visible !== undefined) this.visible = input.visible;
         this._buffer = this.updateStructBuffer();
     }
 
 
-    // abstract generateShadowMap(device: GPUDevice): shadowMap | false;
 
-    getKind(): number {
+    get Kind(): number {
         return this._kind
     }
-    getPosition(): Vec3 | false {
-        if (this._kind == lightType.point || this._kind == lightType.spot) {
-            return this.inputValues.position!;
+    set Kind(v: E_lightType) {
+        this._kind = v;
+    }
+
+    get Color() {
+        return this._color;
+    }
+    set Color(v: Vec3 | weColor3) {
+        if (isWeColor3(v)) {
+            vec3.copy(vec3.fromValues(...v), this._color);
         }
-        return false;
+        else {
+            vec3.copy(v, this._color);
+        }
     }
-    getColor() {
-        return this.inputValues.color as coreConst.Color3F;
+    get Intensity(): number {
+        return this._intensity!;
     }
-    getIntensity(): number {
-        return this.inputValues.intensity!;
+    set Intensity(v: number) {
+        this._intensity = v;
     }
     /***
      * 光源的作用距离
      * 默认=0，一直起作用
      */
-    getDistance(): number {
-        return this.inputValues.distance!;
+    get Distance(): number {
+        return this._distance;
     }
-    getShadowEnable(): boolean {
-        if (this.inputValues.shadow && this.inputValues.shadow)
-            return this.inputValues.shadow;
-        return false;
+    set Distance(v: number) {
+        this._distance = v;
     }
-    getVisible(): boolean {
-        return this.inputValues.visible! as boolean;
+    get Shadow(): boolean {
+        return this._shadow;
+    }
+    set Shadow(v: boolean) {
+        this._shadow = v;
+    }
+    get Visible(): boolean {
+        return this._visible;
+    }
+    set Visible(v: boolean) {
+        this._visible = v;
     }
 
     /**只有方向光返回值，其他返回false */
-    getDirection(): Vec3 | false {
-        if (this._kind == lightType.point) {
+
+    get Direction(): Vec3 | false {
+        if (this._kind == E_lightType.point) {
             return false;
         }
         else {
-            return this.inputValues.direction!;
+            return this._direction;
+        }
+    }
+    set Direction(v: Vec3 | weVec3) {
+        if (isWeColor3(v)) {
+            vec3.copy(vec3.fromValues(...v), this._direction);
+        }
+        else {
+            vec3.copy(v, this._direction);
         }
     }
 
-    getDecay() {
-        return this.inputValues.decay!;
+    get Decay(): number {
+        return this._decay;
+    }
+    set Decay(v: number) {
+        this._decay = v;
     }
     /**
      * only for spot    
      * 弧度制 :只有spot有值，其他false 
      * 
      * */
-    getAngle(): number[] | false {
-        if (this._kind == lightType.spot) {
-            return [this.inputValues.angle!, this.inputValues.angleOut!];
+    get Angle(): number[] | false {
+        if (this._kind == E_lightType.spot) {
+            return [this._angle, this._angleOut];
         }
         return false;
     }
 
 
-    async update(scene: Scene, deltaTime: number, startTime: number, lastTime: number) {
-        let scope = this;
-        if (this.inputValues.update) {
-            scope.inputValues.update!(scope, deltaTime, startTime, lastTime);
-        }
-        this._buffer = scope.updateStructBuffer();
-        this.MVP = this.updateMVP(scene);
+    async updateSelf(clock: Clock) {
+        this._buffer = this.updateStructBuffer();
+        this.MVP = this.updateMVP(this.scene);
     }
     /**更新光源MVP */
     abstract updateMVP(scene: Scene): Mat4[];
@@ -348,43 +372,42 @@ export abstract class BaseLight extends RootOfOrganization {
         };
 
         //种类
-        ST_LightViews.kind[0] = this.getKind();
+        ST_LightViews.kind[0] = this.Kind;
 
-        let position = this.getPosition();
+        let position = this.Position;
         if (position) {
             ST_LightViews.position[0] = position[0];
             ST_LightViews.position[1] = position[1];
             ST_LightViews.position[2] = position[2];
         }
 
-        let color = this.getColor();
-        ST_LightViews.color[0] = color.red;
-        ST_LightViews.color[1] = color.green;
-        ST_LightViews.color[2] = color.blue;
+        ST_LightViews.color[0] = this.Color[0];
+        ST_LightViews.color[1] = this.Color[1];
+        ST_LightViews.color[2] = this.Color[2];
 
-        ST_LightViews.intensity[0] = this.getIntensity();
+        ST_LightViews.intensity[0] = this.Intensity;
 
-        ST_LightViews.distance[0] = this.getDistance();
+        ST_LightViews.distance[0] = this.Distance;
 
-        let dir = this.getDirection();
+        let dir = this.Direction;
         if (dir) {
             ST_LightViews.direction[0] = dir[0];
             ST_LightViews.direction[1] = dir[1];
             ST_LightViews.direction[2] = dir[2];
         }
 
-        ST_LightViews.decay[0] = this.getDecay();
+        ST_LightViews.decay[0] = this.Decay;
 
-        let angle = this.getAngle();
+        let angle = this.Angle;
         if (angle) {
             ST_LightViews.angle[0] = angle[0];
             ST_LightViews.angle[1] = angle[1];
         }
 
 
-        ST_LightViews.visible[0] = this.getVisible() ? 1 : 0;
+        ST_LightViews.visible[0] = this.Visible ? 1 : 0;
         //对应的shadowmap的信息
-        ST_LightViews.shadow[0] = this.getShadowEnable() ? 1 : 0;
+        ST_LightViews.shadow[0] = this.Shadow ? 1 : 0;
         ST_LightViews.shadow_map_type[0] = this.shadowMapOfSt_Light.shadow_map_type;
         ST_LightViews.shadow_map_array_index[0] = this.shadowMapOfSt_Light.shadow_map_array_index;
         ST_LightViews.shadow_map_array_lenght[0] = this.shadowMapOfSt_Light.shadow_map_array_lenght;
@@ -393,27 +416,34 @@ export abstract class BaseLight extends RootOfOrganization {
     }
 
     /**
-     * 设置光源的shadowmap信息。
-     * set light’s shadowmap info
-     * @param index 索引
-     * @param count 数量
-     * @param kind 类型
+     * 1、更新光源的shadowmap信息。
+     * 2、更新光源的structBuffer(每个光源的uniform)。
+     * @param index shadowmap索引
+     * @param count shadowmap数量
+     * @param kind  shadowmap类型（1=one depth,6=cube,0=none）
      */
-    setShdowMapValues(index: number, count: number, kind: number) {
+    updateShdowMapValues(index: number, count: number, kind: number) {
+        this.shadowMapOfSt_Light = {
+            shadow_map_type: kind,
+            shadow_map_array_index: index,
+            shadow_map_array_lenght: count,
+            shadow_map_enable: 1,
+        };
+
         let ST_LightValues = this._buffer.buffer;
         const ST_LightViews = {
-            position: new Float32Array(ST_LightValues, 0, 3),
-            decay: new Float32Array(ST_LightValues, 12, 1),
-            color: new Float32Array(ST_LightValues, 16, 3),
-            intensity: new Float32Array(ST_LightValues, 28, 1),
-            direction: new Float32Array(ST_LightValues, 32, 3),
-            distance: new Float32Array(ST_LightValues, 44, 1),
-            angle: new Float32Array(ST_LightValues, 48, 2),
-            shadow: new Int32Array(ST_LightValues, 56, 1),
-            visible: new Int32Array(ST_LightValues, 60, 1),
-            size: new Float32Array(ST_LightValues, 64, 4),
-            kind: new Int32Array(ST_LightValues, 80, 1),
-            id: new Uint32Array(ST_LightValues, 84, 1),
+            // position: new Float32Array(ST_LightValues, 0, 3),
+            // decay: new Float32Array(ST_LightValues, 12, 1),
+            // color: new Float32Array(ST_LightValues, 16, 3),
+            // intensity: new Float32Array(ST_LightValues, 28, 1),
+            // direction: new Float32Array(ST_LightValues, 32, 3),
+            // distance: new Float32Array(ST_LightValues, 44, 1),
+            // angle: new Float32Array(ST_LightValues, 48, 2),
+            // shadow: new Int32Array(ST_LightValues, 56, 1),
+            // visible: new Int32Array(ST_LightValues, 60, 1),
+            // size: new Float32Array(ST_LightValues, 64, 4),
+            // kind: new Int32Array(ST_LightValues, 80, 1),
+            // id: new Uint32Array(ST_LightValues, 84, 1),
             shadow_map_type: new Uint32Array(ST_LightValues, 88, 1),//1=one depth,6=cube,0=none
             shadow_map_array_index: new Int32Array(ST_LightValues, 92, 1),//-1 = 没有shadowmap,other number=开始的位置，从0开始
             shadow_map_array_lenght: new Uint32Array(ST_LightValues, 96, 1),//1 or 6
@@ -424,12 +454,7 @@ export abstract class BaseLight extends RootOfOrganization {
         ST_LightViews.shadow_map_array_lenght[0] = count;
         ST_LightViews.shadow_map_enable[0] = 1;//todo ,20250105，如果是动态管理shadowmap texture大小，这个需要适配，目前未使用
 
-        this.shadowMapOfSt_Light = {
-            shadow_map_type: kind,
-            shadow_map_array_index: index,
-            shadow_map_array_lenght: count,
-            shadow_map_enable: 1,
-        };
+
     }
 
 }

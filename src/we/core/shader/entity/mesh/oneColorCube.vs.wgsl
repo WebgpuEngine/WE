@@ -11,6 +11,7 @@ attributes: st_location,
   var vsOutput : VertexShaderOutput;  
   $vsOutput
   vsOutput.color= 0.5*(position.xyz+1);
+  // vsOutput.worldPosition= 0.5*(position +1);
   $userCodeVS
   return vsOutput;
 }

@@ -1,38 +1,36 @@
 import { Mat4, vec3, Vec3 } from "wgpu-matrix";
-import { BaseLight, lightType, optionBaseLight, structBaselight } from "./baseLight";
-import * as coreConst from "../const/coreConst";
+import { BaseLight, I_optionBaseLight, E_lightType, structBaselight } from "./baseLight";
 import { Scene } from "../scene/scene";
+import { weColor3 } from "../base/coreDefine";
 
-export interface optionAmbientLight extends optionBaseLight {
-    color: coreConst.Color3U,
+export interface IV_AmbientLight extends I_optionBaseLight {
+    color: weColor3,
     intensity: number
 }
 
 export class AmbientLight extends BaseLight {
+    async readyForGPU(): Promise<any> {
+    }
+    destroy(): void {
+        throw new Error("Method not implemented.");
+    }
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
     updateMVP(scene: Scene): Mat4[] {
         throw new Error("Method not implemented.");
     }
 
-    _color: Vec3;
-    _intensity: number;
     structBuffer: structBaselight;
 
 
-    constructor(input: optionAmbientLight) {
-        super(input, lightType.ambient);
-
-        this._color = [0, 0, 0];
+    constructor(input: IV_AmbientLight) {
+        super(input, E_lightType.ambient);
         this._intensity = 0;
-        if (input.color)
-            this._color = vec3.fromValues(input.color.red, input.color.green, input.color.blue);
-        if (input.intensity)
-            this._intensity = input.intensity
         this.structBuffer = new Float32Array(4 * 4);
-        // this.structBuffer.buffer[0] = this._color[0];
-        // this.structBuffer.buffer[1] = this._color[1];
-        // this.structBuffer.buffer[2] = this._color[2];
-        // this.structBuffer.buffer[3] = this._intensity;
-
     }
     getStructBuffer(): structBaselight {
         return this.structBuffer;

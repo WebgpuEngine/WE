@@ -38,10 +38,10 @@ import { ECSManager } from "../organization/manager";
 
 
 
-export interface IV_LightSManager {
-    scene: Scene,
-    lightCount: number,
-}
+// export interface IV_LightSManager {
+//     scene: Scene,
+//     lightCount: number,
+// }
 /**
  * struct ST_shadowMapMatrix size
  */
@@ -69,6 +69,8 @@ interface light_shadowMapMatrix {
 
 export class LightsManager extends ECSManager<BaseLight> {
 
+    scene: Scene;
+    device: GPUDevice;
 
     ////////////////////////////////////////////////////////////////////////////////
     /**
@@ -121,7 +123,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      * lights array ,only for scene,stage use lightsIndex[]
      * 
      * */
-    // lights: BaseLight[] = [];
+    lights: BaseLight[] = [];
 
     /***上一帧光源数量，动态增减光源，uniform的光源的GPUBuffer大小会变化，这个值如果与this.lights.length相同，不更新；不同，怎更新GPUBuffer */
     _lastNumberOfLights: number = 0;
@@ -156,6 +158,8 @@ export class LightsManager extends ECSManager<BaseLight> {
 
     constructor(scene: Scene) {
         super(scene);
+        this.scene = scene;
+        this.device = scene.device;
         this.reNewLightsNumberOfShadow = false;
         this._maxlightNumber = scene._maxlightNumber;
         ////////////////////////////////////////////////
@@ -182,8 +186,7 @@ export class LightsManager extends ECSManager<BaseLight> {
         return this._maxlightNumber;
     }
     getShadowMapNumber() {
-        // return this._maxlightNumber;
-        return this.shadowArrayOfDepthMapAndMVP.length;
+        return this._maxlightNumber;
     }
     /**生成shadow map 的 texture_depth_2d_array
      * 
@@ -248,7 +251,7 @@ export class LightsManager extends ECSManager<BaseLight> {
     }
     ////////////////////////////////////////////////////////////////////////////
     /**增加光源 */
-    addLight(one: BaseLight, _stage?: string) {
+    add(one: BaseLight, _stage?: string) {
         if (one.Shadow) {
             let count = 1;//point 有6个matrix，其他1个
             if (one.Kind == E_lightType.point) {//point light
@@ -349,7 +352,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @returns number
      */
     getLightNumbers() {
-        return this.list.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
+        return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -358,7 +361,7 @@ export class LightsManager extends ECSManager<BaseLight> {
 
         this._lastNumberOfLights = 0;
 
-        this.list = [];
+        this.lights = [];
         // this.lightsCommands = {};
         this.ambientLight = new AmbientLight({ color: [1, 1, 1], intensity: 1 });
         this.shadowArrayOfDepthMapAndMVP = [];
@@ -393,7 +396,7 @@ export class LightsManager extends ECSManager<BaseLight> {
     }
     /** 更新所有光源参数*/
     updateLights(clock: Clock) {
-        for (let i of this.list) {
+        for (let i of this.lights) {
             i.update(clock);
         }
     }
@@ -439,9 +442,9 @@ export class LightsManager extends ECSManager<BaseLight> {
 
         //第三部分，lightNumber * size
         //映射到每个viewer上，并写入新的数据（无论是否有变化）
-        for (let i = 0; i < this.list.length; i++) {
+        for (let i = 0; i < this.lights.length; i++) {
             let StructBuffer = new Float32Array(buffer, 16 + 16 + size * i, size / 4);//todo，20241117，需要确认是否/4(byte*4 -->float32*1)
-            let lightStructBuffer = this.list[i].getStructBuffer();
+            let lightStructBuffer = this.lights[i].getStructBuffer();
             for (let j = 0; j < size; j++) {
                 StructBuffer[j] = lightStructBuffer[j];
             }
@@ -525,7 +528,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @returns 
      */
     getLightByID(id: number): BaseLight | boolean {
-        for (let i of this.list) {
+        for (let i of this.lights) {
             if (id == i.ID) {
                 return i;
             }
@@ -716,20 +719,6 @@ export class LightsManager extends ECSManager<BaseLight> {
         let id = parseInt(lightId[0]);
         let matrixIndex = parseInt(lightId[1]);
         return { id, matrixIndex }
-    }
-
-    getCameraByUUID(UUID: string) {
-        for
-    }
-
-    getRPDByUUID(UUID: string): GPURenderPassDescriptor | false {
-        let camera = this.getCameraByUUID(UUID);
-        if (camera) {
-            return camera.RPD;
-        }
-        else {
-            return false;
-        }
     }
 
     // /////////////////////////////////////////////////

@@ -17,7 +17,7 @@ export abstract class BaseMaterial extends RootOfGPU {
     declare inputValues: IV_BaseMaterial;
 
 
-    _destroy: boolean=false;
+    _destroy: boolean = false;
     /**新的材质，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
      * constructor中设置为false。 
      * 如果更改为为true，在材质不工作
@@ -69,7 +69,7 @@ export abstract class BaseMaterial extends RootOfGPU {
         return renderID;
     }
     // /**第二阶段初始化，由init()调用，需要每个材质自己实现 */
-    abstract   destroy(): void
+    abstract destroy(): void
 
     /**
      * 获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
@@ -80,19 +80,26 @@ export abstract class BaseMaterial extends RootOfGPU {
      * @param startBinding 
      * @returns uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    abstract getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera,startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final }
+    abstract getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final }
     /**
      * 是否为透明材质
      * @returns boolean  true：是透明材质，false：不是透明材质
      */
-    abstract getTransparent(): boolean;
-
+    // abstract getTransparent(): boolean;
+    getTransparent(): boolean {
+        if (this._transparent) {
+            return true;
+        }
+        else return false;
+    }
     /**
      * 获取混合状态
      * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
      */
-    abstract getBlend(): GPUBlendState | undefined;
-
+    // abstract getBlend(): GPUBlendState | undefined;
+    getBlend(): GPUBlendState | undefined {
+        return this._transparent?.blend;
+    }
 
     /**设置状态 */
     set LifeState(state: E_lifeState) { this._state = state; }

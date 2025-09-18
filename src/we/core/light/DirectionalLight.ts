@@ -1,20 +1,31 @@
+import { weVec3 } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
-import { lightType, optionBaseLight, shadowMap } from "./baseLight";
-import { BaseLight } from "./baseLight";
+import { BaseLight, E_lightType, I_optionBaseLight } from "./baseLight";
 import { mat4, Mat4, vec3, Vec3, vec4 } from "wgpu-matrix";
 
-export interface optionDirectionalLight extends optionBaseLight {
+export interface IV_DirectionalLight extends I_optionBaseLight {
     // color: coreConst.color3F,
     /**光的强度 ,wgsl，不受距离与立体角影响
      * 默认=1.0
     */
     intensity: number,
-    direction: Vec3,
+    direction: weVec3,
     distance?: 0,
 }
 
 
 export class DirectionalLight extends BaseLight {
+    async readyForGPU(): Promise<any> {
+    }
+    destroy(): void {
+        throw new Error("Method not implemented.");
+    }
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
     /**
      * 更新以光源为视点的MVP
      * @param scene 
@@ -25,7 +36,7 @@ export class DirectionalLight extends BaseLight {
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
         ]);
 
-        if (this.shadow) {
+        if (this.Shadow) {
 
             // const box3 = scene.getBoundingBox();//
             const spshere = scene.getBoundingSphere();
@@ -82,14 +93,12 @@ export class DirectionalLight extends BaseLight {
         return [matrix];
 
     }
-    constructor(input: optionDirectionalLight) {
-        super(input, lightType.direction);
+    constructor(input: IV_DirectionalLight) {
+        super(input, E_lightType.direction);
 
     }
 
-    generateShadowMap(_device: GPUDevice): shadowMap {
-        throw new Error("Method not implemented.");
-    }
+
 
 
 }

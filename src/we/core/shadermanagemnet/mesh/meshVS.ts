@@ -111,7 +111,7 @@ export var SHT_LineVS: I_ShaderTemplate = {
             },
             {
                 name: "st_location",
-                code: WGSL_st_location, 
+                code: WGSL_st_location,
             },
             {
                 name: "st_entity",
@@ -138,9 +138,9 @@ export var SHT_LineVS: I_ShaderTemplate = {
             },
             {
                 name: "userCodeVS",
-                replace: "$userCodeVS", 
+                replace: "$userCodeVS",
                 replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: "",                       
+                replaceCode: "",
             }],
 
     },
@@ -237,7 +237,7 @@ export var SHT_PointEmuSpriteVS: I_ShaderTemplate = {
 }
 
 import oneCubeColorWGSL from "../../shader/entity/mesh/oneColorCube.vs.wgsl?raw"
-var oneCubeColor  =oneCubeColorWGSL.toString();
+var oneCubeColor = oneCubeColorWGSL.toString();
 
 export var SHT_OneCubeColorVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,

@@ -17,7 +17,7 @@ export type SimpleFunction = () => void;
 /** 用户自定义功能接口的update interface */
 export interface I_Update {
     /**自定义更新functon() */
-    update?: (scope: any) =>void,
+    update?: (scope: any) => void,
 }
 
 /** 渲染类型，用于shadow map 或者camera */
@@ -32,9 +32,13 @@ export enum E_renderForDC {
 ////////////////////////////////////////////////////////////////////////////////////////
 //color define
 /**RGBA四个数值的颜色interface，0--1 */
-export type Color4 =[number, number, number, number]
+export type weVec2 = [number, number];
+export type weVec3 = [number, number, number];
+export type weVec4 = [number, number, number, number];
+
+export type weColor4 = weVec4;
 /**RGBA四个数值的颜色interface，0--255 */
-export type Color3 =[ number, number, number]
+export type weColor3 = weVec3;
 
 
 /**texture的alphaT为0的float的zero值 */

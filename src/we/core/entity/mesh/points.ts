@@ -1,4 +1,4 @@
-import { Color3, E_lifeState, E_renderForDC } from "../../base/coreDefine";
+import { weColor3, E_lifeState, E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_drawMode, I_drawModeIndexed, I_uniformBufferPart, T_uniformGroup } from "../../command/base";
 import { T_vsAttribute, V_DC } from "../../command/DrawCommandGenerator";
@@ -36,7 +36,7 @@ export interface IV_PointsEntity extends I_optionBaseEntity {
      * 1、颜色，与material互斥
      * 2、顶点着色，需要使用VertexMaterial材质
      */
-    color?: Color3,
+    color?: weColor3,
     /**
      * 1、材质, 与颜色互斥 
      * 2、默认是没有材质，只有在emulate有值的时候才会有材质
@@ -53,7 +53,7 @@ export class Points extends BaseEntity {
 
     _material!: BaseMaterial;
     size: number = 1;
-    color: Color3 = [1, 1, 1];
+    color: weColor3 = [1, 1, 1];
     emulate: T_PointEmulate = "none";
     /** 顶点数据 */
     attributes: I_EntityAttributes = {

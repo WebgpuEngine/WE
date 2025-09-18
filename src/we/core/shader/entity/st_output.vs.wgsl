@@ -10,5 +10,6 @@ struct VertexShaderOutput {
             //然后在(part_replace.VertexShaderOutput.vs.wgsl)进行格式化内容,
             //并输出fragment shader中。
     @location(4) @interpolate(flat) entityID : u32,
+    @location(5) cubeVecUV : vec3f,
 };
 //end :part.st_vertexOutput.vs.wgsl

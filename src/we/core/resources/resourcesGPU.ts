@@ -1,9 +1,8 @@
-import type { I_uniformBufferPart, uniformEntries, uniformGroup } from "../command/base";
+import type { I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../command/base";
 
 export class ResourceManagerOfGPU {
-    //所有为分类的
+    //所有为分类的,未定义，未分类，分类失败
     resources: Map<any, any> = new Map();
-
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //基础单位数据
@@ -16,11 +15,11 @@ export class ResourceManagerOfGPU {
     /////////////////////////////////////////////////////////////////////////////////////////
     // 单个（每个binding）uniform-->GPUBindGroupLayoutEntry
     /**一个bind group 内的对应的layout */
-    entriesToEntriesLayout: Map<uniformEntries, GPUBindGroupLayoutEntry> = new Map();
+    entriesToEntriesLayout: Map<T_uniformEntries, GPUBindGroupLayoutEntry> = new Map();
     /////////////////////////////////////////////////////////////////////////////////////////
     // uniform[]-->BindGroup-->BindGroupLayout
     /**uniformGrpu 对应的 BindGrouop */
-    uniformGroupToBindGroup: Map<uniformGroup, GPUBindGroup> = new Map();
+    uniformGroupToBindGroup: Map<T_uniformGroup, GPUBindGroup> = new Map();
     /** bindGroup 对应的layout */
     bindGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
 
@@ -41,6 +40,10 @@ export class ResourceManagerOfGPU {
     //sytem Group0 
     systemGroup0ByID: Map<string, GPUBindGroup> = new Map();
     systemGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    //texture 
+    texture: Map<string, GPUBindGroup> = new Map();
 
     has(key: any, _kind?: string) {
         if (_kind) {
@@ -132,7 +135,6 @@ export class ResourceManagerOfGPU {
             }
         }
     }
-
 }
 
 class GPUBindGroupEntryImpl implements GPUBindGroupEntry {
@@ -173,7 +175,7 @@ export function isUniformBufferPart(obj: unknown): obj is I_uniformBufferPart {
     );
 }
 
-export function isUniformGroup(obj: unknown): obj is uniformGroup {
+export function isUniformGroup(obj: unknown): obj is T_uniformGroup {
     return (
         Array.isArray(obj) &&
         obj.every(isUniformBufferPart || isGPUBindGroupEntry)

@@ -1,7 +1,8 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
+import { I_UUID } from "./root";
 
-export abstract class ECSManager<T> {
+export abstract class ECSManager<T extends I_UUID> {
     scene: Scene;
     device: GPUDevice;
     list: T[] = [];
@@ -24,5 +25,13 @@ export abstract class ECSManager<T> {
     abstract update(clock: Clock): void;
     count() {
         return this.list.length;
+    }
+    getByUUID(UUID: string) {
+        for (let perOne of this.list) {
+            if (perOne.UUID! == UUID) {
+                return perOne;
+            }
+        }
+        return null;
     }
 }

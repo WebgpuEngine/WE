@@ -1,5 +1,5 @@
 import { Mat4 } from "wgpu-matrix";
-import { BaseLight, lightStructSizeOfShadowMapMVP } from "./baseLight";
+import { BaseLight } from "./baseLight";
 
 
 export interface optionShadowMap {

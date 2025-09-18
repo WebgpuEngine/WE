@@ -4,11 +4,16 @@ import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import type { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { E_lifeState, I_Update } from "../base/coreDefine";
+import { E_lifeState, I_Update, weVec3 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseMaterial } from "../material/baseMaterial";
+import { isWeVec3 } from "../base/coreFunction";
 
+
+export interface I_UUID {
+    UUID: string;
+}
 export interface RootOfOrganizationJSON {
     type: string,
     name: string,
@@ -29,7 +34,7 @@ export interface RootOfOrganizationJSON {
     children: number[],
 }
 
-export abstract class RootOfOrganization {
+export abstract class RootOfOrganization  implements I_UUID{
     /**
      * 节点名称
      * node name
@@ -57,26 +62,26 @@ export abstract class RootOfOrganization {
 
     UUID!: string;
     //空间属性
-    _position: Vec3;
-    _scale: Vec3;
-    _rotate: Rotation | undefined;
+    _position: Vec3=vec3.create();
+    _scale: Vec3=vec3.create(1,1,1);
+    _rotate: Rotation | undefined = undefined;
     worldPosition: Vec3 = vec3.create();
 
-    enable: boolean;
-    _destroy: boolean;
+    enable: boolean = true;
+    _destroy: boolean = false;
     /**
      * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
      * node visible
      */
-    visible: boolean;
+    visible: boolean = true;
 
     _state: E_lifeState = E_lifeState.unstart;
 
     /**当前mesh的local的矩阵，按需更新 */
-    matrix: Mat4;
+    matrix: Mat4=mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
 
     /**当前entity在世界坐标（层级的到root)，可以动态更新 */
-    matrixWorld: Mat4;
+    matrixWorld: Mat4=mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
 
     /**
      * 父节点
@@ -107,23 +112,8 @@ export abstract class RootOfOrganization {
         this.UUID = WeGenerateUUID();
         this.ID = WeGenerateID();
         if (input) this.inputValues = input;
-        this._position = vec3.create();
-        this._scale = vec3.create(1, 1, 1);
-        // this._rotate = {
-        //     axis: vec3.create(),
-        //     angleInRadians: 0,
-        // }
-
-
-        this.enable = true;
-        this.visible = true;
         this._name = this.ID.toString();
-        this._destroy = false;
 
-        // this._rotate = {
-        //     axis: vec3.create(),
-        //     angleInRadians: 0,
-        // }
         this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
 
@@ -238,8 +228,15 @@ export abstract class RootOfOrganization {
     set ID(id) { this._id = id; }
     get ID(): number { return this._id; }
 
-    set Scale(scale: Vec3) {
-        this._scale = scale;
+    set Scale(scale: Vec3 | weVec3) {
+        // this._scale = scale;
+        // return ;
+        if (isWeVec3(scale)) {
+            vec3.copy( vec3.fromValues(...scale),this._scale);
+        }
+        else {
+            vec3.copy(scale, this._scale);
+        }
     }
     get Scale(): Vec3 {
         return this._scale;
@@ -251,8 +248,15 @@ export abstract class RootOfOrganization {
     get Rotate(): Rotation | undefined {
         return this._rotate;
     }
-    set Position(pos: Vec3) {
-        this._position = pos;
+    set Position(pos: Vec3 | weVec3) {
+        // this._position = pos;
+        // return;
+        if (isWeVec3(pos)) {
+            vec3.copy(vec3.fromValues(...pos), this._position);
+        }
+        else {
+            vec3.copy(pos, this._position);
+        }
     }
     get Position(): Vec3 {
         return this._position;

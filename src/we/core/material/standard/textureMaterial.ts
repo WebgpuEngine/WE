@@ -1,12 +1,7 @@
 /**
- * @author TomSong 2025-04-28
+ * @author TomSong 2025-09-16
  * @description 基础纹理材质
- * @version 0.0.1
- * @requires BaseMaterial.ts
- * @requires textureMaterial.fs.wgsl
- * @requires textureMaterialTransparent.fs.wgsl
- * @requires textureMaterial.vs.wgsl
- * @requires textureMaterialTransparent.vs.wgsl
+ * @version 1.0.0
  * 
  * 基础纹理材质
  * 1、支持基础颜色
@@ -17,11 +12,9 @@
  */
 import { BaseMaterial, } from "../baseMaterial";
 
-import textureFS from "../../shader/material/simple/texture.fs.wgsl?raw"
-import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
 import { Texture } from "../../texture/texture";
 import { textureSourceType } from "../../texture/base";
-import { I_TransparentOfMaterial, IV_BaseMaterial } from "../base";
+import { E_TextureType, I_TransparentOfMaterial, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -36,9 +29,8 @@ import { getBundleOfGBufferOfUniformOfDefer } from "../../gbuffers/base";
  */
 export interface IV_TextureMaterial extends IV_BaseMaterial {
     textures: {
-        colorTexture: textureSourceType | Texture
+        [name in E_TextureType]?: textureSourceType | Texture
     },
-
 }
 
 export class TextureMaterial extends BaseMaterial {
@@ -162,7 +154,7 @@ export class TextureMaterial extends BaseMaterial {
             });
         }
     }
-    getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
+    getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
@@ -174,7 +166,7 @@ export class TextureMaterial extends BaseMaterial {
         //uniform texture
         let uniformTexture: GPUBindGroupEntry = {
             binding: binding,
-            resource: this.textures["colorTexture"].texture.createView(),
+            resource: this.textures[E_TextureType.color].texture.createView(),
         };
         //uniform texture layout
         let uniformTextureLayout: GPUBindGroupLayoutEntry = {
@@ -258,17 +250,6 @@ export class TextureMaterial extends BaseMaterial {
         throw new Error("Method not implemented.");
     }
 
-
-    getTransparent(): boolean {
-        if (this._transparent) {
-            return true;
-        }
-        else return false;
-    }
-
-    getBlend(): GPUBlendState | undefined {
-        return this._transparent?.blend;
-    }
 
 
 

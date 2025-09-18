@@ -1,5 +1,5 @@
 
-import { Color3, Color4 } from "../base/coreDefine";
+import { weColor3, Color4 } from "../base/coreDefine";
 
 type geometryMaterialStep = number[];
 export interface xyz {
@@ -31,7 +31,7 @@ export interface I_geometryWireFrameAttribute {
 export interface IV_Gemetry {
     /**指定的shader code */
     code?: string,
-    color?: Color3,
+    color?: weColor3,
 }
 /**
  * 设计目标提供静态的基础几何体
@@ -54,7 +54,7 @@ export abstract class BaseGeometry {
         }
     _destroy: boolean = false;
 
-    _wireframeColor!: Color3;
+    _wireframeColor!: weColor3;
     _wireframeEnable!: boolean;
 
     _already: boolean = false;
@@ -211,7 +211,7 @@ export abstract class BaseGeometry {
             // materialStep: this.buffer.materialStep
         };
     }
-    generateColorArray(length: number, color : Color3 = [1, 1, 1]) {
+    generateColorArray(length: number, color : weColor3 = [1, 1, 1]) {
         if (this.input.color) {
             color = this.input.color;
         }

@@ -1,17 +1,18 @@
 import { mat4, Mat4, vec3, Vec3, vec4 } from "wgpu-matrix";
-import { lightType, optionBaseLight, shadowMap } from "./baseLight";
+import { E_lightType, I_optionBaseLight } from "./baseLight";
 import { BaseLight } from "./baseLight";
 import { Scene } from "../scene/scene";
+import { weVec3 } from "../base/coreDefine";
 
 
 
-export interface optionSpotLight extends optionBaseLight {
-    position: Vec3,
+export interface IV_SpotLight extends I_optionBaseLight {
+    position: weVec3,
     /**光的强度 ,wgsl，不受距离与立体角影响
      * 默认=1.0
     */
     intensity?: number,
-    direction: Vec3,
+    direction: weVec3,
     /**弧度制 */
     angle: number,
     /**弧度制 */
@@ -19,10 +20,20 @@ export interface optionSpotLight extends optionBaseLight {
 }
 
 export class SpotLight extends BaseLight {
+    async readyForGPU(): Promise<any> {
+    }
+    destroy(): void {
+        throw new Error("Method not implemented.");
+    }
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+    constructor(input: IV_SpotLight) {
 
-    constructor(input: optionSpotLight) {
-
-        super(input, lightType.spot);
+        super(input, E_lightType.spot);
     }
 
     // generateShadowMap(_device: GPUDevice): shadowMap {
@@ -44,7 +55,7 @@ export class SpotLight extends BaseLight {
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
         ]);
 
-        if (this.shadow) {
+        if (this.Shadow) {
 
             // const box3 = scene.getBoundingBox();//
             const spshere = scene.getBoundingSphere();

@@ -124,7 +124,7 @@ export class ArcballCameraControl extends CamreaControl {
                 position = vec3.scale(this.camera.back, this.distance);//重新计算位置
                 this.camera.updateByPositionDirection(position, this.camera.back, true);
             }
-            this.camera.updateWorldPositionByPosition(position);
+            // this.camera.updateWorldPositionByPosition(position);
         }
         else {
             console.log("arcbalCameraControl's camere didn't defined !,error from update()");

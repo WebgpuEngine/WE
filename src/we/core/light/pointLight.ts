@@ -1,12 +1,13 @@
 import { mat4, Mat4, vec3, Vec3, vec4 } from "wgpu-matrix";
-import { lightType, optionBaseLight, } from "./baseLight";
+import { E_lightType, I_optionBaseLight } from "./baseLight";
 import { BaseLight } from "./baseLight";
 import { Scene } from "../scene/scene";
+import { weVec3 } from "../base/coreDefine";
 
 
-export interface optionPointLight extends optionBaseLight {
+export interface IV_PointLight extends I_optionBaseLight {
     /**位置 */
-    position: Vec3,
+    position: weVec3,
 
     /**光的强度 ,wgsl，不受距离与立体角影响
      * 默认=1.0
@@ -24,8 +25,19 @@ export interface shadowMapBox {
 }
 
 export class PointLight extends BaseLight {
-    constructor(input: optionPointLight) {
-        super(input, lightType.point);
+    async readyForGPU(): Promise<any> {
+    }
+    destroy(): void {
+        throw new Error("Method not implemented.");
+    }
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+    constructor(input: IV_PointLight) {
+        super(input, E_lightType.point);
     }
 
     // generateShadowMap(_device: GPUDevice): shadowMapBox {
@@ -34,7 +46,7 @@ export class PointLight extends BaseLight {
     updateMVP(scene: Scene): Mat4[] {
 
         let MVPS = [];
-        if (this.shadow) {
+        if (this.Shadow) {
 
             //1、计算光源的包围盒（衰减距离或世界包围球）
             //2、按照cube的顺序，+x,-x,+y,-y,+z,-z,Z轴向上
@@ -74,7 +86,7 @@ export class PointLight extends BaseLight {
                 return [];
             }
             let far = 0;
-            let near =1; this.epsilon;
+            let near = 1; this.epsilon;
             if (this.inputValues.distance != 0.0) {
                 far = this.inputValues.distance!;
             }
@@ -111,7 +123,7 @@ export class PointLight extends BaseLight {
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
-            }  
+            }
             //-x
             {
                 let matrix = new Float32Array([
@@ -142,8 +154,8 @@ export class PointLight extends BaseLight {
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
-        
-              //+y
+
+            //+y
             {
                 let matrix = new Float32Array([
                     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,

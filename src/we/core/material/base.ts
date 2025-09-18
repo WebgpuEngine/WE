@@ -65,3 +65,27 @@ export interface IV_BaseMaterialStep2 {
     // deferRenderColor: boolean,
     // reversedZ: boolean,
 }
+
+/** 材质中使用的texture类型 */
+export enum E_TextureType {
+    /** 颜色贴图 */
+    color="color",
+    /** 立方体贴图 */
+    cube="cube",
+    /** 法线贴图 */
+    normal="normal",
+    /** 金属度贴图 */
+    specular="specular",
+    /** 视差贴图 */
+    parallax="parallax",
+    /** 基础颜色贴图 */
+    albedo="albedo",
+    /** 金属度贴图 */
+    metallic="metallic",
+    /** 粗糙度贴图 */
+    roughness="roughness",
+    /** 环境光遮蔽贴图 */
+    ao="ao",
+    /** 深度贴图 */
+    depthMap="depthMap",
+}
