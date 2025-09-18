@@ -95,11 +95,11 @@ export class RenderManager {
 
 
     listCommandType: any[] = [
-            this.renderCompute,
-            this.renderTexutre,
-            this.renderMaterial,
-            this.renderRenderTarget,
-        ]
+        this.renderCompute,
+        this.renderTexutre,
+        this.renderMaterial,
+        this.renderRenderTarget,
+    ]
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = scene.device;
@@ -255,14 +255,15 @@ export class RenderManager {
     }
 
     renderTimelineDC(list: I_renderDrawOfTimeline) {
-        let submitCommandOfTransparentOfShadowMap: GPUCommandBuffer[] = [];
+        let submitCommand: GPUCommandBuffer[] = [];
         for (let i in list) {
             let perCamera = list[i];
             for (let perCommand of perCamera) {
-                submitCommandOfTransparentOfShadowMap.push(perCommand.update());//webGPU的commandBuffer时一次性的
+                submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
             }
         }
-        this.device.queue.submit(submitCommandOfTransparentOfShadowMap);
+        if (submitCommand.length > 0)
+        this.device.queue.submit(submitCommand);
     }
     renderForwareDC(commands: I_renderDrawCommand) {
         let cameraRendered: {
@@ -359,13 +360,14 @@ export class RenderManager {
         for (let perCommand of this.renderUICommand) {
             submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
         }
-
-        this.device.queue.submit(submitCommand);
+        if (submitCommand.length > 0)
+            this.device.queue.submit(submitCommand);
         //output
         submitCommand = [];
         for (let perCommand of this.renderOutputCommand) {
             submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
         }
-        this.device.queue.submit(submitCommand);
+        if (submitCommand.length > 0)
+            this.device.queue.submit(submitCommand);
     }
 }

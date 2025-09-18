@@ -34,7 +34,7 @@ export interface RootOfOrganizationJSON {
     children: number[],
 }
 
-export abstract class RootOfOrganization  implements I_UUID{
+export abstract class RootOfOrganization implements I_UUID {
     /**
      * 节点名称
      * node name
@@ -62,8 +62,8 @@ export abstract class RootOfOrganization  implements I_UUID{
 
     UUID!: string;
     //空间属性
-    _position: Vec3=vec3.create();
-    _scale: Vec3=vec3.create(1,1,1);
+    _position: Vec3 = vec3.create();
+    _scale: Vec3 = vec3.create(1, 1, 1);
     _rotate: Rotation | undefined = undefined;
     worldPosition: Vec3 = vec3.create();
 
@@ -78,10 +78,10 @@ export abstract class RootOfOrganization  implements I_UUID{
     _state: E_lifeState = E_lifeState.unstart;
 
     /**当前mesh的local的矩阵，按需更新 */
-    matrix: Mat4=mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+    matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
 
     /**当前entity在世界坐标（层级的到root)，可以动态更新 */
-    matrixWorld: Mat4=mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+    matrixWorld: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
 
     /**
      * 父节点
@@ -232,7 +232,7 @@ export abstract class RootOfOrganization  implements I_UUID{
         // this._scale = scale;
         // return ;
         if (isWeVec3(scale)) {
-            vec3.copy( vec3.fromValues(...scale),this._scale);
+            vec3.copy(vec3.fromValues(...scale), this._scale);
         }
         else {
             vec3.copy(scale, this._scale);
@@ -549,13 +549,12 @@ export abstract class RootOfGPU extends RootOfOrganization {
 
         }
         else if (child.type == "Light") {
-            this.scene.lightManager.addLight(child as BaseLight);
-            if ((child as BaseLight).shadow)
-                this.scene.renderManager.renderShadowMapTransparentCommand[child.UUID] = {
-                    depth: new Map(),
-                    color: new Map(),
-                };
+            this.scene.lightsManager.addLight(child as BaseLight);
+            this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+            if ((child as BaseLight).Shadow)
+                this.scene.renderManager.renderShadowMapTransparentCommand[child.UUID] = [];
             this.scene.renderManager.initRenderCommandForLight(child.UUID);
+
         }
         // else if (child.type == "ParticleSystem") {
         //     this.scene.particleManager.addParticleSystem(child as ParticleSystem);
@@ -582,7 +581,9 @@ export abstract class RootOfGPU extends RootOfOrganization {
                 delete this.scene.renderManager.renderCameraForwardCommand[child.UUID];
             }
             else if (child.type == "Light") {
-                this.scene.lightManager.removeLight(child as BaseLight);
+                this.scene.lightsManager.remove(child as BaseLight);
+                this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+
                 if (this.scene.renderManager.renderShadowMapTransparentCommand[child.UUID])
                     delete this.scene.renderManager.renderShadowMapTransparentCommand[child.UUID];
                 if (this.scene.renderManager.renderShadowMapOpacityCommand[child.UUID])

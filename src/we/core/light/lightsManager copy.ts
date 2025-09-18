@@ -329,7 +329,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      */
     gettShadowMapRPD(mergeID: string): GPURenderPassDescriptor | false {
         let { id, matrixIndex } = this.getIdAndMatrixIndex(mergeID);
-        return this.gettShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
+        return this.getShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
     }
 
     /**
@@ -339,7 +339,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @returns  GPURenderPassDescriptor | false
      */
 
-    gettShadowMapRPDByIdAndSelfIndex(id: number, matrixIndex: number): GPURenderPassDescriptor | false {
+    getShadowMapRPDByIdAndSelfIndex(id: number, matrixIndex: number): GPURenderPassDescriptor | false {
         for (let i of this.shadowArrayOfDepthMapAndMVP) {
             if (i.light_id == id && i.matrix_self_index == matrixIndex!) {
                 return i.RPD;

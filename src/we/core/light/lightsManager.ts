@@ -325,8 +325,8 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @returns  GPURenderPassDescriptor | false
      */
     gettShadowMapRPD(mergeID: string): GPURenderPassDescriptor | false {
-        let { id, matrixIndex } = this.getIdAndMatrixIndex(mergeID);
-        return this.gettShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
+        let { id, matrixIndex } = this.getIdAndMatrixIndexByUUID(mergeID);
+        return this.getShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
     }
 
     /**
@@ -336,7 +336,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @returns  GPURenderPassDescriptor | false
      */
 
-    gettShadowMapRPDByIdAndSelfIndex(id: number, matrixIndex: number): GPURenderPassDescriptor | false {
+    getShadowMapRPDByIdAndSelfIndex(id: number, matrixIndex: number): GPURenderPassDescriptor | false {
         for (let i of this.shadowArrayOfDepthMapAndMVP) {
             if (i.light_id == id && i.matrix_self_index == matrixIndex!) {
                 return i.RPD;
@@ -647,8 +647,11 @@ export class LightsManager extends ECSManager<BaseLight> {
             return bindGroup;
         }
     }
+    getLightsUniformForSystem(){
+        return  this.lightsUniformGPUBuffer;
+    }
     /**
-     * 获取光源的bindGroup和bindGroupLayout
+     * 获取光源shadowmap渲染的bindGroup和bindGroupLayout
      * @param mergeID 
      * @returns   GPUBindGroup,  GPUBindGroupLayout 
      */
@@ -711,6 +714,20 @@ export class LightsManager extends ECSManager<BaseLight> {
             }
         }
     }
+    getIdAndMatrixIndexByUUID(mergeUUID: string) {
+        let lightId = mergeUUID.split("__");
+        let UUID =lightId[0];
+        let light=this.getByUUID(UUID);
+        let id;
+        if(light){
+             id=light.ID;
+        }
+        else{
+            throw new Error("获取光源失败");
+        }
+        let matrixIndex = parseInt(lightId[1]);
+        return { id, matrixIndex }
+    }
     getIdAndMatrixIndex(mergeID: string) {
         let lightId = mergeID.split("__");
         let id = parseInt(lightId[0]);
@@ -718,39 +735,7 @@ export class LightsManager extends ECSManager<BaseLight> {
         return { id, matrixIndex }
     }
 
-    getCameraByUUID(UUID: string) {
-        for
-    }
 
-    getRPDByUUID(UUID: string): GPURenderPassDescriptor | false {
-        let camera = this.getCameraByUUID(UUID);
-        if (camera) {
-            return camera.RPD;
-        }
-        else {
-            return false;
-        }
-    }
 
-    // /////////////////////////////////////////////////
-    // /**render perlight's shadowmap  */
-    // render() {
-    //     for (let oneLightID_i in this.lightsCommands) {
-    //         let ID = oneLightID_i.split("__");
-    //         let id: number = parseInt(ID[0]);
-    //         let matrixIndex: number = parseInt(ID[1]);
-    //         for (let i in this.lightsCommands[oneLightID_i]) {
-    //             let RPD = this.gettShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
-    //             if (RPD) {
-    //                 if (i == "0") {
-    //                     RPD.depthStencilAttachment!.depthLoadOp = "clear";
-    //                 }
-    //                 else if (i == "1") {
-    //                     RPD.depthStencilAttachment!.depthLoadOp = "load";
-    //                 }
-    //                 this.lightsCommands[oneLightID_i][i].update();
-    //             }
-    //         }
-    //     }
-    // }
+
 }

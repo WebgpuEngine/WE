@@ -714,8 +714,15 @@ export class Scene {
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //uniform 部分
 
 
+    /**
+     * 
+     * @param UUID UUID,camera的UUID是正常的UUID，light的UUID是merge的UUID，通过“__”分割shadowmap的index（默认=0，point有6个：0-5）
+     * @param kind 渲染的类型
+     * @returns 
+     */
     getSystemBindGroupAndBindGroupLayoutFroZero(UUID: string, kind: E_renderForDC): I_bindGroupAndGroupLayout {
         let bindGroup: GPUBindGroup;
         let bindGroupLayout: GPUBindGroupLayout;
@@ -757,6 +764,22 @@ export class Scene {
                     entriesGroup.push(uniformMVP);
                     ////////////////////////////////////
                     //lights uniform 
+                    let uniformLights: GPUBindGroupEntry = {
+                        binding: 1,
+                        resource: {
+                            buffer: this.lightsManager.getLightsUniformForSystem(),
+                        }
+                    };
+                    let uniformLightsLayout: GPUBindGroupLayoutEntry = {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    };
+                    entriesGroupLayout.push(uniformLightsLayout);
+                    entriesGroup.push(uniformLights);
+
 
 
                     //////////////////////////////////
@@ -802,7 +825,7 @@ export class Scene {
                 throw new Error("获取RPD失败");
         }
         else {
-            let rdp = this.lightsManager.getRPDByUUID(UUID);
+            let rdp = this.lightsManager.gettShadowMapRPD(UUID);
             if (rdp)
                 return rdp;
             else

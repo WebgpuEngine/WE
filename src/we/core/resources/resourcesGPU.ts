@@ -23,23 +23,40 @@ export class ResourceManagerOfGPU {
     /** bindGroup 对应的layout */
     bindGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
 
-    /////////////////////////////////////////////////////////////////////////////////////////
-    //shadowmap
-    shadowmapOfID2BindGroup: Map<string, GPUBindGroup> = new Map;
-    shadowmapOfBindGroup2Layout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
-
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // pipeline,按照pipeline进行归类，高效渲染使用
+    /**renderPipelineDescriptor 对应的 GPURenderPipeline
+     * DCG使用
+     */
     renderPipelineDescriptor: Map<GPURenderPipelineDescriptor, GPURenderPipeline> = new Map();
+    /**computePipelineDescriptor 对应的 GPUComputePipeline 
+     * 预计会用：20250918
+    */
     computePipelineDescriptor: Map<GPUComputePipelineDescriptor, GPUComputePipeline> = new Map();
-    ValueToPipeline: Map<any, GPURenderPipeline | GPUComputePipeline> = new Map();
-    pipeline: Map<GPURenderPipeline | GPUComputePipeline, any[]> = new Map();
+
+    //目前此部分的其他没有用的，render的pipeline在renderMnanger中
+    // /**pipeline 对应的 descriptor */
+    // ValueToPipeline: Map<any, GPURenderPipeline | GPUComputePipeline> = new Map();
+    // pipeline: Map<GPURenderPipeline | GPUComputePipeline, any[]> = new Map();
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //sytem Group0 
+    /**camera UUID -> GPUBindGroup */
     systemGroup0ByID: Map<string, GPUBindGroup> = new Map();
+    /**systemGroup0 对应的 GPUBindGroupLayout */
     systemGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
+    cleanSystemUniform() {
+        this.systemGroup0ByID.clear();
+        this.systemGroupToGroupLayout.clear();
+    }
+    /////////////////////////////////////////////////////////////////////////////////////////
+    //shadowmap
+    /**shadowmap（light 的mergeUUID） 对应的 GPUBindGroup */
+    shadowmapOfID2BindGroup: Map<string, GPUBindGroup> = new Map();
+    /**shadowmap（light 的mergeUUID） 对应的GPUBindGroup 对应的 GPUBindGroupLayout */
+    shadowmapOfBindGroup2Layout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
+
 
     //////////////////////////////////////////////////////////////////////////////////////////
     //texture 
