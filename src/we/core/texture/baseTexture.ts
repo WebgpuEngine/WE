@@ -232,7 +232,7 @@ export abstract class BaseTexture {
     /**
      * 检查textureLayout是否完整
      */
-    defaultTextureLayout() {
+    defaultTextureLayout(): GPUTextureBindingLayout {
         if (this.textureLayout.viewDimension == undefined) {
             this.setTextureLayoutDimension('2d');
         }
@@ -242,6 +242,7 @@ export abstract class BaseTexture {
         if (this.textureLayout.multisampled == undefined) {
             this.setTextureLayoutmultisampled(false);
         }
+        return this.textureLayout;
     }
     /**
      * 检查textureLayout的sampleType是否正确

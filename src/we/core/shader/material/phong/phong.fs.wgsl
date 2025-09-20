@@ -56,22 +56,22 @@ struct bulin_phong {
                 onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, uv);
                 // computeShadow = inShadowRangOfSpotLight(fsInput.worldPosition, onelight.position, onelight.direction, onelight.angle);
             }
-            if(shadow_map_index >1){            //如果在点光源的阴影中，计算阴影
-            // if(shadow_map_index >=0){            //如果在点光源的阴影中，计算阴影
-                inPointShadow = true;
-            }
-            else{            //如果不在点光源的阴影中，不计算阴影，进行一次统一工作流
-                // shadow_map_index = onelight.shadow_map_array_index;
-            }
-            if (onelight.kind ==1){//点光源的pcss在计算block是需要适配，目前多出来了边界的黑框，目前考虑是block的uv在边界的地方越界了，需要进行特殊处理
-                // visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
-            }
-            else{
-            // visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, normal, 0.08); 
-            ////visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, normal);
-            ////visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
-           //// visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, normal);
-           }
+        //     if(shadow_map_index >1){            //如果在点光源的阴影中，计算阴影
+        //     // if(shadow_map_index >=0){            //如果在点光源的阴影中，计算阴影
+        //         inPointShadow = true;
+        //     }
+        //     else{            //如果不在点光源的阴影中，不计算阴影，进行一次统一工作流
+        //         shadow_map_index = onelight.shadow_map_array_index;
+        //     }
+        //     if (onelight.kind ==1){//点光源的pcss在计算block是需要适配，目前多出来了边界的黑框，目前考虑是block的uv在边界的地方越界了，需要进行特殊处理
+        //         visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
+        //     }
+        //     else{
+        //      visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, normal, 0.08); 
+        //     //visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, normal);
+        //     //visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
+        //    // visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, normal);
+        //    }
             if (onelight.shadow ==1 && computeShadow)  {            }
             else
             {
@@ -84,43 +84,17 @@ struct bulin_phong {
             colorOfPhoneOfLights[0] += colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
             colorOfPhoneOfLights[1] += colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
         }
-        colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(U_lights.lightNumber);
-        colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(U_lights.lightNumber);
     }
-
+    colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(U_lights.lightNumber);
+    colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(U_lights.lightNumber);
 
 
     var output: ST_GBuffer;
     $fsOutput
-
-//     let lightIntensity = 1.0;
-//     let lightDir = vec3f(0.0, 1.0, 0.0);
-//     let lightColor = vec3f(1.0, 1., 0.0);
-// let onelight = U_lights.lights[0 ]; 
-//     let colorOfPhongDS = phongColorDS(fsInput.worldPosition, fsInput.normal, lightDir, lightColor, lightIntensity, defaultCameraPosition,uv);
-//      let colorOfAmbient = PhongAmbientColor();
-//     output.color =  vec4f((colorOfAmbient + colorOfPhongDS[0]) * materialColor.rgb + colorOfPhongDS[1], materialColor.a);
-
     output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
+    // output.color = materialColor;
     return output;
 }
-fn phongColorDS(position : vec3f, vNormal : vec3f, lightDir : vec3f, lightColor : vec3f, lightIntensity : f32, viewerPosition : vec3f,uv:vec2f) -> vec3f
-{
-    // let lightDir = normalize(lightPosition - position);
-    let normal = normalize(vNormal);
-    let light_atten_coff = lightIntensity ;
-    let diff = max(dot(lightDir, normal), 0.0);
-    let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
-    var spec = 0.0;
-    let viewDir = normalize(viewerPosition - position);
-    let reflectDir = reflect(-lightDir, normal);
-    let halfDir = normalize(lightDir + viewDir);
-    spec = pow (max(dot(normal, halfDir), 0.0), u_bulinphong.shininess);
-    //spec = pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
-    let specularColor : vec3f = light_atten_coff *u_bulinphong.metalness * spec * lightColor;
-    return diffColor + specularColor;
-}
-
 
 fn dotNormal(normal : vec3f, lightDir : vec3f) -> bool{
     let diff = max(dot(lightDir, normal), 0.0);
@@ -137,17 +111,17 @@ fn PhongAmbientColor() -> vec3f{    return AmbientLight.color * AmbientLight.int
 fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, lightDir : vec3f, lightColor : vec3f, lightIntensity : f32, viewerPosition : vec3f, uv : vec2f) ->array<vec3f, 2>
 {
     var colos_DS : array<vec3f, 2>;
-    let normal = normalize(vNormal);
-    let light_atten_coff = lightIntensity ;
+    var normal = normalize(vNormal);
+ 
+    let light_atten_coff = lightIntensity;  //方向光不衰减
     let diff = max(dot(lightDir, normal), 0.0);
     let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
-    let reflectDir = reflect(-lightDir, normal);
-    let halfDir = normalize(lightDir + viewDir);
-    spec = pow (max(dot(normal, halfDir), 0.0), u_bulinphong.shininess);
-    //spec = pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
-    var  specularColor : vec3f = light_atten_coff *u_bulinphong.metalness * spec * lightColor;
+   // let halfDir = normalize(lightDir - viewDir);//半程向量，
+    let halfDir = normalize(lightDir + viewDir);//todo：半程向量，这个再确认一下，相加会产生问题（box有小视角阴影有问题）
+    spec = pow (max(dot(viewDir, halfDir), 0.0), u_bulinphong.shininess);
+    var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $specular   ;        //占位符,如果有高光图，specularColor再次从高光图中采样
     colos_DS[0]=diffColor;
     colos_DS[1]=specularColor;

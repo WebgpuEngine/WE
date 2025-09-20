@@ -141,7 +141,7 @@ export class LightsManager extends ECSManager<BaseLight> {
    */
     _maxlightNumber: number;
     /**     环境光     */
-    ambientLight: AmbientLight = new AmbientLight({ color: [1, 1, 1], intensity: 1 });
+    ambientLight: AmbientLight = new AmbientLight({ color: [1, 1, 1], intensity: 0.21 });
 
     //20250918 ,取消，使用renderManger的 renderShadowMapOpacityCommand
     // /**
@@ -248,7 +248,7 @@ export class LightsManager extends ECSManager<BaseLight> {
     }
     ////////////////////////////////////////////////////////////////////////////
     /**增加光源 */
-    addLight(one: BaseLight, _stage?: string) {
+    add(one: BaseLight, _stage?: string) {
         if (one.Shadow) {
             let count = 1;//point 有6个matrix，其他1个
             if (one.Kind == E_lightType.point) {//point light

@@ -1,5 +1,5 @@
 import { commmandType } from "../command/base"
-import type { optionAmbientLight } from "../light/ambientLight"
+import { IV_DirectionalLight } from "../light/DirectionalLight"
 import { Scene } from "./scene"
 
 export declare interface IV_Scene {
@@ -19,7 +19,7 @@ export declare interface IV_Scene {
     // depthStencil?: GPUDepthStencilState,
 
     /**环境光 */
-    ambientLight?: optionAmbientLight,
+    ambientLight?: IV_DirectionalLight,
 
     /**是否开启 Reversed Z，默认=false，为了开发简单些（避免debug的复杂度增加），release后，切换为默认=true */
     reversedZ?: boolean,

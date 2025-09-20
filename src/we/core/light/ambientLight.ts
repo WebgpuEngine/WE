@@ -29,7 +29,7 @@ export class AmbientLight extends BaseLight {
 
     constructor(input: IV_AmbientLight) {
         super(input, E_lightType.ambient);
-        this._intensity = 0;
+        this._intensity = input.intensity;
         this.structBuffer = new Float32Array(4 * 4);
     }
     getStructBuffer(): structBaselight {

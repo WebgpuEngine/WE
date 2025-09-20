@@ -54,6 +54,10 @@ export interface IV_BaseMaterial extends I_Update {
      * 2、在material中设置，会覆盖此类设置。
      */
     samplerDescriptor?: GPUSamplerDescriptor,
+    /** 采样器绑定类型，默认是filtering
+     * 如果指定了samplerDescriptor，则必须指定samplerBindingType
+     */
+    samplerBindingType?: GPUSamplerBindingType,
 
 }
 /**三段式初始化的第二步：init */

@@ -1,12 +1,13 @@
 
 import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../../src/we/core/scene/base";
+import { IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../../src/we/core/entity/mesh/mesh";
-import { TextureMaterial } from "../../../../src/we/core/material/standard/textureMaterial";
-import { CubeTextureMaterial } from "../../../../src/we/core/material/standard/cubeTextureMaterial";
+import { SphereGeometry } from "../../../../src/we/core/geometry/sphereGeometry";
+import { PhongMaterial } from "../../../../src/we/core/material/phong/phongMaterial";
+import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight";
 
 declare global {
   interface Window {
@@ -31,41 +32,50 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [3, 3, 3],
+  position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
 
+let onelight= new DirectionalLight({
+  color: [0, 1, 1],
+  direction: [0, 1, 0],
+  intensity: 1,
+  
+});
+await scene.add(onelight);
 
 
 
-let boxGeometry = new BoxGeometry();
+let geometry = new SphereGeometry({
+    widthSegments: 32,
+    heightSegments: 32,
 
-let colorMaterial = new ColorMaterial({
-  color: [0, 0.5, 0.5, 1]
 });
 
-let textureMaterial = new CubeTextureMaterial({
-  textures: {
-    /** 立方体贴图 JPG 格式*/
-    // cube: "/examples/resource/cubeIMG/cubemap/test",
-    cube: "/examples/resource/cubeIMG/skycube1/skybox",
-  },
+
+// let colorMaterial = new ColorMaterial({
+//   color: [0, 0.5, 0.5, 1]
+// });
+let phongMaterial = new PhongMaterial({
+  color: [0, 1., 1, 1],
+  roughness:0.1,
+  metalness:1,
+  shininess:64
 });
 
 let inputMesh: IV_MeshEntity = {
   attributes: {
-    geometry: boxGeometry,
+    geometry: geometry,
   },
-  material: textureMaterial,
-    wireFrame: {
-    color: [1, 1, 1, 1],
-    enable: true,
-    // wireFrameOnly: true,
-  },
-  position: [1, 1, 1],
+  material: phongMaterial,
+  // wireFrame: {
+  //   color: [1, 1, 1, 1],
+  //   enable: true,
+  //   // wireFrameOnly: true,
+  // }
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);

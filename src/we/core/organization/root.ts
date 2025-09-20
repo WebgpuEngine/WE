@@ -549,7 +549,7 @@ export abstract class RootOfGPU extends RootOfOrganization {
 
         }
         else if (child.type == "Light") {
-            this.scene.lightsManager.addLight(child as BaseLight);
+            this.scene.lightsManager.add(child as BaseLight);
             this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
             if ((child as BaseLight).Shadow)
                 this.scene.renderManager.renderShadowMapTransparentCommand[child.UUID] = [];

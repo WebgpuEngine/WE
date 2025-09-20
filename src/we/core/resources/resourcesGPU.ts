@@ -1,6 +1,7 @@
 import type { I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../command/base";
 
 export class ResourceManagerOfGPU {
+    device!: GPUDevice;
     //所有为分类的,未定义，未分类，分类失败
     resources: Map<any, any> = new Map();
 
@@ -57,16 +58,25 @@ export class ResourceManagerOfGPU {
     /**shadowmap（light 的mergeUUID） 对应的GPUBindGroup 对应的 GPUBindGroupLayout */
     shadowmapOfBindGroup2Layout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
 
-
     //////////////////////////////////////////////////////////////////////////////////////////
     //texture 
-    texture: Map<string, GPUBindGroup> = new Map();
+    /**string 可以是URL或texture的名称等 */
+    textureOfString: Map<string, GPUTexture> = new Map();
+    textureToBindGroupLayoutEntry: Map<GPUTexture, GPUTextureBindingLayout> = new Map();
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    //sampler
+    /**string 可以是sampler的名称等，比如通用的 linear,nearest ,也可以是定制的，linear-mipmap*/
+    samplerOfString: Map<string|GPUSamplerDescriptor, GPUSampler> = new Map();
+    samplerToBindGroupLayoutEntry: Map<GPUSampler, GPUSamplerBindingLayout> = new Map();
 
     has(key: any, _kind?: string) {
         if (_kind) {
-            if (_kind == "vertices") return this.vertices.has(key);
-            else if (_kind == "indexes") return this.indexes.has(key);
-            else if (_kind == "uniformBuffer") return this.uniformBuffer.has(key);
+            if (_kind == E_resourceKind.vertices) return this.vertices.has(key);
+            else if (_kind == E_resourceKind.indexes) return this.indexes.has(key);
+            else if (_kind == E_resourceKind.uniformBuffer) return this.uniformBuffer.has(key);
+            else if (_kind == E_resourceKind.texture) return this.textureOfString.has(key);
+            else if (_kind == E_resourceKind.sampler) return this.samplerOfString.has(key);
         }
         else {
             if (key instanceof GPUBindGroup) {
@@ -93,10 +103,11 @@ export class ResourceManagerOfGPU {
     }
     get(key: any, _kind?: string) {
         if (_kind) {
-            if (_kind == "vertices") return this.vertices.get(key);
-            else if (_kind == "indexes") return this.indexes.get(key);
-            else if (_kind == "uniformBuffer") return this.uniformBuffer.get(key);
-
+            if (_kind == E_resourceKind.vertices) return this.vertices.get(key);
+            else if (_kind == E_resourceKind.indexes) return this.indexes.get(key);
+            else if (_kind == E_resourceKind.uniformBuffer) return this.uniformBuffer.get(key);
+            else if (_kind == E_resourceKind.texture) return this.textureOfString.get(key);
+            else if (_kind == E_resourceKind.sampler) return this.samplerOfString.get(key);
         }
         else {
             if (key instanceof GPUBindGroup) {
@@ -114,6 +125,12 @@ export class ResourceManagerOfGPU {
             else if (isUniformBufferPart(key)) {
                 return this.entriesToEntriesLayout.get(key);
             }
+            else if (key instanceof GPUTexture) {
+                return this.textureToBindGroupLayoutEntry.get(key);
+            }
+            else if (key instanceof GPUSampler) {
+                return this.samplerToBindGroupLayoutEntry.get(key);
+            }
             else {
                 if (this.resources.has(key))
                     return this.resources.get(key);
@@ -123,9 +140,15 @@ export class ResourceManagerOfGPU {
     }
     set(key: any, value: any, _kind?: string) {
         if (_kind) {
-            if (_kind == "vertices") this.vertices.set(key, value);
-            else if (_kind == "indexes") this.indexes.set(key, value);
-            else if (_kind == "uniformBuffer") this.uniformBuffer.set(key, value);
+            if (_kind == E_resourceKind.vertices) this.vertices.set(key, value);
+            else if (_kind == E_resourceKind.indexes) this.indexes.set(key, value);
+            else if (_kind == E_resourceKind.uniformBuffer) this.uniformBuffer.set(key, value);
+            else if (_kind == E_resourceKind.texture) {
+                this.textureOfString.set(key, value);
+            }
+            else if (_kind == E_resourceKind.sampler) {
+                this.samplerOfString.set(key, value);
+            }
         }
         else {
             if (key instanceof GPUBindGroup) {
@@ -147,11 +170,57 @@ export class ResourceManagerOfGPU {
             else if (isUniformBufferPart(key)) {
                 this.entriesToEntriesLayout.set(key, value);
             }
+            else if (key instanceof GPUTexture) {
+                this.textureToBindGroupLayoutEntry.set(key, value);
+            }
+            else if (key instanceof GPUSampler) {
+                this.samplerToBindGroupLayoutEntry.set(key, value);
+            }
             else {
                 this.resources.set(key, value);
             }
         }
     }
+    getSampler(key: string):GPUSampler | undefined {
+        if (this.samplerOfString.has(key)) {
+            return this.samplerOfString.get(key);
+        }
+        else {
+            if(key == "linear"){
+                if(this.samplerOfString.has(key)){
+                    return this.samplerOfString.get(key);
+                }
+                let linear= this.device.createSampler({
+                    magFilter: "linear",
+                    minFilter: "linear",
+                });
+                this.samplerOfString.set(key, linear);
+                return linear;
+            }
+            else if(key == "nearest"){
+                if(this.samplerOfString.has(key)){
+                    return this.samplerOfString.get(key);
+                }
+                let nearest= this.device.createSampler({
+                    magFilter: "nearest",
+                    minFilter: "nearest",
+                });
+                this.samplerOfString.set(key, nearest);
+                return nearest;
+            }
+            else {
+                return undefined;
+            }
+        }
+    }
+}
+
+export enum E_resourceKind {
+    vertices = "vertices",
+    indexes = "indexes",
+    uniformBuffer = "uniformBuffer",
+    texture = "texture",
+    sampler = "sampler",
 }
 
 class GPUBindGroupEntryImpl implements GPUBindGroupEntry {

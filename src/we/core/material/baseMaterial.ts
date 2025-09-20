@@ -9,6 +9,7 @@ import { T_uniformGroup } from "../command/base";
 import { I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
+import { E_resourceKind } from "../resources/resourcesGPU";
 
 
 
@@ -44,15 +45,23 @@ export abstract class BaseMaterial extends RootOfGPU {
      */
     _reBuild: boolean = false;
 
+    _samplerBindingType: GPUSamplerBindingType = "filtering";
+
     constructor(input?: IV_BaseMaterial) {
         super();
         this.type = "material";
         // this.reversedZ = false;
         if (input) {
             this.inputValues = input;
+            this.checkTransparent(input);
         }
         else
             this.inputValues = {};
+        if (input?.samplerDescriptor != undefined && input.samplerBindingType == undefined) {
+            throw new Error("samplerDescriptor 必须指定samplerBindingType")
+        }
+
+
         this._state = E_lifeState.unstart;
     }
     get needUpdate() { return this._reBuild; }
@@ -146,6 +155,85 @@ export abstract class BaseMaterial extends RootOfGPU {
     }
     isDestroy() {
         return this._destroy;
+    }
+
+    checkTransparent(input: IV_BaseMaterial) {
+        if (input.transparent != undefined) {// && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
+
+            //默认混合
+            let transparent: I_TransparentOfMaterial = {
+                blend: {
+                    color: {
+                        srcFactor: "src-alpha",//源
+                        dstFactor: "one-minus-src-alpha",//目标
+                        operation: "add"//操作
+                    },
+                    alpha: {
+                        srcFactor: "one",//源
+                        dstFactor: "one-minus-src-alpha",//目标
+                        operation: "add"//操作  
+                    }
+                }
+            };
+
+            if (input.transparent != undefined) {
+                this._transparent = input.transparent;
+            }
+            else {
+                this._transparent = transparent;
+            }
+
+            if (input.transparent.blend != undefined) {
+                this._transparent.blend = input.transparent.blend;
+            }
+            else {
+                this._transparent.blend = transparent.blend;
+            }
+
+            if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
+                this._transparent.alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
+            }
+            else if (input.transparent.alphaTest != undefined && input.transparent.opacity == undefined) {//如果有设置alphaTest，就设置为alphaTest
+                this._transparent.alphaTest = input.transparent.alphaTest;//FS 中使用的是alphaTest对应texture的alpha进行比较，小于阈值的= 0.0，大于阈值的不变（因为有可能有大于阈值的半透明）
+            }
+            else if (input.transparent.alphaTest == undefined && input.transparent.opacity != undefined) {//如果没有设置alphaTest，就设置为opacity
+                // this._transparent.alphaTest = input.transparent.opacity;
+                this._transparent.opacity = input.transparent.opacity;//FS code中使用的是opacity，而不是alphaTest
+            }
+
+        }
+    }
+    /**
+     * 1、检查材质的sampler是否存在，不存在就创建一个。
+     * 2、设置this._samplerBindingType:GPUSamplerBindingType
+     * @param input IV_BaseMaterial 材质的输入参数
+     * @returns GPUSampler 材质的sampler
+     */
+    checkSampler(input: IV_BaseMaterial): GPUSampler {
+        let sampler: GPUSampler;
+        if (input.samplerFilter == undefined) {
+            // this.sampler = this.device.createSampler({
+            //     magFilter: "linear",
+            //     minFilter: "linear",
+            // });
+            sampler = this.scene.resourcesGPU.getSampler("linear") as GPUSampler;
+            this._samplerBindingType = "filtering";
+        }
+        else if (input.samplerDescriptor) {
+            if (this.scene.resourcesGPU.has(input.samplerDescriptor, E_resourceKind.sampler)) {
+                sampler = this.scene.resourcesGPU.get(input.samplerDescriptor.label!, E_resourceKind.sampler) as GPUSampler;
+            }
+            else {
+                sampler = this.device.createSampler(this.inputValues.samplerDescriptor);
+                this.scene.resourcesGPU.set(this.inputValues.samplerDescriptor, sampler, E_resourceKind.sampler);
+            }
+            this._samplerBindingType = input.samplerBindingType!;
+        }
+        else {
+            sampler = this.scene.resourcesGPU.getSampler("nearest") as GPUSampler;//nearest ,这里只用到了简单的linear和nearest
+            this._samplerBindingType = "non-filtering";
+        }
+        return sampler;
     }
 
     // /**增加FS中的输出的location的结构体：ST_GBuffer */

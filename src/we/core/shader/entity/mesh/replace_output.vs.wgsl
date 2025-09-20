@@ -1,6 +1,6 @@
 //start: entity/mesh/replace_output.vs.vs.wgsl 
 let tempWidth=0.5;
-vsOutput.cubeVecUV = ((position +tempWidth)/(tempWidth*2.0))*2.0-1.0;
+vsOutput.cubeVecUV = ((position + boundingBoxMaxSize/2.0)/(boundingBoxMaxSize))*2.0-1.0;
 var worldPosition = vec4f(entity.MatrixWorld[attributes.instanceIndex] * vec4f(position, 1.0));
 vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
 let entity_id = entity.entity_id << 14;

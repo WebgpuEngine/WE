@@ -3,13 +3,9 @@
 import cubeTextureFSWGSL from "../../shader/material/texture/cubeTexture.fs.wgsl?raw";
 var cubeTextureFS = cubeTextureFSWGSL.toString();
 
-
-
-
-
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, WGSL_replace_gbuffer_output, WGSL_st_Guffer } from "../base"
 
-export var SHT_materialCubeTextureFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubeSkyTextureFS_mergeToVS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [

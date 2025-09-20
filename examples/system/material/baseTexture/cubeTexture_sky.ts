@@ -30,10 +30,10 @@ let camera = new PerspectiveCamera({
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
   near: 0.01,
-  far: 100,
+  far: 500,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType:"wasd",
 });
 await scene.add(camera);
 
@@ -43,16 +43,15 @@ await scene.add(camera);
 
 let boxGeometry = new BoxGeometry();
 
-let colorMaterial = new ColorMaterial({
-  color: [0, 0.5, 0.5, 1]
-});
+
 
 let textureMaterial = new CubeTextureMaterial({
   textures: {
     /** 立方体贴图 JPG 格式*/
-    cube: "/examples/resource/cubeIMG/cubemap/test",
-    // cube: "/examples/resource/cubeIMG/skycube1/skybox",
+    // cube: "/examples/resource/cubeIMG/cubemap/test",
+    cube: "/examples/resource/cubeIMG/skycube1/skybox",
   },
+  cubeType:"sky",
 });
 
 let inputMesh: IV_MeshEntity = {
@@ -66,6 +65,7 @@ let inputMesh: IV_MeshEntity = {
     // wireFrameOnly: true,
   },
   // position: [0, 0, 3],
+  scale: [400, 400, 400],
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);

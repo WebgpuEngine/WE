@@ -53,7 +53,7 @@ var<private > viewMatrix : mat4x4f;
 var<private > projectionMatrix : mat4x4f;
 var<private > MVP : mat4x4f;
 
-// var<private > AmbientLight : ST_AmbientLight;
+ var<private > AmbientLight : ST_AmbientLight;
 
 var<private> matrix_z : mat4x4f = mat4x4f(
     1.0, 0.0, 0.0, 0.0,
@@ -76,7 +76,7 @@ fn initSystemOfVS() {
     projectionMatrix = U_MVP.projection;
     MVP = projectionMatrix * viewMatrix * modelMatrix;
 
-    // AmbientLight = U_lights.Ambient;
+     AmbientLight = U_lights.Ambient;
 
     if U_MVP.reversedZ == 1 {
         matrix_z = mat4x4f(
@@ -95,7 +95,7 @@ fn initSystemOfFS() {
     projectionMatrix = U_MVP.projection;
     MVP = projectionMatrix * viewMatrix * modelMatrix;
 
-    // AmbientLight = U_lights.Ambient;
+    AmbientLight = U_lights.Ambient;
 
     if U_MVP.reversedZ == 1 {
         matrix_z = mat4x4f(

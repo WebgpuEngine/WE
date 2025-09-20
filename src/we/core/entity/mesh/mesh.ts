@@ -91,11 +91,11 @@ export class Mesh extends BaseEntity {
         indexes: [],
     };
 
-    invertNormal(){
-        if(this.attributes.vertices.has("normal")){
+    invertNormal() {
+        if (this.attributes.vertices.has("normal")) {
             let normal = this.attributes.vertices.get("normal") as number[];
-            if(normal){
-                for(let i = 0; i < normal.length; i += 3){
+            if (normal) {
+                for (let i = 0; i < normal.length; i += 3) {
                     normal[i] = -normal[i];
                     normal[i + 1] = -normal[i + 1];
                     normal[i + 2] = -normal[i + 2];
@@ -261,7 +261,7 @@ export class Mesh extends BaseEntity {
      * @param startBinding 
      * @returns uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    getUniformAndShaderTemplateFinal(camera: BaseCamera,startBinding: number = 0, wireFrame: boolean = false): { uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final } {
+    getUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number = 0, wireFrame: boolean = false): { uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final } {
         //uniform 部分
         let bindingNumber = startBinding;
         let uniform1: T_uniformGroup = [];
@@ -309,10 +309,10 @@ export class Mesh extends BaseEntity {
         let uniformsMaterial
         if (wireFrame === false) {
             //material 部分：uniform 和 shader模板输出
-            uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal(camera,bindingNumber);
+            uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal(camera, bindingNumber);
         }
         else {
-            uniformsMaterial = this._materialWireframe.getOneGroupUniformAndShaderTemplateFinal(camera,bindingNumber);
+            uniformsMaterial = this._materialWireframe.getOneGroupUniformAndShaderTemplateFinal(camera, bindingNumber);
         }
         if (uniformsMaterial) {
             uniform1.push(...uniformsMaterial.uniformGroup);
@@ -354,13 +354,20 @@ export class Mesh extends BaseEntity {
         }
         return code;
     }
+    getBoundingBoxMaxSize(): number {
+        let box3 = this.boundingBox;
+        if (box3) {
+            return Math.max(box3.max[0] - box3.min[0], box3.max[1] - box3.min[1], box3.max[2] - box3.min[2]);
+        }
+        return 0;
+    }
     /**
      * 为每个camera创建前向渲染的DrawCommand
      * @param camera 
      */
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
-        if (this._wireframe.wireFrameOnly === false) {
+        if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
             //mesh 前向渲染
             let bundle = this.getUniformAndShaderTemplateFinal(camera);
             let drawMode: I_drawMode | I_drawModeIndexed;
@@ -399,6 +406,11 @@ export class Mesh extends BaseEntity {
                     drawMode = drawModeMesh;
                 }
             }
+            if (this.boundingBox == undefined)
+                this.generateBoxAndSphere();
+            let boundingBoxMaxSize = this.getBoundingBoxMaxSize();
+            if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
+
             let valueDC: V_DC = {
                 label: "DrawCommand mesh :" + this.Name + " for  camera: " + camera.UUID,
                 data: {
@@ -412,6 +424,9 @@ export class Mesh extends BaseEntity {
                     vertex: {
                         code: bundle.shaderTemplateFinal,
                         entryPoint: "vs",
+                        constants: {
+                            "boundingBoxMaxSize": boundingBoxMaxSize,
+                        },
                     },
                     fragment: {
                         entryPoint: "fs",
@@ -459,6 +474,7 @@ export class Mesh extends BaseEntity {
                     vertex: {
                         code: bundle.shaderTemplateFinal,
                         entryPoint: "vs",
+
                     },
                     fragment: {
                         entryPoint: "fs",

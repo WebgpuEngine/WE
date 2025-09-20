@@ -49,15 +49,19 @@ export interface I_shaderTemplateReplace {
     selectCode?: string[],          //选择性替换代码，根据check的内容进行替换（false，true）对应数组（0,1）
     replaceCode?: string,                  //替换的代码
     description?: string,            //描述
+    //////////////////////////////////
+    //js 数值部分
+    varOfJS?: string[],              //JS中的变量，aa.bb.cc
+    varOfJSCheck?: any[],             //JS中的变量的检查，根据varOfJSCheck的内容进行替换（false，true）对应器内容
 }
 /**
  * 替换的类型，同时包含add和replace
  */
 export interface I_shaderTemplateReplaceAndAdd extends I_shaderTemplateReplace {
-   /**
-    * 1、增加，并包含占位符的string
-    * 2、如果没有，则有material部分生成，然后进行替换占位符
-    */
+    /**
+     * 1、增加，并包含占位符的string
+     * 2、如果没有，则有material部分生成，然后进行替换占位符
+     */
     code?: string,
 }
 
@@ -69,6 +73,7 @@ export enum E_shaderTemplateReplaceType {
     // replaceString,      //替换为字符串
     replaceCode,        //替换为WGSL代码
     selectCode,         //选择性替换代码，根据check的内容进行替换（false，true）对应数组（0,1）
+    checkVarOfJS,       //检查JS的变量
 }
 /**
  * 单个模板的内容组成部分
@@ -204,4 +209,25 @@ export var SHT_refDCG: I_singleShaderTemplate = {
 };
 
 
+import deferDepthWGSL from "../shader/defer/replace_deferDepthCompare.fs.wgsl?raw";
+var deferDepthFS = deferDepthWGSL.toString();
 
+export var SHT_replaceDefer: I_shaderTemplateReplace = {
+    name: "replaceDefer",
+    description: "根据scene.deferRender.deferRenderDepth 判断行为",
+    replace: "$deferRender_Depth",
+    replaceType: E_shaderTemplateReplaceType.checkVarOfJS,
+    varOfJS: ["scene", "deferRender", "deferRenderDepth"],
+    varOfJSCheck: [
+        { "true": deferDepthFS },
+        { "false": "" }],
+
+}
+
+export var SHT_replaceFSOutput: I_shaderTemplateReplace =
+{
+    name: "colorFS.output content",
+    replace: "$fsOutput",           //
+    replaceType: E_shaderTemplateReplaceType.replaceCode,
+    replaceCode: WGSL_replace_gbuffer_output
+}

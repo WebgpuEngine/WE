@@ -1,5 +1,8 @@
 //start : mesh/wireframe.vs.wgsl
+
 override offsetOfWireframeVale : f32 = 1.0;
+override boundingBoxMaxSize : f32 = 1.0;
+
 @vertex fn vs(
 attributes: st_location,
 ) -> VertexShaderOutput {

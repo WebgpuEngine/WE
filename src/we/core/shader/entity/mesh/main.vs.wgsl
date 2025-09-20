@@ -1,8 +1,6 @@
 //start : mesh/main.vs.wgsl
-override uvScale_u : f32 = 1.0;
-override uvScale_v : f32 = 1.0;
-override uvOffset_x : f32 = 0.0; 
-override uvOffset_y : f32 = 0.0; 
+
+override boundingBoxMaxSize : f32 = 1.0;
 
 @vertex fn vs(
 attributes: st_location,

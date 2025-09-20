@@ -10,22 +10,30 @@
  *    A、alphaTest，alpha值（texture)
  *    B、opacity,整体透明度
  */
-import { Texture } from "../../texture/texture";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialTextureFS_mergeToVS, SHT_materialTextureTransparentFS_mergeToVS } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
-import { getBundleOfGBufferOfUniformOfDefer } from "../../gbuffers/base";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
-import { E_TextureType, IV_BaseMaterial } from "../base";
-import { SHT_materialCubePositionTextureFS_mergeToVS, SHT_materialCubeTextureFS_mergeToVS } from "../../shadermanagemnet/material/cubeTextureMaterial";
+import { E_TextureType } from "../base";
+import { SHT_materialCubePositionTextureFS_mergeToVS, SHT_materialCubeSkyTextureFS_mergeToVS } from "../../shadermanagemnet/material/cubeTextureMaterial";
 
+export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
+   cubeType?:"sky"|"cube"
+}
 
 export class CubeTextureMaterial extends TextureMaterial {
 
+    declare inputValues: IV_CubeTextureMaterial;
+    cubeType: IV_CubeTextureMaterial["cubeType"]="cube";
+    constructor(inputValues: IV_CubeTextureMaterial) {
+        super(inputValues);
+        if (this.inputValues.cubeType) {
+            this.cubeType = this.inputValues.cubeType;
+        }
+    }
 
     async readyForGPU(): Promise<any> {
         if (this.inputValues.textures[E_TextureType.cube] == undefined) {
@@ -128,6 +136,10 @@ export class CubeTextureMaterial extends TextureMaterial {
         // else 
         {
             ////////////////shader 模板格式化部分
+            if(this.cubeType == "sky"){
+                template = SHT_materialCubeSkyTextureFS_mergeToVS;
+            }
+            else
             template = SHT_materialCubePositionTextureFS_mergeToVS;
             // template = SHT_materialCubeTextureFS_mergeToVS;
             for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {

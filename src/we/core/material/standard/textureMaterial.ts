@@ -22,6 +22,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_s
 import { SHT_materialTextureFS_mergeToVS, SHT_materialTextureTransparentFS_mergeToVS } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
 import { getBundleOfGBufferOfUniformOfDefer } from "../../gbuffers/base";
+import { E_resourceKind } from "../../resources/resourcesGPU";
 
 
 /**
@@ -65,50 +66,7 @@ export class TextureMaterial extends BaseMaterial {
         // if (input.upsideDownY != undefined) {
         //     this._upsideDownY = input.upsideDownY;
         // }
-        if (input.transparent != undefined) {// && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
 
-            //默认混合
-            let transparent: I_TransparentOfMaterial = {
-                blend: {
-                    color: {
-                        srcFactor: "src-alpha",//源
-                        dstFactor: "one-minus-src-alpha",//目标
-                        operation: "add"//操作
-                    },
-                    alpha: {
-                        srcFactor: "one",//源
-                        dstFactor: "one-minus-src-alpha",//目标
-                        operation: "add"//操作  
-                    }
-                }
-            };
-
-            if (input.transparent != undefined) {
-                this._transparent = input.transparent;
-            }
-            else {
-                this._transparent = transparent;
-            }
-
-            if (input.transparent.blend != undefined) {
-                this._transparent.blend = input.transparent.blend;
-            }
-            else {
-                this._transparent.blend = transparent.blend;
-            }
-
-            if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
-                this._transparent.alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
-            }
-            else if (input.transparent.alphaTest != undefined && input.transparent.opacity == undefined) {//如果有设置alphaTest，就设置为alphaTest
-                this._transparent.alphaTest = input.transparent.alphaTest;//FS 中使用的是alphaTest对应texture的alpha进行比较，小于阈值的= 0.0，大于阈值的不变（因为有可能有大于阈值的半透明）
-            }
-            else if (input.transparent.alphaTest == undefined && input.transparent.opacity != undefined) {//如果没有设置alphaTest，就设置为opacity
-                // this._transparent.alphaTest = input.transparent.opacity;
-                this._transparent.opacity = input.transparent.opacity;//FS code中使用的是opacity，而不是alphaTest
-            }
-
-        }
     }
     destroy() {
         for (let key in this.textures) {
@@ -120,18 +78,27 @@ export class TextureMaterial extends BaseMaterial {
     }
 
     async readyForGPU(): Promise<any> {
-        if (this.inputValues.samplerFilter == undefined) {
-            this.sampler = this.device.createSampler({
-                magFilter: "linear",
-                minFilter: "linear",
-            });
-        }
-        else {
-            this.sampler = this.device.createSampler({
-                magFilter: this.inputValues.samplerFilter,
-                minFilter: this.inputValues.samplerFilter,
-            });
-        }
+        this.sampler = this.checkSampler(this.inputValues);
+        // if (this.inputValues.samplerFilter == undefined) {
+        //     // this.sampler = this.device.createSampler({
+        //     //     magFilter: "linear",
+        //     //     minFilter: "linear",
+        //     // });
+        //     this.sampler = this.scene.resourcesGPU.getSampler("linear");
+        // }
+        // else if(this.inputValues.samplerDescriptor){
+        //     if(this.scene.resourcesGPU.has(this.inputValues.samplerDescriptor,E_resourceKind.sampler)){
+        //         this.sampler = this.scene.resourcesGPU.getSampler(this.inputValues.samplerDescriptor.label!,E_resourceKind.sampler);
+        //     }
+        //     else {
+        //         this.sampler = this.device.createSampler(this.inputValues.samplerDescriptor);
+        //         this.scene.resourcesGPU.setSampler(this.inputValues.samplerDescriptor.label!,this.sampler,E_resourceKind.sampler);
+        //     }
+        // }
+        // else {
+        //     this.sampler = this.scene.resourcesGPU.getSampler(this.inputValues.samplerFilter,"nearest");//nearest ,这里只用到了简单的linear和nearest
+        // }
+
         for (let key in this.inputValues.textures) {
             let texture = this.inputValues.textures[key as keyof IV_TextureMaterial["textures"]]!;
             if (texture instanceof Texture) {
@@ -146,14 +113,7 @@ export class TextureMaterial extends BaseMaterial {
             this._state = E_lifeState.finished;
         }
     }
-    checkSamplerBindingType() {
-        if (this.sampler == undefined) {
-            this.sampler = this.device.createSampler({
-                magFilter: "linear",
-                minFilter: "linear",
-            });
-        }
-    }
+
     getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
@@ -198,7 +158,7 @@ export class TextureMaterial extends BaseMaterial {
             binding: binding,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
             sampler: {
-                type: "filtering",
+                type: this._samplerBindingType,
             },
         };
         //添加到resourcesGPU的Map中

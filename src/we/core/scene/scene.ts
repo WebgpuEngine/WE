@@ -4,6 +4,7 @@ import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_uniformGroup } from "../command/base";
 import { CamreaControl } from "../control/cameracCntrol";
 import { EntityManager } from "../entity/entityManager";
+import { AmbientLight } from "../light/ambientLight";
 import { LightsManager } from "../light/lightsManager";
 import { MaterialManager } from "../material/materialManager";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
@@ -195,7 +196,7 @@ export class Scene {
     /**场景的根节点 */
     root!: RootManager;
     /**GPU资源管理器 */
-    resourcesGPU: ResourceManagerOfGPU;
+    resourcesGPU!: ResourceManagerOfGPU;
     renderManager!: RenderManager;
     /**相机管理器 */
     cameraManager!: CameraManager;
@@ -216,7 +217,6 @@ export class Scene {
     constructor(value: IV_Scene) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //初始化
-        this.resourcesGPU = new ResourceManagerOfGPU();
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //默认值初始化
         this.clock = new Clock();
@@ -317,7 +317,8 @@ export class Scene {
         this.context = this.canvas.getContext('webgpu') as GPUCanvasContext;
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
-
+        this.resourcesGPU = new ResourceManagerOfGPU();
+        this.resourcesGPU.device = device;
         this.root = new RootManager(this);
         await this.root.init(this)
         this.renderManager = new RenderManager(this);
@@ -526,7 +527,7 @@ export class Scene {
         this.generateSphere();
         this.updateBVH();
         //lights(shadowmap) manager update
-        // this.lightManager.update(this.clock);
+        this.lightsManager.update(this.clock);
         this.cameraManager.update(this.clock);
         //entiy push DC to render manager,
         //todo，20250912，缺少camera与BVH的判断
@@ -707,7 +708,11 @@ export class Scene {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //add 
     async add(child: RootOfGPU) {
-        this.root.currentRenderID = await this.root.addChild(child);
+        if (child.type == "Light" && child instanceof AmbientLight) {
+            this.lightsManager.ambientLight = child;
+        }
+        else
+            this.root.currentRenderID = await this.root.addChild(child);
     }
     remove(child: RootOfOrganization) {
         this.root.removeChild(child);

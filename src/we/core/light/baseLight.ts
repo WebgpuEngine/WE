@@ -14,7 +14,8 @@ export enum E_lightType {
     direction,
     point,
     spot,
-    area
+    area,
+    ambient
 }
 export interface I_optionBaseLight extends I_Update {
     /**
@@ -133,6 +134,7 @@ export abstract class BaseLight extends RootOfGPU {
     _decay: number = 0;
     _angle: number = 0;
     _angleOut: number = 0;
+    _size:number=1;
 
     /**
      * light's enable
@@ -207,13 +209,18 @@ export abstract class BaseLight extends RootOfGPU {
         this.MVP = [];
         if (input.position) this.Position = input.position;
         if (input.color) this.Color = vec3.create(...input.color);
-        if (input.distance) this._distance = input.distance;
-        if (input.decay) this._decay = input.decay;
-        if (input.visible !== undefined) this.inputValues.visible = input.visible;
         if (input.intensity) this._intensity = input.intensity;
-        this._kind = kind;
+        if (input.distance) this._distance = input.distance;
+        if (input.direction ) this.Direction = input.direction;
+        if (input.decay) this._decay = input.decay;
+        if (input.angle)    this._angle=input.angle;
+        if (input.angleOut)    this._angleOut=input.angleOut;
         if (input.shadow) this._shadow = input.shadow;
+
+        if (input.size !== undefined) this._size = input.size;
         if (input.visible !== undefined) this.visible = input.visible;
+        this._kind = kind;
+
         this._buffer = this.updateStructBuffer();
     }
 
