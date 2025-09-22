@@ -1,13 +1,7 @@
 //system
 import systemOfCameraWGSL from "../shader/system/system.wgsl?raw"
 var systemOfCamera = systemOfCameraWGSL.toString();
-//math
-import mathConstWGSL from "../shader/math/baseconst.wgsl?raw"
-var mathConst = mathConstWGSL.toString();
-import mathTBNWGSL from "../shader/math/TBN.wgsl?raw"
-var mathTBN = mathTBNWGSL.toString();
-import mathRandomWGSL from "../shader/math/random.wgsl?raw"
-var mathRandom = mathRandomWGSL.toString();
+
 
 //shadow map 
 import shadowmapPCSSWGSL from "../shader/shadowmap/fn_pcss.wgsl?raw"
@@ -230,4 +224,27 @@ export var SHT_replaceFSOutput: I_shaderTemplateReplace =
     replace: "$fsOutput",           //
     replaceType: E_shaderTemplateReplaceType.replaceCode,
     replaceCode: WGSL_replace_gbuffer_output
+}
+
+
+//math
+import mathConstWGSL from "../shader/math/baseconst.wgsl?raw"
+var mathConst = mathConstWGSL.toString();
+import mathTBNWGSL from "../shader/math/TBN.wgsl?raw"
+var mathTBN = mathTBNWGSL.toString();
+import mathRandomWGSL from "../shader/math/random.wgsl?raw"
+var mathRandom = mathRandomWGSL.toString();
+
+
+export var SHT_addMathBase :I_shaderTemplateAdd={
+    name:"mathBase",
+    code:mathConst,
+}
+export var SHT_addMathTBN :I_shaderTemplateAdd={
+    name:"mathTBN",
+    code:mathTBN,
+}
+export var SHT_addMathRandom :I_shaderTemplateAdd={
+    name:"mathRandom",
+    code:mathRandom,
 }

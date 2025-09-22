@@ -1,4 +1,6 @@
 
+
+
 import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
 import { IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
@@ -8,6 +10,8 @@ import { IV_MeshEntity, Mesh } from "../../../../src/we/core/entity/mesh/mesh";
 import { SphereGeometry } from "../../../../src/we/core/geometry/sphereGeometry";
 import { PhongMaterial } from "../../../../src/we/core/material/phong/phongMaterial";
 import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight";
+import { AmbientLight } from "../../../../src/we/core/light/ambientLight";
+import { PointLight } from "../../../../src/we/core/light/pointLight";
 
 declare global {
   interface Window {
@@ -39,15 +43,30 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
-let onelight= new DirectionalLight({
-  color: [0, 1, 1],
-  direction: [0, 1, 0],
-  intensity: 1,
-  
-});
+let onelight= new PointLight(
+  {
+    position: [0.0, 0.0, 8.0],
+    intensity: 2.0,
+
+  }
+);
+
+// let onelight= new DirectionalLight({
+//   color: [1, 1, 1],
+//   direction: [0, 1, 0],
+//   intensity: 1,
+//   });
+
+
 await scene.add(onelight);
 
-
+let ambientLight = new AmbientLight(
+  {
+    color: [1, 1, 1],
+    intensity: 0.13
+  }
+)
+await scene.add(ambientLight);
 
 let geometry = new SphereGeometry({
     widthSegments: 32,
@@ -60,10 +79,10 @@ let geometry = new SphereGeometry({
 //   color: [0, 0.5, 0.5, 1]
 // });
 let phongMaterial = new PhongMaterial({
-  color: [0, 1., 1, 1],
-  roughness:0.1,
-  metalness:1,
-  shininess:64
+  color: [0, 0.9, 1, 1],
+  roughness:0.5,
+  metalness:1.5,
+  shininess:32
 });
 
 let inputMesh: IV_MeshEntity = {

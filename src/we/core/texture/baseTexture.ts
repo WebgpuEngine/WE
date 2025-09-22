@@ -1,6 +1,6 @@
 import { E_lifeState } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
-import { I_BaseTexture, textureSourceType } from "./base";
+import { I_BaseTexture, T_textureSourceType } from "./base";
 
 export abstract class BaseTexture {
     device: GPUDevice;
@@ -12,7 +12,7 @@ export abstract class BaseTexture {
     /**是否上下翻转Y轴 */
     _upsideDownY: boolean = true;
 
-    source!: textureSourceType;
+    source!: T_textureSourceType;
     /**纹理 
      * 外部访问对象
     */

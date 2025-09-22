@@ -1,6 +1,7 @@
 import { I_Update, Color4 } from "../base/coreDefine";
 import { BaseEntity } from "../entity/baseEntity";
 import { Scene } from "../scene/scene";
+import { I_mipmap } from "../texture/base";
 
 /**透明材质的初始化参数 */
 export interface I_TransparentOfMaterial {
@@ -58,6 +59,8 @@ export interface IV_BaseMaterial extends I_Update {
      * 如果指定了samplerDescriptor，则必须指定samplerBindingType
      */
     samplerBindingType?: GPUSamplerBindingType,
+    
+    mipmap?: I_mipmap
 
 }
 /**三段式初始化的第二步：init */
@@ -73,23 +76,23 @@ export interface IV_BaseMaterialStep2 {
 /** 材质中使用的texture类型 */
 export enum E_TextureType {
     /** 颜色贴图 */
-    color="color",
+    color = "color",
     /** 立方体贴图 */
-    cube="cube",
+    cube = "cube",
     /** 法线贴图 */
-    normal="normal",
+    normal = "normal",
     /** 金属度贴图 */
-    specular="specular",
+    specular = "specular",
     /** 视差贴图 */
-    parallax="parallax",
+    parallax = "parallax",
     /** 基础颜色贴图 */
-    albedo="albedo",
+    albedo = "albedo",
     /** 金属度贴图 */
-    metallic="metallic",
+    metallic = "metallic",
     /** 粗糙度贴图 */
-    roughness="roughness",
+    roughness = "roughness",
     /** 环境光遮蔽贴图 */
-    ao="ao",
+    ao = "ao",
     /** 深度贴图 */
-    depthMap="depthMap",
+    depthMap = "depthMap",
 }

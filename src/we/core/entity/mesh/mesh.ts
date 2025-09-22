@@ -270,7 +270,8 @@ export class Mesh extends BaseEntity {
             label: this.Name + " uniform at group(1) binding(0)",
             binding: bindingNumber,
             size: this.getSizeOfUniformArrayBuffer(),
-            data: this.getUniformArrayBuffer()
+            data: this.getUniformArrayBuffer(),
+            update:true,
         };
         let uniform10Layout: GPUBindGroupLayoutEntry = {
             binding: bindingNumber,
@@ -433,6 +434,9 @@ export class Mesh extends BaseEntity {
 
                     },
                     drawMode,
+                    primitive:{
+                        cullMode:this._cullMode,
+                    }
                 },
                 system: {
                     UUID,

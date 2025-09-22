@@ -14,10 +14,8 @@ struct bulin_phong {
     var uv = fsInput.uv;
     var normal=fsInput.normal;
     // $deferRender_Depth                                  //为空或进行深度判断（discar）
-
-
-    
-    var materialColor = $materialColor      ;        //颜色或纹理颜色
+    var materialColor =vec4f(1);
+    $materialColor             //颜色或纹理颜色
     $normal                             //来自VS，还是来自texture
 
     let colorOfAmbient = PhongAmbientColor();
@@ -145,7 +143,7 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, lightDir : ve
     let viewDir = normalize(viewerPosition - position);
     let reflectDir = reflect(-lightDir, normal);
     let halfDir = normalize(lightDir + viewDir);
-    spec = pow (max(dot(normal, halfDir), 0.0), u_bulinphong.shininess);
+    spec = pow (max(dot(viewDir, halfDir), 0.0), u_bulinphong.shininess);
     //spec = pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
     var  specularColor : vec3f = light_atten_coff *u_bulinphong.metalness * spec * lightColor;
     $specular   ;        //占位符,如果有高光图，specularColor再次从高光图中采样

@@ -5,16 +5,20 @@ import { getBundleOfGBufferOfUniformOfDefer } from "../../gbuffers/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { SHT_materialPhongFS_mergeToVS } from "../../shadermanagemnet/material/phongMaterial";
-import { textureSourceType } from "../../texture/base";
+import { I_BaseTexture, T_textureSourceType } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import { E_TextureType, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 
-export interface I_PhongMaterial extends IV_BaseMaterial {
+export interface IV_PhongMaterial extends IV_BaseMaterial {
   color?: weColor4;
   textures?: {
-    [name in E_TextureType]?: textureSourceType | Texture
+    [name in E_TextureType]?: I_BaseTexture | Texture
+  },
+  parallax?: {
+    scale: number,
+    layer?: number,
   },
   /**反射指数(高光区域集中程度)：默认：32 */
   shininess?: number,
@@ -27,15 +31,17 @@ export interface I_PhongMaterial extends IV_BaseMaterial {
 }
 
 export class PhongMaterial extends BaseMaterial {
-  declare inputValues: I_PhongMaterial;
+  declare inputValues: IV_PhongMaterial;
   declare textures: {
     [name: string]: Texture
   }
   sampler!: GPUSampler;
   uniformPhong: ArrayBuffer = new ArrayBuffer(4 * 4);
   color: weColor4 = [1, 1, 1, 1];
-  constructor(options: I_PhongMaterial) {
+  constructor(options: IV_PhongMaterial) {
     super(options);
+    this.textures = {};
+    this.inputValues = options;
     let uniformPhongF32A = new Float32Array(this.uniformPhong);
     uniformPhongF32A[0] = 32.0;
     uniformPhongF32A[1] = 0.50;
@@ -50,6 +56,9 @@ export class PhongMaterial extends BaseMaterial {
     if (this.inputValues.roughness) {
       uniformPhongF32A[2] = this.inputValues.roughness;
     }
+    if (this.inputValues.color) {
+      this.color = this.inputValues.color;
+    }
 
   }
   destroy(): void {
@@ -63,7 +72,7 @@ export class PhongMaterial extends BaseMaterial {
         this.textures[key] = texture;
       }
       else if (texture) {
-        let textureInstace = new Texture({ source: texture }, this.device, this.scene);
+        let textureInstace = new Texture(texture, this.device, this.scene);
         await textureInstace.init();
         this.textures[key] = textureInstace;
       }
@@ -164,7 +173,7 @@ export class PhongMaterial extends BaseMaterial {
         //push到uniform1队列
         uniform1.push(uniformTexture);
 
-        code += `@group(1) @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
+        groupAndBindingString += `@group(1) @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
         binding++;
       }
     }
@@ -184,48 +193,73 @@ export class PhongMaterial extends BaseMaterial {
         code += perOne.code;
       }
       for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
+        let replaceString = "";
         if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
           code = code.replace(perOne.replace, perOne.replaceCode as string);
         }
         else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
           switch (perOne.replace) {
             case "$materialColor":
-              let color
               if (flag_texture) {
-                color = `textureSample(u_colorTexture, u_Sampler, fsInput.uv); `;
+                if (flag_parallax && flag_normal) {
+                  let parallaxLayer = this.inputValues.parallax?.layer || 0;
+                  let parallaxScale = this.inputValues.parallax?.scale || 0.001;
+                  // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
+                  replaceString = ` 
+                    let TBN=getTBN_ForNormal(normal,fsInput.worldPosition,uv);
+                    let invertTBN=transpose(TBN );
+                    let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+                    `;
+                  //todo:20250521
+                  //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
+                  //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
+                  //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+                  //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+                  if (this.inputValues.parallax?.layer) {
+
+                    replaceString += `uv = parallax_occlusion(fsInput.uv, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+                  }
+                  else {
+                    replaceString += ` uv = ParallaxMappingBase(fsInput.uv, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+                  }
+                  replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
+                  // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
+
+                }
+                else
+                  replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
               }
               else {
-                color = `vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]})`;
+                replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
               }
-              code = code.replace(perOne.replace, color);
 
               break;
             case "$normal":
-              let normal = "";
               if (flag_normal) {
-                normal = `
+                replaceString = `
                  let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb; 
                  normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
                 `;
               }
               else {
-                normal = "  ";
+                replaceString = "  ";
               }
-              code = code.replace(perOne.replace, normal);
               break;
             case "$specular":
               let specular = "";
               if (flag_spec) {
-                specular = `
+                replaceString = `
                 let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;
                 specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
               }
               else {
-                specular = "  ";
+                replaceString = "  ";
               }
-              code = code.replaceAll(perOne.replace, specular);
+              // code = code.replaceAll(perOne.replace, replaceString);
               break;
           }
+          code = code.replaceAll(perOne.replace, replaceString);
+
         }
       }
     }

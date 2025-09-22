@@ -15,11 +15,11 @@ import { Clock } from "../scene/clock";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { T_uniformGroup } from "../command/base";
 import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
+import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 
 
 export abstract class BaseEntity extends RootOfGPU {
@@ -426,6 +426,7 @@ export abstract class BaseEntity extends RootOfGPU {
         else if (this._state == E_lifeState.initializing) {
             this.checkStatus();
         }
+        this.DCG.upadate();
     }
     /**
      * 被update调用，更新vs、fs的uniform

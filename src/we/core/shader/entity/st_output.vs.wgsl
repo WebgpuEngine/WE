@@ -1,8 +1,9 @@
 //start:part.st_vertexOutput.vs.wgsl    //定义了vertex shader 输出的结构体，
 struct VertexShaderOutput {
     @builtin(position) position : vec4f,
-    @location(0) uv : vec2f,
-    @location(1) normal : vec3f,
+    @location(0) normal : vec3f,
+    @location(1) uv : vec2f,
+
     @location(2) color : vec3f,
     @location(3) worldPosition : vec3f,
             //这个是GBuffer的ID buffer

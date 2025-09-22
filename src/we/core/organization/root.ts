@@ -394,6 +394,7 @@ export abstract class RootOfOrganization implements I_UUID {
             this.updateMatrixWorld();//更新 world matrix
             this.updateWorldPosition(); //更新 world position
             this.lastUpdaeTime = clock.now;
+            // console.log(this.Position)
         }
     }
     abstract updateSelf(clock: Clock): void;

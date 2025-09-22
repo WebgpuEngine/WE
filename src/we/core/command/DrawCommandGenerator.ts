@@ -181,8 +181,8 @@ export class DrawCommandGenerator {
                 for (let perGroup of i.data.uniforms) {
                     for (let perEntry of perGroup)
                         if ("data" in perEntry && "update" in perEntry && perEntry.update === true) {//需要更新,只更新数据
-                            if (this.resources.has(perEntry.data, "uniformBuffer")) {
-                                let buffer = this.resources.get(perEntry.data, "uniformBuffer");
+                            if (this.resources.has(perEntry, "uniformBuffer")) {
+                                let buffer = this.resources.get(perEntry, "uniformBuffer");
                                 if (buffer) {
                                     updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformBufferPart).data)
                                 }
@@ -813,7 +813,7 @@ export class DrawCommandGenerator {
             wgsl_value_format = "vec4i";
         }
         else {
-            console.warn("顶点属性格式不能匹配数据");
+            throw new Error("顶点属性格式不能匹配数据");
         }
         return wgsl_value_format;
     }

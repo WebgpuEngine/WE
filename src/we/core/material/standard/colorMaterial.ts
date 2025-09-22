@@ -1,4 +1,5 @@
 import { Color4, E_lifeState } from "../../base/coreDefine";
+import { isWeColor3, isWeColor4 } from "../../base/coreFunction";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -29,7 +30,8 @@ export class ColorMaterial extends BaseMaterial {
     constructor(input: I_ColorMaterial) {
         super(input);
         this.inputValues = input;
-        if (input.color) {
+        if(isWeColor4(input.color)) {
+
             this.color = input.color;
             this.red = input.color[0];
             this.green = input.color[1];
@@ -67,7 +69,7 @@ export class ColorMaterial extends BaseMaterial {
             }
         }
         else {
-            throw new Error("ColorMaterial color is undefined");
+            throw new Error("ColorMaterial color is undefined or not Color4");
         }
     }
     async readyForGPU(): Promise<any> {
@@ -96,6 +98,7 @@ export class ColorMaterial extends BaseMaterial {
         let uniform1: T_uniformGroup = [];
         let code: string = "";
         let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        // let replaceValue: string = ` output.color = vec4f(fsInput.uv.xy,1,1); \n`;
 
 
         for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {

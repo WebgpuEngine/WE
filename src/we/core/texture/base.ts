@@ -1,7 +1,7 @@
 import { I_Update } from "../base/coreDefine";
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
-export type textureSourceType = string | GPUTexture | GPUCopyExternalImageSource;
+export type T_textureSourceType = string | GPUTexture | GPUCopyExternalImageSource;
 
 /**纹理与材质可以公用的的初始化参数
  * 
@@ -30,12 +30,8 @@ export interface I_BaseTexture extends I_Update {  /**纹理名称 */
      */
     samplerDescriptor?: GPUSamplerDescriptor,
 
-    mipmap?: {
-        /**是否生成纹理的mipmap*/
-        enable: boolean,
-        /**指定mipmap层数，默认自动计算 */
-        level?: number,
-    }
+    mipmap?: I_mipmap 
+
     /**纹理的premultipliedAlpha，只在有透明的情况下有效。
      * 1、如果为true，说明纹理的premultipliedAlpha为true，需要预乘alpha。
      * 2、如果为false，说明纹理的premultipliedAlpha为false，不需要预乘alpha。
@@ -61,6 +57,12 @@ export interface I_BaseTexture extends I_Update {  /**纹理名称 */
     /**
      * 纹理的源数据
      */
-    source: textureSourceType,
+    source: T_textureSourceType,
 }
 
+export interface I_mipmap {
+    /**是否生成纹理的mipmap*/
+    enable: boolean,
+    /**指定mipmap层数，默认自动计算 */
+    level?: number,
+}

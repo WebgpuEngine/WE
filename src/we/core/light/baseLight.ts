@@ -134,7 +134,7 @@ export abstract class BaseLight extends RootOfGPU {
     _decay: number = 0;
     _angle: number = 0;
     _angleOut: number = 0;
-    _size:number=1;
+    _size: number = 1;
 
     /**
      * light's enable
@@ -211,10 +211,10 @@ export abstract class BaseLight extends RootOfGPU {
         if (input.color) this.Color = vec3.create(...input.color);
         if (input.intensity) this._intensity = input.intensity;
         if (input.distance) this._distance = input.distance;
-        if (input.direction ) this.Direction = input.direction;
+        if (input.direction) this.Direction = input.direction;
         if (input.decay) this._decay = input.decay;
-        if (input.angle)    this._angle=input.angle;
-        if (input.angleOut)    this._angleOut=input.angleOut;
+        if (input.angle) this._angle = input.angle;
+        if (input.angleOut) this._angleOut = input.angleOut;
         if (input.shadow) this._shadow = input.shadow;
 
         if (input.size !== undefined) this._size = input.size;
@@ -314,6 +314,9 @@ export abstract class BaseLight extends RootOfGPU {
     async updateSelf(clock: Clock) {
         this._buffer = this.updateStructBuffer();
         this.MVP = this.updateMVP(this.scene);
+        let scope=this;
+        // console.log("Position = ", scope.Position[0], scope.Position[1], scope.Position[2])
+        // console.log("worldPosition = ", scope.worldPosition[0], scope.worldPosition[1], scope.worldPosition[2])
     }
     /**更新光源MVP */
     abstract updateMVP(scene: Scene): Mat4[];
@@ -381,7 +384,8 @@ export abstract class BaseLight extends RootOfGPU {
         //种类
         ST_LightViews.kind[0] = this.Kind;
 
-        let position = this.Position;
+        // let position = this.Position;
+        let position = this.worldPosition;
         if (position) {
             ST_LightViews.position[0] = position[0];
             ST_LightViews.position[1] = position[1];

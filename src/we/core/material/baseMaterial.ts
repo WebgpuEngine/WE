@@ -10,6 +10,7 @@ import { I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { E_resourceKind } from "../resources/resourcesGPU";
+import { I_mipmap } from "../texture/base";
 
 
 
@@ -47,6 +48,12 @@ export abstract class BaseMaterial extends RootOfGPU {
 
     _samplerBindingType: GPUSamplerBindingType = "filtering";
 
+    _mipmap: I_mipmap = {
+        enable: true,
+        level: 3
+    };
+
+
     constructor(input?: IV_BaseMaterial) {
         super();
         this.type = "material";
@@ -61,7 +68,7 @@ export abstract class BaseMaterial extends RootOfGPU {
             throw new Error("samplerDescriptor 必须指定samplerBindingType")
         }
 
-
+        if (input?.mipmap) this._mipmap = input.mipmap;
         this._state = E_lifeState.unstart;
     }
     get needUpdate() { return this._reBuild; }

@@ -13,7 +13,7 @@
 import { BaseMaterial, } from "../baseMaterial";
 
 import { Texture } from "../../texture/texture";
-import { textureSourceType } from "../../texture/base";
+import { T_textureSourceType } from "../../texture/base";
 import { E_TextureType, I_TransparentOfMaterial, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformGroup } from "../../command/base";
@@ -30,7 +30,7 @@ import { E_resourceKind } from "../../resources/resourcesGPU";
  */
 export interface IV_TextureMaterial extends IV_BaseMaterial {
     textures: {
-        [name in E_TextureType]?: textureSourceType | Texture
+        [name in E_TextureType]?: T_textureSourceType | Texture
     },
 }
 
