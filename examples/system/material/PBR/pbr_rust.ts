@@ -11,6 +11,7 @@ import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight
 import { IV_PBRMaterial, PBRMaterial } from "../../../../src/we/core/material/PBR/PBRMaterial";
 import { PlaneGeometry } from "../../../../src/we/core/geometry/planeGeomertry";
 import { AmbientLight } from "../../../../src/we/core/light/ambientLight";
+import { PointLight } from "../../../../src/we/core/light/pointLight";
 
 declare global {
   interface Window {
@@ -42,18 +43,18 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
-let onelight = new DirectionalLight({
+let dirlight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [0, 0, 1],
   intensity: 2,
 
 });
-await scene.add(onelight);
+await scene.add(dirlight);
 
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.001
+    intensity: 0.01
   }
 )
 await scene.add(ambientLight);
@@ -100,3 +101,43 @@ let mesh = new Mesh(inputMesh);
 console.log(mesh);
 await scene.add(mesh);
 
+let ballGeometry = new SphereGeometry({
+  radius: 0.01,
+  widthSegments: 8,
+  heightSegments: 8
+});
+let lightMaterial = new ColorMaterial(
+  {
+    color: [1, 1, 1, 1]
+  });
+
+let lightRadius = 1.65;
+let lightRadiusFlag = true;
+let lightZ = 0;
+let light1Entity1 = new Mesh(
+  {
+    attributes: {
+      geometry: ballGeometry,
+    },
+    material: lightMaterial,
+    position: [1, 1, 1],
+    update: (scope: any) => {
+      const now = Date.now() / 500;
+      let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
+      scope.Position = pos;
+    }
+  });
+await scene.add(light1Entity1);
+
+
+
+
+
+let onelight = new PointLight(
+  {
+    position: [0,0,0],
+    // position: [1, 1, 1],
+    intensity: 3.0,
+  }
+);
+await light1Entity1.addChild(onelight);

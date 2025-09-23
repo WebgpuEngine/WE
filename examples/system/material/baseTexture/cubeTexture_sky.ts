@@ -1,6 +1,6 @@
 
 import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../../src/we/core/scene/base";
+import { IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../../src/we/core/material/standard/colorMaterial";
@@ -33,7 +33,7 @@ let camera = new PerspectiveCamera({
   far: 500,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"wasd",
+  controlType: "wasd",
 });
 await scene.add(camera);
 
@@ -51,7 +51,7 @@ let textureMaterial = new CubeTextureMaterial({
     // cube: "/examples/resource/cubeIMG/cubemap/test",
     cube: "/examples/resource/cubeIMG/skycube1/skybox",
   },
-  cubeType:"sky",
+  cubeType: "sky",
 });
 
 let inputMesh: IV_MeshEntity = {
@@ -59,10 +59,13 @@ let inputMesh: IV_MeshEntity = {
     geometry: boxGeometry,
   },
   material: textureMaterial,
-    wireFrame: {
+  wireFrame: {
     color: [1, 1, 1, 1],
     enable: true,
     // wireFrameOnly: true,
+  },
+  primitive: {
+    cullMode: "none"
   },
   // position: [0, 0, 3],
   scale: [400, 400, 400],

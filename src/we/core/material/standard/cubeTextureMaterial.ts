@@ -21,13 +21,13 @@ import { E_TextureType } from "../base";
 import { SHT_materialCubePositionTextureFS_mergeToVS, SHT_materialCubeSkyTextureFS_mergeToVS } from "../../shadermanagemnet/material/cubeTextureMaterial";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
-   cubeType?:"sky"|"cube"
+    cubeType?: "sky" | "cube"
 }
 
 export class CubeTextureMaterial extends TextureMaterial {
 
     declare inputValues: IV_CubeTextureMaterial;
-    cubeType: IV_CubeTextureMaterial["cubeType"]="cube";
+    cubeType: IV_CubeTextureMaterial["cubeType"] = "cube";
     constructor(inputValues: IV_CubeTextureMaterial) {
         super(inputValues);
         if (this.inputValues.cubeType) {
@@ -136,11 +136,11 @@ export class CubeTextureMaterial extends TextureMaterial {
         // else 
         {
             ////////////////shader 模板格式化部分
-            if(this.cubeType == "sky"){
+            if (this.cubeType == "sky") {
                 template = SHT_materialCubeSkyTextureFS_mergeToVS;
             }
             else
-            template = SHT_materialCubePositionTextureFS_mergeToVS;
+                template = SHT_materialCubePositionTextureFS_mergeToVS;
             // template = SHT_materialCubeTextureFS_mergeToVS;
             for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
                 code += perOne.code;

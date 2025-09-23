@@ -56,6 +56,16 @@ export class SphereGeometry extends BaseGeometry {
             thetaStart: input.thetaStart ?? defaultValues.thetaStart,
             thetaLength: input.thetaLength ?? defaultValues.thetaLength
         };
+
+
+
+        // 确保heightSegments是偶数，为消除反半球用，因为/2，所以必须是偶数
+        if (this.parameters.heightSegments! % 2 !== 0) {
+            this.parameters.heightSegments!++;
+        }
+        //全球是heightSegments
+        this.parameters.heightSegments! *= 2;
+
         this.parameters.widthSegments = Math.max(3, Math.floor(this.parameters.widthSegments as number));
         this.parameters.heightSegments = Math.max(2, Math.floor(this.parameters.heightSegments as number));
         this.init(this.parameters)
@@ -89,7 +99,7 @@ export class SphereGeometry extends BaseGeometry {
         let thetaLength = input.thetaLength!;
         // generate vertices, normals and uvs
 
-        for (let iy = 0; iy <= heightSegments; iy++) {
+        for (let iy = 0; iy <= heightSegments  / 2; iy++) {
 
             const verticesRow = [];
 
@@ -120,7 +130,7 @@ export class SphereGeometry extends BaseGeometry {
                 vertex[2] = radius * Math.sin(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
 
                 vertices.push(vertex[0], vertex[1], vertex[2]);
-
+                // console.log(iy, ix, "==========", vertex[0], vertex[1], vertex[2])
                 // normal
 
                 normal = vec3.normalize(vertex);
@@ -140,7 +150,7 @@ export class SphereGeometry extends BaseGeometry {
 
         // indices
 
-        for (let iy = 0; iy < heightSegments; iy++) {
+        for (let iy = 0; iy < heightSegments / 2; iy++) {//不计算反面的半球
 
             for (let ix = 0; ix < widthSegments; ix++) {
 
@@ -161,5 +171,5 @@ export class SphereGeometry extends BaseGeometry {
     }
 
 
- 
+
 }

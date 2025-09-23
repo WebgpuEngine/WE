@@ -215,7 +215,8 @@ export class PBRMaterial extends BaseMaterial {
                 switch (perOne.replace) {
                     case "$PBR_albedo":
                         if (flag_texture_albedo) {
-                            replactString = `albedo =pow( textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb,vec3f(2.2));`;//todo,检查以下是否需要解gamma 20250921
+                            replactString = `albedo = textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb;`;//todo,检查以下是否需要解gamma 20250921
+                            // replactString = `albedo =pow( textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb,vec3f(2.2));`;//todo,检查以下是否需要解gamma 20250921
                         }
                         else {
                             let albedo = this.textures[E_TextureType.albedo] as weVec3;

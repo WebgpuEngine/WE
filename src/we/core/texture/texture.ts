@@ -1,7 +1,7 @@
 import { E_lifeState } from "../base/coreDefine";
 import { weGetImageByUrl } from "../base/coreFunction";
 import { Scene } from "../scene/scene";
-import { I_BaseTexture, textureSourceType } from "./base";
+import { I_BaseTexture } from "./base";
 import { BaseTexture } from "./baseTexture";
 
 

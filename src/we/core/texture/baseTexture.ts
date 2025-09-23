@@ -22,7 +22,7 @@ export abstract class BaseTexture {
      */
     textureLayout: GPUTextureBindingLayout = {};
 
-    textureFormat: GPUTextureFormat = 'rgba8unorm';
+    textureFormat: GPUTextureFormat = 'rgba8unorm-srgb';
 
 
     /**纹理是否完成，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
@@ -40,7 +40,7 @@ export abstract class BaseTexture {
         this.inputValues = inputValues;
 
         if (inputValues.format == undefined) {
-            this.inputValues.format = 'rgba8unorm';
+            this.inputValues.format = 'rgba8unorm-srgb';
         }
         this.textureFormat = this.inputValues.format!;
 

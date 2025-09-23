@@ -42,13 +42,13 @@ await scene.add(camera);
 
 let geometry = new SphereGeometry(
   {
-  radius:1.1,
-  phiStart:0,
-  phiLength:Math.PI/2 ,
-  // thetaStart:0,
-  // thetaLength:Math.PI,
-  heightSegments:4,
-  widthSegments:1,
+  // radius:1.1,
+  // phiStart:0,
+  // phiLength:Math.PI/2 ,
+  // // thetaStart:0,
+  // // thetaLength:Math.PI,
+  // heightSegments:15,
+  // widthSegments:1,
 }
 );
 
