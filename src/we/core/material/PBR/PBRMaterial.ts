@@ -67,15 +67,18 @@ export class PBRMaterial extends BaseMaterial {
                 this.textures[key] = texture;
             }
             else if (texture) {
-                if (key == E_TextureType.metallic && texture.format == undefined) {
-                    texture.format = "r8unorm";
+                if (key != E_TextureType.color && key != E_TextureType.albedo) {
+                    texture.format = "rgba8unorm";
                 }
-                else if (key == E_TextureType.roughness && texture.format == undefined) {
-                    texture.format = "r8unorm";
-                }
-                else if (key == E_TextureType.ao && texture.format == undefined) {
-                    texture.format = "r8unorm";
-                }
+                // if (key == E_TextureType.metallic && texture.format == undefined) {
+                //     texture.format = "r8unorm";
+                // }
+                // else if (key == E_TextureType.roughness && texture.format == undefined) {
+                //     texture.format = "r8unorm";
+                // }
+                // else if (key == E_TextureType.ao && texture.format == undefined) {
+                //     texture.format = "r8unorm";
+                // }
                 let textureInstace = new Texture(texture, this.device, this.scene);
                 await textureInstace.init();
                 this.textures[key] = textureInstace;
@@ -91,7 +94,7 @@ export class PBRMaterial extends BaseMaterial {
             }
         }
     }
-    getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
         let binding: number = startBinding;

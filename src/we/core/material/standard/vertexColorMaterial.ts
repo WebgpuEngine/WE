@@ -24,7 +24,7 @@ export class VertexColorMaterial extends BaseMaterial {
     destroy(): void {
         throw new Error("Method not implemented.");
     }
-    getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera,startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
         let template = SHT_materialColorFS_mergeToVS;
 
         let uniform1: T_uniformGroup = [];

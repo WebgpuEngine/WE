@@ -38,6 +38,19 @@ export class EntityManager extends ECSManager<BaseEntity> {
                     }
                 }
             }
+            for (let UUID in entity.shadowmapDC) {//一个entity的所有shadowmap
+                let perShadowmap = entity.shadowmapDC[UUID];
+                for (let i in perShadowmap) {//单个shadowmap
+                    for (let i_pass in perShadowmap[i as keyof typeof perShadowmap]) { //单个pass：deth，transparent
+                        let perDC = perShadowmap[i as keyof typeof perShadowmap][parseInt(i_pass)];       //单个drawCommand
+                        let kind: renderPassName = renderPassName.depth;
+                        if (i_pass == "transparent") {
+                            kind = renderPassName.transparent;
+                        }
+                        this.renderManager.push(perDC, kind, UUID);
+                    }
+                }
+            }
         }
     }
 

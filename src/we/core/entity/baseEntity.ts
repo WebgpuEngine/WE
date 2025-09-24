@@ -6,6 +6,7 @@ import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 
 
 import {
+    I_EntityBundleOfUniformAndShaderTemplateFinal,
     I_entityInstance,
     I_optionBaseEntity,
     I_optionShadowEntity,
@@ -16,10 +17,11 @@ import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
 import { T_uniformGroup } from "../command/base";
-import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
+import { I_ShaderTemplate, I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
+import { renderPassName } from "../scene/renderManager";
 
 
 export abstract class BaseEntity extends RootOfGPU {
@@ -75,14 +77,25 @@ export abstract class BaseEntity extends RootOfGPU {
         generate: true,
     };
 
-
+    /**
+     * cameraDC 队列 
+     * 1、由enity生成(每个摄像机)
+     * 2、由entityManager调度给renderManager
+     */
     cameraDC: {
         [name: string]: {
             deferDepth: DrawCommand[],
             forward: DrawCommand[],
             transparent: DrawCommand[],
+            // [renderPassName.depth]: []
         }
     } = {};
+
+    /**
+     * light的shadow map DC 队列 
+     * 1、由enity生成(每个摄像机)
+     * 2、由entityManager调度给renderManager
+     */
     shadowmapDC: {
         [name: string]: {
             deth: DrawCommand[],
@@ -219,7 +232,7 @@ export abstract class BaseEntity extends RootOfGPU {
      * @param startBinding 
      * @returns  uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    abstract getUniformAndShaderTemplateFinal(camera: BaseCamera,startBinding: number): { uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final }
+    abstract getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOfUniformAndShaderTemplateFinal
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +383,7 @@ export abstract class BaseEntity extends RootOfGPU {
         //             this.createDCCCForShadowMapOfTransparent(valueOfLight);
         //         }
         //         else {
-        //             this.createDCCCForShadowMap(valueOfLight);
+        //             this.createShadowMapDC(valueOfLight);
         //         }
         //     }
 

@@ -1,38 +1,34 @@
 import { Color4, E_lifeState } from "../../base/coreDefine";
+import { isWeColor3, isWeColor4 } from "../../base/coreFunction";
 import { BaseCamera } from "../../camera/baseCamera";
-import {T_uniformGroup } from "../../command/base";
+import { I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType,  I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_WireFrameFS_mergeToVS } from "../../shadermanagemnet/material/wireFrameMaterial";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
+import { SHT_materialColorFS_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
+import { IV_BaseMaterial, I_TransparentOfMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
-import { I_ColorMaterial } from "./colorMaterial";
 
 
+export class ShadowMapMaterial extends BaseMaterial {
 
-export class WireFrameMaterial extends BaseMaterial {
-    declare inputValues: I_ColorMaterial;
-    color: Color4;
-    red: number = 0;
-    green: number = 0;
-    blue: number = 0;
-    alpha: number = 1;
 
-    constructor(input: I_ColorMaterial) {
+    constructor(input?: IV_BaseMaterial) {
         super(input);
-        this.inputValues = input;
-        this.color = input.color;
-        this.red = input.color[0];
-        this.green = input.color[1];
-        this.blue = input.color[2];
-        this.alpha = input.color[3];
     }
     async readyForGPU(): Promise<any> {
         this._state = E_lifeState.finished;
         // console.log(this._state);
     }
 
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+
+    getOneGroupUniformAndShaderTemplateFinal( startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+        if (this.getTransparent()) {
+            return this.getTransparentCodeFS(startBinding);
+        }
+        else {
             return this.getOpaqueCodeFS(startBinding);
+        }
+
     }
     /**
      *  不透明材质的code
@@ -40,11 +36,13 @@ export class WireFrameMaterial extends BaseMaterial {
      * @returns 
      */
     getOpaqueCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
-        let template = SHT_WireFrameFS_mergeToVS;
+        let template = SHT_materialColorFS_mergeToVS;
 
         let uniform1: T_uniformGroup = [];
         let code: string = "";
-        let color: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        // let replaceValue: string = ` output.color = vec4f(fsInput.uv.xy,1,1); \n`;
+
 
         for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
             code += perOne.code;
@@ -53,8 +51,9 @@ export class WireFrameMaterial extends BaseMaterial {
             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
                 code = code.replace(perOne.replace, perOne.replaceCode as string);
             }
+            //$color
             if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                code = code.replace(perOne.replace, color);
+                code = code.replace(perOne.replace, replaceValue);
             }
         }
         let outputFormat: I_singleShaderTemplate_Final = {
@@ -74,9 +73,11 @@ export class WireFrameMaterial extends BaseMaterial {
     getTransparentCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
         throw new Error("Method not implemented.");
     }
-    destroy() {
+
+    destroy(): void {
         throw new Error("Method not implemented.");
     }
+
 
     getBlend(): GPUBlendState | undefined {
         return this._transparent?.blend;

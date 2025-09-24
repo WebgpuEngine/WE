@@ -3,6 +3,8 @@ import { I_Update, E_renderForDC } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
 import { Rotation, RotationArray } from "../math/baseDefine";
 import { T_vsAttribute, vsAttribute, vsAttributeMerge } from "../command/DrawCommandGenerator";
+import { T_uniformGroup } from "../command/base";
+import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 
 
 export interface meshConstantsVS {
@@ -165,8 +167,13 @@ export interface I_BaseEntityStep2 {
 
 /**enity的顶点属性参数 */
 export interface I_EntityAttributes {
-    vertices: Map<string, T_vsAttribute> ;
+    vertices: Map<string, T_vsAttribute>;
     vertexStepMode: GPUVertexStepMode;
     indexes: number[];
 }
 
+export interface I_EntityBundleOfUniformAndShaderTemplateFinal {
+    bindingNumber: number,
+    uniformGroups: T_uniformGroup[],
+    shaderTemplateFinal: I_ShaderTemplate_Final
+}

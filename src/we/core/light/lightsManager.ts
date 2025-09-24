@@ -114,6 +114,18 @@ export class LightsManager extends ECSManager<BaseLight> {
      *  动态的：根据光源的数量、种类和是否产生shadowmap，动态增加shadowmap的数量
      */
     shadowMapTexture: GPUTexture;
+    /**
+     * shadowmap的transparent color texture texture_depth_2d_array
+     * 动态的
+     */
+    shadowMapTransparentColorLayerTexture: GPUTexture;
+    shadowMapTransparentDepthlayerTexture: GPUTexture;
+    /**
+     * copy shadowMapTexture[i of light ] 的transparent depth texture
+     * 1、每个light的transparent 都会copy一次
+     * 2、然后此纹理作为输入的depth 比较纹理
+     */
+    shadowMapTransparentDepthTexture: GPUTexture;
 
     /////////////////////////////////////////////////////////////
     // about lights

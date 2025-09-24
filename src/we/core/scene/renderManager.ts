@@ -26,8 +26,11 @@ export enum renderPassName {
     depth = "depth",
     forward = "forward",
     transparent = "transparent",
+    transparentMerge = "transparentMerge",
     sprite = "sprite",
+    // spriteTop = "spriteTop",
     spriteTransparent = "spriteTransparent",
+    // spriteTransparentTop = "spriteTransparentTop",
     postprocess = "postprocess",
     ui = "ui",
     output = "output",
@@ -37,6 +40,7 @@ interface I_renderDrawCommand {
     [name: string]: Map<I_PipelineStructure, commmandType[]>,
 }
 /**
+ * 通用的渲染通道
  * 是否正确需要验证，20250915
  * 透明shadowmap通道
  */
@@ -83,10 +87,16 @@ export class RenderManager {
 
     //透明enity，具有时间线
     renderCameraTransParentCommand: I_renderDrawOfTimeline = {};
+    //透明物体合并通道
+    renderCameraTransparentMergeCommand: I_renderDrawOfTimeline = {};
 
     renderSpriteCommand: I_renderDrawCommand = {};
     //sprite透明，具有时间线
     renderSpriteTransparentCommand: I_renderDrawOfTimeline = {};
+
+    // renderSpriteTopCommand: I_renderDrawCommand = {};
+    // //sprite透明，具有时间线
+    // renderSpriteTransparentTopCommand: I_renderDrawOfTimeline = {};
 
     renderPostProcessCommand: commmandType[] = [];
     renderUICommand: commmandType[] = [];
@@ -105,6 +115,10 @@ export class RenderManager {
         this.device = scene.device;
 
     }
+    /**
+     * 初始化相机的渲染通道,初始化包括：depth,forward,transparent,transparentMerge
+     * @param UUID 
+     */
     initRenderCommandForCamera(UUID: string) {
         if (!this.renderCameraForwardCommand[UUID]) {
             this.renderCameraForwardCommand[UUID] = new Map();
@@ -115,13 +129,26 @@ export class RenderManager {
         if (!this.renderCameraTransParentCommand[UUID]) {
             this.renderCameraTransParentCommand[UUID] = [];
         }
+        if (!this.renderCameraTransparentMergeCommand[UUID]) {
+            this.renderCameraTransparentMergeCommand[UUID] = [];
+        }
         if (!this.renderSpriteCommand[UUID]) {
             this.renderSpriteCommand[UUID] = new Map();
         }
         if (!this.renderSpriteTransparentCommand[UUID]) {
             this.renderSpriteTransparentCommand[UUID] = [];
         }
+        // if (!this.renderSpriteTopCommand[UUID]) {
+        //     this.renderSpriteTopCommand[UUID] = new Map();
+        // }
+        // if (!this.renderSpriteTransparentTopCommand[UUID]) {
+        //     this.renderSpriteTransparentTopCommand[UUID] = [];
+        // }
     }
+    /**
+     * 初始化光源的shadow map 渲染通道,初始化包括：shadowmapOpacity,shadowmapTransparent
+     * @param UUID 光源的UUID
+     */
     initRenderCommandForLight(UUID: string) {
         if (!this.renderShadowMapOpacityCommand[UUID]) {
             this.renderShadowMapOpacityCommand[UUID] = new Map();
@@ -159,6 +186,7 @@ export class RenderManager {
             let cameraCommand = this.renderCameraTransParentCommand[UUID as renderPassName];
             cameraCommand = [];
         }
+
         for (let UUID in this.renderSpriteCommand) {
             let spriteCommand = this.renderSpriteCommand[UUID as renderPassName];
             spriteCommand.clear();
@@ -167,6 +195,14 @@ export class RenderManager {
             let spriteCommand = this.renderSpriteTransparentCommand[UUID as renderPassName];
             spriteCommand = [];
         }
+        // for (let UUID in this.renderSpriteTopCommand) {
+        //     let spriteCommand = this.renderSpriteTopCommand[UUID as renderPassName];
+        //     spriteCommand.clear();
+        // }
+        // for (let UUID in this.renderSpriteTransparentTopCommand) {
+        //     let spriteCommand = this.renderSpriteTransparentTopCommand[UUID as renderPassName];
+        //     spriteCommand = [];
+        // }
         this.renderPostProcessCommand = [];
         this.renderUICommand = [];
         this.renderOutputCommand = [];
@@ -246,8 +282,22 @@ export class RenderManager {
                     this.renderSpriteCommand[_UUID!].set(flag, [command]);                   //set map
                 }
                 break;
+            // case renderPassName.spriteTop:
+            //     flag = (command as DrawCommand).getPipeLineStructure();
+            //     if (this.renderSpriteTopCommand[_UUID!].has(flag)) {                            //是否有map
+            //         this.renderSpriteTopCommand[_UUID!].get(flag)?.push(command);               //push command
+            //     } else {                                                                               //没有map
+            //         this.renderSpriteTopCommand[_UUID!].set(flag, [command]);                   //set map
+            //     }
+            //     break;                
             case renderPassName.spriteTransparent:
                 this.renderSpriteTransparentCommand[_UUID!].push(command);
+                break;
+            // case renderPassName.spriteTransparentTop:
+            //     this.renderSpriteTransparentTopCommand[_UUID!].push(command);
+            //     break;
+            case renderPassName.transparentMerge:
+                this.renderCameraTransparentMergeCommand[_UUID!].push(command);
                 break;
             default:
                 break;
@@ -263,7 +313,7 @@ export class RenderManager {
             }
         }
         if (submitCommand.length > 0)
-        this.device.queue.submit(submitCommand);
+            this.device.queue.submit(submitCommand);
     }
     renderForwareDC(commands: I_renderDrawCommand) {
         let cameraRendered: {

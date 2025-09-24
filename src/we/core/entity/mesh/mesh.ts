@@ -1,4 +1,4 @@
-import { E_lifeState, E_renderForDC, Color4 } from "../../base/coreDefine";
+import { E_lifeState, E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_drawMode, I_drawModeIndexed, I_uniformBufferPart, T_uniformGroup } from "../../command/base";
 import { T_vsAttribute, V_DC } from "../../command/DrawCommandGenerator";
@@ -8,7 +8,7 @@ import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
-import { I_EntityAttributes, I_optionBaseEntity } from "../base";
+import { I_EntityAttributes, I_EntityBundleOfUniformAndShaderTemplateFinal, I_optionBaseEntity } from "../base";
 import { BaseEntity } from "../baseEntity";
 
 
@@ -39,7 +39,7 @@ export interface IV_MeshEntity extends I_optionBaseEntity {
         /**线框颜色，默认黑色(0,0,0,1)
          * 数值范围：0-1
         */
-        color?: Color4,
+        color?: weColor4,
         /**
          * 线与面的偏移量
          * 线框宽度，默认1
@@ -69,7 +69,7 @@ export class Mesh extends BaseEntity {
         /**线框颜色，默认黑色(0,0,0,1)
          * 数值范围：0-1
         */
-        wireFrameColor?: Color4,
+        wireFrameColor?: weColor4,
         enable: boolean,
         indexes: number[],
         indexCount: number,
@@ -209,7 +209,7 @@ export class Mesh extends BaseEntity {
         await this._material.init(this.scene, this);
         if (this._wireframe.enable) {
             this._materialWireframe = new WireFrameMaterial({
-                color: this._wireframe.wireFrameColor as Color4,
+                color: this._wireframe.wireFrameColor as weColor4,
             })
             await this._materialWireframe.init(this.scene, this);
         }
@@ -261,7 +261,7 @@ export class Mesh extends BaseEntity {
      * @param startBinding 
      * @returns uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    getUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number = 0, wireFrame: boolean = false): { uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final } {
+    getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOfUniformAndShaderTemplateFinal {
         //uniform 部分
         let bindingNumber = startBinding;
         let uniform1: T_uniformGroup = [];
@@ -271,7 +271,7 @@ export class Mesh extends BaseEntity {
             binding: bindingNumber,
             size: this.getSizeOfUniformArrayBuffer(),
             data: this.getUniformArrayBuffer(),
-            update:true,
+            update: true,
         };
         let uniform10Layout: GPUBindGroupLayoutEntry = {
             binding: bindingNumber,
@@ -287,13 +287,14 @@ export class Mesh extends BaseEntity {
 
         //scene 和 entity 的shader模板部分
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        let SHT_VS: I_ShaderTemplate;
-        if (wireFrame === false) {
-            SHT_VS = SHT_MeshVS;
-        }
-        else {
-            SHT_VS = SHT_MeshWireframeVS;
-        }
+        // let SHT_VS: I_ShaderTemplate;
+        // if (wireFrame === false) {
+        //     SHT_VS = SHT_MeshVS;
+        // }
+        // else {
+        //     SHT_VS = SHT_MeshWireframeVS;
+        // }
+
         for (let i in SHT_VS) {
             if (i == "scene") {
                 let shader = this.scene.getShaderCodeOfSHT_ScenOfCamera(SHT_VS[i]);
@@ -307,21 +308,21 @@ export class Mesh extends BaseEntity {
                 };
             }
         }
-        let uniformsMaterial
-        if (wireFrame === false) {
-            //material 部分：uniform 和 shader模板输出
-            uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal(camera, bindingNumber);
-        }
-        else {
-            uniformsMaterial = this._materialWireframe.getOneGroupUniformAndShaderTemplateFinal(camera, bindingNumber);
-        }
-        if (uniformsMaterial) {
-            uniform1.push(...uniformsMaterial.uniformGroup);
-            shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-        }
+        // let uniformsMaterial
+        // if (wireFrame === false) {
+        //     //material 部分：uniform 和 shader模板输出
+        //     uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal( bindingNumber);
+        // }
+        // else {
+        //     uniformsMaterial = this._materialWireframe.getOneGroupUniformAndShaderTemplateFinal( bindingNumber);
+        // }
+        // if (uniformsMaterial) {
+        //     uniform1.push(...uniformsMaterial.uniformGroup);
+        //     shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
+        // }
         let uniformGroups: T_uniformGroup[] = [uniform1];
 
-        return { uniformGroups, shaderTemplateFinal };
+        return { bindingNumber: bindingNumber, uniformGroups, shaderTemplateFinal };
     }
 
     /**
@@ -362,6 +363,133 @@ export class Mesh extends BaseEntity {
         }
         return 0;
     }
+    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false) {
+        let drawMode: I_drawMode | I_drawModeIndexed;
+        if (this.inputValues.drawMode != undefined) {
+            drawMode = this.inputValues.drawMode;
+        }
+        else {
+            let drawModeMesh: I_drawMode = {
+                vertexCount: 0,
+                firstInstance: 0,
+                instanceCount: 1,
+            };
+            let drawModeIndexMesh: I_drawModeIndexed = {
+                indexCount: 0,//this.attributes.indexes.length,
+                instanceCount: 1,
+                firstIndex: 0,
+                baseVertex: 0,
+                firstInstance: 0,
+            }
+            if (this.attributes.indexes && this.attributes.indexes.length > 0) {
+                drawModeIndexMesh.indexCount = this.attributes.indexes.length;
+                drawModeIndexMesh.instanceCount = this.instance.numInstances;
+                drawMode = drawModeIndexMesh;
+            }
+            else {
+                if (this.attributes.vertices.has("position")) {
+                    let pos = this.attributes.vertices.get("position")!;
+                    if ("data" in pos) {
+                        drawModeMesh.vertexCount = pos.count;
+                    }
+                    else {
+                        drawModeMesh.vertexCount = pos.length / 3;
+                    }
+                }
+                drawModeMesh.instanceCount = this.instance.numInstances;
+                drawMode = drawModeMesh;
+            }
+        }
+        if (this.boundingBox == undefined)
+            this.generateBoxAndSphere();
+        let boundingBoxMaxSize = this.getBoundingBoxMaxSize();
+        if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
+
+        let valueDC: V_DC = {
+            label: "DrawCommand mesh :" + this.Name + " for  " + type + ": " + UUID,
+            data: {
+                vertices: this.attributes.vertices,
+                vertexStepMode: this.attributes.vertexStepMode,
+                indexes: this.attributes.indexes,
+                uniforms: bundle.uniformGroups,
+
+            },
+            render: {
+                vertex: {
+                    code: bundle.shaderTemplateFinal,
+                    entryPoint: "vs",
+                    constants: {
+                        "boundingBoxMaxSize": boundingBoxMaxSize,
+                    },
+                },
+                fragment: {
+                    entryPoint: "fs",
+
+                },
+                drawMode,
+                primitive: {
+                    cullMode: this._cullMode,
+                }
+            },
+            system: {
+                UUID,
+                type: E_renderForDC.camera
+            }
+        }
+        if (this.inputValues.primitive) {
+            valueDC.render.primitive = this.inputValues.primitive;
+        }
+        if (vsOnly)
+            delete valueDC.render.fragment;
+        return valueDC;
+    }
+    generateWireFrameInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal): V_DC {
+        let drawMode: I_drawModeIndexed = {
+            indexCount: 0,
+            instanceCount: 1,
+            firstIndex: 0,
+            baseVertex: 0,
+            firstInstance: 0,
+        }
+        if (this._wireframe.indexes) {
+            drawMode.indexCount = this._wireframe.indexCount;
+            drawMode.instanceCount = this.instance.numInstances;
+        }
+        else {
+            throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
+        }
+        let valueDC: V_DC = {
+            label: "DrawCommand mesh wireframe :" + this.Name + " for  " + type + ": " + UUID,
+            data: {
+                vertices: this.attributes.vertices,
+                vertexStepMode: this.attributes.vertexStepMode,
+                indexes: this._wireframe.indexes,
+                uniforms: bundle.uniformGroups,
+            },
+            render: {
+                vertex: {
+                    code: bundle.shaderTemplateFinal,
+                    entryPoint: "vs",
+
+                },
+                fragment: {
+                    entryPoint: "fs",
+                    constants: {
+                        offsetOfWireframeVale: this._wireframe.offset,
+                    }
+                },
+                drawMode,
+                primitive: {
+                    topology: "line-list",
+                },
+            },
+            system: {
+                UUID,
+                type: E_renderForDC.camera
+            }
+        }
+        return valueDC;
+    }
     /**
      * 为每个camera创建前向渲染的DrawCommand
      * @param camera 
@@ -369,137 +497,151 @@ export class Mesh extends BaseEntity {
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
-            //mesh 前向渲染
-            let bundle = this.getUniformAndShaderTemplateFinal(camera);
-            let drawMode: I_drawMode | I_drawModeIndexed;
-            if (this.inputValues.drawMode != undefined) {
-                drawMode = this.inputValues.drawMode;
+            //mesh VS 模板输出
+            let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+            //材质的shader 模板输出，
+            let uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal(bundle.bindingNumber);
+            if (uniformsMaterial) {
+                bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
+                bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
             }
-            else {
-                let drawModeMesh: I_drawMode = {
-                    vertexCount: 0,
-                    firstInstance: 0,
-                    instanceCount: 1,
-                };
-                let drawModeIndexMesh: I_drawModeIndexed = {
-                    indexCount: 0,//this.attributes.indexes.length,
-                    instanceCount: 1,
-                    firstIndex: 0,
-                    baseVertex: 0,
-                    firstInstance: 0,
-                }
-                if (this.attributes.indexes && this.attributes.indexes.length > 0) {
-                    drawModeIndexMesh.indexCount = this.attributes.indexes.length;
-                    drawModeIndexMesh.instanceCount = this.instance.numInstances;
-                    drawMode = drawModeIndexMesh;
-                }
-                else {
-                    if (this.attributes.vertices.has("position")) {
-                        let pos = this.attributes.vertices.get("position")!;
-                        if ("data" in pos) {
-                            drawModeMesh.vertexCount = pos.count;
-                        }
-                        else {
-                            drawModeMesh.vertexCount = pos.length / 3;
-                        }
-                    }
-                    drawModeMesh.instanceCount = this.instance.numInstances;
-                    drawMode = drawModeMesh;
-                }
-            }
-            if (this.boundingBox == undefined)
-                this.generateBoxAndSphere();
-            let boundingBoxMaxSize = this.getBoundingBoxMaxSize();
-            if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
+            // let drawMode: I_drawMode | I_drawModeIndexed;
+            // if (this.inputValues.drawMode != undefined) {
+            //     drawMode = this.inputValues.drawMode;
+            // }
+            // else {
+            //     let drawModeMesh: I_drawMode = {
+            //         vertexCount: 0,
+            //         firstInstance: 0,
+            //         instanceCount: 1,
+            //     };
+            //     let drawModeIndexMesh: I_drawModeIndexed = {
+            //         indexCount: 0,//this.attributes.indexes.length,
+            //         instanceCount: 1,
+            //         firstIndex: 0,
+            //         baseVertex: 0,
+            //         firstInstance: 0,
+            //     }
+            //     if (this.attributes.indexes && this.attributes.indexes.length > 0) {
+            //         drawModeIndexMesh.indexCount = this.attributes.indexes.length;
+            //         drawModeIndexMesh.instanceCount = this.instance.numInstances;
+            //         drawMode = drawModeIndexMesh;
+            //     }
+            //     else {
+            //         if (this.attributes.vertices.has("position")) {
+            //             let pos = this.attributes.vertices.get("position")!;
+            //             if ("data" in pos) {
+            //                 drawModeMesh.vertexCount = pos.count;
+            //             }
+            //             else {
+            //                 drawModeMesh.vertexCount = pos.length / 3;
+            //             }
+            //         }
+            //         drawModeMesh.instanceCount = this.instance.numInstances;
+            //         drawMode = drawModeMesh;
+            //     }
+            // }
+            // if (this.boundingBox == undefined)
+            //     this.generateBoxAndSphere();
+            // let boundingBoxMaxSize = this.getBoundingBoxMaxSize();
+            // if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
 
-            let valueDC: V_DC = {
-                label: "DrawCommand mesh :" + this.Name + " for  camera: " + camera.UUID,
-                data: {
-                    vertices: this.attributes.vertices,
-                    vertexStepMode: this.attributes.vertexStepMode,
-                    indexes: this.attributes.indexes,
-                    uniforms: bundle.uniformGroups,
+            // let valueDC: V_DC = {
+            //     label: "DrawCommand mesh :" + this.Name + " for  camera: " + camera.UUID,
+            //     data: {
+            //         vertices: this.attributes.vertices,
+            //         vertexStepMode: this.attributes.vertexStepMode,
+            //         indexes: this.attributes.indexes,
+            //         uniforms: bundle.uniformGroups,
 
-                },
-                render: {
-                    vertex: {
-                        code: bundle.shaderTemplateFinal,
-                        entryPoint: "vs",
-                        constants: {
-                            "boundingBoxMaxSize": boundingBoxMaxSize,
-                        },
-                    },
-                    fragment: {
-                        entryPoint: "fs",
+            //     },
+            //     render: {
+            //         vertex: {
+            //             code: bundle.shaderTemplateFinal,
+            //             entryPoint: "vs",
+            //             constants: {
+            //                 "boundingBoxMaxSize": boundingBoxMaxSize,
+            //             },
+            //         },
+            //         fragment: {
+            //             entryPoint: "fs",
 
-                    },
-                    drawMode,
-                    primitive:{
-                        cullMode:this._cullMode,
-                    }
-                },
-                system: {
-                    UUID,
-                    type: E_renderForDC.camera
-                }
-            }
-            if (this.inputValues.primitive) {
-                valueDC.render.primitive = this.inputValues.primitive;
-            }
+            //         },
+            //         drawMode,
+            //         primitive: {
+            //             cullMode: this._cullMode,
+            //         }
+            //     },
+            //     system: {
+            //         UUID,
+            //         type: E_renderForDC.camera
+            //     }
+            // }
+            // if (this.inputValues.primitive) {
+            //     valueDC.render.primitive = this.inputValues.primitive;
+            // }
+            let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, bundle);
             let dc = this.DCG.generateDrawCommand(valueDC);
             this.cameraDC[UUID].forward.push(dc);
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
-            let bundle = this.getUniformAndShaderTemplateFinal(camera, 0, true);
-            let drawMode: I_drawModeIndexed = {
-                indexCount: 0,
-                instanceCount: 1,
-                firstIndex: 0,
-                baseVertex: 0,
-                firstInstance: 0,
+            let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
+            let uniformsMaterial = this._materialWireframe.getOneGroupUniformAndShaderTemplateFinal(bundle.bindingNumber);
+            if (uniformsMaterial) {
+                bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
+                bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
             }
-            if (this._wireframe.indexes) {
-                drawMode.indexCount = this._wireframe.indexCount;
-                drawMode.instanceCount = this.instance.numInstances;
-            }
-            else {
-                throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
-            }
-            let valueDC: V_DC = {
-                label: "DrawCommand mesh wireframe :" + this.Name + " for  camera: " + camera.UUID,
-                data: {
-                    vertices: this.attributes.vertices,
-                    vertexStepMode: this.attributes.vertexStepMode,
-                    indexes: this._wireframe.indexes,
-                    uniforms: bundle.uniformGroups,
-                },
-                render: {
-                    vertex: {
-                        code: bundle.shaderTemplateFinal,
-                        entryPoint: "vs",
+            // let drawMode: I_drawModeIndexed = {
+            //     indexCount: 0,
+            //     instanceCount: 1,
+            //     firstIndex: 0,
+            //     baseVertex: 0,
+            //     firstInstance: 0,
+            // }
+            // if (this._wireframe.indexes) {
+            //     drawMode.indexCount = this._wireframe.indexCount;
+            //     drawMode.instanceCount = this.instance.numInstances;
+            // }
+            // else {
+            //     throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
+            // }
+            // let valueDC: V_DC = {
+            //     label: "DrawCommand mesh wireframe :" + this.Name + " for  camera: " + camera.UUID,
+            //     data: {
+            //         vertices: this.attributes.vertices,
+            //         vertexStepMode: this.attributes.vertexStepMode,
+            //         indexes: this._wireframe.indexes,
+            //         uniforms: bundle.uniformGroups,
+            //     },
+            //     render: {
+            //         vertex: {
+            //             code: bundle.shaderTemplateFinal,
+            //             entryPoint: "vs",
 
-                    },
-                    fragment: {
-                        entryPoint: "fs",
-                        constants: {
-                            offsetOfWireframeVale: this._wireframe.offset,
-                        }
-                    },
-                    drawMode,
-                    primitive: {
-                        topology: "line-list",
-                    },
-                },
-                system: {
-                    UUID,
-                    type: E_renderForDC.camera
-                }
-            }
+            //         },
+            //         fragment: {
+            //             entryPoint: "fs",
+            //             constants: {
+            //                 offsetOfWireframeVale: this._wireframe.offset,
+            //             }
+            //         },
+            //         drawMode,
+            //         primitive: {
+            //             topology: "line-list",
+            //         },
+            //     },
+            //     system: {
+            //         UUID,
+            //         type: E_renderForDC.camera
+            //     }
+            // }
+            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, UUID, bundle);
             let dc = this.DCG.generateDrawCommand(valueDC);
             this.cameraDC[UUID].forward.push(dc);
         }
     }
+
     createDeferDepthDC(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
@@ -507,7 +649,10 @@ export class Mesh extends BaseEntity {
         throw new Error("Method not implemented.");
     }
     createShadowMapDC(light: BaseLight): void {
-        throw new Error("Method not implemented.");
+
+
+
+
     }
     createShadowMapTransparentDC(light: BaseLight): void {
         throw new Error("Method not implemented.");

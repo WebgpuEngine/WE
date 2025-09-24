@@ -72,6 +72,9 @@ export class PhongMaterial extends BaseMaterial {
         this.textures[key] = texture;
       }
       else if (texture) {
+        if(key != E_TextureType.color){
+          texture.format="rgba8unorm";
+        }
         let textureInstace = new Texture(texture, this.device, this.scene);
         await textureInstace.init();
         this.textures[key] = textureInstace;
@@ -82,7 +85,7 @@ export class PhongMaterial extends BaseMaterial {
     }
     this._state = E_lifeState.finished;
   }
-  getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera, startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+  getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
     let template: I_ShaderTemplate;
     let groupAndBindingString: string = "";
     let binding: number = startBinding;

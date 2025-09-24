@@ -6,8 +6,8 @@ import { BaseGeometry } from "../../geometry/baseGeometry";
 import { BaseLight } from "../../light/baseLight";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_LineVS, SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
-import { I_EntityAttributes, I_optionBaseEntity } from "../base";
+import { SHT_LineVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
+import { I_EntityAttributes, I_EntityBundleOfUniformAndShaderTemplateFinal, I_optionBaseEntity } from "../base";
 import { BaseEntity } from "../baseEntity";
 
 
@@ -72,7 +72,7 @@ export class Lines extends BaseEntity {
         super(input);
         this.inputValues = input;
 
-        if(input.lineMode) this.lineMode = input.lineMode;
+        if (input.lineMode) this.lineMode = input.lineMode;
         if (input.attributes.geometry) {
             this._geometry = input.attributes.geometry;
             let attributes = input.attributes.geometry.getAttribute();
@@ -156,7 +156,7 @@ export class Lines extends BaseEntity {
      * @param startBinding 
      * @returns uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    getUniformAndShaderTemplateFinal(camera: BaseCamera,startBinding: number = 0, wireFrame: boolean = false): { uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final } {
+    getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOfUniformAndShaderTemplateFinal {
         //uniform 部分
         let bindingNumber = startBinding;
         let uniform1: T_uniformGroup = [];
@@ -181,7 +181,7 @@ export class Lines extends BaseEntity {
 
         //scene 和 entity 的shader模板部分
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        let SHT_VS: I_ShaderTemplate=SHT_LineVS;
+        // let SHT_VS: I_ShaderTemplate=SHT_LineVS;
 
         for (let i in SHT_VS) {
             if (i == "scene") {
@@ -190,21 +190,21 @@ export class Lines extends BaseEntity {
             }
             else if (i == "entity") {
                 shaderTemplateFinal.entity = {
-                    templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
+                    templateString: this.formatShaderCode(SHT_VS[i]),
                     groupAndBindingString: uniform10GroupAndBindingString,
                     owner: this,
                 };
             }
         }
-        let uniformsMaterial= this._material.getOneGroupUniformAndShaderTemplateFinal(camera,bindingNumber);
+        // let uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal(bindingNumber);
 
-        if (uniformsMaterial) {
-            uniform1.push(...uniformsMaterial.uniformGroup);
-            shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-        }
+        // if (uniformsMaterial) {
+        //     uniform1.push(...uniformsMaterial.uniformGroup);
+        //     shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
+        // }
         let uniformGroups: T_uniformGroup[] = [uniform1];
 
-        return { uniformGroups, shaderTemplateFinal };
+        return { bindingNumber, uniformGroups, shaderTemplateFinal };
     }
 
     /**
@@ -230,13 +230,7 @@ export class Lines extends BaseEntity {
         for (let perOne of template.replace as I_shaderTemplateReplace[]) {
             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
                 if (perOne.name == "userCodeVS") {
-                    if (wireFrame === false) {  //wireframe 不使用用户自定义代码,此时是wireFrame =false
-                        let userCodeVS = this.getUserCodeVS();
-                        code = code.replace(perOne.replace, userCodeVS);
-                    }
-                    else {
-                        code = code.replace(perOne.replace, "");
-                    }
+                    code = code.replace(perOne.replace, "");
                 }
                 else {
                     code = code.replace(perOne.replace, perOne.replaceCode as string);
@@ -248,15 +242,7 @@ export class Lines extends BaseEntity {
         }
         return code;
     }
-    /**
-     * 为每个camera创建前向渲染的DrawCommand
-     * @param camera 
-     */
-    createForwardDC(camera: BaseCamera): void {
-        let UUID = camera.UUID;
-
-        //mesh 前向渲染
-        let bundle = this.getUniformAndShaderTemplateFinal(camera);
+    generateInputValeOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false) {
         let drawMode: I_drawMode | I_drawModeIndexed;
         if (this.inputValues.drawMode != undefined) {
             drawMode = this.inputValues.drawMode;
@@ -286,7 +272,7 @@ export class Lines extends BaseEntity {
                         drawModeMesh.vertexCount = pos.count;
                     }
                     else {
-                        drawModeMesh.vertexCount = pos.length/3;
+                        drawModeMesh.vertexCount = pos.length / 3;
                     }
                 }
                 drawModeMesh.instanceCount = this.instance.numInstances;
@@ -296,11 +282,11 @@ export class Lines extends BaseEntity {
         let primitive: GPUPrimitiveState = {
             topology: this.lineMode,
         };
-        if(this.lineMode == "line-strip"){
+        if (this.lineMode == "line-strip") {
             primitive.stripIndexFormat = "uint32"
         }
         let valueDC: V_DC = {
-            label: "DrawCommand mesh :" + this.Name + " for  camera: " + camera.UUID,
+            label: "DrawCommand mesh :" + this.Name + " for  " + type + ": " + UUID,
             data: {
                 vertices: this.attributes.vertices,
                 vertexStepMode: this.attributes.vertexStepMode,
@@ -325,6 +311,25 @@ export class Lines extends BaseEntity {
                 type: E_renderForDC.camera
             }
         };
+        if (vsOnly)
+            delete valueDC.render.fragment;
+        return valueDC;
+    }
+    /**
+     * 为每个camera创建前向渲染的DrawCommand
+     * @param camera 
+     */
+    createForwardDC(camera: BaseCamera): void {
+        let UUID = camera.UUID;
+
+        //mesh 前向渲染
+        let bundle = this.getUniformAndShaderTemplateFinal(SHT_LineVS);
+        let uniformsMaterial = this._material.getOneGroupUniformAndShaderTemplateFinal(bundle.bindingNumber);
+        if (uniformsMaterial) {
+            bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
+            bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
+        }
+        let valueDC = this.generateInputValeOfDC(E_renderForDC.camera, UUID, bundle);
         let dc = this.DCG.generateDrawCommand(valueDC);
         this.cameraDC[UUID].forward.push(dc);
     }

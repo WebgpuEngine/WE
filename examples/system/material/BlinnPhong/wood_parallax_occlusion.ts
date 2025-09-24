@@ -65,7 +65,7 @@ let lightMaterial = new ColorMaterial(
 
 let lightRadius = 0.65;
 let lightRadiusFlag = true;
-let lightZ = 1.5
+let lightZ = 1.
 let light1Entity1 = new Mesh(
   {
     attributes: {
@@ -92,7 +92,7 @@ let onelight = new PointLight(
   {
     position: [0,0,0],
     // position: [1, 1, 1],
-    intensity: 1.0,
+    intensity: 2.0,
   }
 );
 await light1Entity1.addChild(onelight);

@@ -78,7 +78,7 @@ export class ColorMaterial extends BaseMaterial {
     }
 
 
-    getOneGroupUniformAndShaderTemplateFinal(camera: BaseCamera,startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
         if (this.getTransparent()) {
             return this.getTransparentCodeFS(startBinding);
         }
