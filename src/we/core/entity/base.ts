@@ -5,6 +5,7 @@ import { Rotation, RotationArray } from "../math/baseDefine";
 import { T_vsAttribute, vsAttribute, vsAttributeMerge } from "../command/DrawCommandGenerator";
 import { T_uniformGroup } from "../command/base";
 import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
+import { BaseLight } from "../light/baseLight";
 
 
 export interface meshConstantsVS {
@@ -172,8 +173,21 @@ export interface I_EntityAttributes {
     indexes: number[];
 }
 
+/**
+ * 实体的uniform和shaderTemplateFinal的绑定
+ * createForwardDC()等获取VS部分的uniformGroups和shaderTemplateFinal
+ */
 export interface I_EntityBundleOfUniformAndShaderTemplateFinal {
     bindingNumber: number,
     uniformGroups: T_uniformGroup[],
     shaderTemplateFinal: I_ShaderTemplate_Final
+}
+
+/**
+ * 实体创建shadowmap DC的参数
+ */
+export interface I_ShadowMapValueOfDC {
+    light: BaseLight,
+    UUID: string,//camera id or light id 
+    matrixIndex: number,//matrix of light MVP[]
 }

@@ -77,6 +77,7 @@ export class PerspectiveCamera extends BaseCamera {
         this.inpuValues.aspect = aspect;
 
         this.projectionMatrix = mat4.perspective(this.inpuValues.fov, aspect, this.inpuValues.near, this.inpuValues.far);
+        // console.log(this.projectionMatrix)
     }
 
     set aspect(aspect: number) { (this.inpuValues as optionPerspProjection).aspect = aspect }

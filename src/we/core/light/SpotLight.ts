@@ -12,7 +12,16 @@ export interface IV_SpotLight extends I_optionBaseLight {
      * 默认=1.0
     */
     intensity?: number,
+    /**
+     * 在spot light direction 可以是方向，也可以是lookat的位置，由islookAt确定
+     */
     direction: weVec3,
+    /**
+     * direction 是方向还是lookAt
+     * 如果是lookAt，direction 是lookAt的位置，否则是方向
+     * 默认是lookat ，=true
+     */
+    isLookAt?: boolean,
     /**弧度制 */
     angle: number,
     /**弧度制 */
@@ -31,9 +40,14 @@ export class SpotLight extends BaseLight {
     loadJSON(json: any): void {
         throw new Error("Method not implemented.");
     }
+    declare inputValues: IV_SpotLight;
     constructor(input: IV_SpotLight) {
 
         super(input, E_lightType.spot);
+        this.inputValues = input;
+        if (this.inputValues.isLookAt === undefined || this.inputValues.isLookAt === true) {
+            this.Direction = vec3.normalize(vec3.sub(this.inputValues.direction, this.worldPosition));
+        }
     }
 
     // generateShadowMap(_device: GPUDevice): shadowMap {
@@ -61,6 +75,20 @@ export class SpotLight extends BaseLight {
             const spshere = scene.getBoundingSphere();
 
             if (spshere) {
+                let projectionMatrix;
+                // if (this.inputValues.isLookAt === undefined || this.inputValues.isLookAt === true) {
+                // //lookat                  
+                // //   let m4 = mat4.lookAt(this.worldPosition, vec3.add(this.worldPosition, this.inputValues.direction!), vec3.create(0, 1, 0));//正交的测试
+                // matrix = mat4.lookAt(vec3.fromValues(this.worldPosition,...this.inputValues.direction),  vec3.create(0, 1, 0));//正交的测试
+
+                // let matrixModel = new Float32Array([
+                //     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+                // ]);
+                // mat4.setTranslation(matrixModel, this.worldPosition, matrixModel);
+                // matrix = mat4.multiply(matrix, matrixModel);
+                // }
+                // else {
+                //direction
                 // let modelMatrix = new Float32Array([
                 //     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
                 // ]);;
@@ -75,7 +103,7 @@ export class SpotLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
                 // 
                 // vec3.copy(vec3.create(-3,-3,-3), position);
 
@@ -92,22 +120,34 @@ export class SpotLight extends BaseLight {
                     vec3.copy(vec3.create(0, 0, -1), up);
                 }
                 else {
+                    if (this.inputValues.isLookAt === undefined || this.inputValues.isLookAt === true) {
+                        //这个方向是shader中使用的
+                        this.Direction = vec3.normalize(vec3.sub(this.inputValues.direction, this.worldPosition));
+                        // this.Direction = vec3.normalize(vec3.sub( this.worldPosition,this.inputValues.direction));
 
-                    vec3.copy(vec3.normalize(dir), back);
+                        vec3.copy(vec3.normalize(vec3.sub(this.worldPosition, this.inputValues.direction)), back);//正Z轴方向
+                        // console.log('lookAt', vec3.normalize(this.Direction));
+                    }
+                    else {
+                        vec3.copy(vec3.normalize(dir), back);
+                        // console.log('lookAt', vec3.normalize(dir));
+
+                    }
                     vec3.copy(vec3.normalize(vec3.cross(up, back)), right);
                     vec3.copy(vec3.normalize(vec3.cross(back, right)), up);
                 }
 
 
-                let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
+                // let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
                 // const projectionMatrix = mat4.ortho(p0[0] - spshere.radius - this.epsilon, p0[0] + spshere.radius + this.epsilon, p0[1] - spshere.radius - this.epsilon, p0[1] + spshere.radius + this.epsilon, p0[2] - spshere.radius - this.epsilon, p0[2] + spshere.radius*2 + this.epsilon);
 
-                const projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2, 1, 0.51, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
+                //  projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2.1, 1, 0.51, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
                 // const projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2, 1, 0.1, 30);//ok,test
 
-                let m4 = mat4.lookAt(this.inputValues.position!, vec3.add(this.inputValues.position!, this.inputValues.direction!), vec3.create(0, 1, 0));//正交的测试
-                let mm = mat4.invert(matrix);
-
+                // }
+                //p0 sphere 原点
+                let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
+                projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2.1, 1, 0.25, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 // const MVP = mat4.multiply(projectionMatrix, matrix);
                 return [MVP];

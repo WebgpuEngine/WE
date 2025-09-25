@@ -4,11 +4,13 @@ import { I_drawMode, I_drawModeIndexed, I_uniformBufferPart, T_uniformGroup } fr
 import { T_vsAttribute, V_DC } from "../../command/DrawCommandGenerator";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { BaseLight } from "../../light/baseLight";
+import { mergeLightUUID } from "../../light/lightsManager";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
+import { renderPassName } from "../../scene/renderManager";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
-import { I_EntityAttributes, I_EntityBundleOfUniformAndShaderTemplateFinal, I_optionBaseEntity } from "../base";
+import { SHT_MeshShadowMapVS, SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
+import { I_EntityAttributes, I_EntityBundleOfUniformAndShaderTemplateFinal, I_optionBaseEntity, I_ShadowMapValueOfDC } from "../base";
 import { BaseEntity } from "../baseEntity";
 
 
@@ -433,7 +435,7 @@ export class Mesh extends BaseEntity {
             },
             system: {
                 UUID,
-                type: E_renderForDC.camera
+                type
             }
         }
         if (this.inputValues.primitive) {
@@ -485,7 +487,7 @@ export class Mesh extends BaseEntity {
             },
             system: {
                 UUID,
-                type: E_renderForDC.camera
+                type//: E_renderForDC.camera
             }
         }
         return valueDC;
@@ -582,7 +584,7 @@ export class Mesh extends BaseEntity {
             // }
             let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, bundle);
             let dc = this.DCG.generateDrawCommand(valueDC);
-            this.cameraDC[UUID].forward.push(dc);
+            this.cameraDC[UUID][renderPassName.forward].push(dc);
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
@@ -638,7 +640,7 @@ export class Mesh extends BaseEntity {
             // }
             let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, UUID, bundle);
             let dc = this.DCG.generateDrawCommand(valueDC);
-            this.cameraDC[UUID].forward.push(dc);
+            this.cameraDC[UUID][renderPassName.forward].push(dc);
         }
     }
 
@@ -648,13 +650,23 @@ export class Mesh extends BaseEntity {
     createTransparent(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
-    createShadowMapDC(light: BaseLight): void {
+    createShadowMapDC(input: I_ShadowMapValueOfDC): void {
+        if (this.inputValues.shadow?.generate === false) {
+            return;
+        }
+        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
+        if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
+            //mesh VS 模板输出
+            let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
 
-
+            let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, bundle, true);
+            let dc = this.DCG.generateDrawCommand(valueDC);
+            this.shadowmapDC[UUID][renderPassName.shadowmapOpacity].push(dc);
+        }
 
 
     }
-    createShadowMapTransparentDC(light: BaseLight): void {
+    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
         throw new Error("Method not implemented.");
     }
     saveJSON() {

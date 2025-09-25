@@ -32,7 +32,7 @@ import { Scene } from "../scene/scene";
 import { AmbientLight, IV_AmbientLight } from "./ambientLight";
 import { BaseLight, E_lightType, lightStructSize } from "./baseLight";
 import { I_bindGroupAndGroupLayout } from "../command/base";
-import { V_shadowMapSize } from "../base/coreDefine";
+import { V_layerOfShadowMapTransparnet, V_shadowMapSize, V_weLinearFormat } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { ECSManager } from "../organization/manager";
 
@@ -65,7 +65,15 @@ interface light_shadowMapMatrix {
     RPD: GPURenderPassDescriptor,   //JS:RPD
 }
 
+export function mergeLightUUID(UUID: string, matrixIndex: number) {
+    return `${UUID}__${matrixIndex}`;
+}
 
+export function splitLightUUID(UUID: string) {
+    let lightUUID = UUID.split("__");
+    let matrixIndex = parseInt(lightUUID[1]);
+    return { UUID: lightUUID[0], matrixIndex }
+}
 
 export class LightsManager extends ECSManager<BaseLight> {
 
@@ -101,7 +109,12 @@ export class LightsManager extends ECSManager<BaseLight> {
      */
     shadowArrayOfDepthMapAndMVP: light_shadowMapMatrix[] = [];
 
-
+    /**
+     * copy shadowMapTexture[i of light ] 的transparent depth texture
+     * 1、每个light的transparent 都会copy一次
+     * 2、然后此纹理作为输入的depth 比较纹理
+     */
+    shadowMapCopyTransparentDepthTexture: GPUTexture;
     /**
      * todo：20250105，目前写成固定的
      * 
@@ -114,18 +127,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      *  动态的：根据光源的数量、种类和是否产生shadowmap，动态增加shadowmap的数量
      */
     shadowMapTexture: GPUTexture;
-    /**
-     * shadowmap的transparent color texture texture_depth_2d_array
-     * 动态的
-     */
-    shadowMapTransparentColorLayerTexture: GPUTexture;
-    shadowMapTransparentDepthlayerTexture: GPUTexture;
-    /**
-     * copy shadowMapTexture[i of light ] 的transparent depth texture
-     * 1、每个light的transparent 都会copy一次
-     * 2、然后此纹理作为输入的depth 比较纹理
-     */
-    shadowMapTransparentDepthTexture: GPUTexture;
+
 
     /////////////////////////////////////////////////////////////
     // about lights
@@ -178,6 +180,17 @@ export class LightsManager extends ECSManager<BaseLight> {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
         this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
+        this.shadowMapCopyTransparentDepthTexture = this.device.createTexture({
+            label: "LightsManager create shadow map depth texture",
+            size: {
+                width: V_shadowMapSize,
+                height: V_shadowMapSize,
+            },
+            format: "depth32float",
+            // format: "depth24plus-stencil8",
+            // format: this.scene.depthDefaultFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+        });
         this.shadowMapTexture = this.generateShadowMapTexture();//todo 20250105,目前是固定的，后期改成动态
     }
     /**
@@ -226,7 +239,7 @@ export class LightsManager extends ECSManager<BaseLight> {
             // format: "depth24plus-stencil8",
             // format: this.scene.depthDefaultFormat,
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-        }
+        };
         this.reNewLightsNumberOfShadow = false;//动态更新用，目前没有用途
         return this.device.createTexture(shadowmapTextureDesc);
         //todo 20250105,目前是固定的，后期改成动态
@@ -336,8 +349,8 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @param mergeIDmergeID 光源的mergeID：由光源的ID，和selfIndex组成
      * @returns  GPURenderPassDescriptor | false
      */
-    gettShadowMapRPD(mergeID: string): GPURenderPassDescriptor | false {
-        let { id, matrixIndex } = this.getIdAndMatrixIndexByUUID(mergeID);
+    gettShadowMapRPD_ByMergeID(mergeID: string): GPURenderPassDescriptor | false {
+        let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
         return this.getShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
     }
 
@@ -499,6 +512,7 @@ export class LightsManager extends ECSManager<BaseLight> {
             // ST_shadowMapMatrixViews.matrix_index[0] = oneST.matrix_self_index;
             const m4 = this.getLightMVPByID(oneST.light_id, oneST.matrix_self_index);
             mat4.copy(m4, oneST.MVP);
+            /*更新的是scene中的shadowmap的uniform */
             mat4.copy(m4, ST_shadowMapMatrixViews.MVP);//@group(0)@binding(2) var<uniform> U_shadowMapMatrix，每个的MVP
             this.writeToGPUBuffer(oneST.MVP, oneST.GPUBuffer);//同步更新每个光源的MVP
         }
@@ -529,7 +543,10 @@ export class LightsManager extends ECSManager<BaseLight> {
         }
         return m4;
     }
-
+    getLightMVPByMergeID(mergeID: string): Mat4 {
+        let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
+        return this.getLightMVPByID(id, matrixIndex);
+    }
     /**
      * 获取当前光源的index的MVP
      * get light by id
@@ -543,6 +560,20 @@ export class LightsManager extends ECSManager<BaseLight> {
             }
         }
         return false;
+    }
+    getLightByMergeID(mergeID: string): BaseLight | boolean {
+        let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
+        return this.getLightByID(id);
+    }
+
+    getUUIDByID(id: number): string {
+        let one = this.getLightByID(id);
+        if (one) {
+            return (one as BaseLight).UUID;
+        }
+        else {
+            throw new Error("light not found,id:" + id);
+        }
     }
 
 
@@ -605,13 +636,17 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @param matrixIndex number, 光源的矩阵index，0-5，点光源有6个shadow map
      * @returns GPUBuffer | false 
      */
-    getOneLightsMVP(id: number, matrixIndex: number): GPUBuffer | false {
+    getOneLightsMVPByID(id: number, matrixIndex: number): GPUBuffer | false {
         for (let i of this.shadowArrayOfDepthMapAndMVP) {
             if (i.light_id == id && i.matrix_self_index == matrixIndex) {
                 return i.GPUBuffer;
             }
         }
         return false;
+    }
+    getOneLightsMVPByMergeID(mergeID: string): GPUBuffer | false {
+        let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
+        return this.getOneLightsMVPByID(id, matrixIndex);
     }
 
     /**获取shadowmap的结构数组
@@ -629,13 +664,14 @@ export class LightsManager extends ECSManager<BaseLight> {
      * @param pipeline 
      * @returns GPUBindGroup
      */
-    getLightBindGroup(mergeID: string, pipeline: GPURenderPipeline): GPUBindGroup {
-        let lightId = mergeID.split("__");
-        let id = parseInt(lightId[0]);
-        let matrixIndex = parseInt(lightId[1]);
-        let uniformBuffer = this.getOneLightsMVP(id, matrixIndex);
+    getLightBindGroupByMergeID(mergeID: string, pipeline: GPURenderPipeline): GPUBindGroup {
+        let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
+        // let lightId = mergeID.split("__");
+        // let id = parseInt(lightId[0]);
+        // let matrixIndex = parseInt(lightId[1]);
+        let uniformBuffer = this.getOneLightsMVPByID(id, matrixIndex);
         if (uniformBuffer === false) {
-            throw new Error("createSystemUnifromGroupForPerShaderOfShadowMap(),  call this.lightsManager.getOneLightsMVP(id,matrixIndex) is false ");
+            throw new Error("createSystemUnifromGroupForPerShaderOfShadowMap(),  call this.lightsManager.getOneLightsMVPByID(id,matrixIndex) is false ");
         }
         else {
             // createBindGroupLayout
@@ -659,15 +695,18 @@ export class LightsManager extends ECSManager<BaseLight> {
             return bindGroup;
         }
     }
-    getLightsUniformForSystem(){
-        return  this.lightsUniformGPUBuffer;
+    getLightsUniformForSystem() {
+        return this.lightsUniformGPUBuffer;
+    }
+    getShadowMapUniformForSystem() {
+        return this.ShadowMapUniformGPUBuffer;
     }
     /**
      * 获取光源shadowmap渲染的bindGroup和bindGroupLayout
      * @param mergeID 
      * @returns   GPUBindGroup,  GPUBindGroupLayout 
      */
-    getLightBindGroupAndBindGroupLayout(mergeID: string): I_bindGroupAndGroupLayout {
+    getLightBindGroupAndBindGroupLayoutByMergeID(mergeID: string): I_bindGroupAndGroupLayout {
 
         if (this.scene.resourcesGPU.shadowmapOfID2BindGroup.has(mergeID)) {
             let bindGroup = this.scene.resourcesGPU.shadowmapOfID2BindGroup.get(mergeID)!;        //未验证，
@@ -675,12 +714,14 @@ export class LightsManager extends ECSManager<BaseLight> {
             return { bindGroup, bindGroupLayout };
         }
         else {
-            let lightId = mergeID.split("__");
-            let id = parseInt(lightId[0]);
-            let matrixIndex = parseInt(lightId[1]);
-            let uniformBuffer = this.getOneLightsMVP(id, matrixIndex);
+            let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
+
+            // let lightId = mergeID.split("__");
+            // let id = parseInt(lightId[0]);
+            // let matrixIndex = parseInt(lightId[1]);
+            let uniformBuffer = this.getOneLightsMVPByID(id, matrixIndex);
             if (uniformBuffer === false) {
-                throw new Error("createSystemUnifromGroupForPerShaderOfShadowMap(),  call this.lightsManager.getOneLightsMVP(id,matrixIndex) is false ");
+                throw new Error("createSystemUnifromGroupForPerShaderOfShadowMap(),  call this.lightsManager.getOneLightsMVPByID(id,matrixIndex) is false ");
             }
             else {
                 // let entries: GPUBindGroupLayoutEntry[] = [
@@ -726,28 +767,136 @@ export class LightsManager extends ECSManager<BaseLight> {
             }
         }
     }
-    getIdAndMatrixIndexByUUID(mergeUUID: string) {
+    getIdAndMatrixIndexByMergeID(mergeUUID: string) {
         let lightId = mergeUUID.split("__");
-        let UUID =lightId[0];
-        let light=this.getByUUID(UUID);
+        let UUID = lightId[0];
+        let light = this.getOneByUUID(UUID);
         let id;
-        if(light){
-             id=light.ID;
+        if (light) {
+            id = light.ID;
         }
-        else{
+        else {
             throw new Error("获取光源失败");
         }
         let matrixIndex = parseInt(lightId[1]);
         return { id, matrixIndex }
     }
-    getIdAndMatrixIndex(mergeID: string) {
-        let lightId = mergeID.split("__");
-        let id = parseInt(lightId[0]);
-        let matrixIndex = parseInt(lightId[1]);
-        return { id, matrixIndex }
+    // getIdAndMatrixIndex(mergeID: string) {
+    //     let lightId = mergeID.split("__");
+    //     let id = parseInt(lightId[0]);
+    //     let matrixIndex = parseInt(lightId[1]);
+    //     return { id, matrixIndex }
+    // }
+
+    /**
+     * shadowmap的transparent color texture texture_depth_2d_array
+     * 动态的
+     */
+
+    shadowMapTransparentLayerTexture: {
+        [mergeID: string]: {
+            colorTexture: GPUTexture,
+            depthTexture: GPUTexture,
+            rpd: GPURenderPassDescriptor,
+            colorAttachmentTargets: GPUColorTargetState[]
+        }
+    } = {};
+
+
+    /**
+     * 为阴影的透明使用，创建相同层数的color和depth texture，但都用于ColorAttachment
+     * @param mergeID 光源的mergeID
+     */
+    initRenderColorTargetTextureRPD(mergeID: string) {
+        if (this.shadowMapTransparentLayerTexture[mergeID]) {
+
+        }
+        const depthTextureDesc: GPUTextureDescriptor = {
+            label: "LightsManager create shadow map depth texture",
+            size: {
+                width: V_shadowMapSize,
+                height: V_shadowMapSize,
+                depthOrArrayLayers: V_layerOfShadowMapTransparnet,
+            },
+            format: "depth32float",
+            // format: "depth24plus-stencil8",
+            // format: this.scene.depthDefaultFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+        };
+        let depthTexture = this.device.createTexture(depthTextureDesc);
+
+        const colorTextureDesc: GPUTextureDescriptor = {
+            label: "LightsManager create shadow map depth texture",
+            size: {
+                width: V_shadowMapSize,
+                height: V_shadowMapSize,
+                depthOrArrayLayers: V_layerOfShadowMapTransparnet,
+            },
+            format: V_weLinearFormat,
+            // format: "depth24plus-stencil8",
+            // format: this.scene.depthDefaultFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+        };
+        let colorTexture = this.device.createTexture(colorTextureDesc);
+
+        let colorAttachmentTargets: GPUColorTargetState[] = [];
+        let colorAttachments: GPURenderPassColorAttachment[] = [];
+        for (let i = 0; i < V_layerOfShadowMapTransparnet; i++) {
+            colorAttachmentTargets.push({ format: V_weLinearFormat });
+            colorAttachments.push({
+                view: colorTexture.createView({
+                    dimension: "2d",
+                    baseArrayLayer: i,
+                    arrayLayerCount: 1,
+                }),
+                resolveTarget: undefined,
+                loadOp: 'clear',
+                storeOp: 'store',
+            });
+        }
+        for (let i = 0; i < V_layerOfShadowMapTransparnet; i++) {
+            colorAttachmentTargets.push({ format: "depth32float" });
+            colorAttachments.push({
+                view: depthTexture.createView({
+                    dimension: "2d",
+                    baseArrayLayer: i,
+                    arrayLayerCount: 1,
+                }),
+                resolveTarget: undefined,
+                loadOp: 'clear',
+                storeOp: 'store',
+            });
+        }
+        const rpd: GPURenderPassDescriptor = {
+            colorAttachments: colorAttachments,
+            depthStencilAttachment: {
+                view: this.shadowMapCopyTransparentDepthTexture.createView(),
+                depthClearValue:0,
+                depthLoadOp: 'clear',// depthLoadOp: 'load',
+                depthStoreOp: 'store',
+            },
+        };
+        this.shadowMapTransparentLayerTexture[mergeID] = {
+            colorTexture,
+            depthTexture,
+            rpd,
+            colorAttachmentTargets
+        }
+
     }
-
-
-
+    /**
+     * 获取光源shadowmap渲染的colorAttachmentTargets
+     * 1、按照mergeID获取光源的ID和matrixIndex
+     * 2、不透明阴影没有color target,返回透明的，但会由于没有FS，所以不会使用此调用
+     * @param mergeID 光源的mergeID
+     * @returns GPUColorTargetState[]
+     */
+    getColorAttachmentTargetsByMergeID(mergeID: string): GPUColorTargetState[] {
+        let transparentLayer = this.shadowMapTransparentLayerTexture[mergeID];
+        if (transparentLayer) {
+            return transparentLayer.colorAttachmentTargets;
+        }
+        return [];
+    }
 
 }

@@ -1,15 +1,6 @@
 //system
 import systemOfCameraWGSL from "../shader/system/system.wgsl?raw"
 var systemOfCamera = systemOfCameraWGSL.toString();
-
-
-//shadow map 
-import shadowmapPCSSWGSL from "../shader/shadowmap/fn_pcss.wgsl?raw"
-var shadowmapPCSS = shadowmapPCSSWGSL.toString();
-
-
-
-
 ///////////////////////////////////////////////////////////////////////////
 //
 /*
@@ -248,3 +239,25 @@ export var SHT_addMathRandom :I_shaderTemplateAdd={
     name:"mathRandom",
     code:mathRandom,
 }
+
+//shadow map MVP
+import systemOfLightWGSL from "../shader/system/systemForLight.wgsl?raw"
+var systemOfLight = systemOfLightWGSL.toString();
+
+
+export var SHT_addSystemOfLight :I_shaderTemplateAdd={
+    name:"systemOfLight",
+    code:systemOfLight,
+}
+
+//PCSS
+//shadow map 
+import shadowmapPCSSWGSL from "../shader/shadowmap/fn_pcss.wgsl?raw"
+var shadowmapPCSS = shadowmapPCSSWGSL.toString();
+
+export var SHT_addPCSS :I_shaderTemplateAdd={
+    name:"pcss",
+    code:shadowmapPCSS,
+}
+
+

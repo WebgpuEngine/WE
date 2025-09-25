@@ -46,7 +46,7 @@ export class ArcballCameraControl extends CamreaControl {
     init() {
         // throw new Error('Method not implemented.');
     }
-    update(deltaTime: number) {
+    update(deltaTime: number): boolean {
         if (typeof this.camera !== 'boolean') {
             let input = this.inputHandler(this);
 
@@ -118,16 +118,19 @@ export class ArcballCameraControl extends CamreaControl {
                 position = vec3.scale(dir, this.distance);//重新计算位置
                 this.camera.updateByPositionDirection(position, dir, true);
                 // console.log("rotate,position :distance", position, this.distance);
-
+                return true;
             }
             else if (oldDistance != this.distance) { //方向未变，距离变化了
                 position = vec3.scale(this.camera.back, this.distance);//重新计算位置
                 this.camera.updateByPositionDirection(position, this.camera.back, true);
+                return true;
             }
             // this.camera.updateWorldPositionByPosition(position);
+            return false;
         }
         else {
             console.log("arcbalCameraControl's camere didn't defined !,error from update()");
+            return false;
         }
     }
 

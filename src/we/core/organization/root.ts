@@ -345,7 +345,9 @@ export abstract class RootOfOrganization implements I_UUID {
             this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
 
         if (this._position)
-            this.translate(this._position);
+            // this.translate(this._position);
+            this.setTranslation(this._position);
+
         return this.matrix;
     }
 
@@ -554,7 +556,7 @@ export abstract class RootOfGPU extends RootOfOrganization {
             this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
             if ((child as BaseLight).Shadow)
                 this.scene.renderManager.renderShadowMapTransparentCommand[child.UUID] = [];
-            this.scene.renderManager.initRenderCommandForLight(child.UUID);
+            // this.scene.renderManager.initRenderCommandForLight(child.UUID);//改到enityManager的update中
 
         }
         // else if (child.type == "ParticleSystem") {

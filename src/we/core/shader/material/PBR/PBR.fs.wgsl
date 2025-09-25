@@ -27,6 +27,9 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     {
         for (var i : u32 = 0; i < U_lights.lightNumber; i = i + 1)
         {
+            let onelight = U_lights.lights[i ];  
+            var visibility = getVisibilityOflight(onelight,fsInput.worldPosition,normal); 
+
             let lightColor = U_lights.lights[i].color;
             let lightPosition = U_lights.lights[i].position;
             let lightIntensity = U_lights.lights[i].intensity;
@@ -61,8 +64,8 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             //add to outgoing radiance Lo
             let diffuse = (kD * albedo / PI) * radiance * NdotL;//only diffuse light is currently implemented
             //let ambient = getAmbientColor(albedo, ao);
-            Lo += (diffuse + specular) * radiance;
-            //Lo=vec3f(metallic);
+            Lo += (diffuse + specular) * radiance * visibility;
+            //Lo=vec3f(metallic);          
         }
     }
     let ambient = getAmbientColor(albedo, ao);
@@ -75,6 +78,8 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     $fsOutput                         //占位符
     //output.color = vec4f(normal*0.5+0.5, 1);    //
     output.color = vec4f(colorOfPBR, 1);    //
+    //    let depth=textureLoad(U_shadowMap_depth_texture, vec2i(i32(fsInput.position.x*2),i32(fsInput.position.y*2)),0,0) ;
+    // output.color = vec4f( depth,depth,depth,1);
     return output;
 }
 

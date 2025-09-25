@@ -25,6 +25,7 @@ export class RootManager extends RootOfGPU {
         throw new Error("Method not implemented.");
     }
     updateSelf(clock: Clock): void {
+        
     }
     // async addChild(child: RootOfOrganization): Promise<number> {
     //     return await super.addChild(child);

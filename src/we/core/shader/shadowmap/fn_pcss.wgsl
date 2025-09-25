@@ -180,3 +180,91 @@ fn shadowMapVisibilityHard(onelight: ST_Light,shadow_map_index:i32, position: ve
     );
     return visibility;
 }
+
+//spot light 判断点是否在spot light的范围内
+fn checkPixelInShadowRangOfSpotLight(position : vec3f, lightPosition : vec3f, lightDirection : vec3f, angle : vec2f) -> bool
+{
+    let ligh2PostDir = normalize(position - lightPosition);                     //光源到物体的点的方向
+    let limit_inner = cos(angle.x);                                                 //spot内角度的点积域
+    let limit_outer = cos(angle.y);                                                 //spot外角度的点积域
+    let dotFromDirection = dot(ligh2PostDir, normalize(lightDirection));               //当前点的点积域的值，向量都B-A
+    if(dotFromDirection >= limit_outer)
+    {
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+// //检查pixel是否在点光源的阴影中（6个投影方向中的那个）   //未处理距离
+fn checkPixelInShadowRangOfPointLight(pixelWorldPosition : vec3f, onelight : ST_Light,) -> i32 {
+    var index = -1;
+    for (var i : i32 = 0; i <6; i = i + 1)
+    { 
+        var posFromLight = matrix_z * U_shadowMapMatrix[onelight.shadow_map_array_index+i].MVP * vec4(pixelWorldPosition, 1.0);  //光源视界的位置
+        if(posFromLight.w < 0.000001 && posFromLight.w > -0.000001)
+        {           //posFromLight =posFromLight/posFromLight.w;
+        }
+        else{
+            posFromLight = posFromLight / posFromLight.w;
+        }
+        //判断当前像素的world Position是否在剪切空间中
+        if(posFromLight.x >= -1.0 && posFromLight.x <= 1.0 && posFromLight.y <= 1.0 && posFromLight.y >= -1.0 && posFromLight.z <= 1.0 && posFromLight.z >= 0.0)
+        {
+            index = i;
+        }
+    }
+    return index;
+}
+
+fn getVisibilityOflight(onelight: ST_Light,worldPosition: vec3f, normal: vec3f) -> f32 {
+            var computeShadow = false;                      //是否计算阴影
+            var isPointShadow = false;                      //是否为点光源的阴影
+            var shadow_map_index = onelight.shadow_map_array_index;         //当前光源的阴影贴图索引
+            var visibility = 0.0; 
+            if (onelight.kind ==0)
+            {
+                computeShadow = true;
+            }
+            else if (onelight.kind ==1)
+            {
+                computeShadow = true;
+                shadow_map_index = checkPixelInShadowRangOfPointLight(worldPosition, onelight);
+            }
+            else if (onelight.kind ==2)
+            {
+                computeShadow = checkPixelInShadowRangOfSpotLight(worldPosition, onelight.position, onelight.direction, onelight.angle);
+            }
+            if(shadow_map_index >=0){            //如果在点光源的阴影中，计算阴影
+                isPointShadow = true;
+            }
+            // else{            //如果不在点光源的阴影中，不计算阴影，进行一次统一工作流
+            //     shadow_map_index = onelight.shadow_map_array_index;
+            // }
+
+            //统一工作流问题 start
+            if (onelight.kind ==1){
+                // visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, worldPosition, normal, 0.08); //点光源的pcss在计算block是需要适配，目前多出来了边界的黑框，目前考虑是block的uv在边界的地方越界了，需要进行特殊处理
+                //下面三个在V01版本中没有问题，应该时wordPosition相关的问题
+                //是因为：near的问题，near的默认值是1，没问题，0.1就出现问题，todo
+                visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, worldPosition, normal,0.08);//出现了在点光源半径3.5时，远端的实体的阴影消失问题
+                // visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  worldPosition, normal);//点光源在cube中的阴影，右下前三方向消失，其他方向存在远端消失问题
+                //   visibility = shadowMapVisibilityHard(onelight, shadow_map_index, worldPosition, normal);
+            }
+            else{
+                visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, worldPosition, normal, 0.08); 
+                // visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  worldPosition, normal);
+                // visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, worldPosition, normal,0.08);
+                //  visibility = shadowMapVisibilityHard(onelight, shadow_map_index, worldPosition, normal);
+           }
+           if (onelight.shadow ==0 ) 
+           {
+                visibility = 1.0;
+           }
+            if(computeShadow ==false){
+                visibility = 0.0;
+            }
+            //统一工作流问题 end
+           return visibility;
+}

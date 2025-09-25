@@ -39,9 +39,13 @@ export class DirectionalLight extends BaseLight {
         if (this.Shadow) {
 
             // const box3 = scene.getBoundingBox();//
-            const spshere = scene.getBoundingSphere();
+            const sphere = scene.getBoundingSphere();
+            // const sphere ={
+            //     position: [0,0,0],
+            //     radius: 8,
+            // }
 
-            if (spshere) {
+            if (sphere) {
                 /** 第一行,X轴 */
                 let right = new Float32Array(matrix.buffer, 4 * 0, 4);
                 /** 第二行,Y轴 */
@@ -51,35 +55,35 @@ export class DirectionalLight extends BaseLight {
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
 
-                let dir = vec3.normalize(vec3.sub(vec3.create(0, 0, 0), this.inputValues.direction!));
-                if (this.inputValues.direction![0] == 0 && this.inputValues.direction![1] == 1 && this.inputValues.direction![2] == 0) {
-                    vec3.copy(this.inputValues.direction!, back);
+                let dir = vec3.normalize(vec3.sub(vec3.create(0, 0, 0), this.Direction as Vec3));
+                if ((this.Direction as Vec3)[0] == 0 && (this.Direction as Vec3)[1] == 1 && (this.Direction as Vec3)[2] == 0) {
+                    vec3.copy((this.Direction as Vec3), back);
                     vec3.copy(vec3.create(1, 0, 0), right);
                     vec3.copy(vec3.create(0, 0, 1), up);
                 }
                 else {
                     // vec3.copy(vec3.normalize(dir), back);
-                    vec3.copy(vec3.normalize(this.inputValues.direction!), back);
+                    vec3.copy(vec3.normalize((this.Direction as Vec3)), back);
                     vec3.copy(vec3.normalize(vec3.cross(up, back)), right);
                     vec3.copy(vec3.normalize(vec3.cross(back, right)), up);
                 }
 
                 //todo,202501024,暂时使用sphere代替摄像机的视锥体可视范围
-                let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
+                let p0 = vec4.transformMat4(vec4.create(sphere.position[0], sphere.position[1], sphere.position[2], 1), mat4.invert(matrix));
 
 
 
                 //todo,20250124,四至这里目前先简单的写成固定的sphere
                 //todo，后期改为视锥体中所有boundingbox的聚会的boudingbox或boudingsphere
                 const projectionMatrix = mat4.ortho(
-                    p0[0] - spshere.radius - this.epsilon,
-                    p0[0] + spshere.radius + this.epsilon,
+                    p0[0] - sphere.radius - this.epsilon,
+                    p0[0] + sphere.radius + this.epsilon,
 
-                    p0[1] - spshere.radius - this.epsilon,
-                    p0[1] + spshere.radius + this.epsilon,
+                    p0[1] - sphere.radius - this.epsilon,
+                    p0[1] + sphere.radius + this.epsilon,
 
-                    p0[2] - spshere.radius - this.epsilon,
-                    p0[2] + spshere.radius + this.epsilon
+                    p0[2] - sphere.radius - this.epsilon,
+                    p0[2] + sphere.radius + this.epsilon
                 );
 
 

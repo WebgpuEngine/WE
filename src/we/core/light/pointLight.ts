@@ -85,15 +85,16 @@ export class PointLight extends BaseLight {
                 console.warn("scene not have bounding sphere,wating");
                 return [];
             }
-            let far = 0;
-            let near = 1; this.epsilon;
-            if (this.inputValues.distance != 0.0) {
+            let far = this.scene.cameraManager.defaultCamera.inpuValues.far;
+            // let far = 0;
+            let near =0.25;//this.epsilon;
+            if (this.inputValues.distance && this.inputValues.distance != 0) {
                 far = this.inputValues.distance!;
             }
             else {
                 far = spshere.radius * 2;
             }
-
+            // console.log(near, far)
             //+x
             {
                 let matrix = new Float32Array([
@@ -108,7 +109,7 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
 
 
                 // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
@@ -121,6 +122,7 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                // console.log(projectionMatrix)
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -138,7 +140,7 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
 
 
                 // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
@@ -169,7 +171,7 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
 
 
                 // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
@@ -199,7 +201,7 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
 
 
                 // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
@@ -229,7 +231,7 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
 
 
                 // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
@@ -259,7 +261,7 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.inputValues.position!, position);
+                vec3.copy(this.worldPosition, position);
 
 
                 // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position

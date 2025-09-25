@@ -5,6 +5,7 @@ import {
     SHT_addMathBase,
     SHT_addMathRandom,
     SHT_addMathTBN,
+    SHT_addPCSS,
     SHT_replaceFSOutput,
     WGSL_st_Guffer
 } from "../base"
@@ -28,6 +29,7 @@ export var SHT_materialPBRFS_mergeToVS: I_ShaderTemplate = {
             SHT_addMathBase,
             SHT_addMathTBN,
             SHT_addMathRandom,
+            SHT_addPCSS,
         ],
         replace: [
             // {

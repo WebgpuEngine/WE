@@ -1,5 +1,5 @@
 
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_addMathBase, SHT_addMathRandom, SHT_addMathTBN, SHT_replaceDefer, SHT_replaceFSOutput, WGSL_replace_gbuffer_output, WGSL_st_Guffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_addMathBase, SHT_addMathRandom, SHT_addMathTBN, SHT_addPCSS, SHT_replaceDefer, SHT_replaceFSOutput, WGSL_replace_gbuffer_output, WGSL_st_Guffer } from "../base"
 
 import phongMaterialWGSL from "../../shader/material/phong/phongcolor.fs.wgsl?raw"
 var phongFS = phongMaterialWGSL.toString();
@@ -8,6 +8,11 @@ export var SHT_materialPhongFS_mergeToVS: I_ShaderTemplate = {
     material: {
         owner: "PhongMaterial",
         add: [
+            SHT_addMathBase,
+            SHT_addMathTBN,
+            SHT_addMathRandom,
+            SHT_addPCSS,
+
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -16,9 +21,6 @@ export var SHT_materialPhongFS_mergeToVS: I_ShaderTemplate = {
                 name: "fs",
                 code: phongFS,
             },
-            SHT_addMathBase,
-            SHT_addMathTBN,
-            SHT_addMathRandom,
         ],
         replace: [
             // {

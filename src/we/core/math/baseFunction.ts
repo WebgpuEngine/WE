@@ -32,7 +32,8 @@ export function WERandomInt(min: number, max: number): number {
  * @returns ID like :17573813347954602
  */
 export function WeGenerateID() {
-    return Date.now() * 10000 + WERandomInt(1000, 10000) + WERandomInt(1, 1000);
+    return  WERandomInt(20000, 50000) + WERandomInt(1001, 10000)+ WERandomInt(100, 1000)+ WERandomInt(1, 100);
+    // return Date.now() * 100 + WERandomInt(1000, 10000) + WERandomInt(1, 1000);
 }
 
 /**

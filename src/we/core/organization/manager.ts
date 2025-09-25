@@ -26,7 +26,7 @@ export abstract class ECSManager<T extends I_UUID> {
     count() {
         return this.list.length;
     }
-    getByUUID(UUID: string) {
+    getOneByUUID(UUID: string) {
         for (let perOne of this.list) {
             if (perOne.UUID! == UUID) {
                 return perOne;

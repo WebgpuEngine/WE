@@ -72,14 +72,14 @@ console.log(geometry)
 // });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: { source: "/examples/resource/images/rustediron/rustediron2_basecolor.png" },
+    albedo: { source: "/examples/resource/PBR/rustediron/rustediron2_basecolor.png" },
     // albedo:  [1.0, 0.71, 0.29],
 
-    normal: { source: "/examples/resource/images/rustediron/rustediron2_normal.png" },
-    metallic: { source: "/examples/resource/images/rustediron/rustediron2_metallic.png" },
+    normal: { source: "/examples/resource/PBR/rustediron/rustediron2_normal.png" },
+    metallic: { source: "/examples/resource/PBR/rustediron/rustediron2_metallic.png" },
     // metallic: 0.91,
 
-    roughness: { source: "/examples/resource/images/rustediron/rustediron2_roughness.png" },
+    roughness: { source: "/examples/resource/PBR/rustediron/rustediron2_roughness.png" },
     // roughness: 0.31,
     
   }
@@ -98,7 +98,6 @@ let inputMesh: IV_MeshEntity = {
   // }
 }
 let mesh = new Mesh(inputMesh);
-console.log(mesh);
 await scene.add(mesh);
 
 let ballGeometry = new SphereGeometry({

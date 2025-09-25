@@ -1,4 +1,5 @@
-
+/////////////////////////////////////////////////
+//about  GPU  setting 
 export var limitsOfWE = {
     maxColorAttachmentBytesPerSample: 64,
 }
@@ -28,7 +29,6 @@ export enum E_renderForDC {
     "light" = "light"
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 //color define
 /**RGBA四个数值的颜色interface，0--1 */
@@ -53,8 +53,13 @@ export var V_shadowMapSize = 2048;
 /** 最大的light数量 */
 export var V_lightNumber = 8;//在scene.ts中的getWGSLOfSystemShader()进行了shader的替换。
 
+export var V_layerOfShadowMapTransparnet = 3;
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//HDR and color space 
+
+export var V_weLinearFormat:GPUTextureFormat = "rgba16float";
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //通用

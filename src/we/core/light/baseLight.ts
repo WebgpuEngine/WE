@@ -155,7 +155,9 @@ export abstract class BaseLight extends RootOfGPU {
      * */
     //这个与lightsManager中shadowArrayOfDepthMapAndMVP的重复，而且冲突了，目前（20250918）来看，这个应该是没有在
     MVP: Mat4[];
-
+    // sizeOfMVP: number = 80;
+    // bufferOfMVP: ArrayBuffer = new ArrayBuffer(this.sizeOfMVP);
+    // GPUBufferOfMVP: GPUBuffer;
     /**
      * light's shadow enable
      * 是否启用阴影
@@ -222,6 +224,10 @@ export abstract class BaseLight extends RootOfGPU {
         this._kind = kind;
 
         this._buffer = this.updateStructBuffer();
+        // this.GPUBufferOfMVP = this.device.createBuffer({
+        //     size: this.sizeOfMVP,
+        //     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        // });
     }
 
 
@@ -310,11 +316,21 @@ export abstract class BaseLight extends RootOfGPU {
         return false;
     }
 
+    // updateGPUBufferOfMVP() {
+    //     const ST_SystemMVPViews = {
+    //         MVP: new Float32Array(this.bufferOfMVP, 0, 16),
+    //         reversedZ: new Uint32Array(this.bufferOfMVP, 64, 1),
+    //     };
+    //     ST_SystemMVPViews.reversedZ[0] = 1;//默认开启
+    //     ST_SystemMVPViews.MVP.set(this.MVP.flat());
+    //     mat4.copy(this.MVP, ST_SystemMVPViews.MVP);
+    //     this.device.queue.writeBuffer(this.GPUBufferOfMVP, 0, this.bufferOfMVP);
+    // }
 
     async updateSelf(clock: Clock) {
         this._buffer = this.updateStructBuffer();
         this.MVP = this.updateMVP(this.scene);
-        let scope=this;
+        // let scope=this;
         // console.log("Position = ", scope.Position[0], scope.Position[1], scope.Position[2])
         // console.log("worldPosition = ", scope.worldPosition[0], scope.worldPosition[1], scope.worldPosition[2])
     }

@@ -1,3 +1,4 @@
+import { V_weLinearFormat } from "../base/coreDefine"
 import { BaseCamera } from "../camera/baseCamera"
 import { T_uniformGroup } from "../command/base"
 import { Scene } from "../scene/scene"
@@ -42,7 +43,7 @@ export var V_GBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     "color": {
-        "format": "rgba16float",
+        "format": V_weLinearFormat,
         "label": "GBuffer color :",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },

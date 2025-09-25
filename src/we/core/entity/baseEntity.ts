@@ -10,6 +10,7 @@ import {
     I_entityInstance,
     I_optionBaseEntity,
     I_optionShadowEntity,
+    I_ShadowMapValueOfDC,
 } from "./base";
 import { E_lifeState } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
@@ -22,6 +23,7 @@ import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { renderPassName } from "../scene/renderManager";
+import { mergeLightUUID } from "../light/lightsManager";
 
 
 export abstract class BaseEntity extends RootOfGPU {
@@ -84,10 +86,12 @@ export abstract class BaseEntity extends RootOfGPU {
      */
     cameraDC: {
         [name: string]: {
-            deferDepth: DrawCommand[],
-            forward: DrawCommand[],
-            transparent: DrawCommand[],
-            // [renderPassName.depth]: []
+            // deferDepth: DrawCommand[],
+            // forward: DrawCommand[],
+            // transparent: DrawCommand[],
+            [renderPassName.depth]: DrawCommand[],
+            [renderPassName.forward]:DrawCommand[],
+            [renderPassName.transparent]:DrawCommand[],
         }
     } = {};
 
@@ -98,8 +102,10 @@ export abstract class BaseEntity extends RootOfGPU {
      */
     shadowmapDC: {
         [name: string]: {
-            deth: DrawCommand[],
-            transparent: DrawCommand[],
+            // depth: DrawCommand[],
+            // transparent: DrawCommand[],
+            [renderPassName.shadowmapOpacity]: DrawCommand[],
+            [renderPassName.shadowmapTransparent]: DrawCommand[],
         }
     } = {}
     /**
@@ -220,9 +226,9 @@ export abstract class BaseEntity extends RootOfGPU {
     abstract createTransparent(camera: BaseCamera): void
 
     /**渲染shadowmap 不透明*/
-    abstract createShadowMapDC(light: BaseLight): void
+    abstract createShadowMapDC(input: I_ShadowMapValueOfDC): void
     /**渲染shadowmap 透明模式 */
-    abstract createShadowMapTransparentDC(light: BaseLight): void
+    abstract createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void
 
     /**获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
      * 涉及三个部分：
@@ -339,9 +345,9 @@ export abstract class BaseEntity extends RootOfGPU {
             else {
                 if (this.cameraDC[camera.UUID] == undefined) {
                     this.cameraDC[camera.UUID] = {
-                        forward: [],
-                        deferDepth: [],
-                        transparent: []
+                        [renderPassName.forward]: [],
+                        [renderPassName.depth]: [],
+                        [renderPassName.transparent]: [],
                     }
                 }
                 if (this.transparent === true) {
@@ -360,34 +366,45 @@ export abstract class BaseEntity extends RootOfGPU {
      * 
      */
     upgradeLights() {
-        // for (let i of this.scene.lightsManagement.getShdowMapsStructArray()) {
-        //     const id = i.light_id.toString();
-        //     let already: boolean;
-        //     if (this.transparent === true) {
-        //         already = this.checkIdOfCommands(id, this.commandsOfShadowOfTransparent);//获取是否已经存在 
-        //     }
-        //     else {
-        //         already = this.checkIdOfCommands(id, this.commandsOfShadow);//获取是否已经存在
-        //     }
-        //     if (already) {
-        //         continue;
-        //     }
-        //     else {
-        //         const valueOfLight: valuesForCreateDCCC = {
-        //             parent,
-        //             id: id,
-        //             kind: E_renderForDC.light,
-        //             matrixIndex: i.matrix_self_index
-        //         };
-        //         if (this.transparent === true) {
-        //             this.createDCCCForShadowMapOfTransparent(valueOfLight);
-        //         }
-        //         else {
-        //             this.createShadowMapDC(valueOfLight);
-        //         }
-        //     }
-
-        // }
+        for (let i of this.scene.lightsManager.getShdowMapsStructArray()) {
+            const id = i.light_id.toString();
+            let UUID = this.scene.lightsManager.getUUIDByID(i.light_id);
+            let already: boolean;
+            // if (this.transparent === true) {
+            //     already = this.checkIdOfCommands(id, this.shadowmapDC);//获取是否已经存在 
+            // }
+            // else {
+            already = this.checkIdOfCommands(UUID, this.shadowmapDC);//获取是否已经存在
+            // }
+            if (already) {
+                continue;
+            }
+            else {
+                // this.shadowmapDC[UUID] = {
+                //     depth: [],
+                //     transparent: [],
+                // }
+                let perLight = this.scene.lightsManager.getLightByID(i.light_id);
+                if (!perLight) {
+                    throw new Error("light not found");
+                }
+                const valueOfLight: I_ShadowMapValueOfDC = {
+                    light: perLight as BaseLight,
+                    UUID: UUID,
+                    matrixIndex: i.matrix_self_index
+                };
+                this.shadowmapDC[mergeLightUUID(UUID, i.matrix_self_index)] = {
+                   [renderPassName.shadowmapOpacity]: [],
+                   [renderPassName.shadowmapTransparent]: [],
+                }
+                if (this.transparent === true) {
+                    this.createShadowMapTransparentDC(valueOfLight);
+                }
+                else {
+                    this.createShadowMapDC(valueOfLight);
+                }
+            }
+        }
     }
     /**检查是否有新摄像机，有进行更新 */
     checkUpgradeCameras() {
@@ -399,11 +416,11 @@ export abstract class BaseEntity extends RootOfGPU {
     }
     /**检查是否有新光源，有进行更新 */
     checkUpgradeLights() {
-        // const countsOfCamerasCommand = Object.keys(this.commandsOfShadow).length;
-        // const countsOfCameraActors = this.scene.lightsManagement.getShdowMapsStructArray().length;
-        // if (countsOfCameraActors > countsOfCamerasCommand) {
-        //     this.upgradeLights(parant)
-        // }
+        const countsOfCamerasCommand = Object.keys(this.shadowmapDC).length;
+        const countsOfCameraActors = this.scene.lightsManager.getShdowMapsStructArray().length;
+        if (countsOfCameraActors > countsOfCamerasCommand) {//比较的是shadowmap的数量
+            this.upgradeLights()
+        }
     }
 
 

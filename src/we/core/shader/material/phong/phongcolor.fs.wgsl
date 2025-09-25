@@ -27,79 +27,54 @@ struct bulin_phong {
     var depthVisibility = 0.0;
     var posFromLight : vec4f;
     var depth_sub_z : f32;
+
     if(U_lights.lightNumber >0)
     {
         for (var i : u32 = 0; i < U_lights.lightNumber; i = i + 1)
         {
             var onelightPhongColor : array<vec3f, 2>;       //当前光源的漫反射，高光反射
             let onelight = U_lights.lights[i ];             //当前光源的struct 
-            var visibility = 0.0;                           //可见性：是否在阴影中，1：不在阴影中，0：在阴影中
+            // var visibility = 0.0;                           //可见性：是否在阴影中，1：不在阴影中，0：在阴影中
             var computeShadow = false;                      //是否计算阴影
-            var shadow_map_index = onelight.shadow_map_array_lenght;         //当前光源的阴影贴图索引
-            // var shadow_map_index = onelight.shadow_map_array_index;         //当前光源的阴影贴图索引
+            // var shadow_map_index = onelight.shadow_map_array_lenght;         //当前光源的阴影贴图索引
+            var shadow_map_index = onelight.shadow_map_array_index;         //当前光源的阴影贴图索引
             var inPointShadow = false;                      //是否为点光源的阴影
             if (onelight.kind ==0)
             {
-                // computeShadow = true;
                 onelightPhongColor = phongColorOfDirectionalLight(fsInput.worldPosition, normal, onelight.direction, onelight.color, onelight.intensity, defaultCameraPosition, uv);
             }
             else if (onelight.kind ==1)
             {
-                // computeShadow = true;
-                // shadow_map_index = checkPixelInPointLightRange(fsInput.worldPosition, onelight);
                 onelightPhongColor = phongColorOfPointLight(fsInput.worldPosition, normal, onelight.position, onelight.color, onelight.intensity, defaultCameraPosition, uv);
             }
             else if (onelight.kind ==2)
             {
                 onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, uv);
-                // computeShadow = inShadowRangOfSpotLight(fsInput.worldPosition, onelight.position, onelight.direction, onelight.angle);
             }
-            if(shadow_map_index >1){            //如果在点光源的阴影中，计算阴影
-            // if(shadow_map_index >=0){            //如果在点光源的阴影中，计算阴影
-                inPointShadow = true;
-            }
-            else{            //如果不在点光源的阴影中，不计算阴影，进行一次统一工作流
-                // shadow_map_index = onelight.shadow_map_array_index;
-            }
-            if (onelight.kind ==1){//点光源的pcss在计算block是需要适配，目前多出来了边界的黑框，目前考虑是block的uv在边界的地方越界了，需要进行特殊处理
-                // visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
-            }
-            else{
-            // visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, normal, 0.08); 
-            ////visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, normal);
-            ////visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
-           //// visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, normal);
-           }
-            if (onelight.shadow ==1 && computeShadow)  {            }
-            else
-            {
-                visibility = 1.0;
-            }
-            if (inPointShadow ==false && onelight.kind ==1 &&computeShadow ==true){            //如果是点光源，且不在阴影中，visibility = 1.0
-                visibility = 1.0;
-            }
-             visibility = 1.0;
-            colorOfPhoneOfLights[0] += colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
-            colorOfPhoneOfLights[1] += colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
+ 
+            var visibility = getVisibilityOflight(onelight,fsInput.worldPosition,normal); 
+            colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
+            colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
         }
         colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(U_lights.lightNumber);
         colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(U_lights.lightNumber);
     }
-
-
-
     var output: ST_GBuffer;
     $fsOutput
+    output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
 
 //     let lightIntensity = 1.0;
 //     let lightDir = vec3f(0.0, 1.0, 0.0);
 //     let lightColor = vec3f(1.0, 1., 0.0);
-// let onelight = U_lights.lights[0 ]; 
+//     let onelight = U_lights.lights[0 ]; 
 //     let colorOfPhongDS = phongColorDS(fsInput.worldPosition, fsInput.normal, lightDir, lightColor, lightIntensity, defaultCameraPosition,uv);
-//      let colorOfAmbient = PhongAmbientColor();
+//     let colorOfAmbient = PhongAmbientColor();
 //     output.color =  vec4f((colorOfAmbient + colorOfPhongDS[0]) * materialColor.rgb + colorOfPhongDS[1], materialColor.a);
+    // output.color = vec4f( visibility,visibility,visibility   , 1.0);
 
-    output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
+    // let depth=textureLoad(U_shadowMap_depth_texture, vec2i(i32(fsInput.position.x*2),i32(fsInput.position.y*2)),0,0) ;
+    // output.color = vec4f( depth,depth,depth,1);
+
     return output;
 }
 fn phongColorDS(position : vec3f, vNormal : vec3f, lightDir : vec3f, lightColor : vec3f, lightIntensity : f32, viewerPosition : vec3f,uv:vec2f) -> vec3f
@@ -219,39 +194,3 @@ fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, lightPosition : vec3
     colos_DS[1]=specularColor;
     return colos_DS;
 }
-//spot light 判断点是否在spot light的范围内
-fn inShadowRangOfSpotLight(position : vec3f, lightPosition : vec3f, lightDirection : vec3f, angle : vec2f) -> bool
-{
-    let ligh2PostDir = normalize(lightPosition - position);                     //光源到物体的点的方向
-    let limit_inner = cos(angle.x);                                                 //spot内角度的点积域
-    let limit_outer = cos(angle.y);                                                 //spot外角度的点积域
-    let dotFromDirection = dot(ligh2PostDir, normalize(-lightDirection));               //当前点的点积域的值，-是因为光的方向是反的，
-    if(dotFromDirection >= limit_outer)
-    {
-        return true;
-    }
-    else{
-        return false;
-    }
-}
-
-// //检查pixel是否在光源的阴影中（6个投影方向中的那个）   //未处理距离
-// fn checkPixelInPointLightRange(pixelWorldPosition : vec3f, onelight : ST_Light,) -> i32 {
-//     var index = -1;
-//     for (var i : i32 = 0; i <6; i = i + 1)
-//     { 
-//         var posFromLight = matrix_z * U_shadowMapMatrix[onelight.shadow_map_array_index+i].MVP * vec4(pixelWorldPosition, 1.0);  //光源视界的位置
-//         if(posFromLight.w < 0.000001 && posFromLight.w > -0.000001)
-//         {           //posFromLight =posFromLight/posFromLight.w;
-//         }
-//         else{
-//             posFromLight = posFromLight / posFromLight.w;
-//         }
-//         //判断当前像素的world Position是否在剪切空间中
-//         if(posFromLight.x >= -1.0 && posFromLight.x <= 1.0 && posFromLight.y <= 1.0 && posFromLight.y >= -1.0 && posFromLight.z <= 1.0 && posFromLight.z >= 0.0)
-//         {
-//             index = i;
-//         }
-//     }
-//     return index;
-// }
