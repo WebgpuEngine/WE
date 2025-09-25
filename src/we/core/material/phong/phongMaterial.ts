@@ -76,7 +76,7 @@ export class PhongMaterial extends BaseMaterial {
           texture.format="rgba8unorm";
         }
         let textureInstace = new Texture(texture, this.device, this.scene);
-        await textureInstace.init();
+        await textureInstace.init(this.scene);
         this.textures[key] = textureInstace;
       }
 

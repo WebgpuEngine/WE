@@ -95,4 +95,6 @@ export enum E_TextureType {
     ao = "ao",
     /** 深度贴图 */
     depthMap = "depthMap",
+    /** 视频贴图 */
+    video = "video",
 }

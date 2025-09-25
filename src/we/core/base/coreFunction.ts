@@ -57,7 +57,7 @@ export async function weGetVidoeByUrl(param: string, options: I_VideoOption): Pr
     const video = document.createElement("video");
     video.crossOrigin = "anonymous";
     video.src = param;
-    video.muted = options.muted ?? true;
+    video.muted = options.muted ?? false;
     video.loop = options.loop ?? true;
     await video.play();
     return video;

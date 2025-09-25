@@ -1,59 +1,70 @@
-import { lifeState } from "../const/coreConst";
-import { BaseTexture, optionBaseTexture, textureType } from "./baseTexture";
+import { E_lifeState } from "../base/coreDefine";
+import { I_VideoOption, weGetVidoeByUrl } from "../base/coreFunction";
+import { Scene } from "../scene/scene";
+import { I_BaseTexture, T_textureSourceType } from "./base";
+import { BaseTexture } from "./baseTexture";
+
+export type T_VIdeoSourceType = HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | VideoFrame | string;
 
 /**
  * copy模式简单，可以mipmap
  * external模式，速度快，没有mipmap
  */
-type modelOfVideo = "copy" | "External";
-export interface optionVideoTexture extends optionBaseTexture {
+export type T_modelOfVideo = "copy" | "External";
+export interface IV_OptionVideoTexture extends I_BaseTexture {
     // video: textureType;
-    texture: textureType,
+    source: T_VIdeoSourceType,
     loop?: boolean,
     // autoplay?: boolean,//默认必须的
     muted?: boolean,
     controls?: boolean,
     waitFor?: "canplaythrough" | "loadedmetadata",
-    model?: modelOfVideo,
+    model?: T_modelOfVideo,
 }
 
 export class VideoTexture extends BaseTexture {
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
 
-    model: modelOfVideo = "copy";
-    declare input: optionVideoTexture;
+    model: T_modelOfVideo = "copy";
+    declare inputValues: IV_OptionVideoTexture;
     declare texture: GPUTexture | GPUExternalTexture;
     width!: number;
     height!: number;
     premultipliedAlpha!: boolean;
     video!: HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | VideoFrame;
-    constructor(input: optionVideoTexture, device: GPUDevice) {
-        super(input, device);
-        this.input = input;
+    constructor(input: IV_OptionVideoTexture, device: GPUDevice,scene?:Scene) {
+        super(input, device,scene);
+        this.inputValues = input;
         if (input.model) {
             this.model = input.model;
         }
-        if (input.texture instanceof VideoFrame) {
+        if (input.source instanceof VideoFrame) {
             this.model = "External";
         }
     }
 
 
-    async init(): Promise<lifeState> {
-        let source = this.input.texture;
-        this._already = lifeState.initializing;
+    async  readyForGPU(): Promise<any>{
+        let source = this.inputValues.source;
+        this._state = E_lifeState.initializing;
         //url
         if (typeof source == "string") {
-            this._already = await this.generateTextureByString(source);
+            this._state = await this.generateTextureByString(source);
         }
         //GPUTexture
         // else if (typeof source == "object" && "usage" in source) {
         else if (source instanceof GPUTexture) {
             this.texture = source;
-            this._already = lifeState.finished;
+            this._state = E_lifeState.finished;
         }
         //GPUCopyExternalImageSource
         else if (source instanceof HTMLVideoElement || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas || source instanceof VideoFrame) {
-            this._already = await this.generateTextureBySource(source);
+            this._state = await this.generateTextureBySource(source);
         }
         // else if (source instanceof VideoFrame) {
         // }
@@ -61,47 +72,26 @@ export class VideoTexture extends BaseTexture {
             console.warn("texture init error");
         }
 
-        return this._already;
+        return this._state;
     }
 
 
-    async generateTextureByString(res: string): Promise<lifeState> {
+    async generateTextureByString(res: string): Promise<E_lifeState> {
         let scope = this;
-        let options = this.input;
-
-        const video = document.createElement("video");
-        video.crossOrigin = "anonymous";
-        video.src = res;
-        video.muted = options.muted ?? true;
-        video.loop = options.loop ?? true;
-        // video.autoplay =  true;  //这个必须
-
+        let options: I_VideoOption = {
+            // crossOrigin : "anonymous",
+            // src : res,
+            muted: this.inputValues.muted ?? false,
+            loop: this.inputValues.loop ?? true,
+        }
+        const video = await weGetVidoeByUrl(res, options);
+        video.autoplay =  true;  //这个必须
         await video.play();
-
-        //OK
-        // video.autoplay =  true;  //这个必须
-        // await new Promise((resolve) => {
-        //     video.onloadedmetadata = resolve;
-        //     video.onerror = () => {
-        //         throw new Error(`Video loading error: ${video.error?.message}`);
-        //     };
-        // });
-
-        // 确保视频可以播放，这个也是必须
-        // if (video.readyState < 2) {
-        //     await new Promise((resolve) => {
-        //         video.oncanplay = resolve;
-        //     });
-        // }
-        // if (video.autoplay)
-        //     video.play();
-
-
         let ready = await scope.generateTextureBySource(video);
         return ready;
     }
 
-    async generateTextureBySource(source: GPUCopyExternalImageSource): Promise<lifeState> {
+    async generateTextureBySource(source: GPUCopyExternalImageSource): Promise<E_lifeState> {
         let width = 0, height = 0;
         if (source instanceof HTMLVideoElement) {
             width = source.videoWidth;
@@ -120,14 +110,14 @@ export class VideoTexture extends BaseTexture {
 
         if (width == 0 || height == 0) {
             console.warn("texture init error");
-            return lifeState.unstart;
+            return E_lifeState.unstart;
         }
         this.width = width;
         this.height = height;
 
         let premultipliedAlpha = false;
-        if (this.input.premultipliedAlpha != undefined)//有input.premultipliedAlpha
-            premultipliedAlpha = this.input.premultipliedAlpha;
+        if (this.inputValues.premultipliedAlpha != undefined)//有input.premultipliedAlpha
+            premultipliedAlpha = this.inputValues.premultipliedAlpha;
         else {
             premultipliedAlpha = true;
         }
@@ -135,9 +125,9 @@ export class VideoTexture extends BaseTexture {
         if (this.model == "copy" || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas) {
             this.texture = this.device.createTexture({
                 size: [width, height, 1],
-                format: this.input.format!,
+                format: this.inputValues.format!,
                 // format: 'rgba8unorm',//bgra8unorm
-                mipLevelCount: this.input.mipmap ? this.numMipLevels([width, height]) : 1,
+                mipLevelCount: this.inputValues.mipmap ? this.numMipLevels([width, height]) : 1,
                 // sampleCount: 1,
                 // dimension: '2d',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
@@ -157,17 +147,21 @@ export class VideoTexture extends BaseTexture {
         // if (this.texture.mipLevelCount > 1) {
         //     this.generateMips(this.device, this.texture);
         // }
-        this._already = lifeState.finished;
-        return this._already;
+        if (this.texture instanceof GPUTexture)
+            if (this.texture.mipLevelCount > 1) {
+                this.generateMips(this.texture);
+            }
+        this._state = E_lifeState.finished;
+        return this._state;
     }
-    getExternalTexture(scopy:any): GPUBindingResource {
-        let source: HTMLVideoElement | VideoFrame = scopy.video as HTMLVideoElement | VideoFrame ;
+    getExternalTexture(scopy: any): GPUBindingResource {
+        let source: HTMLVideoElement | VideoFrame = scopy.video as HTMLVideoElement | VideoFrame;
         // if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
         return scopy.device.importExternalTexture({ source: source })
 
     }
-    update(): void {
-        super.update();
+
+    updateSelf(): void {
         let source = this.video;
         if (this.model == "copy" || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas) {
             this.device.queue.copyExternalImageToTexture(
@@ -176,13 +170,12 @@ export class VideoTexture extends BaseTexture {
                 [this.width, this.height]
             );
             if ((this.texture as GPUTexture).mipLevelCount > 1) {
-                this.generateMips(this.device, this.texture as GPUTexture);
+                this.generateMips( this.texture as GPUTexture);
             }
         }
         else {
             if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
                 this.texture = this.device.importExternalTexture({ source })
         }
-
     }
 }

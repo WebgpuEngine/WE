@@ -26,7 +26,7 @@ export class CubeTexture extends Texture {
         this._upsideDownY = false;
     }
 
-    async init(): Promise<E_lifeState> {
+    async  readyForGPU(): Promise<any>{
 
         let scope = this;
         let source = this.inputValues.source;

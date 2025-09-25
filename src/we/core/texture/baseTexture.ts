@@ -1,8 +1,10 @@
 import { E_lifeState } from "../base/coreDefine";
+import { RootOfGPU } from "../organization/root";
+import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture, T_textureSourceType } from "./base";
 
-export abstract class BaseTexture {
+export abstract class BaseTexture extends RootOfGPU {
     device: GPUDevice;
 
     inputValues: I_BaseTexture;
@@ -31,11 +33,11 @@ export abstract class BaseTexture {
     */
     _state: E_lifeState = E_lifeState.unstart;
 
-    scene!: Scene;
 
 
 
     constructor(inputValues: I_BaseTexture, device: GPUDevice, scene?: Scene) {
+        super()
         this.device = device;
         this.inputValues = inputValues;
 
@@ -52,21 +54,29 @@ export abstract class BaseTexture {
         }
         else
             this.source = inputValues.source
-        if (scene != undefined) {
-            if (scene instanceof Scene)
-                this.registerToManager(scene);
-            else
-                throw new Error(" scene of texture input value  is not instanceof Scene");
+        if (scene) {
+            this.scene = scene;
+            this.setRootENV(scene)
         }
     }
 
-    registerToManager(scene: Scene) {
+    registerToManager() {
         if (this.scene == undefined) {
-            this.scene = scene;
-            this.scene.textureManager.add(this);
+            throw new Error(" scene of texture is undefined");
         }
+        if (this.scene.textureManager == undefined) {
+            throw new Error(" scene of texture textureManager is undefined");
+        }
+        this.scene.textureManager.add(this);
     }
-    abstract init(): Promise<E_lifeState>;
+
+    async init(scene?: Scene,): Promise<number> {
+        if (this.scene instanceof Scene) { }
+        else if (scene) await this.setRootENV(scene);
+        await this.readyForGPU();
+        this.registerToManager();
+        return this._state;
+    }
     destroy() {
         if (this.texture) {
             this.texture.destroy();
@@ -194,11 +204,13 @@ export abstract class BaseTexture {
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
     };
-    update() {
+    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+
         if (this.inputValues.update) {
             this.inputValues.update(this);
         }
         this.updateSelf();
+        return true;
     }
     abstract updateSelf(): void;
 

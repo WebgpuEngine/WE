@@ -11,6 +11,7 @@ import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { I_mipmap } from "../texture/base";
+import { Clock } from "../scene/clock";
 
 
 
@@ -241,6 +242,25 @@ export abstract class BaseMaterial extends RootOfGPU {
             this._samplerBindingType = "non-filtering";
         }
         return sampler;
+    }
+
+    /**
+     * 正常更新，从上到下 
+     * @param clock Clock 时钟
+     * @param updateSelftFN 是否调用自身的updateSelf(),默认=true
+     *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
+     * @returns 
+     */
+    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+        if (this.lastUpdaeTime === clock.now) //更新检查
+            return false;
+        // this.updateSelfAttribute(clock);                //更新自身的属性
+        // if (this.children.length > 0)                   //更新子节点
+        //     for (let i of this.children)
+        //         i.update(clock);
+        if (updateSelftFN)
+            this.updateSelf(clock);                         //更新自身
+        return true;
     }
 
     // /**增加FS中的输出的location的结构体：ST_GBuffer */

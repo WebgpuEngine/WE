@@ -12,7 +12,7 @@ import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { RootOfGPU, RootOfOrganization } from "../organization/root";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { TextureManager } from "../texture/textureManger";
+import { TextureManager } from "../texture/textureManager";
 import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall } from "./base";
 import { Clock } from "./clock";
 // import { classList } from "../base/coreClass";
@@ -209,6 +209,8 @@ export class Scene {
     materialManager!: MaterialManager;
     /**光源管理器 */
     lightsManager!: LightsManager;
+
+
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -519,19 +521,27 @@ export class Scene {
         this.onUpdate();
 
         //texture manager
+        this.textureManager.update(this.clock);
         //material manager
+         this.materialManager.update(this.clock);
+         
         //render target manager
         //physices engine manager
         //animation manager
+
         //root update :entiy ,light,camera 共性基础
         this.root.update(this.clock);
+
         //lights(shadowmap) manager update
         this.lightsManager.update(this.clock);
+
         this.cameraManager.update(this.clock);
+
         //entiy push DC to render manager,
         //todo，20250912，缺少camera与BVH的判断
         this.entityManager.update(this.clock);
         //particle manager and update DCCC        
+        //
         this.generateBox();
         this.generateSphere();
         this.updateBVH();

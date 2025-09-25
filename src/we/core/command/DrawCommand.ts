@@ -22,10 +22,13 @@ export interface IV_DrawCommand extends IV_BaseCommand {
     viewport?: I_viewport,
     renderPassDescriptor: () => GPURenderPassDescriptor,
     drawMode: I_drawMode | I_drawModeIndexed,
+    dynamic: boolean,
+
 }
 
 export class DrawCommand {
 
+    dynamic: boolean = false;
     label!: string;
     rawUniform!: boolean;
     device!: GPUDevice;
@@ -63,7 +66,7 @@ export class DrawCommand {
         if (inputValues.uniform) this.bindGroups = inputValues.uniform;
         this.drawMode = inputValues.drawMode;
         this.renderPassDescriptor = inputValues.renderPassDescriptor;
-
+        if (inputValues.dynamic && inputValues.dynamic === true) this.dynamic = true;
     }
     destroy() { }
     /**

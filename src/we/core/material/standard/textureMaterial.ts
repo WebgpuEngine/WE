@@ -106,15 +106,16 @@ export class TextureMaterial extends BaseMaterial {
             }
             else {
                 let textureInstace = new Texture({ source: texture }, this.device, this.scene);
-                await textureInstace.init();
+                await textureInstace.init(this.scene);
                 this.textures[key] = textureInstace;
             }
             // this.countOfTexturesOfFineshed++;
-            this._state = E_lifeState.finished;
+
         }
+        this._state = E_lifeState.finished;
     }
 
-    getOneGroupUniformAndShaderTemplateFinal( startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
         let binding: number = startBinding;

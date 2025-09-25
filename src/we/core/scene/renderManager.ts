@@ -27,6 +27,7 @@ export enum renderPassName {
     shadowmapTransparent = "shadowmapTransparent",
     depth = "depth",
     forward = "forward",
+    // forwardDynamic = "forwardDynamic",
     transparent = "transparent",
     transparentMerge = "transparentMerge",
     sprite = "sprite",
@@ -39,7 +40,10 @@ export enum renderPassName {
 }
 /**DrawCommand 通道 */
 interface I_renderDrawCommand {
-    [name: string]: Map<I_PipelineStructure, commmandType[]>,
+    [name: string]: {
+        pipelineOrder: Map<I_PipelineStructure, commmandType[]>,
+        dynmaicOrder: commmandType[],
+    }
 }
 /**
  * 通用的渲染通道
@@ -121,10 +125,16 @@ export class RenderManager {
      */
     initRenderCommandForCamera(UUID: string) {
         if (!this.renderCameraForwardCommand[UUID]) {
-            this.renderCameraForwardCommand[UUID] = new Map();
+            this.renderCameraForwardCommand[UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.renderCameraDeferDepthCommand[UUID]) {
-            this.renderCameraDeferDepthCommand[UUID] = new Map();
+            this.renderCameraDeferDepthCommand[UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.renderCameraTransParentCommand[UUID]) {
             this.renderCameraTransParentCommand[UUID] = [];
@@ -133,7 +143,10 @@ export class RenderManager {
             this.renderCameraTransparentMergeCommand[UUID] = [];
         }
         if (!this.renderSpriteCommand[UUID]) {
-            this.renderSpriteCommand[UUID] = new Map();
+            this.renderSpriteCommand[UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.renderSpriteTransparentCommand[UUID]) {
             this.renderSpriteTransparentCommand[UUID] = [];
@@ -174,11 +187,13 @@ export class RenderManager {
         }
         for (let UUID in this.renderCameraForwardCommand) {
             let cameraCommand = this.renderCameraForwardCommand[UUID as renderPassName];
-            cameraCommand.clear();
+            cameraCommand.pipelineOrder.clear();
+            cameraCommand.dynmaicOrder = [];
         }
         for (let UUID in this.renderCameraDeferDepthCommand) {
             let cameraCommand = this.renderCameraDeferDepthCommand[UUID as renderPassName];
-            cameraCommand.clear();
+            cameraCommand.pipelineOrder.clear();
+            cameraCommand.dynmaicOrder = [];
         }
         for (let UUID in this.renderCameraTransParentCommand) {
             this.renderCameraTransParentCommand[UUID as renderPassName] = [];
@@ -186,7 +201,8 @@ export class RenderManager {
 
         for (let UUID in this.renderSpriteCommand) {
             let spriteCommand = this.renderSpriteCommand[UUID as renderPassName];
-            spriteCommand.clear();
+            spriteCommand.pipelineOrder.clear();
+            spriteCommand.dynmaicOrder = [];
         }
         for (let UUID in this.renderSpriteTransparentCommand) {
             this.renderSpriteTransparentCommand[UUID as renderPassName] = [];
@@ -248,30 +264,61 @@ export class RenderManager {
                 this.renderShadowMapTransparentCommand[_UUID!].push(command);
                 break;
             case renderPassName.forward:
-                flag = (command as DrawCommand).getPipeLineStructure();
-                if (this.renderCameraForwardCommand[_UUID!].has(flag)) {                            //是否有map
-                    this.renderCameraForwardCommand[_UUID!].get(flag)?.push(command);               //push command
-                } else {                                                                            //没有map
-                    this.renderCameraForwardCommand[_UUID!].set(flag, [command]);                   //set map
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.renderCameraForwardCommand[_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.renderCameraForwardCommand[_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        }
+                        else {                                                                            //没有map
+                            this.renderCameraForwardCommand[_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.renderCameraForwardCommand[_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.renderCameraForwardCommand[_UUID!].dynmaicOrder.push(command);
                 }
                 break;
             case renderPassName.depth:
-                flag = (command as DrawCommand).getPipeLineStructure();
-                if (this.renderCameraDeferDepthCommand[_UUID!].has(flag)) {                            //是否有map
-                    this.renderCameraDeferDepthCommand[_UUID!].get(flag)?.push(command);               //push command
-                } else {                                                                               //没有map
-                    this.renderCameraDeferDepthCommand[_UUID!].set(flag, [command]);                   //set map
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.renderCameraDeferDepthCommand[_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.renderCameraDeferDepthCommand[_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        } else {                                                                               //没有map
+                            this.renderCameraDeferDepthCommand[_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.renderCameraDeferDepthCommand[_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.renderCameraDeferDepthCommand[_UUID!].dynmaicOrder.push(command);
                 }
                 break;
             case renderPassName.transparent:
                 this.renderCameraTransParentCommand[_UUID!].push(command);
                 break;
             case renderPassName.sprite:
-                flag = (command as DrawCommand).getPipeLineStructure();
-                if (this.renderSpriteCommand[_UUID!].has(flag)) {                            //是否有map
-                    this.renderSpriteCommand[_UUID!].get(flag)?.push(command);               //push command
-                } else {                                                                               //没有map
-                    this.renderSpriteCommand[_UUID!].set(flag, [command]);                   //set map
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.renderSpriteCommand[_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.renderSpriteCommand[_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        } else {                                                                               //没有map
+                            this.renderSpriteCommand[_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.renderSpriteCommand[_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.renderSpriteCommand[_UUID!].dynmaicOrder.push(command);
                 }
                 break;
             // case renderPassName.spriteTop:
@@ -355,6 +402,7 @@ export class RenderManager {
         if (submitCommand.length > 0)
             this.device.queue.submit(submitCommand);
     }
+    
     renderForwaredDC(commands: I_renderDrawCommand) {
         let cameraRendered: {
             [name: string]: number
@@ -364,7 +412,7 @@ export class RenderManager {
             //pipeline passEncoder 部分
             let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
             // forward render by pipeline
-            for (const [key2, value] of perOne.entries()) {
+            for (const [key2, value] of perOne.pipelineOrder.entries()) {
 
                 //camera pipeline submit count  and rpd loadOP chang part 
                 if (cameraRendered[UUID] == undefined) {//没有记录，增加UUID记录
@@ -398,10 +446,15 @@ export class RenderManager {
                 cameraRendered[UUID]++;//更改camera forward loadOP计数器
                 //push commandBuffer
             }
-            //submit part
+            for (let perDyn of perOne.dynmaicOrder) {
+              
+            }           
+             //submit part
             if (submitCommand.length > 0)
                 this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+
         }
+
     }
 
     /**

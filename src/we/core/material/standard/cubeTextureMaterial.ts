@@ -56,7 +56,7 @@ export class CubeTextureMaterial extends TextureMaterial {
         }
 
         let textureInstace = new CubeTexture({ source: this.inputValues.textures[E_TextureType.cube] }, this.device, this.scene);
-        await textureInstace.init();
+        await textureInstace.init(this.scene);
         this.textures[E_TextureType.cube] = textureInstace;
 
         // this.countOfTexturesOfFineshed++;

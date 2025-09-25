@@ -13,14 +13,21 @@ import { BaseTexture } from "./baseTexture";
 
 export class Texture extends BaseTexture {
 
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+
     declare inputValues: I_BaseTexture;
     declare texture: GPUTexture;
-    constructor(input: I_BaseTexture, device: GPUDevice, scene?: Scene) {
-        super(input, device, scene);
+    constructor(input: I_BaseTexture, device: GPUDevice,scene?:Scene) {
+        super(input, device,scene);
         this.inputValues = input;
 
     }
-    async init(): Promise<E_lifeState> {
+    async  readyForGPU(): Promise<any>{
         let source = this.inputValues.source;
         //url
         if (typeof source == "string") {

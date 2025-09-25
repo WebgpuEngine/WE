@@ -539,10 +539,10 @@ export abstract class RootOfGPU extends RootOfOrganization {
     async addChild(child: RootOfGPU): Promise<number> {
         let renderID = await child.init(this.scene, this, this.renderID);
         await super.addChild(child);
-        if (child instanceof RootOfGPU) {
-            child.init(this.scene, this);
-        }
-        super.addChild(child);
+        // if (child instanceof RootOfGPU) {
+        //     child.init(this.scene, this);
+        // }
+        // super.addChild(child);
         if (this.parent instanceof RootOfGPU && child instanceof RootOfGPU) {
             await child.setRootENV(this.scene);
         }

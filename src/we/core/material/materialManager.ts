@@ -6,7 +6,8 @@ import { BaseMaterial } from "./baseMaterial";
 export class MaterialManager extends ECSManager<BaseMaterial>{
 
     update(clock: Clock): void {
-        throw new Error("Method not implemented.");
+        for(let i of this.list)
+            i.update(clock);
     }
     
 }

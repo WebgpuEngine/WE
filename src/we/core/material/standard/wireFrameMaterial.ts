@@ -1,4 +1,4 @@
-import { Color4, E_lifeState } from "../../base/coreDefine";
+import {  E_lifeState, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import {T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -11,7 +11,7 @@ import { I_ColorMaterial } from "./colorMaterial";
 
 export class WireFrameMaterial extends BaseMaterial {
     declare inputValues: I_ColorMaterial;
-    color: Color4;
+    color: weColor4;
     red: number = 0;
     green: number = 0;
     blue: number = 0;

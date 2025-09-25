@@ -78,6 +78,11 @@ export type T_vsAttribute = vsAttribute | vsAttributeMerge | number[]
  * @system  系统参数:camera 或 light
  */
 export interface V_DC {
+    /**是否包括动态资源在binding group中
+     * 默认：false，
+     * 如果true，则需要动态绑定资源
+     */
+    dynamic?: boolean,
     label: string,
     data: {
         vertices: Map<string, T_vsAttribute>,
@@ -671,7 +676,8 @@ export class DrawCommandGenerator {
             drawMode: values.render.drawMode,
             label: values.label,
             uniform: DC_bindGroups,
-            renderPassDescriptor
+            renderPassDescriptor,
+            dynamic: values.dynamic || false,
         }
         if (values.render.viewport) commandOption.viewport = values.render.viewport;
         let camera = this.getCamera(values);
