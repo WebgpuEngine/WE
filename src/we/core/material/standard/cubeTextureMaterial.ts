@@ -17,7 +17,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_s
 import { BaseCamera } from "../../camera/baseCamera";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
-import { E_TextureType } from "../base";
+import { E_TextureType, I_materialBundleOutput } from "../base";
 import { SHT_materialCubePositionTextureFS_mergeToVS, SHT_materialCubeSkyTextureFS_mergeToVS } from "../../shadermanagemnet/material/cubeTextureMaterial";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
@@ -71,7 +71,7 @@ export class CubeTextureMaterial extends TextureMaterial {
             });
         }
     }
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
         let binding: number = startBinding;

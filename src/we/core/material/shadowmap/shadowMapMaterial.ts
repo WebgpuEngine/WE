@@ -21,7 +21,7 @@ export class ShadowMapMaterial extends BaseMaterial {
     }
 
 
-    getOneGroupUniformAndShaderTemplateFinal( startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal( startBinding: number): I_materialBundleOutput {
         if (this.getTransparent()) {
             return this.getTransparentCodeFS(startBinding);
         }
@@ -35,7 +35,7 @@ export class ShadowMapMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getOpaqueCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOpaqueCodeFS(_startBinding: number): I_materialBundleOutput {
         let template = SHT_materialColorFS_mergeToVS;
 
         let uniform1: T_uniformGroup = [];
@@ -70,7 +70,7 @@ export class ShadowMapMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getTransparentCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getTransparentCodeFS(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
 

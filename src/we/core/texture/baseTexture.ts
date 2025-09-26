@@ -1,4 +1,5 @@
 import { E_lifeState } from "../base/coreDefine";
+import { commmandType } from "../command/base";
 import { RootOfGPU } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
@@ -33,8 +34,7 @@ export abstract class BaseTexture extends RootOfGPU {
     */
     _state: E_lifeState = E_lifeState.unstart;
 
-
-
+    commands:commmandType[] = [];
 
     constructor(inputValues: I_BaseTexture, device: GPUDevice, scene?: Scene) {
         super()

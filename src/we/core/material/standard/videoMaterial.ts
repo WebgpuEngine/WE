@@ -1,9 +1,9 @@
 import { BaseMaterial, } from "../baseMaterial";
 import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
-import { E_TextureType, IV_BaseMaterial } from "../base";
+import { E_TextureType, I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { SHT_materialTextureFS_mergeToVS, SHT_materialTextureTransparentFS_mergeToVS } from "../../shadermanagemnet/material/textureMaterial";
@@ -68,7 +68,7 @@ export class VideoMaterial extends BaseMaterial {
 
     async readyForGPU(): Promise<any> {
         this.sampler = this.checkSampler(this.inputValues);
-        if ( this.inputValues.textures[E_TextureType.video] instanceof VideoTexture) {
+        if (this.inputValues.textures[E_TextureType.video] instanceof VideoTexture) {
             this.textures[E_TextureType.video] = this.inputValues.textures[E_TextureType.video] as VideoTexture;
         }
         else {
@@ -88,20 +88,21 @@ export class VideoMaterial extends BaseMaterial {
         this._state = E_lifeState.finished;
     }
 
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
         let uniform1: T_uniformGroup = [];
         let code: string = "";
+        let dynamic: boolean = false;
         ///////////group binding
         ////group binding  texture 字符串
         //uniform texture
-        let uniformTexture: GPUBindGroupEntry;
+        let uniformTexture: T_uniformEntries;
         //uniform texture layout
         let uniformTextureLayout: GPUBindGroupLayoutEntry
         if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
-             groupAndBindingString = ` @group(1) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
+            groupAndBindingString = ` @group(1) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
             uniformTexture = {
                 binding: binding,
                 resource: this.textures[E_TextureType.video].texture.createView(),
@@ -118,16 +119,21 @@ export class VideoMaterial extends BaseMaterial {
         }
         else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
         {
-             groupAndBindingString = ` @group(1) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
+            groupAndBindingString = ` @group(1) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
             uniformTexture = ({
                 binding: binding,
-                resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video]) 
+                // resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video])
+                label: "videoTexture External模式",
+                scopy: this.textures[E_TextureType.video],
+                getResource: this.textures[E_TextureType.video].getExternalTexture,
             });
+
             uniformTextureLayout = {
                 binding: binding,
                 visibility: GPUShaderStage.FRAGMENT,
                 externalTexture: {},
             };
+            dynamic = true;
         }
 
         //添加到resourcesGPU的Map中
@@ -183,7 +189,10 @@ export class VideoMaterial extends BaseMaterial {
                             code = code.replace(perOne.replace, `materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv );  `);
                         }
                         else {
-                            code = code.replace(perOne.replace, `materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) );  `);
+                            code = code.replace(perOne.replace, `
+                                materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) ); 
+                                materialColor =vec4f( pow(materialColor.rgb,vec3f(1.0/2.2)),materialColor.a);
+                                 `);
                         }
                     }
                 }
@@ -195,6 +204,11 @@ export class VideoMaterial extends BaseMaterial {
             binding: binding,
             owner: this,
         }
+        // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
+        if (dynamic) {
+            outputFormat.dynamic = dynamic;
+        }
+
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat };
     }
 

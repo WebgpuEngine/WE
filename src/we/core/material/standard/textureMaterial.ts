@@ -14,7 +14,7 @@ import { BaseMaterial, } from "../baseMaterial";
 
 import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
-import { E_TextureType, I_TransparentOfMaterial, IV_BaseMaterial } from "../base";
+import { E_TextureType, I_materialBundleOutput, I_TransparentOfMaterial, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -115,7 +115,7 @@ export class TextureMaterial extends BaseMaterial {
         this._state = E_lifeState.finished;
     }
 
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         let groupAndBindingString: string = "";
         let binding: number = startBinding;

@@ -1,11 +1,11 @@
-import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
+import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat,  V_shadowMapSize } from "../base/coreDefine";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_uniformGroup } from "../command/base";
 import { CamreaControl } from "../control/cameracCntrol";
 import { EntityManager } from "../entity/entityManager";
 import { AmbientLight } from "../light/ambientLight";
-import { LightsManager, splitLightUUID } from "../light/lightsManager";
+import { LightsManager } from "../light/lightsManager";
 import { MaterialManager } from "../material/materialManager";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
 import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
@@ -523,8 +523,8 @@ export class Scene {
         //texture manager
         this.textureManager.update(this.clock);
         //material manager
-         this.materialManager.update(this.clock);
-         
+        this.materialManager.update(this.clock);
+
         //render target manager
         //physices engine manager
         //animation manager
@@ -1004,12 +1004,15 @@ export class Scene {
                     // if(lightNumber ===0) lightNumber=1;
                     code = code.replace(perOne.replace, lightNumber.toString());
                 }
-            }
-            if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                if (perOne.name == "shadowMapNumber") {
+                else  if (perOne.name == "shadowMapNumber") {
                     let shadowMapNumber = this.lightsManager.getShadowMapNumber();
                     if (shadowMapNumber === 0) shadowMapNumber = 1;
                     code = code.replace(perOne.replace, shadowMapNumber.toString());
+                }
+                else if (perOne.name == "shadowDepthTextureSize") {
+                    let shadowMapNumber = this.lightsManager.getShadowMapNumber();
+                    if (shadowMapNumber === 0) shadowMapNumber = 1;
+                    code = code.replace(perOne.replace, `override shadowDepthTextureSize : f32 = ${V_shadowMapSize};`);
                 }
             }
         }

@@ -4,6 +4,7 @@ import {T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType,  I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { SHT_WireFrameFS_mergeToVS } from "../../shadermanagemnet/material/wireFrameMaterial";
+import { I_materialBundleOutput } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 import { I_ColorMaterial } from "./colorMaterial";
 
@@ -31,7 +32,7 @@ export class WireFrameMaterial extends BaseMaterial {
         // console.log(this._state);
     }
 
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
             return this.getOpaqueCodeFS(startBinding);
     }
     /**
@@ -39,7 +40,7 @@ export class WireFrameMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getOpaqueCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOpaqueCodeFS(_startBinding: number): I_materialBundleOutput {
         let template = SHT_WireFrameFS_mergeToVS;
 
         let uniform1: T_uniformGroup = [];
@@ -71,7 +72,7 @@ export class WireFrameMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getTransparentCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getTransparentCodeFS(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     destroy() {

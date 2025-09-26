@@ -1,4 +1,4 @@
-import type { I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../command/base";
+import type { I_dynamicTextureEntry, I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../command/base";
 
 export class ResourceManagerOfGPU {
     device!: GPUDevice;
@@ -269,5 +269,15 @@ export function isUniformGroup(obj: unknown): obj is T_uniformGroup {
 }
 
 
+export function isDynamicTextureEntry(obj: unknown): obj is I_dynamicTextureEntry {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'binding' in obj &&
+        typeof (obj as I_dynamicTextureEntry).binding === 'number' &&
+        'getResource' in obj &&
+        typeof (obj as I_dynamicTextureEntry).getResource === 'function'
+    );
+}
 
 

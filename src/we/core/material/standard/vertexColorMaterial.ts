@@ -4,7 +4,7 @@ import { T_uniformGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { SHT_materialColorFS_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
-import { IV_BaseMaterial } from "../base";
+import { I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 export interface IV_VertexColorMaterial extends IV_BaseMaterial {
@@ -24,7 +24,7 @@ export class VertexColorMaterial extends BaseMaterial {
     destroy(): void {
         throw new Error("Method not implemented.");
     }
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup; singleShaderTemplateFinal: I_singleShaderTemplate_Final; } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
         let template = SHT_materialColorFS_mergeToVS;
 
         let uniform1: T_uniformGroup = [];

@@ -365,6 +365,14 @@ export class Mesh extends BaseEntity {
         }
         return 0;
     }
+    /**
+     * 生成DrawCommand的input value
+     * @param type 渲染类型
+     * @param UUID camera UUID or light merge UUID
+     * @param bundle 实体的uniform和shader模板
+     * @param vsOnly 是否只渲染顶点
+     * @returns IV_DrawCommand
+     */
     generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false) {
         let drawMode: I_drawMode | I_drawModeIndexed;
         if (this.inputValues.drawMode != undefined) {
@@ -438,6 +446,10 @@ export class Mesh extends BaseEntity {
                 type
             }
         }
+        // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
+        if (bundle.shaderTemplateFinal.material?.dynamic === true) {
+            valueDC.dynamic = true;
+        }
         if (this.inputValues.primitive) {
             valueDC.render.primitive = this.inputValues.primitive;
         }
@@ -445,6 +457,13 @@ export class Mesh extends BaseEntity {
             delete valueDC.render.fragment;
         return valueDC;
     }
+    /**
+     * 生成线框的DrawCommand的input value
+     * @param type 渲染类型
+     * @param UUID camera UUID or light merge UUID
+     * @param bundle 实体的uniform和shader模板
+     * @returns IV_DrawCommand
+     */
     generateWireFrameInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal): V_DC {
         let drawMode: I_drawModeIndexed = {
             indexCount: 0,

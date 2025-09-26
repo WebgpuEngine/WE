@@ -9,7 +9,7 @@ import type { I_drawMode, I_drawModeIndexed, I_uniformBufferPart, T_uniformGroup
 import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand, I_viewport } from "./DrawCommand";
 import { E_renderForDC } from "../base/coreDefine";
-import { isUniformBufferPart, ResourceManagerOfGPU } from "../resources/resourcesGPU";
+import { isDynamicTextureEntry, isUniformBufferPart, ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { AA } from "../scene/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
 import { BaseCamera } from "../camera/baseCamera";
@@ -413,6 +413,10 @@ export class DrawCommandGenerator {
         //2.1 、获取 BindGroup 0 以及其layout。camera 和light都从各自的体系获得
         let DC_bindGroupLayouts: GPUBindGroupLayout[] = [];
         let DC_bindGroups: GPUBindGroup[] = [];
+        // let DC_bindGroupsDynamic: T_uniformGroup[] = [];
+        // if (values.dynamic && values.dynamic === true) {
+        //     DC_bindGroupsDynamic = values.data.uniforms!;
+        // }
         let layoutNumber = 0;
         if (values.system) {
             let UUID = this.checkUUID(values);
@@ -494,6 +498,12 @@ export class DrawCommandGenerator {
                                     }
                                 });
                             }
+                        }
+                        else if (isDynamicTextureEntry(perEntry)) {
+                            bindGroupEntry.push({
+                                binding: perEntry.binding,
+                                resource: perEntry.getResource(perEntry.scopy),
+                            });
                         }
                         //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
                         else {
@@ -670,6 +680,7 @@ export class DrawCommandGenerator {
 
         //5、传参，生产DC
         let commandOption: IV_DrawCommand = {
+            scene: this.scene,
             device: this.device,
             pipeline,
             vertexBuffers: DC_vertexBuffers,
@@ -677,14 +688,24 @@ export class DrawCommandGenerator {
             label: values.label,
             uniform: DC_bindGroups,
             renderPassDescriptor,
-            dynamic: values.dynamic || false,
+            // dynamic: values.dynamic || false,
         }
         if (values.render.viewport) commandOption.viewport = values.render.viewport;
         let camera = this.getCamera(values);
         if (camera) {
             commandOption.viewport = camera.viewport;
         }
-
+        if (values.dynamic && values.dynamic === true) {
+            let layoutNumber = 0;
+            if (values.system) {
+                layoutNumber = 1;
+            }
+            commandOption.dynamicUniform = {
+                bindGroupLayout: DC_bindGroupLayouts,
+                bindGroupsUniform: values.data.uniforms!,
+                layoutNumber: layoutNumber,
+            };
+        }
 
         if (DC_indexBuffer) {
             commandOption.indexBuffer = DC_indexBuffer;

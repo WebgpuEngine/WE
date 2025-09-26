@@ -1,6 +1,8 @@
-import { I_Update, Color4 } from "../base/coreDefine";
+import { I_Update } from "../base/coreDefine";
+import { T_uniformGroup } from "../command/base";
 import { BaseEntity } from "../entity/baseEntity";
 import { Scene } from "../scene/scene";
+import { I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
 import { I_mipmap } from "../texture/base";
 
 /**透明材质的初始化参数 */
@@ -59,7 +61,7 @@ export interface IV_BaseMaterial extends I_Update {
      * 如果指定了samplerDescriptor，则必须指定samplerBindingType
      */
     samplerBindingType?: GPUSamplerBindingType,
-    
+
     mipmap?: I_mipmap
 
 }
@@ -97,4 +99,13 @@ export enum E_TextureType {
     depthMap = "depthMap",
     /** 视频贴图 */
     video = "video",
+}
+
+
+
+
+export interface I_materialBundleOutput {
+    uniformGroup: T_uniformGroup,
+    singleShaderTemplateFinal: I_singleShaderTemplate_Final,
+    // dynamic:boolean
 }

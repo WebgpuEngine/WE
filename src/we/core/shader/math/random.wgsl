@@ -1,5 +1,4 @@
 //shadow map  使用 相关
-override shadowDepthTextureSize : f32 = 2048.0;
 fn rand_0to1(x: f32) -> f32 {
     return fract(sin(x) * 10000.0) * 2.0 - 1.0;//0 - 1
 }

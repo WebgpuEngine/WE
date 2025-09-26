@@ -1,5 +1,6 @@
 import { E_lifeState } from "../base/coreDefine";
 import { I_VideoOption, weGetVidoeByUrl } from "../base/coreFunction";
+import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture, T_textureSourceType } from "./base";
 import { BaseTexture } from "./baseTexture";
@@ -20,6 +21,13 @@ export interface IV_OptionVideoTexture extends I_BaseTexture {
     controls?: boolean,
     waitFor?: "canplaythrough" | "loadedmetadata",
     model?: T_modelOfVideo,
+    /**
+     * External采用何种模式实现
+     * 1、true: 动态纹理模式，DC是动态的，bindingGruop会每帧重新创建
+     * 2、false: 动态--静态纹理模式，建立一个内部的GPUTexture，在update()时，将动态纹理copy到其中。DC是静态的，bindingGruop不会每帧重新创建
+     * 3、默认：true，推荐
+     */
+    dynamicExternal?: boolean,
 }
 
 export class VideoTexture extends BaseTexture {
@@ -29,7 +37,18 @@ export class VideoTexture extends BaseTexture {
     loadJSON(json: any): void {
         throw new Error("Method not implemented.");
     }
-
+    /**
+     * External采用何种模式实现
+     * 1、true: 动态纹理模式，DC是动态的，bindingGruop会每帧重新创建
+     * 2、false: 动态--静态纹理模式，建立一个内部的GPUTexture，在update()时，将动态纹理copy到其中。DC是静态的，bindingGruop不会每帧重新创建
+     * 3、默认：false，推荐
+     */
+    dynamicExternal?: boolean = false;
+    /**
+     * 视频模型，默认copy,
+     * 1、copy模式简单，可以mipmap
+     * 2、External模式，速度快，没有mipmap
+     */
     model: T_modelOfVideo = "copy";
     declare inputValues: IV_OptionVideoTexture;
     declare texture: GPUTexture | GPUExternalTexture;
@@ -37,8 +56,8 @@ export class VideoTexture extends BaseTexture {
     height!: number;
     premultipliedAlpha!: boolean;
     video!: HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | VideoFrame;
-    constructor(input: IV_OptionVideoTexture, device: GPUDevice,scene?:Scene) {
-        super(input, device,scene);
+    constructor(input: IV_OptionVideoTexture, device: GPUDevice, scene?: Scene) {
+        super(input, device, scene);
         this.inputValues = input;
         if (input.model) {
             this.model = input.model;
@@ -46,10 +65,13 @@ export class VideoTexture extends BaseTexture {
         if (input.source instanceof VideoFrame) {
             this.model = "External";
         }
+        if (input.dynamicExternal) {
+            this.dynamicExternal = input.dynamicExternal;
+        }
     }
 
 
-    async  readyForGPU(): Promise<any>{
+    async readyForGPU(): Promise<any> {
         let source = this.inputValues.source;
         this._state = E_lifeState.initializing;
         //url
@@ -81,13 +103,13 @@ export class VideoTexture extends BaseTexture {
         let options: I_VideoOption = {
             // crossOrigin : "anonymous",
             // src : res,
-            muted: this.inputValues.muted ?? false,
+            muted: this.inputValues.muted ?? true,
             loop: this.inputValues.loop ?? true,
         }
-        const video = await weGetVidoeByUrl(res, options);
-        video.autoplay =  true;  //这个必须
-        await video.play();
-        let ready = await scope.generateTextureBySource(video);
+        this.video = await weGetVidoeByUrl(res, options);
+        this.video.autoplay = true;  //这个必须
+        await this.video.play();
+        let ready = await scope.generateTextureBySource(this.video);
         return ready;
     }
 
@@ -96,7 +118,7 @@ export class VideoTexture extends BaseTexture {
         if (source instanceof HTMLVideoElement) {
             width = source.videoWidth;
             height = source.videoHeight;
-            this.video = source;
+            // this.video = source;
         }
         else if (source instanceof VideoFrame) {
             width = source.displayWidth;
@@ -105,7 +127,7 @@ export class VideoTexture extends BaseTexture {
         else if (source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas) {
             width = source.width;
             height = source.height;
-            this.video = source;
+            // this.video = source;
         }
 
         if (width == 0 || height == 0) {
@@ -154,12 +176,19 @@ export class VideoTexture extends BaseTexture {
         this._state = E_lifeState.finished;
         return this._state;
     }
-    getExternalTexture(scopy: any): GPUBindingResource {
+
+    /**
+     * 动态纹理，this范围会变化
+     * @param scopy 包含video的对象
+     * @returns 
+     */
+    getExternalTexture(scopy: any): GPUExternalTexture {
         let source: HTMLVideoElement | VideoFrame = scopy.video as HTMLVideoElement | VideoFrame;
         // if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
         return scopy.device.importExternalTexture({ source: source })
 
     }
+
 
     updateSelf(): void {
         let source = this.video;
@@ -170,12 +199,27 @@ export class VideoTexture extends BaseTexture {
                 [this.width, this.height]
             );
             if ((this.texture as GPUTexture).mipLevelCount > 1) {
-                this.generateMips( this.texture as GPUTexture);
+                this.generateMips(this.texture as GPUTexture);
             }
         }
-        else {
-            if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
-                this.texture = this.device.importExternalTexture({ source })
-        }
+        //如果External模式，只在dynamicExternal为true时才需要更新
+        //copy 有问题，暂时取消
+        // else {
+
+        //     if(this.dynamicExternal ===true){
+        //         this.commands=[];
+        //         let copy=new CopyCommandT2T(
+        //             {
+        //                 A:this.texture as GPUTexture,
+        //                 B:this.device.importExternalTexture({ source }),
+        //                 size:{width:this.width,height:this.height},
+        //                 device:this.device,
+        //             }
+        //         )
+        //         this.texture = this.device.importExternalTexture({ source });
+        //     }
+        //     // if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
+        //     //     this.texture = this.device.importExternalTexture({ source })
+        // }
     }
 }

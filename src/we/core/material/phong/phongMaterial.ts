@@ -7,7 +7,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_s
 import { SHT_materialPhongFS_mergeToVS } from "../../shadermanagemnet/material/phongMaterial";
 import { I_BaseTexture, T_textureSourceType } from "../../texture/base";
 import { Texture } from "../../texture/texture";
-import { E_TextureType, IV_BaseMaterial } from "../base";
+import { E_TextureType, I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 
@@ -85,7 +85,7 @@ export class PhongMaterial extends BaseMaterial {
     }
     this._state = E_lifeState.finished;
   }
-  getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+  getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
     let template: I_ShaderTemplate;
     let groupAndBindingString: string = "";
     let binding: number = startBinding;

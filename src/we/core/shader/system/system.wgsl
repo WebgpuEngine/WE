@@ -69,6 +69,8 @@ var<private> matrix_z : mat4x4f = mat4x4f(
 @group(0) @binding(3) var U_shadowMap_depth_texture : texture_depth_2d_array;     //1、目前是都安装cube计算的，有浪费，todo;2、按照cube方式排列 right=0,left=1,up=2,down=3,back=4,front=5
 @group(0) @binding(4)  var shadowSampler: sampler_comparison;
 
+override shadowDepthTextureSize : f32 = 1024.0;
+
 fn initSystemOfVS() {
     defaultCameraPosition = U_MVP.cameraPosition;
     modelMatrix = U_MVP.model;

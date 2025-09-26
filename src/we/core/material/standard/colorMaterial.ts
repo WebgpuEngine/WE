@@ -5,7 +5,7 @@ import { I_uniformBufferPart, T_uniformEntries, T_uniformGroup } from "../../com
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { SHT_materialColorFS_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
-import { IV_BaseMaterial, I_TransparentOfMaterial } from "../base";
+import { IV_BaseMaterial, I_TransparentOfMaterial, I_materialBundleOutput } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 export interface I_ColorMaterial extends IV_BaseMaterial {
@@ -78,7 +78,7 @@ export class ColorMaterial extends BaseMaterial {
     }
 
 
-    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOneGroupUniformAndShaderTemplateFinal(startBinding: number): I_materialBundleOutput {
         if (this.getTransparent()) {
             return this.getTransparentCodeFS(startBinding);
         }
@@ -92,7 +92,7 @@ export class ColorMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getOpaqueCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getOpaqueCodeFS(_startBinding: number): I_materialBundleOutput {
         let template = SHT_materialColorFS_mergeToVS;
 
         let uniform1: T_uniformGroup = [];
@@ -127,7 +127,7 @@ export class ColorMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getTransparentCodeFS(_startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final } {
+    getTransparentCodeFS(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
 

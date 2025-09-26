@@ -1,4 +1,7 @@
-import type { I_drawMode, I_drawModeIndexed, I_PipelineStructure, IV_BaseCommand } from "./base";
+import { isDynamicTextureEntry, isUniformBufferPart } from "../resources/resourcesGPU";
+import { Scene } from "../scene/scene";
+import type { I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformBufferPart, IV_BaseCommand, T_uniformGroup } from "./base";
+import { createUniformBuffer } from "./baseFunction";
 /**
  * https://www.w3.org/TR/webgpu/#ref-for-dom-gpurenderpassencoder-setviewport%E2%91%A1
  */
@@ -11,7 +14,24 @@ export interface I_viewport {
     maxDepth: number
 }
 
+/**
+ * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
+ */
+export interface I_DynamicUniformOfDrawCommand {
+    /**layout 是不变的，变的是内容（纹理）,这个是重新创建bindinggroup使用；
+     * 数据的buffer，通过arrayBuffer 写入GPUBuffer，其在DrawCommandGenerator.update()实现；
+     */
+    bindGroupLayout: GPUBindGroupLayout[],
+    bindGroupsUniform: T_uniformGroup[],
+    layoutNumber: number,
+}
+
+
+/**
+ * DrawCommand input value 
+ */
 export interface IV_DrawCommand extends IV_BaseCommand {
+    scene: Scene,
     // /** label */
     // label: string,
     // device: GPUDevice,
@@ -22,13 +42,14 @@ export interface IV_DrawCommand extends IV_BaseCommand {
     viewport?: I_viewport,
     renderPassDescriptor: () => GPURenderPassDescriptor,
     drawMode: I_drawMode | I_drawModeIndexed,
-    dynamic: boolean,
+    dynamicUniform?: I_DynamicUniformOfDrawCommand,
 
 }
 
 export class DrawCommand {
 
     dynamic: boolean = false;
+    scene!: Scene;
     label!: string;
     rawUniform!: boolean;
     device!: GPUDevice;
@@ -52,21 +73,22 @@ export class DrawCommand {
 
     _isDestroy: boolean = false;
 
-    _inputValues: IV_DrawCommand;
+    inputValues: IV_DrawCommand;
 
     cacheFlagPipeline!: I_PipelineStructure;
 
-    constructor(inputValues: IV_DrawCommand) {
-        this._inputValues = inputValues;
-        this.label = inputValues.label;
-        this.device = inputValues.device;
-        this.pipeline = inputValues.pipeline;
-        this.vertexBuffers = inputValues.vertexBuffers;
-        if (inputValues.indexBuffer) this.indexBuffer = inputValues.indexBuffer;
-        if (inputValues.uniform) this.bindGroups = inputValues.uniform;
-        this.drawMode = inputValues.drawMode;
-        this.renderPassDescriptor = inputValues.renderPassDescriptor;
-        if (inputValues.dynamic && inputValues.dynamic === true) this.dynamic = true;
+    constructor(input: IV_DrawCommand) {
+        this.inputValues = input;
+        this.label = input.label;
+        this.device = input.device;
+        this.scene = input.scene;
+        this.pipeline = input.pipeline;
+        this.vertexBuffers = input.vertexBuffers;
+        if (input.indexBuffer) this.indexBuffer = input.indexBuffer;
+        if (input.uniform) this.bindGroups = input.uniform;
+        this.drawMode = input.drawMode;
+        this.renderPassDescriptor = input.renderPassDescriptor;
+        if (input.dynamicUniform) this.dynamic = true;
     }
     destroy() { }
     /**
@@ -75,6 +97,9 @@ export class DrawCommand {
      */
     update(): GPUCommandBuffer {
         let device = this.device;
+        if (this.dynamic === true) {
+            this.generateBindGroup();
+        }
         const commandEncoder = device.createCommandEncoder({ label: "Draw Command :commandEncoder" });
         const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
         passEncoder.setPipeline(this.pipeline);
@@ -96,11 +121,11 @@ export class DrawCommand {
             const verticesBuffer = this.vertexBuffers[i];
             passEncoder.setVertexBuffer(parseInt(i), verticesBuffer);
         }
-        if (this._inputValues.viewport) {
-            let minDepth = this._inputValues.viewport.minDepth == undefined ? 0 : this._inputValues.viewport.minDepth;
-            let maxDepth = this._inputValues.viewport.maxDepth == undefined ? 1 : this._inputValues.viewport.maxDepth;
+        if (this.inputValues.viewport) {
+            let minDepth = this.inputValues.viewport.minDepth == undefined ? 0 : this.inputValues.viewport.minDepth;
+            let maxDepth = this.inputValues.viewport.maxDepth == undefined ? 1 : this.inputValues.viewport.maxDepth;
 
-            passEncoder.setViewport(this._inputValues.viewport.x, this._inputValues.viewport.y, this._inputValues.viewport.width, this._inputValues.viewport.height, minDepth, maxDepth);
+            passEncoder.setViewport(this.inputValues.viewport.x, this.inputValues.viewport.y, this.inputValues.viewport.width, this.inputValues.viewport.height, minDepth, maxDepth);
         }
 
         for (let i in this.bindGroups) {
@@ -149,7 +174,7 @@ export class DrawCommand {
         }
         else {
             // throw new Error("draw 模式设置错误");
-            console.error("draw 模式设置错误,label=", this._inputValues.label);
+            console.error("draw 模式设置错误,label=", this.inputValues.label);
         }
     }
     /**
@@ -195,5 +220,76 @@ export class DrawCommand {
         const commandBuffer = commandEncoder.finish();
         return commandBuffer;
         // this.device.queue.submit([commandBuffer]);
+    }
+    generateBindGroup() {
+        let values = this.inputValues;
+        let uniformGroup = this.inputValues.dynamicUniform!.bindGroupsUniform;
+        let bindGroupLayouts = values.dynamicUniform!.bindGroupLayout;
+
+        let layoutNumber = values.dynamicUniform!.layoutNumber;
+
+        // resources: ResourceManagerOfGPU;
+        for (let perGroup of uniformGroup!) {
+            //BindGroup，重点1
+            let bindGroup: GPUBindGroup;
+            //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
+            let bindGroupEntry: GPUBindGroupEntry[] = [];
+
+            //BindGroupLayout，重点2
+            let bindGroupLayout: GPUBindGroupLayout = bindGroupLayouts![layoutNumber];
+
+
+            //创建BindGroup entry
+            for (let perEntry of perGroup) {
+
+                //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
+                if (isUniformBufferPart(perEntry)) {
+                    if (this.scene.resourcesGPU.has(perEntry, "uniformBuffer")) {//已有,直接获取，不创建
+                        let buffer = this.scene.resourcesGPU.get(perEntry, "uniformBuffer");
+                        if (buffer)
+                            bindGroupEntry.push({
+                                binding: perEntry.binding,
+                                resource: {
+                                    buffer
+                                }
+                            });
+                    }
+                    else {//没有，创建
+                        const label = (perEntry as I_uniformBufferPart).label;
+                        let buffer = createUniformBuffer(this.device, (perEntry as I_uniformBufferPart).size, label, (perEntry as I_uniformBufferPart).data);
+                        this.scene.resourcesGPU.set(perEntry, buffer, "uniformBuffer");
+                        bindGroupEntry.push({
+                            binding: perEntry.binding,
+                            resource: {
+                                buffer
+                            }
+                        });
+                    }
+                }
+                else if (isDynamicTextureEntry(perEntry)) {
+                    bindGroupEntry.push({
+                        binding: perEntry.binding,
+                        resource: perEntry.getResource(perEntry.scopy),
+                    });
+                }
+                //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
+                else {
+                    bindGroupEntry.push(perEntry);
+                }
+            }
+
+            //初始化BindGroup描述
+            let bindGroupDesc: GPUBindGroupDescriptor = {
+                label: values.label + " bindGroupLayoutDescriptor of " + layoutNumber,
+                layout: bindGroupLayout,
+                entries: bindGroupEntry,
+            }
+            //创建BindGroup
+            bindGroup = this.device.createBindGroup(bindGroupDesc);
+            ///////////////////
+            //增加到资源
+            this.bindGroups[layoutNumber] = bindGroup;
+            layoutNumber++;
+        }
     }
 }

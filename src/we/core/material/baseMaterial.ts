@@ -4,7 +4,7 @@ import { RootOfGPU } from "../organization/root";
 import { BaseEntity } from "../entity/baseEntity";
 import { E_lifeState } from "../base/coreDefine";
 import { I_optionShadowEntity } from "../entity/base";
-import { IV_BaseMaterial, I_TransparentOfMaterial } from "./base";
+import { IV_BaseMaterial, I_TransparentOfMaterial, I_materialBundleOutput } from "./base";
 import { T_uniformGroup } from "../command/base";
 import { I_ShaderTemplate, I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
@@ -95,9 +95,9 @@ export abstract class BaseMaterial extends RootOfGPU {
      * 2、singleShaderTemplateFinal：shader模板输出，包括了shader代码和groupAndBindingString。
      * 3、uniform layout 到ResourceGPU的Map操作
      * @param startBinding 
-     * @returns uniformGroups: T_uniformGroup[], shaderTemplateFinal: I_ShaderTemplate_Final 
+     * @returns I_materialBundleOutput
      */
-    abstract getOneGroupUniformAndShaderTemplateFinal(startBinding: number): { uniformGroup: T_uniformGroup, singleShaderTemplateFinal: I_singleShaderTemplate_Final }
+    abstract getOneGroupUniformAndShaderTemplateFinal(startBinding: number):I_materialBundleOutput
     /**
      * 是否为透明材质
      * @returns boolean  true：是透明材质，false：不是透明材质

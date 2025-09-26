@@ -351,51 +351,49 @@ export class RenderManager {
         let submitCommand: GPUCommandBuffer[] = [];
         for (let i in list) {
             let perOne = list[i];
-            // let kind: E_renderForDC = E_renderForDC.camera;
+            let kind: E_renderForDC = E_renderForDC.camera;
             let UUID = i;
-            // // let matrixIndex = 0;
-            // if (i.indexOf("__") != -1) {
-            //     kind = E_renderForDC.light;
-            //     // let mergeUUID = splitLightUUID(i);
-            //     // UUID = mergeUUID.UUID;
-            //     // matrixIndex = mergeUUID.matrixIndex;
-            // }
+            // let matrixIndex = 0;
+            if (i.indexOf("__") != -1) {
+                kind = E_renderForDC.light;
+                // let mergeUUID = splitLightUUID(i);
+                // UUID = mergeUUID.UUID;
+                // matrixIndex = mergeUUID.matrixIndex;
+            }
             let cameraRendered: {
                 [name: string]: number
             } = {};
             for (let perCommand of perOne) {
-                cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, cameraRendered[UUID]);
+                if (cameraRendered[UUID] == undefined) {//没有记录，增加UUID记录
+                    cameraRendered[UUID] = 0;
 
-                // if (cameraRendered[UUID] == undefined) {//没有记录，增加UUID记录
-                //     cameraRendered[UUID] = 0;
-
-                //     let rpd;
-                //     if (kind == E_renderForDC.camera)
-                //         rpd = this.scene.cameraManager.getRPDByUUID(UUID);
-                //     else
-                //         rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(i);
-                //     if (rpd !== false) {                                        //forward render loadOp="clear"
-                //         for (let perColorAttachment of rpd.colorAttachments) {
-                //             if (perColorAttachment)
-                //                 perColorAttachment.loadOp = "clear";
-                //         }
-                //         rpd.depthStencilAttachment!.depthLoadOp = "clear";
-                //     }
-                // }
-                // else if (cameraRendered[UUID] == 1) {// forward render
-                //     let rpd;
-                //     if (kind == E_renderForDC.camera)
-                //         rpd = this.scene.cameraManager.getRPDByUUID(UUID);
-                //     else
-                //         rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(i);
-                //     if (rpd !== false) {
-                //         for (let perColorAttachment of rpd.colorAttachments) {
-                //             if (perColorAttachment)
-                //                 perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-                //         }
-                //         rpd.depthStencilAttachment!.depthLoadOp = "load";
-                //     }
-                // }
+                    let rpd;
+                    if (kind == E_renderForDC.camera)
+                        rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+                    else
+                        rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(i);
+                    if (rpd !== false) {                                        //forward render loadOp="clear"
+                        for (let perColorAttachment of rpd.colorAttachments) {
+                            if (perColorAttachment)
+                                perColorAttachment.loadOp = "clear";
+                        }
+                        rpd.depthStencilAttachment!.depthLoadOp = "clear";
+                    }
+                }
+                else if (cameraRendered[UUID] == 1) {// forward render
+                    let rpd;
+                    if (kind == E_renderForDC.camera)
+                        rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+                    else
+                        rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(i);
+                    if (rpd !== false) {
+                        for (let perColorAttachment of rpd.colorAttachments) {
+                            if (perColorAttachment)
+                                perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
+                        }
+                        rpd.depthStencilAttachment!.depthLoadOp = "load";
+                    }
+                }
                 submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
                 cameraRendered[UUID]++;//更改camera forward loadOP计数器
 
@@ -405,7 +403,7 @@ export class RenderManager {
             this.device.queue.submit(submitCommand);
     }
 
-    renderForwaredDC00(commands: I_renderDrawCommand) {
+    renderForwaredDC(commands: I_renderDrawCommand) {
         let cameraRendered: {
             [name: string]: number
         } = {};
@@ -458,79 +456,6 @@ export class RenderManager {
 
     }
 
-    /**
-     * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
-     * @param UUID 相机或灯光的UUID
-     * @param countOfUUID 相机或灯光的渲染次数
-     * @returns 相机或灯光的渲染次数
-     */
-    autoChangeForwaredRPD_loadOP(UUID: string, countOfUUID: number): number {
-        let kind: E_renderForDC = E_renderForDC.camera;
-        if (UUID.indexOf("__") != -1) {
-            kind = E_renderForDC.light;
-        }
-        let rpd;
-        if (kind == E_renderForDC.camera)
-            rpd = this.scene.cameraManager.getRPDByUUID(UUID);
-        else
-            rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            if (rpd !== false) {                                        //forward render loadOp="clear"
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "clear";
-                }
-                rpd.depthStencilAttachment!.depthLoadOp = "clear";
-            }
-        }
-        else if (countOfUUID == 1) {// forward render
-            if (rpd !== false) {
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-                }
-                rpd.depthStencilAttachment!.depthLoadOp = "load";
-            }
-        }
-        return countOfUUID;
-    }
-
-    renderForwaredDC(commands: I_renderDrawCommand) {
-        let cameraRendered: {
-            [name: string]: number
-        } = {};
-        for (let UUID in commands) {
-            let perOne = commands[UUID];
-            //pipeline passEncoder 部分
-            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-
-            // forward render by pipeline
-            for (const [key2, value] of perOne.pipelineOrder.entries()) {
-                //camera pipeline submit count  and rpd loadOP chang part 
-                cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, cameraRendered[UUID]);
-
-                let { passEncoder, commandEncoder } = (value[0] as DrawCommand).doEncoderStart();//获取encoder
-                for (let i = 0; i < value.length; i++) {
-                    (value[i] as DrawCommand).doEncoder(passEncoder);                           //绘制命令
-                }
-                let commandBuffer = (value[0] as DrawCommand).dotEncoderEnd(passEncoder, commandEncoder);//结束encoder
-                submitCommand.push(commandBuffer);
-                cameraRendered[UUID]++;//更改camera forward loadOP计数器
-                //push commandBuffer
-            }
-            for (let perDyn of perOne.dynmaicOrder) {
-                //camera pipeline submit count  and rpd loadOP chang part 
-                cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, cameraRendered[UUID]);
-                submitCommand.push(perDyn.update());//webGPU的commandBuffer时一次性的
-            }
-            //submit part
-            if (submitCommand.length > 0)
-                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-
-        }
-
-    }
     /**
      * 渲染
      * 1、根据渲染通道分类

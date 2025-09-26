@@ -91,6 +91,7 @@ export interface I_singleShaderTemplate_Final {
     groupAndBindingString: string,
     owner: any,
     binding?: number,
+    dynamic?: boolean,
 }
 /**
  * 最终的模板内容
@@ -131,7 +132,12 @@ export var SHT_ScenOfCamera: I_singleShaderTemplate = {
             name: "shadowMapNumber",
             replace: "$lightNumberShadowNumber",
             replaceType: E_shaderTemplateReplaceType.value,
-        }
+        },
+        {
+            name: "shadowDepthTextureSize",
+            replace: "override shadowDepthTextureSize : f32 = 1024.0;",
+            replaceType: E_shaderTemplateReplaceType.value,
+        },
     ],
 };
 export var SHT_refDCG: I_singleShaderTemplate = {
@@ -227,17 +233,17 @@ import mathRandomWGSL from "../shader/math/random.wgsl?raw"
 var mathRandom = mathRandomWGSL.toString();
 
 
-export var SHT_addMathBase :I_shaderTemplateAdd={
-    name:"mathBase",
-    code:mathConst,
+export var SHT_addMathBase: I_shaderTemplateAdd = {
+    name: "mathBase",
+    code: mathConst,
 }
-export var SHT_addMathTBN :I_shaderTemplateAdd={
-    name:"mathTBN",
-    code:mathTBN,
+export var SHT_addMathTBN: I_shaderTemplateAdd = {
+    name: "mathTBN",
+    code: mathTBN,
 }
-export var SHT_addMathRandom :I_shaderTemplateAdd={
-    name:"mathRandom",
-    code:mathRandom,
+export var SHT_addMathRandom: I_shaderTemplateAdd = {
+    name: "mathRandom",
+    code: mathRandom,
 }
 
 //shadow map MVP
@@ -245,9 +251,9 @@ import systemOfLightWGSL from "../shader/system/systemForLight.wgsl?raw"
 var systemOfLight = systemOfLightWGSL.toString();
 
 
-export var SHT_addSystemOfLight :I_shaderTemplateAdd={
-    name:"systemOfLight",
-    code:systemOfLight,
+export var SHT_addSystemOfLight: I_shaderTemplateAdd = {
+    name: "systemOfLight",
+    code: systemOfLight,
 }
 
 //PCSS
@@ -255,9 +261,9 @@ export var SHT_addSystemOfLight :I_shaderTemplateAdd={
 import shadowmapPCSSWGSL from "../shader/shadowmap/fn_pcss.wgsl?raw"
 var shadowmapPCSS = shadowmapPCSSWGSL.toString();
 
-export var SHT_addPCSS :I_shaderTemplateAdd={
-    name:"pcss",
-    code:shadowmapPCSS,
+export var SHT_addPCSS: I_shaderTemplateAdd = {
+    name: "pcss",
+    code: shadowmapPCSS,
 }
 
 

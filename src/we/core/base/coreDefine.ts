@@ -48,7 +48,8 @@ export var V_textureAlphaZero = 0.001
 ////////////////////////////////////////////////////////////////////////////////////////
 //shadowMapSize
 /**shadow map的大小 */
-export var V_shadowMapSize = 2048;
+export var V_shadowMapSize = 1024.0;//写成float格式，方便在全局查找，避免重复的过多
+// export var V_shadowMapSizeDirection = 2048.0;//写成float格式，方便在全局查找，避免重复的过多
 
 /** 最大的light数量 */
 export var V_lightNumber = 8;//在scene.ts中的getWGSLOfSystemShader()进行了shader的替换。
