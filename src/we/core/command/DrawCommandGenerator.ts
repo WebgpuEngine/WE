@@ -79,7 +79,9 @@ export interface I_vsGPUBufferBundle {
      */
     size?: number,
 }
-
+export function isVSGPUBufferBundle(attr: T_vsAttribute): attr is I_vsGPUBufferBundle {
+    return (attr as I_vsGPUBufferBundle).buffer !== undefined;
+}
 /**
  * 索引buffer的bundle，用于绑定到DC的index buffer 。GLTF使用
  * index buffer bundle , used for bind index buffer to DC .gltf use
@@ -101,6 +103,9 @@ export interface I_indexGPUBufferBundle {
      */
     size?: number,
 }
+export function isIndexGPUBufferBundle(attr: T_indexAttribute): attr is I_indexGPUBufferBundle {
+    return (attr as I_indexGPUBufferBundle).buffer !== undefined;
+}
 
 /**
  * 单个vertex的多个属性merge在一起的形式
@@ -118,7 +123,7 @@ export interface vsAttributeMerge {
     /**顶点数量 
      * count of vertex
     */
-    count?: number,
+    count: number,
     /**单个vertex属性的总长度
      * array stride of vertex attribute
      */

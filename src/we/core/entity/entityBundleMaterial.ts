@@ -9,8 +9,8 @@
  * 3、非共性或功能不相同的，各自实现
  */
 import { E_lifeState, E_renderForDC } from "../base/coreDefine";
-import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformGroups } from "../command/base";
-import { IV_DC } from "../command/DrawCommandGenerator";
+import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformGroups, T_uniformOneGroup } from "../command/base";
+import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
@@ -37,8 +37,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     };
 
     detachData(): void {
-        this.inputValues.attributes.geometry=undefined;
-        this.inputValues.attributes.data=undefined;
+        this.inputValues.attributes.geometry = undefined;
+        this.inputValues.attributes.data = undefined;
 
         // this._geometry?.destroy();
         this._geometry = undefined;
@@ -156,7 +156,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOfUniformAndShaderTemplateFinal {
         //uniform 部分
         let bindingNumber = startBinding;
-        let uniform1: T_uniformGroups = [];
+        let uniform1: T_uniformOneGroup = [];
 
         let unifrom10: I_uniformArrayBufferEntry = {
             label: this.Name + " uniform at group(1) binding(0)",
@@ -229,19 +229,32 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 firstInstance: 0,
             }
             //index mode
-            if (scope.attributes.indexes && scope.attributes.indexes.length > 0) {
-                drawModeIndexMesh.indexCount = scope.attributes.indexes.length;
-                drawModeIndexMesh.instanceCount = scope.instance.numInstances;
-                drawMode = drawModeIndexMesh;
+            if (scope.attributes.indexes) {
+                if (Array.isArray(scope.attributes.indexes) && scope.attributes.indexes.length > 0) {
+                    drawModeIndexMesh.indexCount = scope.attributes.indexes.length;
+                    drawModeIndexMesh.instanceCount = scope.instance.numInstances;
+                    drawMode = drawModeIndexMesh;
+                }
+                else if (isIndexGPUBufferBundle(scope.attributes.indexes)){
+                    drawModeIndexMesh.indexCount = scope.attributes.indexes.count;
+                    drawModeIndexMesh.instanceCount = scope.instance.numInstances;
+                    drawMode = drawModeIndexMesh;
+                }
+                else{
+                    throw new Error("indexes is not array or GPUBufferBundle");
+                }
             }
             //non-index mode
             else {
                 if (scope.attributes.vertices["position"]) {
                     let pos = scope.attributes.vertices["position"]!;
-                    if ("count" in pos) {//vsAttribute | vsAttributeMerge |I_vsGPUBufferBundle
+                    if(isVSGPUBufferBundle(pos)){
                         drawModeMesh.vertexCount = pos.count;
                     }
-                    else if(Array.isArray(pos)) {// array[]
+                    else if ("count" in pos) {//vsAttribute | vsAttributeMerge |I_vsGPUBufferBundle
+                        drawModeMesh.vertexCount = pos.count;
+                    }
+                    else if (Array.isArray(pos)) {// array[]
                         drawModeMesh.vertexCount = pos.length / 3;
                     }
                 }
