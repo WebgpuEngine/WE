@@ -105,7 +105,7 @@ export class Mesh extends EntityBundleMaterial {
         else {
             throw new Error("Mesh must have geometry or attribute data");
         }
-        if (input.wireFrame &&  Array.isArray(input.wireFrame.indexes)) {//不考虑输入的indexes是GPUBuffer的情况，比如gltf，也就是说只有number[]的情况，可以使用wireframe
+        if (input.wireFrame && (input.attributes.geometry || Array.isArray(input.attributes.data?.indexes))) {//不考虑输入的indexes是GPUBuffer的情况，比如gltf，也就是说只有number[]的情况，可以使用wireframe
             this._wireframe.enable = input.wireFrame.enable;
             if (input.wireFrame.wireFrameOnly) {
                 this._wireframe.wireFrameOnly = true;

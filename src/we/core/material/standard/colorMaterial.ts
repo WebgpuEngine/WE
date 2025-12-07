@@ -1,7 +1,7 @@
 import { weColor4, E_lifeState } from "../../base/coreDefine";
 import { isWeColor4 } from "../../base/coreFunction";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_dynamicTextureEntryForView, T_uniformGroups } from "../../command/base";
+import { I_dynamicTextureEntryForView, T_uniformGroups, T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
@@ -187,7 +187,7 @@ export class ColorMaterial extends BaseMaterial {
         let bindingNumber = startBinding;
 
         let groupAndBindingString = "";
-        let uniform1: T_uniformGroups = [];
+        let uniform1: T_uniformOneGroup = [];
         let code: string = "";
         let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
         if (renderObject instanceof BaseCamera) {
@@ -260,7 +260,7 @@ export class ColorMaterial extends BaseMaterial {
      * @param startBinding 
      * @returns 
      */
-    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformGroups; } {
+    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
         this.unifromEntryBundle_Common = {
             bindingNumber: startBinding,
             groupAndBindingString: "",

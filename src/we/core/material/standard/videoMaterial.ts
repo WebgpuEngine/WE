@@ -1,18 +1,13 @@
 import { BaseMaterial, } from "../baseMaterial";
-import { Texture } from "../../texture/texture";
-import { T_textureSourceType } from "../../texture/base";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformEntries, T_uniformGroups } from "../../command/base";
+import { T_uniformEntries, T_uniformGroups, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialTextureFS, SHT_materialTextureTransparentFS } from "../../shadermanagemnet/material/textureMaterial";
-import { getOpacity_GBufferOfUniformOfDefer } from "../../gbuffers/base";
 import { IV_OptionVideoTexture, T_modelOfVideo, T_VIdeoSourceType, VideoTexture } from "../../texture/videoTexture";
 import { SHT_materialVideoTextureFS, SHT_materialVideoTextureFS_MSAA_info, SHT_materialVideoTextureFS_MSAA } from "../../shadermanagemnet/material/videoMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
 import { BaseLight } from "../../light/baseLight";
-import { E_resourceKind } from "../../resources/resourcesGPU";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 
 
@@ -107,7 +102,7 @@ export class VideoMaterial extends BaseMaterial {
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
-        let uniform1: T_uniformGroups = [];
+        let uniform1: T_uniformOneGroup = [];
         let code: string = "";
         let dynamic: boolean = false;
         ///////////group binding
@@ -247,7 +242,7 @@ export class VideoMaterial extends BaseMaterial {
     getOpacity_DeferColor(startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformGroups; } {
+    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
         throw new Error("Method not implemented.");
     }
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {

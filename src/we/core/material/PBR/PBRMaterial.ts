@@ -635,7 +635,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding 
      * @returns 
      */
-    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformGroups; } {
+    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
         if (this.unifromEntryBundle_Common != undefined) {
             return this.unifromEntryBundle_Common;
         }
