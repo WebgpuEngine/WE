@@ -7,7 +7,7 @@ import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialPBRFS_defer_mergeToVS, SHT_materialPBRFS_defer_MSAA_mergeToVS, SHT_materialPBRFS_mergeToVS, SHT_materialPBRFS_MSAA_info_mergeToVS, SHT_materialPBRFS_MSAA_mergeToVS } from "../../shadermanagemnet/material/pbrMaterial";
+import { SHT_materialPBRFS_defer, SHT_materialPBRFS_defer_MSAA, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
 import { E_TextureChannel, I_BaseTexture, isI_BaseTexture, T_textureSourceType } from "../../texture/base";
 import { CubeTexture } from "../../texture/cubeTexxture";
 import { Texture } from "../../texture/texture";
@@ -844,20 +844,20 @@ export class PBRMaterial extends BaseMaterial {
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
     }
     getOpacity_Forward(startBinding: number): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialPBRFS_mergeToVS, startBinding);
+        return this.getOpaqueCodeFS(SHT_materialPBRFS, startBinding);
     }
     getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_mergeToVS, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info_mergeToVS, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
     getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_defer_MSAA_mergeToVS, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info_mergeToVS, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_defer_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
     getOpacity_DeferColor(startBinding: number): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialPBRFS_defer_mergeToVS, startBinding);
+        return this.getOpaqueCodeFS(SHT_materialPBRFS_defer, startBinding);
     }
 
     /**

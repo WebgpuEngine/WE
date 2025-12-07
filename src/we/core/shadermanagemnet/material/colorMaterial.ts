@@ -6,7 +6,7 @@ import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
 import colorFSWGSL from "../../shader/material/color/color.fs.wgsl?raw";
 var colorFS = colorFSWGSL.toString();
 /** 颜色材质, 不透明, 合并到VS中 */
-export var SHT_materialColorFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialColorFS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -45,7 +45,7 @@ export var SHT_materialColorFS_mergeToVS: I_ShaderTemplate = {
 
 
 /** 颜色材质, 不透明, 合并到VS中 */
-export var SHT_materialColorFS_MSAA_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -82,7 +82,7 @@ export var SHT_materialColorFS_MSAA_mergeToVS: I_ShaderTemplate = {
     }
 }
 /** 颜色材质, 不透明, 合并到VS中 */
-export var SHT_materialColorFS_MSAA_info_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -123,7 +123,7 @@ export var SHT_materialColorFS_MSAA_info_mergeToVS: I_ShaderTemplate = {
 import colorTTFSWGSL from "../../shader/material/color/colorTT.fs.wgsl?raw";
 var colorTTFS = colorTTFSWGSL.toString();
 /**colorTT: 颜色材质, 透明, 合并到VS中 */
-export var SHT_materialColor_TT_FS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialColor_TT_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -159,7 +159,7 @@ export var SHT_materialColor_TT_FS_mergeToVS: I_ShaderTemplate = {
 import colorTTP_FSWGSL from "../../shader/material/color/colorTTP.fs.wgsl?raw";
 var colorTTP_FS = colorTTP_FSWGSL.toString();
 /**colorTP: 像素级别 */
-export var SHT_materialColor_TTP_FS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -197,7 +197,7 @@ export var SHT_materialColor_TTP_FS_mergeToVS: I_ShaderTemplate = {
  * 1、使用TTPF的shader，在其中使用材质的输出逻辑替换
  * 2、basecolor的逻辑比较简单，只有一个color=vec4f()。其他的材质需要按需处理
 */
-export var SHT_materialColor_TTPF_FS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -227,7 +227,7 @@ export var SHT_materialColor_TTPF_FS_mergeToVS: I_ShaderTemplate = {
 }
 
 /** 位置颜色材质, 合并到VS中 */
-export var SHT_materialOneCubeFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialOneCubeFS: I_ShaderTemplate = {
     material: {
         owner: "PositionColorMaterial",
         add: [

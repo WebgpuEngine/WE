@@ -8,7 +8,7 @@ var wireFrameFS = wireFrameFSWGSL.toString();
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, WGSL_replace_gbuffer_output, WGSL_replace_MSAA_gbuffer_output, WGSL_replace_MSAAinfo_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
 
 /**不透明 */
-export var SHT_WireFrameFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_WireFrameFS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [{
@@ -34,7 +34,7 @@ export var SHT_WireFrameFS_mergeToVS: I_ShaderTemplate = {
     }
 }
 /**不透明 */
-export var SHT_WireFrameFS_MSAA_mergeToVS: I_ShaderTemplate = {
+export var SHT_WireFrameFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [{
@@ -60,7 +60,7 @@ export var SHT_WireFrameFS_MSAA_mergeToVS: I_ShaderTemplate = {
     }
 }
 /**不透明 */
-export var SHT_WireFrameFS_MSAAinfo_mergeToVS: I_ShaderTemplate = {
+export var SHT_WireFrameFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [{

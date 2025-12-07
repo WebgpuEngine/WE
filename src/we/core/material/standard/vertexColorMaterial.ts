@@ -4,7 +4,7 @@ import { T_uniformGroups } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialColorFS_mergeToVS, SHT_materialColorFS_MSAA_info_mergeToVS, SHT_materialColorFS_MSAA_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
+import { SHT_materialColorFS, SHT_materialColorFS_MSAA_info, SHT_materialColorFS_MSAA } from "../../shadermanagemnet/material/colorMaterial";
 import { E_MaterialType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
@@ -34,10 +34,10 @@ export class VertexColorMaterial extends BaseMaterial {
         this.hasOpaqueOfTransparent = false;
     }
     getOpacity_Forward(startBinding: number): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialColorFS_mergeToVS, startBinding);
+        return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
     }
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        // let template = SHT_materialColorFS_mergeToVS;
+        // let template = SHT_materialColorFS;
 
         let uniform1: T_uniformGroups = [];
         let code: string = "";
@@ -62,8 +62,8 @@ export class VertexColorMaterial extends BaseMaterial {
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: startBinding };
     }
     getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_mergeToVS, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info_mergeToVS, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
     getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {

@@ -6,10 +6,10 @@ import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries, T_uniformGroups } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialTextureFS_mergeToVS, SHT_materialTextureTransparentFS_mergeToVS } from "../../shadermanagemnet/material/textureMaterial";
+import { SHT_materialTextureFS, SHT_materialTextureTransparentFS } from "../../shadermanagemnet/material/textureMaterial";
 import { getOpacity_GBufferOfUniformOfDefer } from "../../gbuffers/base";
 import { IV_OptionVideoTexture, T_modelOfVideo, T_VIdeoSourceType, VideoTexture } from "../../texture/videoTexture";
-import { SHT_materialVideoTextureFS_mergeToVS, SHT_materialVideoTextureFS_MSAA_info_mergeToVS, SHT_materialVideoTextureFS_MSAA_mergeToVS } from "../../shadermanagemnet/material/videoMaterial";
+import { SHT_materialVideoTextureFS, SHT_materialVideoTextureFS_MSAA_info, SHT_materialVideoTextureFS_MSAA } from "../../shadermanagemnet/material/videoMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
 import { BaseLight } from "../../light/baseLight";
 import { E_resourceKind } from "../../resources/resourcesGPU";
@@ -100,7 +100,7 @@ export class VideoMaterial extends BaseMaterial {
         throw new Error("Method not implemented.");
     }
     getOpacity_Forward(startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialVideoTextureFS_mergeToVS;
+        let template = SHT_materialVideoTextureFS;
         return this.getOpaqueCodeFS(template, startBinding);
 
     }
@@ -193,12 +193,12 @@ export class VideoMaterial extends BaseMaterial {
         //     uniform1.push(...bundle.uniformGroup);
         //     groupAndBindingString += bundle.groupAndBindingString;
         //     binding = bundle.binding;
-        //     template = SHT_materialTextureTransparentFS_mergeToVS;
+        //     template = SHT_materialTextureTransparentFS;
         // }
         // else
         {
             ////////////////shader 模板格式化部分
-            // template = SHT_materialVideoTextureFS_mergeToVS;
+            // template = SHT_materialVideoTextureFS;
             for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
                 code += perOne.code;
             }
@@ -237,8 +237,8 @@ export class VideoMaterial extends BaseMaterial {
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
     }
     getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA_mergeToVS, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA_info_mergeToVS, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
     getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {

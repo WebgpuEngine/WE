@@ -5,7 +5,7 @@ import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { getOpacity_GBufferOfUniformOfDefer } from "../../gbuffers/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialPhongFS_defer_mergeToVS, SHT_materialPhongFS_mergeToVS, SHT_materialPhongFS_MSAA_info_mergeToVS, SHT_materialPhongFS_MSAA_mergeToVS } from "../../shadermanagemnet/material/phongMaterial";
+import { SHT_materialPhongFS_defer, SHT_materialPhongFS, SHT_materialPhongFS_MSAA_info, SHT_materialPhongFS_MSAA } from "../../shadermanagemnet/material/phongMaterial";
 import { I_BaseTexture, T_textureSourceType } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
@@ -88,7 +88,7 @@ export class PhongMaterial extends BaseMaterial {
     this._state = E_lifeState.finished;
   }
   getOpacity_Forward(startBinding: number): I_materialBundleOutput {
-    return this.getOpaqueCodeFS(SHT_materialPhongFS_mergeToVS, startBinding);
+    return this.getOpaqueCodeFS(SHT_materialPhongFS, startBinding);
 
   }
   getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
@@ -195,12 +195,12 @@ export class PhongMaterial extends BaseMaterial {
     //   uniform1.push(...bundle.uniformGroup);
     //   groupAndBindingString += bundle.groupAndBindingString;
     //   binding = bundle.binding;
-    //   template = SHT_materialTextureTransparentFS_mergeToVS;
+    //   template = SHT_materialTextureTransparentFS;
     // }
     // else
     {
       ////////////////shader 模板格式化部分
-      // template = SHT_materialPhongFS_mergeToVS;
+      // template = SHT_materialPhongFS;
       for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
         code += perOne.code;
       }
@@ -285,15 +285,15 @@ export class PhongMaterial extends BaseMaterial {
     return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
   }
   getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-    let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPhongFS_MSAA_mergeToVS, startBinding);
-    let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPhongFS_MSAA_info_mergeToVS, startBinding);
+    let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPhongFS_MSAA, startBinding);
+    let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPhongFS_MSAA_info, startBinding);
     return { MSAA, inforForward };
   }
   getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
     throw new Error("Method not implemented.");
   }
   getOpacity_DeferColor(startBinding: number): I_materialBundleOutput {
-    return this.getOpaqueCodeFS(SHT_materialPhongFS_defer_mergeToVS, startBinding);
+    return this.getOpaqueCodeFS(SHT_materialPhongFS_defer, startBinding);
   }
   getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformGroups; } {
     throw new Error("Method not implemented.");

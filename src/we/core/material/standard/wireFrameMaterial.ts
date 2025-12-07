@@ -4,7 +4,7 @@ import { T_uniformGroups } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_WireFrameFS_mergeToVS, SHT_WireFrameFS_MSAA_mergeToVS, SHT_WireFrameFS_MSAAinfo_mergeToVS } from "../../shadermanagemnet/material/wireFrameMaterial";
+import { SHT_WireFrameFS, SHT_WireFrameFS_MSAA, SHT_WireFrameFS_MSAAinfo } from "../../shadermanagemnet/material/wireFrameMaterial";
 import { E_MaterialType, I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../base";
 import { ColorMaterial, I_ColorMaterial } from "./colorMaterial";
 
@@ -56,11 +56,11 @@ export class WireFrameMaterial extends ColorMaterial {
     }
 
     getOpacity_Forward(startBinding: number): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_WireFrameFS_mergeToVS, startBinding);
+        return this.getOpaqueCodeFS(SHT_WireFrameFS, startBinding);
     }
     getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_WireFrameFS_MSAA_mergeToVS, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_WireFrameFS_MSAAinfo_mergeToVS, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_WireFrameFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_WireFrameFS_MSAAinfo, startBinding);
         return { MSAA, inforForward };
     }
 

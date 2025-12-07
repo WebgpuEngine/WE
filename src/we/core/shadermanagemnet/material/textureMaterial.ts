@@ -6,7 +6,7 @@ import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
 import textureFSWGSL from "../../shader/material/texture/texture.fs.wgsl?raw";
 var textureFS = textureFSWGSL.toString();
 /** 纹理材质, 不透明, shader 模板*/
-export var SHT_materialTextureFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialTextureFS: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
@@ -42,7 +42,7 @@ export var SHT_materialTextureFS_mergeToVS: I_ShaderTemplate = {
     }
 }
 /** 纹理材质, 不透明MSAA, shader 模板*/
-export var SHT_materialTextureFS_MSAA_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialTextureFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
@@ -78,7 +78,7 @@ export var SHT_materialTextureFS_MSAA_mergeToVS: I_ShaderTemplate = {
 }
 
 /** 纹理材质, 不透明MSAA info, shader 模板*/
-export var SHT_materialTextureFS_MSAAinfo_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialTextureFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
@@ -127,7 +127,7 @@ var replaceOpacityPercent_TT_TTP_TTPF: I_shaderTemplateReplace = {
 
 import textureTT_FSWGSL from "../../shader/material/texture/textureTT.fs.wgsl?raw";
 var textureTT_FS = textureTT_FSWGSL.toString();
-export var SHT_materialTexture_TT_FS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialTexture_TT_FS: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
@@ -160,7 +160,7 @@ export var SHT_materialTexture_TT_FS_mergeToVS: I_ShaderTemplate = {
 
 import textureTTP_FSWGSL from "../../shader/material/texture/textureTTP.fs.wgsl?raw";
 var textureTTP_FS = textureTTP_FSWGSL.toString();
-export var SHT_materialTexture_TTP_FS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
@@ -188,7 +188,7 @@ export var SHT_materialTexture_TTP_FS_mergeToVS: I_ShaderTemplate = {
 }
 import textureTTPF_FSWGSL from "../../shader/material/texture/textureTTPF.fs.wgsl?raw";
 var textureTTPF_FS = textureTTPF_FSWGSL.toString();
-export var SHT_materialTexture_TTPF_FS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialTexture_TTPF_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [

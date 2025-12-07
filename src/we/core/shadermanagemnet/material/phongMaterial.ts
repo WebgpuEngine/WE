@@ -46,7 +46,7 @@ var SHT_replace_Phong_LightAndShadow_encode: I_shaderTemplateReplace =
 import phongMaterialWGSL from "../../shader/material/phong/phongcolor.fs.wgsl?raw"
 var phongFS = phongMaterialWGSL.toString();
 
-export var SHT_materialPhongFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialPhongFS: I_ShaderTemplate = {
     material: {
         owner: "PhongMaterial",
         add: [
@@ -89,7 +89,7 @@ export var SHT_materialPhongFS_mergeToVS: I_ShaderTemplate = {
     }
 }
 
-export var SHT_materialPhongFS_MSAA_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialPhongFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "PhongMaterial",
         add: [
@@ -139,7 +139,7 @@ export var SHT_materialPhongFS_MSAA_mergeToVS: I_ShaderTemplate = {
 
 import phongMaterial_MSAAinfo_WGSL from "../../shader/material/phong/phongMSAAinfo.fs.wgsl?raw"
 var phongMSAAinfoFS = phongMaterial_MSAAinfo_WGSL.toString();
-export var SHT_materialPhongFS_MSAA_info_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
     material: {
         owner: "PhongMaterial",
         add: [
@@ -198,7 +198,7 @@ export var SHT_materialPhongFS_MSAA_info_mergeToVS: I_ShaderTemplate = {
 //defer
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export var SHT_materialPhongFS_defer_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialPhongFS_defer: I_ShaderTemplate = {
     material: {
         owner: "PhongMaterial",
         add: [

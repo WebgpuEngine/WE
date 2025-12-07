@@ -4,7 +4,7 @@ import { BaseCamera } from "../../camera/baseCamera";
 import { I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialColorFS_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
+import { SHT_materialColorFS } from "../../shadermanagemnet/material/colorMaterial";
 import { IV_BaseMaterial, T_TransparentOfMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
@@ -36,7 +36,7 @@ export class ShadowMapMaterial extends BaseMaterial {
      * @returns 
      */
     getOpaqueCodeFS(_startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialColorFS_mergeToVS;
+        let template = SHT_materialColorFS;
 
         let uniform1: T_uniformGroups = [];
         let code: string = "";

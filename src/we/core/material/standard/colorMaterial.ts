@@ -5,7 +5,7 @@ import { I_dynamicTextureEntryForView, T_uniformGroups } from "../../command/bas
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { SHT_materialColor_TTP_FS_mergeToVS, SHT_materialColor_TT_FS_mergeToVS, SHT_materialColorFS_mergeToVS, SHT_materialColor_TTPF_FS_mergeToVS, SHT_materialColorFS_MSAA_mergeToVS, SHT_materialColorFS_MSAA_info_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
+import { SHT_materialColor_TTP_FS, SHT_materialColor_TT_FS, SHT_materialColorFS, SHT_materialColor_TTPF_FS, SHT_materialColorFS_MSAA, SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
 import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, I_BundleOfMaterialForMSAA, E_MaterialType } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
@@ -89,7 +89,7 @@ export class ColorMaterial extends BaseMaterial {
     }
 
     getOpacity_Forward(startBinding: number): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialColorFS_mergeToVS, startBinding);
+        return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
     }
     /**
      *  不透明材质的Oqa
@@ -97,7 +97,7 @@ export class ColorMaterial extends BaseMaterial {
      * @returns 
      */
     getOpaqueCodeFS(template: I_ShaderTemplate, _startBinding: number): I_materialBundleOutput {
-        // let template = SHT_materialColorFS_mergeToVS;
+        // let template = SHT_materialColorFS;
         let uniform1: T_uniformGroups = [];
         let code: string = "";
         let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
@@ -122,8 +122,8 @@ export class ColorMaterial extends BaseMaterial {
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: _startBinding };
     }
     getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_mergeToVS, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info_mergeToVS, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
     //同MSAA
@@ -137,7 +137,7 @@ export class ColorMaterial extends BaseMaterial {
     //color 不需要
     getFS_TO(startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
-        // return this.getOpaqueCodeFS(SHT_materialColorFS_mergeToVS, startBinding);
+        // return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
     }
     //color 不需要
     getFS_TO_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
@@ -154,7 +154,7 @@ export class ColorMaterial extends BaseMaterial {
 
 
     getFS_TT(_renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialColor_TT_FS_mergeToVS;
+        let template = SHT_materialColor_TT_FS;
 
         let uniform1: T_uniformGroups = [];
         let code: string = "";
@@ -183,7 +183,7 @@ export class ColorMaterial extends BaseMaterial {
     }
 
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialColor_TTPF_FS_mergeToVS;
+        let template = SHT_materialColor_TTPF_FS;
         let bindingNumber = startBinding;
 
         let groupAndBindingString = "";
@@ -230,7 +230,7 @@ export class ColorMaterial extends BaseMaterial {
         let code: string = "";
         if (renderObject instanceof BaseCamera) {
             //format code 
-            template = SHT_materialColor_TTP_FS_mergeToVS;
+            template = SHT_materialColor_TTP_FS;
             //add
             for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
                 code += perOne.code;

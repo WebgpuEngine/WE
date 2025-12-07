@@ -18,10 +18,10 @@ import { BaseCamera } from "../../camera/baseCamera";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../base";
-import { SHT_materialCubePositionTextureFS_mergeToVS, SHT_materialCubePositionTextureFS_MSAA_mergeToVS, SHT_materialCubePositionTextureFS_MSAAinfo_mergeToVS, SHT_materialCubeSkyTextureFS_mergeToVS, SHT_materialCubeSkyTextureFS_MSAA_mergeToVS, SHT_materialCubeSkyTextureFS_MSAAinfo_mergeToVS } from "../../shadermanagemnet/material/cubeTextureMaterial";
+import { SHT_materialCubePositionTextureFS, SHT_materialCubePositionTextureFS_MSAA, SHT_materialCubePositionTextureFS_MSAAinfo, SHT_materialCubeSkyTextureFS, SHT_materialCubeSkyTextureFS_MSAA, SHT_materialCubeSkyTextureFS_MSAAinfo } from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { E_resourceKind } from "../../resources/resourcesGPU";
-import { SHT_materialTextureFS_MSAA_mergeToVS } from "../../shadermanagemnet/material/textureMaterial";
-import { SHT_materialColorFS_MSAA_info_mergeToVS } from "../../shadermanagemnet/material/colorMaterial";
+import { SHT_materialTextureFS_MSAA } from "../../shadermanagemnet/material/textureMaterial";
+import { SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
 import { Texture } from "../../texture/texture";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
@@ -129,7 +129,7 @@ export class CubeTextureMaterial extends TextureMaterial {
 
         ////////////////shader 模板格式化部分
 
-        // template = SHT_materialCubeTextureFS_mergeToVS;
+        // template = SHT_materialCubeTextureFS;
         for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
             code += perOne.code;
         }
@@ -150,21 +150,21 @@ export class CubeTextureMaterial extends TextureMaterial {
     getOpacity_Forward(startBinding: number): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         if (this.cubeType == "sky") {
-            template = SHT_materialCubeSkyTextureFS_mergeToVS;
+            template = SHT_materialCubeSkyTextureFS;
         }
         else
-            template = SHT_materialCubePositionTextureFS_mergeToVS;
+            template = SHT_materialCubePositionTextureFS;
         return this.getOpaqueCodeFS(template, startBinding);
     }
     getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
         if (this.cubeType == "sky") {
-            let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAA_mergeToVS, startBinding);
-            let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAAinfo_mergeToVS, startBinding);
+            let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
+            let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
             return { MSAA, inforForward };
         }
         else {
-            let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubePositionTextureFS_MSAA_mergeToVS, startBinding);
-            let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubePositionTextureFS_MSAAinfo_mergeToVS, startBinding);
+            let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubePositionTextureFS_MSAA, startBinding);
+            let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
             return { MSAA, inforForward };
         }
     }

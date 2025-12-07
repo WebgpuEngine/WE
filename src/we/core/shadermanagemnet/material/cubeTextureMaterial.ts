@@ -6,7 +6,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommon
 import cubeSKyTextureFSWGSL from "../../shader/material/texture/cubeSkyTexture.fs.wgsl?raw";
 var cubeSkyTextureFS = cubeSKyTextureFSWGSL.toString();
 /**天空盒类的，与观察位置相关的 */
-export var SHT_materialCubeSkyTextureFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -32,7 +32,7 @@ export var SHT_materialCubeSkyTextureFS_mergeToVS: I_ShaderTemplate = {
         ],
     }
 }
-export var SHT_materialCubeSkyTextureFS_MSAA_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -64,7 +64,7 @@ export var SHT_materialCubeSkyTextureFS_MSAA_mergeToVS: I_ShaderTemplate = {
         ],
     }
 }
-export var SHT_materialCubeSkyTextureFS_MSAAinfo_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubeSkyTextureFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -100,7 +100,7 @@ export var SHT_materialCubeSkyTextureFS_MSAAinfo_mergeToVS: I_ShaderTemplate = {
 import cubePositionTextureFSWGSL from "../../shader/material/texture/cubeLocalTexture.fs.wgsl?raw";
 var cubePositionTextureFS = cubePositionTextureFSWGSL.toString();
 /** cube 位置纹理类的，与观察位置无关的 */
-export var SHT_materialCubePositionTextureFS_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -135,7 +135,7 @@ export var SHT_materialCubePositionTextureFS_mergeToVS: I_ShaderTemplate = {
     }
 }
 
-export var SHT_materialCubePositionTextureFS_MSAA_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
@@ -168,7 +168,7 @@ export var SHT_materialCubePositionTextureFS_MSAA_mergeToVS: I_ShaderTemplate = 
         ],
     }
 }
-export var SHT_materialCubePositionTextureFS_MSAAinfo_mergeToVS: I_ShaderTemplate = {
+export var SHT_materialCubePositionTextureFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
