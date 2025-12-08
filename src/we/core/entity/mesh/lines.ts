@@ -1,7 +1,7 @@
 import {  E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import {  SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import {  E_entityType, I_EntityBundleMaterial, I_EntityBundleOfUniformAndShaderTemplateFinal,  I_ShadowMapValueOfDC } from "../base";
+import {  E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput,  I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -74,7 +74,7 @@ export class Lines extends EntityBundleMaterial {
         throw new Error("Method not implemented.");
     }
 
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false, scope?: Lines) {
+    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Lines) {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
         valueDC.render.primitive!.topology = scope.lineMode;
@@ -93,7 +93,7 @@ export class Lines extends EntityBundleMaterial {
         this.generateOpacityDC(UUID, SHT_MeshVS);
 
         // //mesh 前向渲染
-        // let bundle = this.getUniformAndShaderTemplateFinal(SHT_LineVS);
+        // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_LineVS);
         // let uniformsMaterial = this._material.getOpacity_Forward(bundle.bindingNumber);
         // if (uniformsMaterial) {
         //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);

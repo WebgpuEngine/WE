@@ -365,8 +365,8 @@ export class GBuffers {
         let device = this.device;
         let width = this.parent.scene.surface.size.width;
         let height = this.parent.scene.surface.size.height;
-        let premultipliedAlpha = this.parent.defaultCamera.premultipliedAlpha;
-        let backgroudColor = this.parent.defaultCamera.backGroundColor;
+        // let premultipliedAlpha = this.parent.defaultCamera.premultipliedAlpha;
+        // let backgroudColor = this.parent.defaultCamera.backGroundColor;
         // let depthClearValue = input.depthClearValue;
         let unixTime = new Date().getTime();
         if (width == 0 || height == 0) {

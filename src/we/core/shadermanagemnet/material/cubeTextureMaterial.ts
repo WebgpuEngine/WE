@@ -1,12 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 //material
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, WGSL_replace_gbuffer_output, WGSL_replace_MSAA_gbuffer_output, WGSL_replace_MSAAinfo_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
 
 
 import cubeSKyTextureFSWGSL from "../../shader/material/texture/cubeSkyTexture.fs.wgsl?raw";
 var cubeSkyTextureFS = cubeSKyTextureFSWGSL.toString();
 /**天空盒类的，与观察位置相关的 */
 export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -33,6 +34,7 @@ export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
     }
 }
 export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -65,6 +67,7 @@ export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
     }
 }
 export var SHT_materialCubeSkyTextureFS_MSAAinfo: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -101,6 +104,7 @@ import cubePositionTextureFSWGSL from "../../shader/material/texture/cubeLocalTe
 var cubePositionTextureFS = cubePositionTextureFSWGSL.toString();
 /** cube 位置纹理类的，与观察位置无关的 */
 export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -136,6 +140,7 @@ export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
 }
 
 export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -169,6 +174,7 @@ export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
     }
 }
 export var SHT_materialCubePositionTextureFS_MSAAinfo: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [

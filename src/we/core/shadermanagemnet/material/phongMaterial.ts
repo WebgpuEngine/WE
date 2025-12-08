@@ -1,5 +1,5 @@
 
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, SHT_addMathBase, SHT_addMathRandom, SHT_addMathTBN, SHT_addPCSS,  SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, WGSL_replace_gbuffer_output, WGSL_replace_MSAA_gbuffer_output, WGSL_replace_MSAAinfo_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, SHT_addMathBase, SHT_addMathRandom, SHT_addMathTBN, SHT_addPCSS,  SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_ScenOfCamera_FS,  WGSL_replace_MSAA_gbuffer_output, WGSL_replace_MSAAinfo_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
 import add_Phong_function_WGSL from "../../shader/material/phong/phongfunction.wgsl?raw"
 var WGSL_add_Phong_function = add_Phong_function_WGSL.toString();
 //PBR 的光影函数单项
@@ -47,6 +47,7 @@ import phongMaterialWGSL from "../../shader/material/phong/phongcolor.fs.wgsl?ra
 var phongFS = phongMaterialWGSL.toString();
 
 export var SHT_materialPhongFS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PhongMaterial",
         add: [
@@ -90,6 +91,7 @@ export var SHT_materialPhongFS: I_ShaderTemplate = {
 }
 
 export var SHT_materialPhongFS_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PhongMaterial",
         add: [
@@ -140,6 +142,7 @@ export var SHT_materialPhongFS_MSAA: I_ShaderTemplate = {
 import phongMaterial_MSAAinfo_WGSL from "../../shader/material/phong/phongMSAAinfo.fs.wgsl?raw"
 var phongMSAAinfoFS = phongMaterial_MSAAinfo_WGSL.toString();
 export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PhongMaterial",
         add: [
@@ -199,6 +202,7 @@ export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export var SHT_materialPhongFS_defer: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PhongMaterial",
         add: [

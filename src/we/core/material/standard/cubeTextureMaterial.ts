@@ -147,7 +147,7 @@ export class CubeTextureMaterial extends TextureMaterial {
         }
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
     }
-    getOpacity_Forward(startBinding: number): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         if (this.cubeType == "sky") {
             template = SHT_materialCubeSkyTextureFS;
@@ -156,7 +156,7 @@ export class CubeTextureMaterial extends TextureMaterial {
             template = SHT_materialCubePositionTextureFS;
         return this.getOpaqueCodeFS(template, startBinding);
     }
-    getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         if (this.cubeType == "sky") {
             let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
             let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);

@@ -520,17 +520,18 @@ export class DrawCommandGenerator {
         let groupAndBindingString: string = "";
         let shaderCode: string = "";
         //合并bindingGroupString 和shaderCode
-        for (let i in templateFinal) {
-            let perPart = templateFinal[i];
-            for (let i_single in perPart) {
-                if (i_single == "groupAndBindingString") {
-                    groupAndBindingString += perPart[i_single as keyof typeof perPart];
-                }
-                else if (i_single == "templateString") {
-                    shaderCode += perPart[i_single as keyof typeof perPart];
-                }
-            }
-        }
+        // for (let i in templateFinal) {
+        //     let perPart = templateFinal[i];
+        //     for (let i_single in perPart) {
+        //         if (i_single == "groupAndBindingString") {
+        //             groupAndBindingString += perPart[i_single as keyof typeof perPart];
+        //         }
+        //         else if (i_single == "templateString") {
+        //             shaderCode += perPart[i_single as keyof typeof perPart];
+        //         }
+        //     }
+        // }
+        shaderCode = this.convertSHT2ShaderCode(templateFinal);
         //反射attribute
         for (let i in SHT_refDCG) {
             if (i == "replace") {
@@ -555,6 +556,23 @@ export class DrawCommandGenerator {
                             shaderCode = shaderCode.replace(perReplace.replace!, locationString);
                         }
                     }
+                }
+            }
+        }
+        return groupAndBindingString + "\n" + shaderCode;
+    }
+    convertSHT2ShaderCode(templateFinal: I_ShaderTemplate_Final): string {
+        let groupAndBindingString: string = "";
+        let shaderCode: string = "";
+        //合并bindingGroupString 和shaderCode
+        for (let i in templateFinal) {
+            let perPart = templateFinal[i];
+            for (let i_single in perPart) {
+                if (i_single == "groupAndBindingString") {
+                    groupAndBindingString += perPart[i_single as keyof typeof perPart];
+                }
+                else if (i_single == "templateString") {
+                    shaderCode += perPart[i_single as keyof typeof perPart];
                 }
             }
         }
@@ -908,7 +926,7 @@ export class DrawCommandGenerator {
                 }
                 let perGroup = values.data.uniforms[i];
                 if (perGroup == undefined || perGroup.length == 0) {
-                    console.warn("uniforms 组", i, "为空");
+                    // console.warn("uniforms 组", i, "为空");
                     continue;
                 }
                 if (values.data.unifromLayout)
@@ -1075,7 +1093,7 @@ export class DrawCommandGenerator {
 
         //3.2、VS shadermodel 编译
         moduleVS = this.device.createShaderModule({
-            label: "SHM@" + this.clock.now + " " + values.label,
+            label: `vs ${values.label} @${this.clock.now} `,
             code: shadercode,
         });
         //3.3 GPURenderPipelineDescriptor.vertex部分
@@ -1097,23 +1115,23 @@ export class DrawCommandGenerator {
             }
             else {
                 let codeFS: string;
-                let flagFS = "fsCode@";
+                let flagFS = "fsCode";
                 //如果是字符串,则直接赋值
                 if (typeof values.render.fragment.code === "string")
                     codeFS = values.render.fragment.code;
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
-                    let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final).material;
+                    let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final);
                     if (FS_SHT) {
-                        codeFS = FS_SHT.groupAndBindingString + FS_SHT.templateString;
+                        codeFS = this.convertSHT2ShaderCode(FS_SHT);
                     }
                     else {
                         throw new Error("fragment code SHT模板中material不能为空");
                     }
-                    flagFS = "fsSHT@"
+                    flagFS = "fs"
                 }
                 moduleFS = this.device.createShaderModule({
-                    label: flagFS + this.clock.now + " " + values.label,
+                    label: `${flagFS} ${values.label} @${this.clock.now}`,
                     code: codeFS,
                 })
             }

@@ -1,4 +1,6 @@
 //start : wireFrame.fs.wgsl
+override offsetOfWireframeVale : f32 = 1.0;
+override boundingBoxMaxSize : f32 = 1.0;
 @fragment 
 fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {    
     $gbufferCommonValues //初始化GBuffer的通用值

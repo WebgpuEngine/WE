@@ -3,7 +3,7 @@ import { I_Update, E_renderForDC } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
 import { Rotation, RotationArray } from "../math/baseDefine";
 import { T_indexAttribute, T_vsAttribute, vsAttribute, vsAttributeMerge } from "../command/DrawCommandGenerator";
-import { I_drawMode, I_drawModeIndexed, T_uniformGroups } from "../command/base";
+import { I_drawMode, I_drawModeIndexed, T_uniformGroups, T_uniformOneGroup } from "../command/base";
 import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 import { BaseLight } from "../light/baseLight";
 import { BaseMaterial } from "../material/baseMaterial";
@@ -209,9 +209,9 @@ export interface I_EntityAttributes {
  * 实体的uniform和shaderTemplateFinal的绑定
  * createForwardDC()等获取VS部分的uniformGroups和shaderTemplateFinal
  */
-export interface I_EntityBundleOfUniformAndShaderTemplateFinal {
+export interface I_EntityBundleOutput {
     bindingNumber: number,
-    uniformGroups: T_uniformGroups[],
+    uniformGroup: T_uniformOneGroup,
     shaderTemplateFinal: I_ShaderTemplate_Final
 }
 
@@ -222,4 +222,12 @@ export interface I_ShadowMapValueOfDC {
     light: BaseLight,
     UUID: string,//camera id or light id 
     matrixIndex: number,//matrix of light MVP[]
+}
+
+/**
+ * entity派生类处理DCG生成参数使用的 vs 和 fs 绑定
+ */
+export interface I_vsfsBundle {
+    vsBundle: I_EntityBundleOutput,
+    fsBundle?: I_EntityBundleOutput
 }

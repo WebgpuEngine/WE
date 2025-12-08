@@ -1,4 +1,4 @@
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateReplace, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, WGSL_replace_gbuffer_output, WGSL_replace_MSAA_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer, WGSL_st_transparentbuffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateReplace, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_transparentbuffer } from "../base"
 import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -7,6 +7,7 @@ import textureFSWGSL from "../../shader/material/texture/texture.fs.wgsl?raw";
 var textureFS = textureFSWGSL.toString();
 /** 纹理材质, 不透明, shader 模板*/
 export var SHT_materialTextureFS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "TextureMaterial",
         add: [
@@ -43,6 +44,7 @@ export var SHT_materialTextureFS: I_ShaderTemplate = {
 }
 /** 纹理材质, 不透明MSAA, shader 模板*/
 export var SHT_materialTextureFS_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "TextureMaterial",
         add: [
@@ -79,6 +81,7 @@ export var SHT_materialTextureFS_MSAA: I_ShaderTemplate = {
 
 /** 纹理材质, 不透明MSAA info, shader 模板*/
 export var SHT_materialTextureFS_MSAAinfo: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "TextureMaterial",
         add: [
@@ -128,6 +131,7 @@ var replaceOpacityPercent_TT_TTP_TTPF: I_shaderTemplateReplace = {
 import textureTT_FSWGSL from "../../shader/material/texture/textureTT.fs.wgsl?raw";
 var textureTT_FS = textureTT_FSWGSL.toString();
 export var SHT_materialTexture_TT_FS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "TextureMaterial",
         add: [
@@ -161,6 +165,7 @@ export var SHT_materialTexture_TT_FS: I_ShaderTemplate = {
 import textureTTP_FSWGSL from "../../shader/material/texture/textureTTP.fs.wgsl?raw";
 var textureTTP_FS = textureTTP_FSWGSL.toString();
 export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "TextureMaterial",
         add: [
@@ -189,6 +194,7 @@ export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
 import textureTTPF_FSWGSL from "../../shader/material/texture/textureTTPF.fs.wgsl?raw";
 var textureTTPF_FS = textureTTPF_FSWGSL.toString();
 export var SHT_materialTexture_TTPF_FS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [

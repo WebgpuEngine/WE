@@ -1,5 +1,5 @@
 
-import { I_ShaderTemplate, SHT_addMathBase, SHT_addMathRandom, SHT_addPCSS, SHT_ScenOfCamera } from "../base";
+import { I_ShaderTemplate, SHT_addMathBase, SHT_addMathRandom, SHT_addPCSS, SHT_ScenOfCamera_FS } from "../base";
 import { SHT_add_PBR_function } from "../material/pbrMaterial";
 
 
@@ -11,12 +11,13 @@ import { SHT_add_Phong_function } from "../material/phongMaterial";
 import { QuadVS } from "../mesh/quad";
 /**Defer PBR light and shadow shader template */
 export var SHT_DeferRender: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera,
+    // scene: SHT_ScenOfCamera,
     entity: {
         add: [
             QuadVS
         ]
     },
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "Defer DC, cameraManager",
         add: [

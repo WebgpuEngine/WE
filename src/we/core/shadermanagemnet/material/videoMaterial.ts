@@ -4,9 +4,10 @@ import videoTextureFSWGSL from "../../shader/material/texture/video.fs.wgsl?raw"
 var videoTextureFS = videoTextureFSWGSL.toString();
 
 
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, WGSL_replace_gbuffer_output, WGSL_replace_MSAA_gbuffer_output, WGSL_replace_MSAAinfo_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
 
 export var SHT_materialVideoTextureFS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -44,6 +45,7 @@ export var SHT_materialVideoTextureFS: I_ShaderTemplate = {
 }
 
 export var SHT_materialVideoTextureFS_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [
@@ -80,6 +82,7 @@ export var SHT_materialVideoTextureFS_MSAA: I_ShaderTemplate = {
 
 
 export var SHT_materialVideoTextureFS_MSAA_info: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
         add: [

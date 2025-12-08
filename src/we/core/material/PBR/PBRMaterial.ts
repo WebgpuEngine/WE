@@ -843,20 +843,20 @@ export class PBRMaterial extends BaseMaterial {
         }
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
     }
-    getOpacity_Forward(startBinding: number): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialPBRFS, startBinding);
     }
-    getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_defer_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColor(startBinding: number): I_materialBundleOutput {
+    getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialPBRFS_defer, startBinding);
     }
 
@@ -885,7 +885,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding 
      * @return I_materialBundleOutput
      */
-    getFS_TO_DeferColor(startBinding: number): I_materialBundleOutput {
+    getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     /**
@@ -893,7 +893,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding number 
      * @return I_BundleOfMaterialForMSAA
      */
-    getFS_TO_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
     /**
@@ -901,7 +901,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding number 
      * @return I_BundleOfMaterialForMSAA
      */
-    getFS_TO_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
 

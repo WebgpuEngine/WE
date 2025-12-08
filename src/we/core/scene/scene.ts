@@ -770,7 +770,8 @@ export class Scene {
             copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
         }
         else {
-            console.error("没有默认相机");
+            // console.error("没有默认相机");
+            throw new Error("没有默认相机");
         }
     }
 
@@ -1171,7 +1172,7 @@ export class Scene {
             scene: {
                 templateString: code,
                 groupAndBindingString: "",
-                owner: this,
+                owner: "scene",
             },
         }
         return outputFormat;

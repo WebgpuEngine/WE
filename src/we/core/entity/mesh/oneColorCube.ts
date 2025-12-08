@@ -4,7 +4,7 @@ import { I_ShaderTemplate, I_ShaderTemplate_Final } from "../../shadermanagemnet
 import { IV_MeshEntity, Mesh } from "./mesh";
 import { SHT_OneCubeColorVS } from "../../shadermanagemnet/mesh/meshVS";
 import { BaseCamera } from "../../camera/baseCamera";
-import { E_entityType, I_EntityBundleOfUniformAndShaderTemplateFinal } from "../base";
+import { E_entityType, I_EntityBundleOutput } from "../base";
 
 
 
@@ -48,7 +48,7 @@ export class OneColoeCube extends Mesh {
         this._material = new VertexColorMaterial();
         await this._material.init(this.scene, this);
     }
-    getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate,startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOfUniformAndShaderTemplateFinal {
+    getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate,startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
         //uniform 部分
         let bindingNumber = startBinding;
         let uniform1: T_uniformGroups = [];

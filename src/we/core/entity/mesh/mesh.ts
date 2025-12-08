@@ -9,7 +9,7 @@ import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_MeshShadowMapVS, SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOfUniformAndShaderTemplateFinal, I_ShadowMapValueOfDC } from "../base";
+import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -224,7 +224,7 @@ export class Mesh extends EntityBundleMaterial {
      * @param bundle 实体的uniform和shader模板
      * @returns IV_DrawCommand
      */
-    generateWireFrameInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false, scope?: Mesh): IV_DC {
+    generateWireFrameInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh): IV_DC {
         if (scope == undefined) scope = this;
         let drawMode: I_drawModeIndexed = {
             indexCount: 0,
@@ -240,21 +240,25 @@ export class Mesh extends EntityBundleMaterial {
         else {
             throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
         }
+        let uniforms = [bundle.vsBundle.uniformGroup];
+
         let valueDC: IV_DC = {
-            label: "wireframe :" + scope.Name + " for  " + type + ": " + UUID,
+            // label: "wireframe" + scope.Name + " for  " + type + ": " + UUID,
+            label: `wireframe  ${scope.Name} for ${type}: ${UUID}`,
             data: {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
                 indexes: scope._wireframe.indexes,
-                uniforms: bundle.uniformGroups,
+                uniforms: uniforms,
             },
             render: {
                 vertex: {
-                    code: bundle.shaderTemplateFinal,
+                    code: bundle.vsBundle.shaderTemplateFinal,
                     entryPoint: "vs",
 
                 },
                 fragment: {
+                    code: bundle.fsBundle!.shaderTemplateFinal,
                     entryPoint: "fs",
                     constants: {
                         offsetOfWireframeVale: scope._wireframe.offset,
@@ -277,7 +281,7 @@ export class Mesh extends EntityBundleMaterial {
         }
         return valueDC;
     }
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false, scope?: Mesh) {
+    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh) {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
         // valueDC.render.primitive!.cullMode = this._cullMode;
@@ -292,12 +296,12 @@ export class Mesh extends EntityBundleMaterial {
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
-            // let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+            // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
             this.generateOpacityDC(UUID, SHT_MeshVS);
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
-            // // let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
+            // // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
             // // let uniformsMaterial = this._materialWireframe.getOpacity_Forward(bundle.bindingNumber);
             // // if (uniformsMaterial) {
             // //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
@@ -319,12 +323,12 @@ export class Mesh extends EntityBundleMaterial {
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
             //mesh VS 模板输出
             //材质的shader 模板输出，
-            let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+            let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
             //获取TTTT，然后分别判断并执行
             let uniformsMaterialTOTT = this._material.getTTTT(camera, bundle.bindingNumber);
             //TO
             if (uniformsMaterialTOTT.TO) {
-                // let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+                // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
                 // bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TO.uniformGroup);
                 // bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TO.singleShaderTemplateFinal;
                 // let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, bundle);
@@ -335,10 +339,10 @@ export class Mesh extends EntityBundleMaterial {
             let dcTT;
             //TT
             {
-                let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
-                bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TT.uniformGroup);
-                bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TT.singleShaderTemplateFinal;
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, bundle);
+                // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
+                // bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TT.uniformGroup);
+                // bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TT.singleShaderTemplateFinal;
+                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, {vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TT});
                 //设置为透明
                 let transparentOption = this._material.getTransparentOption();
                 if (transparentOption) {
@@ -360,7 +364,7 @@ export class Mesh extends EntityBundleMaterial {
             }
             // //TTP
             if (uniformsMaterialTOTT.TTP) {
-                let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+                let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
                 bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TTP.uniformGroup);
                 bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TTP.singleShaderTemplateFinal;
                 let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, bundle);
@@ -387,7 +391,7 @@ export class Mesh extends EntityBundleMaterial {
             }
             // //TTPF
             if (uniformsMaterialTOTT.TTPF) {
-                let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+                let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
 
                 let bindingNumber = uniformsMaterialTOTT.TTPF.bindingNumber;
                 //增加TTPF的layer uniform到TTPF
@@ -446,7 +450,7 @@ export class Mesh extends EntityBundleMaterial {
         }
         //wireframe 前向渲染,暂时不考虑wireframe 透明渲染
         if (this._wireframe.enable) {
-            let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
+            let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
             let uniformsMaterial = this._materialWireframe.getOpacity_Forward(bundle.bindingNumber);
             if (uniformsMaterial) {
                 bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
@@ -465,9 +469,9 @@ export class Mesh extends EntityBundleMaterial {
         let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
             //mesh VS 模板输出
-            let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
+            let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
 
-            let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, bundle, true);
+            let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
             let dc = this.DCG.generateDrawCommand(valueDC);
             this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
         }

@@ -198,7 +198,7 @@ export class TextureMaterial extends BaseMaterial {
      * @param startBinding 起始binding
      * @returns 前向渲染的bundle
      */
-    getOpacity_Forward(startBinding: number): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialTextureFS, startBinding);
     }
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
@@ -254,24 +254,24 @@ export class TextureMaterial extends BaseMaterial {
         }
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
     }
-    getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialTextureFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getOpacity_DeferColor(startBinding: number): I_materialBundleOutput {
+    getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColor(startBinding: number): I_materialBundleOutput {
+    getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
 

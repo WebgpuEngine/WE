@@ -1,8 +1,9 @@
 import { I_Update } from "../base/coreDefine";
 import { T_uniformGroups, T_uniformOneGroup } from "../command/base";
+import { I_EntityBundleOutput } from "../entity/base";
 import { BaseEntity } from "../entity/baseEntity";
 import { Scene } from "../scene/scene";
-import { I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
+import { I_ShaderTemplate_Final, I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
 import { E_TextureChannel, I_mipmap } from "../texture/base";
 import { BaseTexture } from "../texture/baseTexture";
 
@@ -179,11 +180,13 @@ export enum E_TextureType {
  * 材质的输出Bundle
  * I_singleShaderTemplate_Final中包括dynamic 参数
  */
-export interface I_materialBundleOutput {
-    bindingNumber: number,
-    uniformGroup: T_uniformOneGroup,//这里与mesh的uniformGroup是不同的，是一个bind group，而不是多个
-    singleShaderTemplateFinal: I_singleShaderTemplate_Final,
-}
+export type I_materialBundleOutput = I_EntityBundleOutput
+// export interface I_materialBundleOutput {
+//     bindingNumber: number,
+//     uniformGroup: T_uniformOneGroup,//这里与mesh的uniformGroup是不同的，是一个bind group，而不是多个
+//     // singleShaderTemplateFinal: I_singleShaderTemplate_Final,
+//     shaderTemplateFinal: I_ShaderTemplate_Final,
+// }
 export interface I_BundleOfMaterialForMSAA {
     MSAA: I_materialBundleOutput,
     inforForward: I_materialBundleOutput

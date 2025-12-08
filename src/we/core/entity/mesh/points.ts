@@ -4,7 +4,7 @@ import { IV_DC } from "../../command/DrawCommandGenerator";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { ColorMaterial } from "../../material/standard/colorMaterial";
 import { SHT_PointEmuSpriteVS, SHT_PointVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, I_EntityBundleMaterial, I_EntityBundleOfUniformAndShaderTemplateFinal, I_ShadowMapValueOfDC } from "../base";
+import { E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -188,7 +188,7 @@ export class Points extends EntityBundleMaterial {
     //  * @param startBinding 
     //  * @returns uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
     //  */
-    // getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOfUniformAndShaderTemplateFinal {
+    // getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
     //     //uniform 部分
     //     let bindingNumber = startBinding;
     //     let uniform1: T_uniformGroups = [];
@@ -266,7 +266,7 @@ export class Points extends EntityBundleMaterial {
     //     }
     //     return code;
     // }
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false, scope: Points): IV_DC {
+    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope: Points): IV_DC {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
         valueDC.render.primitive = {
@@ -274,7 +274,7 @@ export class Points extends EntityBundleMaterial {
         }
         return valueDC;
     }
-    generateEmuInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false, scope?: Points): IV_DC {
+    generateEmuInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
         valueDC.render.primitive = {
@@ -310,10 +310,10 @@ export class Points extends EntityBundleMaterial {
     //     //mesh 前向渲染
     //     let bundle;
     //     if (this.emulate == "sprite") {
-    //         bundle = this.getUniformAndShaderTemplateFinal(SHT_PointEmuSpriteVS);
+    //         bundle = this.getVSUniformAndShaderTemplateFinal(SHT_PointEmuSpriteVS);
     //     }
     //     else {
-    //         bundle = this.getUniformAndShaderTemplateFinal(SHT_PointVS);
+    //         bundle = this.getVSUniformAndShaderTemplateFinal(SHT_PointVS);
     //     }
     //     let uniformsMaterial = this._material.getOpacity_Forward(bundle.bindingNumber);
     //     if (uniformsMaterial) {

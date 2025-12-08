@@ -105,6 +105,16 @@ export interface I_ShaderTemplate_Final {
     [name: string]: I_singleShaderTemplate_Final
 }
 //////////////////////////////////////////////////////////////////////////////////
+// vs output
+import st_outputWGSL from "../shader/entity/st_output.vs.wgsl?raw"
+export var WGSL_st_output = st_outputWGSL.toString();
+
+export var SHT_vsStructOutput: I_shaderTemplateAdd =
+{
+    name: "st_output",
+    code: WGSL_st_output,
+};
+//////////////////////////////////////////////////////////////////////////////////
 //GBuffer
 
 //struct 定义
@@ -124,8 +134,7 @@ export var WGSL_st_transparentbuffer = st_transgparentbufferWGSL.toString();
 import st_locationWGSL from "../shader/entity/st_location_ref.vs.wgsl?raw"
 export var WGSL_st_location = st_locationWGSL.toString();
 
-import st_outputWGSL from "../shader/entity/st_output.vs.wgsl?raw"
-export var WGSL_st_output = st_outputWGSL.toString();
+
 
 import replace_gbuffer_outputWGSL from "../shader/gbuffers/replace_gbuffer_output.fs.wgsl?raw";
 export var WGSL_replace_gbuffer_output = replace_gbuffer_outputWGSL.toString();
@@ -246,6 +255,33 @@ import systemOfCameraWGSL from "../shader/system/system.wgsl?raw"
 var systemOfCamera = systemOfCameraWGSL.toString();
 //场景相机的系统变量
 export var SHT_ScenOfCamera: I_singleShaderTemplate = {
+    add: [
+        {
+            name: "system",
+            code: systemOfCamera,
+        },
+        // SHT_addEncodeDecodeFunction,
+    ],
+    replace: [
+        {
+            name: "lightNumber",
+            replace: "$lightNumber",
+            replaceType: E_shaderTemplateReplaceType.value,                        //replaceType=value,替换为程序的变量
+        },
+        {
+            name: "shadowMapNumber",
+            replace: "$lightNumberShadowNumber",
+            replaceType: E_shaderTemplateReplaceType.value,
+        },
+        {
+            name: "shadowDepthTextureSize",
+            replace: "override shadowDepthTextureSize : f32 = 1024.0;",
+            replaceType: E_shaderTemplateReplaceType.value,
+        },
+
+    ],
+};
+export var SHT_ScenOfCamera_FS: I_singleShaderTemplate = {
     add: [
         {
             name: "system",

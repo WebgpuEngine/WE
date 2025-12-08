@@ -52,10 +52,10 @@ export class WireFrameMaterial extends ColorMaterial {
         // console.log(this._state);
     }
 
-    getOpacity_Forward(startBinding: number): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_WireFrameFS, startBinding);
     }
-    getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_WireFrameFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_WireFrameFS_MSAAinfo, startBinding);
         return { MSAA, inforForward };

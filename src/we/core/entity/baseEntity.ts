@@ -7,7 +7,7 @@ import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 
 import {
     E_entityType,
-    I_EntityBundleOfUniformAndShaderTemplateFinal,
+    I_EntityBundleOutput,
     I_entityInstance,
     IV_BaseEntity,
     I_optionShadowEntity,
@@ -273,7 +273,7 @@ export abstract class BaseEntity extends RootGPU {
      * @param startBinding 
      * @returns  uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    abstract getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOfUniformAndShaderTemplateFinal
+    abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分

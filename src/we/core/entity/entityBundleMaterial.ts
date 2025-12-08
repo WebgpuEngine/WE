@@ -16,7 +16,7 @@ import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/b
 import { BaseMaterial } from "../material/baseMaterial";
 import { E_renderPassName } from "../scene/renderManager";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOfUniformAndShaderTemplateFinal } from "./base";
+import { I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOutput, I_vsfsBundle } from "./base";
 import { BaseEntity } from "./baseEntity";
 
 
@@ -153,7 +153,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param startBinding 
      * @returns uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    getUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOfUniformAndShaderTemplateFinal {
+    getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
         //uniform 部分
         let bindingNumber = startBinding;
         let uniform1: T_uniformOneGroup = [];
@@ -194,22 +194,25 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 };
             }
         }
-
-        let uniformGroups: T_uniformGroups[] = [uniform1];
-
-        return { bindingNumber: bindingNumber, uniformGroups, shaderTemplateFinal };
+        return { bindingNumber: bindingNumber, uniformGroup: uniform1, shaderTemplateFinal };
     }
 
+
     /**
-     * 生成DrawCommand的input value
+     * mesh 生成DrawCommand的input value
      * @param type 渲染类型
      * @param UUID camera UUID or light merge UUID
-     * @param bundle 实体的uniform和shader模板
+     * @param vsBundle 实体的uniform和shader模板
      * @param vsOnly 是否只渲染顶点
      * @returns IV_DrawCommand
      */
-    // abstract generateInputValueOfDC(renderType: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly?: boolean ): I_EntityBundleOfUniformAndShaderTemplateFinal
-    generateInputValueOfDC(renderType: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean = false, scope?: EntityBundleMaterial): IV_DC {
+    generateInputValueOfDC(
+        renderType: E_renderForDC,
+        UUID: string,
+        bundle: I_vsfsBundle,
+        vsOnly: boolean = false,
+        scope?: EntityBundleMaterial
+    ): IV_DC {
         if (scope == undefined) scope = this;
         let drawMode: I_drawMode | I_drawModeIndexed;
         if (scope.inputValues.drawMode != undefined) {
@@ -229,26 +232,22 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 firstInstance: 0,
             }
             //index mode
-            if (scope.attributes.indexes) {
-                if (Array.isArray(scope.attributes.indexes) && scope.attributes.indexes.length > 0) {
-                    drawModeIndexMesh.indexCount = scope.attributes.indexes.length;
-                    drawModeIndexMesh.instanceCount = scope.instance.numInstances;
-                    drawMode = drawModeIndexMesh;
-                }
-                else if (isIndexGPUBufferBundle(scope.attributes.indexes)){
-                    drawModeIndexMesh.indexCount = scope.attributes.indexes.count;
-                    drawModeIndexMesh.instanceCount = scope.instance.numInstances;
-                    drawMode = drawModeIndexMesh;
-                }
-                else{
-                    throw new Error("indexes is not array or GPUBufferBundle");
-                }
+            // if (scope.attributes.indexes) {
+            if (Array.isArray(scope.attributes.indexes) && scope.attributes.indexes.length > 0) {
+                drawModeIndexMesh.indexCount = scope.attributes.indexes.length;
+                drawModeIndexMesh.instanceCount = scope.instance.numInstances;
+                drawMode = drawModeIndexMesh;
+            }
+            else if (scope.attributes.indexes && isIndexGPUBufferBundle(scope.attributes.indexes)) {
+                drawModeIndexMesh.indexCount = scope.attributes.indexes.count;
+                drawModeIndexMesh.instanceCount = scope.instance.numInstances;
+                drawMode = drawModeIndexMesh;
             }
             //non-index mode
             else {
                 if (scope.attributes.vertices["position"]) {
                     let pos = scope.attributes.vertices["position"]!;
-                    if(isVSGPUBufferBundle(pos)){
+                    if (isVSGPUBufferBundle(pos)) {
                         drawModeMesh.vertexCount = pos.count;
                     }
                     else if ("count" in pos) {//vsAttribute | vsAttributeMerge |I_vsGPUBufferBundle
@@ -257,6 +256,12 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     else if (Array.isArray(pos)) {// array[]
                         drawModeMesh.vertexCount = pos.length / 3;
                     }
+                    else {
+                        throw new Error("position is not array or GPUBufferBundle");
+                    }
+                }
+                else {
+                    throw new Error("position is not array or GPUBufferBundle");
                 }
                 drawModeMesh.instanceCount = scope.instance.numInstances;
                 drawMode = drawModeMesh;
@@ -267,27 +272,37 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         let boundingBoxMaxSize = scope.getBoundingBoxMaxSize();//生成 shader 中的cubeVecUV使用
         if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
 
+        let fragment = undefined;
+        if (bundle.fsBundle) {
+            fragment = {
+                code: bundle.fsBundle.shaderTemplateFinal,
+                entryPoint: "fs",
+            };
+        }
+
+        let uniforms = [bundle.vsBundle.uniformGroup];
+        if (bundle.fsBundle) {
+            uniforms.push(bundle.fsBundle.uniformGroup);
+        }
         let valueDC: IV_DC = {
-            label: scope.kind + scope.Name + " for " + renderType + ":" + UUID,
+            // label: scope.kind + scope.Name + " for " + renderType + ":" + UUID,
+            label: `${scope.kind} ${scope.Name} for ${renderType}: ${UUID}`,
             data: {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
                 indexes: scope.attributes.indexes,
-                uniforms: bundle.uniformGroups,
+                uniforms,
 
             },
             render: {
                 vertex: {
-                    code: bundle.shaderTemplateFinal,
+                    code: bundle.vsBundle.shaderTemplateFinal,
                     entryPoint: "vs",
                     constants: {
                         "boundingBoxMaxSize": boundingBoxMaxSize,
                     },
                 },
-                fragment: {
-                    entryPoint: "fs",
-
-                },
+                fragment,
                 drawMode,
                 primitive: {
                     cullMode: scope._cullMode,
@@ -304,7 +319,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
         }
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
-        if (bundle.shaderTemplateFinal.material?.dynamic === true) {
+        if (bundle.fsBundle && bundle.fsBundle.shaderTemplateFinal.material?.dynamic === true) {
             valueDC.dynamic = true;
         }
         if (scope.inputValues.primitive) {
@@ -330,8 +345,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param TO 透明物体的uniform和shader模板
      * @param specialMaterial 指定的材质，比如：线框（WireFrameMaterial），用于生成线框的MSAA
      */
-    generateOpacityDC(UUID: string, SHT_VS: I_ShaderTemplate, TO?: I_materialBundleOutput, specialMaterial?: BaseMaterial, specialInitValueOfDC?: (renderType: E_renderForDC, UUID: string, bundle: I_EntityBundleOfUniformAndShaderTemplateFinal, vsOnly: boolean) => IV_DC) {
-        let bundle = this.getUniformAndShaderTemplateFinal(SHT_VS);
+    generateOpacityDC(
+        UUID: string,
+        SHT_VS: I_ShaderTemplate,
+        TO?: I_materialBundleOutput,
+        specialMaterial?: BaseMaterial,
+        specialInitValueOfDC?: (renderType: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean) => IV_DC
+    ) {
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_VS);
 
         let material = this._material;
         if (specialMaterial != undefined)
@@ -359,14 +380,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 }
             }
             {         //MSAA,材质的shader 模板输出，
-                if (uniformsMaterialMSAA) {
-                    bundle.uniformGroups[0].push(...uniformsMaterialMSAA.MSAA.uniformGroup);
-                    bundle.shaderTemplateFinal.material = uniformsMaterialMSAA.MSAA.singleShaderTemplateFinal;
-                }
-                else {
-                    throw new Error(this.kind + " generateOpacityDC: MSAA is true, but no MSAA material");
-                }
-                let valueDC = getIV_DC(E_renderForDC.camera, UUID, bundle, false, this);
+                // if (uniformsMaterialMSAA) {
+                //     bundle.uniformGroups[0].push(...uniformsMaterialMSAA.MSAA.uniformGroup);
+                //     bundle.shaderTemplateFinal.material = uniformsMaterialMSAA.MSAA.singleShaderTemplateFinal;
+                // }
+                // else {
+                //     throw new Error(this.kind + " generateOpacityDC: MSAA is true, but no MSAA material");
+                // }
+                let valueDC = getIV_DC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.MSAA }, false, this);
                 valueDC.system!.MSAA = "MSAA";
                 if (TO !== undefined)
                     valueDC.label = this.kind + " TO MSAA :" + this.Name + " for  " + E_renderForDC.camera + ": " + UUID;
@@ -376,14 +397,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
             }
             {       //info forward 部分
-                if (uniformsMaterialMSAA) {
-                    bundle.uniformGroups[0].push(...uniformsMaterialMSAA.inforForward.uniformGroup);
-                    bundle.shaderTemplateFinal.material = uniformsMaterialMSAA.inforForward.singleShaderTemplateFinal;
-                }
-                else {
-                    throw new Error(this.kind + " generateOpacityDC: MSAA is true, but no info material");
-                }
-                let valueDC = getIV_DC(E_renderForDC.camera, UUID, bundle, false, this);
+                // if (uniformsMaterialMSAA) {
+                //     bundle.uniformGroups[0].push(...uniformsMaterialMSAA.inforForward.uniformGroup);
+                //     bundle.shaderTemplateFinal.material = uniformsMaterialMSAA.inforForward.singleShaderTemplateFinal;
+                // }
+                // else {
+                //     throw new Error(this.kind + " generateOpacityDC: MSAA is true, but no info material");
+                // }
+                let valueDC = getIV_DC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.inforForward }, false, this);
                 valueDC.system!.MSAA = "MSAAinfo";
                 if (TO !== undefined)
                     valueDC.label = this.kind + " TO MSAA info :" + this.Name + " for  " + E_renderForDC.camera + ": " + UUID;
@@ -395,14 +416,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
         else {//正常的前向渲染输出,只输出一个DC（defer 或  forward）
             //mesh VS 模板输出
-            // let bundle = this.getUniformAndShaderTemplateFinal(SHT_MeshVS);
+            // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
             let uniformsMaterial: I_materialBundleOutput;
             if (this.deferColor) {
                 if (TO !== undefined) {
-                    uniformsMaterial = material.getFS_TO_DeferColor(bundle.bindingNumber);
+                    uniformsMaterial = material.getFS_TO_DeferColor();
                 }
                 else
-                    uniformsMaterial = material.getOpacity_DeferColor(bundle.bindingNumber);
+                    uniformsMaterial = material.getOpacity_DeferColor();
             }
             else {
                 if (TO !== undefined) {
@@ -412,24 +433,28 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     uniformsMaterial = TO;
                 }
                 else
-                    uniformsMaterial = material.getOpacity_Forward(bundle.bindingNumber);
+                    uniformsMaterial = material.getOpacity_Forward();
             }
             // //材质的shader 模板输出，
             {
-                bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
-                bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-                let valueDC = getIV_DC(E_renderForDC.camera, UUID, bundle, false, this);
+                // bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
+                // bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
+                let valueDC = getIV_DC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterial }, false, this);
+                // valueDC = this.addMaterialSHT(valueDC, uniformsMaterial);
                 let drawFor = " forward ";
                 if (this.deferColor) drawFor = " defer "
                 if (TO !== undefined)
-                    valueDC.label = this.kind + this.Name + drawFor + "TO for " + E_renderForDC.camera + ": " + UUID;
+                    valueDC.label = this.kind + this.Name + drawFor + "TO for " + E_renderForDC.camera + ":" + UUID;
+                    // valueDC.label = this.kind + this.Name + drawFor + "TO for " + E_renderForDC.camera + ":" + UUID;
                 else
-                    valueDC.label = this.kind + this.Name + drawFor + "opacity for " + E_renderForDC.camera + ": " + UUID;
+                    // valueDC.label = this.kind + this.Name + drawFor + "opacity for " + E_renderForDC.camera + ":" + UUID;
+                    valueDC.label = "opacity:" + valueDC.label;
                 let dc = this.DCG.generateDrawCommand(valueDC);
 
                 this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }
         }
     }
+
 
 }

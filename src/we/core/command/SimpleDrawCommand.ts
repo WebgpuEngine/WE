@@ -1,4 +1,4 @@
-import { I_EntityBundleOfUniformAndShaderTemplateFinal } from "../entity/base";
+import { I_EntityBundleOutput } from "../entity/base";
 import { isUniformBufferPart } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { I_uniformArrayBufferEntry, T_uniformGroups } from "./base";
@@ -200,7 +200,7 @@ export class SimpleDrawCommand extends BaseDrawCommand {
             code: code,
         });
     }
-    getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOfUniformAndShaderTemplateFinal {
+    getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
         //uniform 部分
         let bindingNumber = startBinding;
         //scene 和 entity 的shader模板部分

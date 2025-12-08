@@ -14,6 +14,7 @@ export var SHT_PP_RedToOne: I_ShaderTemplate = {
             QuadVS,
         ]
     },
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "Blur3x3",
         add: [

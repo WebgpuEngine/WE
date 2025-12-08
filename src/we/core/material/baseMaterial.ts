@@ -4,7 +4,7 @@ import { RootGPU } from "../organization/root";
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
-import { commmandType, I_dynamicTextureEntryForView,  T_uniformOneGroup } from "../command/base";
+import { commmandType, I_dynamicTextureEntryForView, T_uniformOneGroup } from "../command/base";
 import { I_ShaderTemplate, I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
@@ -68,6 +68,9 @@ export abstract class BaseMaterial extends RootGPU {
         level: 3
     };
 
+    /**材质的默认绑定组，默认是3。20251206 */
+    bindGroupNumber: number = 3;
+
     /**
      * 材质的更新命令队列
      * 1、有materialManager调用，每帧更新一次。
@@ -88,7 +91,7 @@ export abstract class BaseMaterial extends RootGPU {
      *      只在第一次计数，然后不要再增加。
      *      不透明，TO,TT，三个相同，其他TTP、TTPF的特殊的在此数字之后，不需要增加到此计数器
      * 
-     * 2、 uniform 的@group(1) @binding(x) 绑定字符串。
+     * 2、 uniform 的@group(${this.bindGroupNumber}) @binding(x) 绑定字符串。
      *      只在第一次进行，然后不要再增加。
      *      与uniformEntry顺序一一对应
      * 
@@ -189,7 +192,7 @@ export abstract class BaseMaterial extends RootGPU {
      * @param startBinding 
      * @returns I_materialBundleOutput
      */
-    abstract getOpacity_Forward(startBinding: number): I_materialBundleOutput;
+    abstract getOpacity_Forward(startBinding?: number): I_materialBundleOutput;
 
 
     /**
@@ -199,7 +202,7 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息
      */
-    abstract getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA;
+    abstract getOpacity_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
     // abstract getOpacity_MSAA_Info(startBinding: number): I_BundleOfMaterialForMSAA;
     /**
      * MSAA的延迟渲染 输出的shader模板
@@ -208,7 +211,7 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息（需要按照延迟渲染的约定进行）
      */
-    abstract getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA;
+    abstract getOpacity_DeferColorOfMSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
     // abstract getOpacity_DeferColorOfMSAA_Info(startBinding: number): I_BundleOfMaterialForMSAA;
 
     /**
@@ -216,7 +219,7 @@ export abstract class BaseMaterial extends RootGPU {
      * @param startBinding 
      * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
      */
-    abstract getOpacity_DeferColor(startBinding: number): I_materialBundleOutput;
+    abstract getOpacity_DeferColor(startBinding?: number): I_materialBundleOutput;
 
 
 
@@ -293,7 +296,7 @@ export abstract class BaseMaterial extends RootGPU {
                 type: "entriesToEntriesLayout",
                 map: "entriesToEntriesLayout"
             });
-            groupAndBindingString += ` @group(1) @binding(${bindingNumber}) var u_texture_ID: texture_2d<u32>; \n `;
+            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_texture_ID: texture_2d<u32>; \n `;
 
             //push到uniform1队列
             uniform1.push(uniforIDTexture);
@@ -373,7 +376,7 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息
      */
-    abstract getFS_TO_MSAA(startBinding: number): I_BundleOfMaterialForMSAA;
+    abstract getFS_TO_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
 
     /**
      * MSAA info(第二遍) 输出
@@ -388,7 +391,7 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息（需要按照延迟渲染的约定进行）
      */
-    abstract getFS_TO_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA;
+    abstract getFS_TO_DeferColorOfMSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
 
     /**
      * MSAA的info(第二遍) 延迟渲染 输出
@@ -401,7 +404,7 @@ export abstract class BaseMaterial extends RootGPU {
      * @param startBinding 
      * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
      */
-    abstract getFS_TO_DeferColor(startBinding: number): I_materialBundleOutput;
+    abstract getFS_TO_DeferColor(startBinding?: number): I_materialBundleOutput;
 
     /**
      * 格式化TTP的shader代码，并返回
@@ -416,7 +419,7 @@ export abstract class BaseMaterial extends RootGPU {
      * @param renderObject 渲染对象，相机或阴影映射
      * @param _startBinding binding开始值
      */
-    getFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+    getFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
         let groupAndBindingString = "";
         //生成 bind group相关内容
         let uniform: T_uniformOneGroup = [];
@@ -432,7 +435,9 @@ export abstract class BaseMaterial extends RootGPU {
             code = this.formatFS_TTP(renderObject);
         }
         //light shadow map TT
-        else { }
+        else {
+            //todo
+        }
         //合并
         let outputFormat: I_singleShaderTemplate_Final = {
             templateString: code,
@@ -443,7 +448,7 @@ export abstract class BaseMaterial extends RootGPU {
         return { uniformGroup: uniform, singleShaderTemplateFinal: outputFormat, bindingNumber: bindingNumber };
     }
     /**获取camera 使用的TT的uniformEntry  */
-    getUniformEntryOfCamera_TTP(renderObject: BaseCamera, _bindingNumber: number): I_PartBundleOfUniform_TT {
+    getUniformEntryOfCamera_TTP(renderObject: BaseCamera, _bindingNumber: number = 0): I_PartBundleOfUniform_TT {
         let bindingNumber = _bindingNumber;
         let groupAndBindingString = "";
         let uniformRoot: T_uniformOneGroup = [];
@@ -454,13 +459,11 @@ export abstract class BaseMaterial extends RootGPU {
             bindingNumber = uniformBundle.bindingNumber;
             groupAndBindingString += uniformBundle.groupAndBindingString;
         }
-        /**end 
+        //camera 的深度纹理，用于透明度测试（像素是否在不透明的前面）
+        {/**end 
          * 是否开启TTP的深度测试	
-         * 
          * 20251008，暂缓，开启并去除uniform深度纹理后，有问题，多色混合有问题，待查
          */
-        {
-            //camera 的深度纹理，用于透明度测试（像素是否在不透明的前面）
             let uniform1: I_dynamicTextureEntryForView;
             //这里使用map，因为每个相机都有一个深度纹理而且uniform1是动态getResource，就是说：uniform1是不变的（里面是function）
             if (this.scene.resourcesGPU.cameraToEntryOfDepthTT.has(renderObject.UUID)) {
@@ -473,8 +476,9 @@ export abstract class BaseMaterial extends RootGPU {
                     getResource: () => { return renderObject.manager.getGBufferTextureByUUID(renderObject.UUID, E_GBufferNames.depth); },
                 };
                 this.scene.resourcesGPU.cameraToEntryOfDepthTT.set(renderObject.UUID, uniform1);
-                this.mapList.push({ key: uniform1, type: "GPUBindGroupLayoutEntry", map: "cameraToEntryOfDepthTT" });
+                this.mapList.push({ key: uniform1, type: E_resourceKind.cameraToEntryOfDepthTT, map: "cameraToEntryOfDepthTT" });
             }
+
             let uniformLayout_1: GPUBindGroupLayoutEntry;
             if (this.scene.resourcesGPU.entriesToEntriesLayout.has(uniform1)) {
                 uniformLayout_1 = this.scene.resourcesGPU.entriesToEntriesLayout.get(uniform1) as GPUBindGroupLayoutEntry;
@@ -490,10 +494,10 @@ export abstract class BaseMaterial extends RootGPU {
                     },
                 };
                 this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform1, uniformLayout_1);
-                this.mapList.push({ key: uniform1, type: "GPUBindGroupLayoutEntry", map: "entriesToEntriesLayout" });
+                this.mapList.push({ key: uniform1, type: E_resourceKind.entriesToEntriesLayout, map: "entriesToEntriesLayout" });
             }
             //u_camera_opacity_depth在shader中是固定的
-            groupAndBindingString += ` @group(1) @binding(${bindingNumber}) var u_camera_opacity_depth : texture_depth_2d; \n `;
+            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_camera_opacity_depth : texture_depth_2d; \n `;
             // this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform1, uniformLayout_1);
             uniformRoot.push(uniform1);
             bindingNumber++;
@@ -512,7 +516,7 @@ export abstract class BaseMaterial extends RootGPU {
                 uniformLayout_2 = this.scene.resourcesGPU.entriesToEntriesLayout.get(uniform2) as GPUBindGroupLayoutEntry;
             }
             else {
-                if (key.indexOf("color") != -1) {
+                if (key.indexOf("color") != -1) {//测试使用的color
                     uniformLayout_2 = {
                         binding: bindingNumber,
                         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -549,10 +553,10 @@ export abstract class BaseMaterial extends RootGPU {
                 }
             }
             this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform2, uniformLayout_2);  //这里的资源需要注销管理
-            this.mapList.push({ key: uniform2, type: "GPUBindGroupLayoutEntry", map: "entriesToEntriesLayout" });
+            this.mapList.push({ key: uniform2, type: E_resourceKind.entriesToEntriesLayout, map: "entriesToEntriesLayout" });
             uniformRoot.push(uniform2);
             let uniformType = V_TransparentGBufferNames[key as E_GBufferNames].uniformType;
-            groupAndBindingString += ` @group(1) @binding(${bindingNumber}) var u_${key} : ${uniformType}; \n `;
+            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_${key} : ${uniformType}; \n `;
 
             bindingNumber++;
         }

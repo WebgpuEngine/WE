@@ -33,7 +33,7 @@ export class VertexColorMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
-    getOpacity_Forward(startBinding: number): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
     }
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
@@ -61,15 +61,15 @@ export class VertexColorMaterial extends BaseMaterial {
         }
         return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: startBinding };
     }
-    getOpacity_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getOpacity_DeferColor(startBinding: number): I_materialBundleOutput {
+    getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
@@ -84,13 +84,13 @@ export class VertexColorMaterial extends BaseMaterial {
     getFS_TO(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_MSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColorOfMSAA(startBinding: number): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColor(startBinding: number): I_materialBundleOutput {
+    getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {

@@ -12,6 +12,7 @@ import {
     SHT_replaceGBufferFSOutput,
     SHT_replaceGBufferMSAA_FSOutput,
     SHT_replaceGBufferMSAAinfo_FSOutput,
+    SHT_ScenOfCamera_FS,
     WGSL_st_Guffer,
     WGSL_st_MSAA_Guffer,
     WGSL_st_MSAAinfo_Guffer
@@ -74,6 +75,7 @@ var PBRFS = PBRMaterialWGSL.toString();
  * PBR forward SHT。(未进行材质统一化)
  */
 export var SHT_materialPBRFS: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PBRMaterial",
         add: [
@@ -137,6 +139,7 @@ export var SHT_materialPBRFS: I_ShaderTemplate = {
 }
 
 export var SHT_materialPBRFS_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PBRMaterial",
         add: [
@@ -196,6 +199,7 @@ export var SHT_materialPBRFS_MSAA: I_ShaderTemplate = {
 import PBRMaterialMSAAinfoWGSL from "../../shader/material/PBR/PBRMSAAinfo.fs.wgsl?raw"
 var PBRFS_MSAAinfo = PBRMaterialMSAAinfoWGSL.toString();
 export var SHT_materialPBRFS_MSAA_info: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PBRMaterial",
         add: [
@@ -268,6 +272,7 @@ var SHT_replace_PBR_deferColorCode: I_shaderTemplateReplace =
  * forward defer PBR part of forward SHT。(未进行材质统一化)
  */
 export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PBRMaterial",
         add: [
@@ -330,6 +335,7 @@ export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
 }
 
 export var SHT_materialPBRFS_defer_MSAA: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "PBRMaterial",
         add: [

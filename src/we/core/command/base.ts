@@ -134,18 +134,18 @@ export interface I_dynamicTextureEntryForView {
  */
 export type T_uniformEntries = GPUBindGroupEntry | I_uniformArrayBufferEntry | I_dynamicTextureEntryForView | I_dynamicTextureEntryForExternal;
 
-export type  T_uniformOneGroup = T_uniformEntries[];
+export type  T_uniformOneGroup = T_uniformEntries[];    //entity 等内部使用的uniform group，每个group 是一个bind group，不能为空数组或undefined
 /**  bind group的数组  
  * 1、undefined 表示没有uniform group
  * 2、[] 表示空的uniform group.未验证
 */
-export type T_uniformGroups = T_uniformOneGroup | [] |undefined;
+export type T_uniformGroups = T_uniformOneGroup | [] |undefined;  // DCG 使用，可以支持多个uniform group，包括空的uniform group和undefined，
 
 /** bind group layout的数组  
  * 1、undefined 表示没有uniform group layout 
  * 2、[] 表示空的uniform group.未验证
 */
-export type T_BindGroupLayout = GPUBindGroupLayoutEntry[] | undefined;
+export type T_BindGroupLayout = GPUBindGroupLayoutEntry[] | undefined;      //DCG 使用，可以支持多个uniform group layout，包括空的uniform group layout和undefined，
 
 /**bind group 和 bind group layout的组合接口 */
 export interface I_bindGroupAndGroupLayout {
