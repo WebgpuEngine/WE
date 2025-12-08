@@ -49,7 +49,7 @@ let geometry = new LatheGeometry({
 });
 
 let colorMaterial = new ColorMaterial({
-  color: [0, 0.5, 0.5, 1]
+  color: [0, 0.1, 0.2, 1]
 });
 
 let inputMesh: IV_MeshEntity = {
