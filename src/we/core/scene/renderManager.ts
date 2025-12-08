@@ -533,18 +533,18 @@ export class RenderManager {
             let UUID = i;
             //2 for 单个camera的command
 
-            for (let perCommand of perOne) {
-                if (Array.isArray(perCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
-                    this.renderTTP(UUID, perCommand);
-                }
-                else {//否则，是单个透明物体，直接渲染
-                    this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
-                    this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-                    perCommand.submit();  // 渲染
-                }
-            }
+            // for (let perCommand of perOne) {
+            //     if (Array.isArray(perCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
+            //         this.renderTTP(UUID, perCommand);
+            //     }
+            //     else {//否则，是单个透明物体，直接渲染
+            //         this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
+            //         this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+            //         perCommand.submit();  // 渲染
+            //     }
+            // }
             //这里是透明渲染DC的渲染TTP的单纯渲染TTP的测试，相对于上面的for中的array直接传入
-            // await this.renderTTP(UUID, perOne as commmandType[]);
+            await this.renderTTP(UUID, perOne as commmandType[]);
 
         }// end for of camera UUID
     }
@@ -647,40 +647,7 @@ export class RenderManager {
             }
         }
     }
-    // oldrenderForwaredDC(commands: I_renderDrawCommand) {
-    //     // let cameraRendered: {
-    //     //     [name: string]: number
-    //     // } = {};
-    //     for (let UUID in commands) {
-    //         let perOne = commands[UUID];
-    //         //pipeline passEncoder 部分
-    //         let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
 
-    //         // forward render by pipeline
-    //         for (const [key2, value] of perOne.pipelineOrder.entries()) {
-    //             //camera pipeline submit count  and rpd loadOP chang part 
-    //             this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
-
-    //             let { passEncoder, commandEncoder } = (value[0] as DrawCommand).doEncoderStart();//获取encoder
-    //             for (let i = 0; i < value.length; i++) {
-    //                 (value[i] as DrawCommand).doEncoder(passEncoder);                           //绘制命令
-    //             }
-    //             let commandBuffer = (value[0] as DrawCommand).dotEncoderEnd(passEncoder, commandEncoder);//结束encoder
-    //             submitCommand.push(commandBuffer);
-    //             this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
-    //             //push commandBuffer
-    //         }
-    //         for (let perDyn of perOne.dynmaicOrder) {
-    //             //camera pipeline submit count  and rpd loadOP chang part 
-    //             this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
-    //             this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
-    //             submitCommand.push(perDyn.update());//webGPU的commandBuffer时一次性的
-    //         }
-    //         //submit part
-    //         if (submitCommand.length > 0)
-    //             this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-    //     }
-    // }
     async renderForwaredDC(commands: I_renderDrawCommand, MSAA?: T_rpdInfomationOfMSAA) {
         // let cameraRendered: {
         //     [name: string]: number

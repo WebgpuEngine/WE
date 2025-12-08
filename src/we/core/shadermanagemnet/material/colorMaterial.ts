@@ -52,6 +52,7 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial_MSAA",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAA_Guffer,
@@ -90,6 +91,7 @@ export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial_MSAA_info",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAAinfo_Guffer,
@@ -132,6 +134,7 @@ export var SHT_materialColor_TT_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial_TT",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -169,6 +172,7 @@ export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial_TTP",
         add: [
+            SHT_vsStructOutput,
             SHT_TT,
             {
                 name: "fsOnput",
@@ -208,6 +212,7 @@ export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial_TTPF",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -239,6 +244,7 @@ export var SHT_materialOneCubeFS: I_ShaderTemplate = {
     material: {
         owner: "PositionColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fs",
                 code: colorFS,

@@ -5,7 +5,7 @@ import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
 import { commmandType, I_dynamicTextureEntryForView, T_uniformOneGroup } from "../command/base";
-import { I_ShaderTemplate, I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final, T_SHTReplaceList } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { E_resourceKind } from "../resources/resourcesGPU";
@@ -69,7 +69,7 @@ export abstract class BaseMaterial extends RootGPU {
     };
 
     /**材质的默认绑定组，默认是3。20251206 */
-    bindGroupNumber: number = 3;
+    bindGroupNumber: number = 2;
 
     /**
      * 材质的更新命令队列
@@ -328,7 +328,7 @@ export abstract class BaseMaterial extends RootGPU {
      *     TTPF: I_materialBundleOutput
      * }
      */
-    getTTTT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): {
+    getTTTT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): {
         TT: I_materialBundleOutput,
         TO?: I_materialBundleOutput,
         TTP: I_materialBundleOutput,
@@ -408,10 +408,11 @@ export abstract class BaseMaterial extends RootGPU {
 
     /**
      * 格式化TTP的shader代码，并返回
+     * 1、各类材质自行实现，SHT在TTP的代码中
      * @param renderObject 渲染对象，相机或阴影映射
      * @returns 
      */
-    abstract formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string;
+    abstract formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput;
 
     /**
      * 透明材质的像素级别对比与处理 （ transparent  transparent pixcel  ）
@@ -425,27 +426,24 @@ export abstract class BaseMaterial extends RootGPU {
         let uniform: T_uniformOneGroup = [];
         let bindingNumber = startBinding;
         let template: I_ShaderTemplate;
-        let code: string = "";
+        let output: I_materialBundleOutput;
         if (renderObject instanceof BaseCamera) {
-            let partBundleOfUniform_TT = this.getUniformEntryOfCamera_TTP(renderObject, bindingNumber);
-            bindingNumber = partBundleOfUniform_TT.bindingNumber;
-            groupAndBindingString += partBundleOfUniform_TT.groupAndBindingString;
-            uniform.push(...partBundleOfUniform_TT.uniformGroup);
-            //format code ,子材质实现的格式化代码
-            code = this.formatFS_TTP(renderObject);
+            output = this.formatFS_TTP(renderObject);
+            let partBundleOfUniform_TT = this.getUniformEntryOfCamera_TTP(renderObject, output.bindingNumber);
+            output.bindingNumber = partBundleOfUniform_TT.bindingNumber;
+            //更新groupAndBindingString
+            output.shaderTemplateFinal.material.groupAndBindingString += partBundleOfUniform_TT.groupAndBindingString;
+            //合并 TTP的uniform 到 output
+            output.uniformGroup.push(...partBundleOfUniform_TT.uniformGroup);
+            //由于使用camera的gbuffer，所以bindgroup 需要动态获取（resize 会重建gbuffer）
+            output.shaderTemplateFinal.material.dynamic = true;
+            return output;
         }
         //light shadow map TT
         else {
             //todo
+            throw new Error("light shadow map TT todo");
         }
-        //合并
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
-            groupAndBindingString,
-            owner: this,
-            dynamic: true
-        }
-        return { uniformGroup: uniform, singleShaderTemplateFinal: outputFormat, bindingNumber: bindingNumber };
     }
     /**获取camera 使用的TT的uniformEntry  */
     getUniformEntryOfCamera_TTP(renderObject: BaseCamera, _bindingNumber: number = 0): I_PartBundleOfUniform_TT {
@@ -770,4 +768,76 @@ export abstract class BaseMaterial extends RootGPU {
         return true;
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // function 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    convertAddPartOfSHT(addPart: I_shaderTemplateAdd[]): string {
+        let code: string = "";
+        for (let perOne of addPart) {
+            code += perOne.code;
+        }
+        return code;
+    }
+
+    formatSHT(template: I_ShaderTemplate, replaceList: T_SHTReplaceList, startBinding: number): I_materialBundleOutput {
+        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+        //获取固定uniform序列
+        let uniformBundle = this.getUniformEntryBundleOfCommon(startBinding);
+        for (let i in template) {
+            let perPartSHT = template[i] as I_ShaderTemplate;
+            if (i == "scene") {
+                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
+                shaderTemplateFinal[i] = shader.scene;
+            }
+            else if (i == "material") {
+                let code: string = "";
+                code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
+                for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
+                    if (code.indexOf(perOne.replace) != -1) {
+                        //replaceCode
+                        if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+                            code = code.replace(perOne.replace, perOne.replaceCode as string);
+                        }
+                        //replaceValue
+                        else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+                            let replaceValue: string = "";
+                            if (replaceList.has(perOne.replace)) {
+                                let getReplaceValue = replaceList.get(perOne.replace) as string;
+                                if (!getReplaceValue) {
+                                    throw new Error("replaceValue is undefined");
+                                }
+                                if (typeof getReplaceValue == "function") {
+                                    replaceValue = (getReplaceValue as (() => string))();
+                                }
+                                else {
+                                    replaceValue = getReplaceValue;
+                                }
+                            }
+                            else {
+                                replaceValue = "";
+                            }
+                            code = code.replace(perOne.replace, replaceValue);
+                        }
+                        //替换选择代码
+                        else if (perOne.replaceType == E_shaderTemplateReplaceType.selectCode) {
+                            if (code.indexOf(perOne.check!) != -1) {
+                                code = code.replace(perOne.replace, perOne.selectCode![1]);
+                            }
+                            else {
+                                code = code.replace(perOne.replace, perOne.selectCode![0]);
+                            }
+                        }
+                    }
+                }
+                shaderTemplateFinal[i] = {
+                    templateString: code,
+                    groupAndBindingString: uniformBundle.groupAndBindingString,
+                    owner: perPartSHT.owner,
+                }
+            }
+        }
+        return { uniformGroup: uniformBundle.entry, shaderTemplateFinal, bindingNumber: uniformBundle.bindingNumber };
+    }
+
 }
+

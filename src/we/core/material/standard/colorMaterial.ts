@@ -89,7 +89,12 @@ export class ColorMaterial extends BaseMaterial {
     }
 
     getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
+        let template = SHT_materialColorFS;
+        let replaceList = new Map<string, string | (() => string)>();
+        replaceList.set("$fsOutputColor", ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+        let output = this.formatSHT(template, replaceList, startBinding);
+        return output;
+        // return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
     }
     /**
      *  不透明材质的Oqa
@@ -97,7 +102,6 @@ export class ColorMaterial extends BaseMaterial {
      * @returns 
      */
     getOpaqueCodeFS(template: I_ShaderTemplate, _startBinding: number): I_materialBundleOutput {
-        // let template = SHT_materialColorFS;
         let uniform1: T_uniformOneGroup = [];
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
         for (let i in template) {
@@ -108,25 +112,21 @@ export class ColorMaterial extends BaseMaterial {
             }
             else if (i == "material") {
                 let code: string = "";
-                let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-                // let replaceValue: string = ` output.color = vec4f(fsInput.uv.xy,1,1); \n`;
-
-                for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-                    code += perOne.code;
-                }
+                code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
                 for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
                     if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
                         code = code.replace(perOne.replace, perOne.replaceCode as string);
                     }
                     //$color
                     if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+                        let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
                         code = code.replace(perOne.replace, replaceValue);
                     }
                 }
                 shaderTemplateFinal[i] = {
                     templateString: code,
                     groupAndBindingString: "",
-                    owner: this,
+                    owner: perPartSHT.owner,
                 }
             }
         }
@@ -164,71 +164,45 @@ export class ColorMaterial extends BaseMaterial {
     }
 
 
-    getFS_TT(_renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialColor_TT_FS;
-
-        let uniform1: T_uniformGroups = [];
-        let code: string = "";
-        let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-        // let replaceValue: string = ` output.color = vec4f(fsInput.uv.xy,1,1); \n`;
-
-
-        for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-            code += perOne.code;
-        }
-        for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-            if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                code = code.replace(perOne.replace, perOne.replaceCode as string);
-            }
-            //$color
-            if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                code = code.replace(perOne.replace, replaceValue);
-            }
-        }
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
-            groupAndBindingString: "",
-            owner: this,
-        }
-        return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: _startBinding };
+    getFS_TT(_renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
+        return this.getOpaqueCodeFS(SHT_materialColor_TT_FS, startBinding);
     }
 
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         let template = SHT_materialColor_TTPF_FS;
-        let bindingNumber = startBinding;
+        let replaceList = new Map<string, string | (() => string)>();
 
-        let groupAndBindingString = "";
-        let uniform1: T_uniformOneGroup = [];
-        let code: string = "";
+
         let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
         if (renderObject instanceof BaseCamera) {
+
+            // //格式化SHT  ，同TT
+            // for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
+            //     code += perOne.code;
+            // }
+            // for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
+            //     if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+            //         code = code.replace(perOne.replace, perOne.replaceCode as string);
+            //     }
+            //     //$color
+            //     if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+            //         code = code.replace(perOne.replace, replaceValue);
+            //     }
+            // }
+            replaceList.set("$fsOutputColor", replaceValue);
+            let output = this.formatSHT(template, replaceList, 0);
+            output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
             {//获取当前材质的TTPF的输出uniform bundle 。
-                let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, bindingNumber);
-                uniform1.push(...uniformBundle.entry);
-                bindingNumber = uniformBundle.bindingNumber;
-                groupAndBindingString += uniformBundle.groupAndBindingString;
+                let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
+                output.uniformGroup.push(...uniformBundle.entry);
+                output.bindingNumber = uniformBundle.bindingNumber;
+                output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
             }
-            //格式化SHT  ，同TT
-            for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-                code += perOne.code;
-            }
-            for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-                if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                    code = code.replace(perOne.replace, perOne.replaceCode as string);
-                }
-                //$color
-                if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                    code = code.replace(perOne.replace, replaceValue);
-                }
-            }
+            return output;
         }
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
-            groupAndBindingString: groupAndBindingString,
-            owner: this,
-            dynamic: true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
+        else {
+            throw new Error("Method not implemented.");
         }
-        return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: bindingNumber };
     }
 
     /**
@@ -236,35 +210,54 @@ export class ColorMaterial extends BaseMaterial {
      * @param renderObject 渲染对象，相机或阴影映射
      * @returns 
      */
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {
+    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         let code: string = "";
         if (renderObject instanceof BaseCamera) {
-            //format code 
+            //camera 的TTP  SHT
             template = SHT_materialColor_TTP_FS;
-            //add
-            for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-                code += perOne.code;
-            }
-            //replace
-            for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-                if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                    code = code.replace(perOne.replace, perOne.replaceCode as string);
-                }
-                if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                    //$Color
-                    if (perOne.name == "colorFS set color") {
-                        let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-                        code = code.replace(perOne.replace, replaceValue);
-                    }
-                }
-            }
+            let replaceList = new Map<string, string | (() => string)>();
+            replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+            let output = this.formatSHT(template, replaceList, 0);
+            return output;
+            // let uniform1: T_uniformOneGroup = [];
+            // let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+            // for (let i in template) {
+            //     let perPartSHT = template[i] as I_ShaderTemplate;
+            //     if (i == "scene") {
+            //         let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
+            //         shaderTemplateFinal[i] = shader.scene;
+            //     }
+            //     else if (i == "material") {
+            //         let code: string = "";
+            //         //add
+            //         code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
+            //         //replace 
+            //         for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
+            //             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+            //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
+            //             }
+            //             if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+            //                 //$OutputColor
+            //                 if (perOne.replace == "$OutputColor") {
+            //                     let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+            //                     code = code.replace(perOne.replace, replaceValue);
+            //                 }
+            //             }
+            //         }
+            //         shaderTemplateFinal[i] = {
+            //             templateString: code,
+            //             groupAndBindingString: "",
+            //             owner: this,
+            //         }
+            //     }
+            // }
+            // return { uniformGroup: uniform1, shaderTemplateFinal, bindingNumber: 0 };
         }
         //light shadow map TT
         else {
-
+            throw new Error("ColorMaterial TTP 级别透明阴影 todo");
         }
-        return code;
     }
     /**
      * ColorMaterial 的没有uniform，所以返回的都是空数组和空字符串

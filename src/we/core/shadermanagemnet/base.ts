@@ -14,6 +14,13 @@
     selectCode,         //选择性替换代码，根据check的内容进行替换（false，true）对应数组（0,1）
 */
 ///////////////////////////////////////////////////////////////////////////
+/** 
+ * 替换列表，key是占位符，value是替换的内容 
+ * 1、material使用
+ * 
+*/
+export type T_SHTReplaceList = Map<string, string | (() => string)>;
+
 /**
  * add 模拟部分内容
  */
@@ -56,7 +63,7 @@ export enum E_shaderTemplateReplaceType {
     // replaceString,      //替换为字符串
     replaceCode,        //替换为WGSL代码
     selectCode,         //选择性替换代码，根据check的内容进行替换（false，true）对应数组（0,1）
-    checkVarOfJS,       //检查JS的变量
+    // checkVarOfJS,       //检查JS的变量
 }
 /**
  * 单个模板的内容组成部分

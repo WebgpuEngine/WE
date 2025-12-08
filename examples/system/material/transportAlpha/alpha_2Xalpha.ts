@@ -60,7 +60,7 @@ let inputMesh0: IV_MeshEntity = {
   primitive: {
     cullMode: "none",
   },
-  position: [0, -5, 0],
+  position: [0, -40, 0],
   scale: [10, 10, 10],
   rotate: [1, 0, 0, Math.PI / 2],
 

@@ -351,7 +351,7 @@ export class DrawCommandGenerator {
      * @param values 
      * @returns 
      */
-    generateDrawCommand(values: IV_DC) {
+    generateDrawCommand(values: IV_DC): DrawCommand {
         this.inputDC.push(values);//保存每个DC的init参数，为了后续的更新uniform使用（如果其中有update选项）
         //1、buffer资源
         let { DC_vertexBuffers, DC_indexBuffer, DC_vertexNames, DC_localtions, DC_verticesBufferLayout } = this.initVertexPart(values);
