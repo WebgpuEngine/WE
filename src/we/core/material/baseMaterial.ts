@@ -459,25 +459,30 @@ export abstract class BaseMaterial extends RootGPU {
          * 20251008，暂缓，开启并去除uniform深度纹理后，有问题，多色混合有问题，待查
          */
             let uniform1: I_dynamicTextureEntryForView;
-            //这里使用map，因为每个相机都有一个深度纹理而且uniform1是动态getResource，就是说：uniform1是不变的（里面是function）
-            if (this.scene.resourcesGPU.cameraToEntryOfDepthTT.has(renderObject.UUID)) {
-                uniform1 = this.scene.resourcesGPU.cameraToEntryOfDepthTT.get(renderObject.UUID) as I_dynamicTextureEntryForView;
-            }
-            else {
+
+            /**这里不适用map，因为camera相同，但每个材质的uniform顺序不同，绑定binding不同 */
+            // //这里使用map，因为每个相机都有一个深度纹理而且uniform1是动态getResource，就是说：uniform1是不变的（里面是function）
+            // if (this.scene.resourcesGPU.cameraToEntryOfDepthTT.has(renderObject.UUID)) {
+            //     uniform1 = this.scene.resourcesGPU.cameraToEntryOfDepthTT.get(renderObject.UUID) as I_dynamicTextureEntryForView;
+            // }
+            // else
+            {
                 uniform1 = {
                     label: "colorTT camera depth of " + renderObject.UUID,
                     binding: bindingNumber,
                     getResource: () => { return renderObject.manager.getGBufferTextureByUUID(renderObject.UUID, E_GBufferNames.depth); },
                 };
-                this.scene.resourcesGPU.cameraToEntryOfDepthTT.set(renderObject.UUID, uniform1);
-                this.mapList.push({ key: uniform1, type: E_resourceKind.cameraToEntryOfDepthTT, map: "cameraToEntryOfDepthTT" });
+                // this.scene.resourcesGPU.cameraToEntryOfDepthTT.set(renderObject.UUID, uniform1);
+                // this.mapList.push({ key: uniform1, type: E_resourceKind.cameraToEntryOfDepthTT, map: "cameraToEntryOfDepthTT" });
             }
 
             let uniformLayout_1: GPUBindGroupLayoutEntry;
-            if (this.scene.resourcesGPU.entriesToEntriesLayout.has(uniform1)) {
-                uniformLayout_1 = this.scene.resourcesGPU.entriesToEntriesLayout.get(uniform1) as GPUBindGroupLayoutEntry;
-            }
-            else {
+            // if (this.scene.resourcesGPU.entriesToEntriesLayout.has(uniform1)) {
+            //     uniformLayout_1 = this.scene.resourcesGPU.entriesToEntriesLayout.get(uniform1) as GPUBindGroupLayoutEntry;
+            //     console.log("resoureGPU")
+            // }
+            // else 
+            {
                 uniformLayout_1 = {
                     binding: bindingNumber,
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -494,6 +499,7 @@ export abstract class BaseMaterial extends RootGPU {
             groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_camera_opacity_depth : texture_depth_2d; \n `;
             // this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform1, uniformLayout_1);
             uniformRoot.push(uniform1);
+            console.log(`1 :TTP uniform binding ${bindingNumber},uniform:${uniform1.binding},layout:${uniformLayout_1.binding}`);
             bindingNumber++;
         }
 
@@ -551,7 +557,7 @@ export abstract class BaseMaterial extends RootGPU {
             uniformRoot.push(uniform2);
             let uniformType = V_TransparentGBufferNames[key as E_GBufferNames].uniformType;
             groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_${key} : ${uniformType}; \n `;
-
+            console.log(`2 :TTP uniform binding ${bindingNumber},uniform:${uniform2.binding},layout:${uniformLayout_2.binding}`, this);
             bindingNumber++;
         }
 
@@ -784,7 +790,7 @@ export abstract class BaseMaterial extends RootGPU {
     ): I_materialBundleOutput {
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
         //获取固定uniform序列
-        let uniformBundle: I_UniformBundleOfMaterial= this.getUniformEntryBundleOfCommon(startBinding);
+        let uniformBundle: I_UniformBundleOfMaterial = this.getUniformEntryBundleOfCommon(startBinding);
         // if (isTTPF === true) {
         //     if (!renderObject) {
         //         throw new Error("renderObject is undefined");
