@@ -1,4 +1,4 @@
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateReplace, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_transparentbuffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateReplace, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_transparentbuffer } from "../base"
 import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -11,6 +11,7 @@ export var SHT_materialTextureFS: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -48,6 +49,7 @@ export var SHT_materialTextureFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAA_Guffer,
@@ -85,6 +87,7 @@ export var SHT_materialTextureFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAA_Guffer,
@@ -135,6 +138,7 @@ export var SHT_materialTexture_TT_FS: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -169,6 +173,7 @@ export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
     material: {
         owner: "TextureMaterial",
         add: [
+            SHT_vsStructOutput,
             SHT_TT,
             {
                 name: "fsOnput",
@@ -182,6 +187,7 @@ export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
                 replaceType: E_shaderTemplateReplaceType.replaceCode,  //` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha});
                 replaceCode: textureTTP_FS,
             },
+            SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 
             SHT_replaceTT_FSOutput,             // replace: "$fsOutput",   ！！！！！！！
 
@@ -198,6 +204,7 @@ export var SHT_materialTexture_TTPF_FS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,

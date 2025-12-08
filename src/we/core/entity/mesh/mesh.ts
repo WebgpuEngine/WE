@@ -379,7 +379,7 @@ export class Mesh extends EntityBundleMaterial {
                 {
                     // uniform  层数
                     let unifromTTPF: I_uniformArrayBufferEntry = {
-                        label: this.Name + " uniform at group(1) binding(" + bindingNumber + ")",
+                        label: this.Name + " uniform at group(2) binding(" + bindingNumber + ")",
                         binding: bindingNumber,
                         size: this.uniformOfTTPFSize,
                         data: this.uniformOfTTPF,
@@ -407,7 +407,7 @@ export class Mesh extends EntityBundleMaterial {
                 //RPD
                 valueDC.renderPassDescriptor = () => { return camera.manager.GBufferManager.getGBufferColorRPD_TTPF(UUID); };
                 //label
-                valueDC.label = "mesh:" + this.ID + " TTPF";
+                valueDC.label =`TTPF mesh:${this.ID}`;
                 ////没有深度比较，没有深度写入
                 valueDC.render.depthStencil = false;
                 // GPUColorTargetState

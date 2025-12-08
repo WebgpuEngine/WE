@@ -25,6 +25,7 @@ fn checkDepthOfTransparent(fsInput: VertexShaderOutput) -> bool {
 
 @fragment 
 fn fs(fsInput: VertexShaderOutput) -> ST_TransParentGBuffer {    
+
     var output: ST_TransParentGBuffer;
     let isTransparent = checkDepthOfTransparent(fsInput);
         initSystemOfFS();

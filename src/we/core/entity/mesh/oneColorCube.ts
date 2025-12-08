@@ -1,4 +1,4 @@
-import { I_uniformArrayBufferEntry, T_uniformGroups } from "../../command/base";
+import { I_uniformArrayBufferEntry, T_uniformGroups, T_uniformOneGroup } from "../../command/base";
 import { VertexColorMaterial } from "../../material/standard/vertexColorMaterial";
 import { I_ShaderTemplate, I_ShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { IV_MeshEntity, Mesh } from "./mesh";
@@ -51,7 +51,7 @@ export class OneColoeCube extends Mesh {
     getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate,startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
         //uniform 部分
         let bindingNumber = startBinding;
-        let uniform1: T_uniformGroups = [];
+        let uniform1: T_uniformOneGroup = [];
 
         let unifrom10: I_uniformArrayBufferEntry = {
             label: this.Name + " uniform at group(1) binding(0)",
@@ -88,20 +88,19 @@ export class OneColoeCube extends Mesh {
                 };
             }
         }
-        let uniformsMaterial
-        if (wireFrame === false) {
-            //material 部分：uniform 和 shader模板输出
-            uniformsMaterial = this._material.getOpacity_Forward(bindingNumber);
-        }
-        else {
-            uniformsMaterial = this._materialWireframe.getOpacity_Forward(bindingNumber);
-        }
-        if (uniformsMaterial) {
-            uniform1.push(...uniformsMaterial.uniformGroup);
-            shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-        }
-        let uniformGroups: T_uniformGroups[] = [uniform1];
+        // let uniformsMaterial
+        // if (wireFrame === false) {
+        //     //material 部分：uniform 和 shader模板输出
+        //     uniformsMaterial = this._material.getOpacity_Forward(bindingNumber);
+        // }
+        // else {
+        //     uniformsMaterial = this._materialWireframe.getOpacity_Forward(bindingNumber);
+        // }
+        // if (uniformsMaterial) {
+        //     uniform1.push(...uniformsMaterial.uniformGroup);
+        //     shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
+        // }
 
-        return { uniformGroups, shaderTemplateFinal, bindingNumber };
+        return { uniformGroup:uniform1, shaderTemplateFinal, bindingNumber };
     }
 }

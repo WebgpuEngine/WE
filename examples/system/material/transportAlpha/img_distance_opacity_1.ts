@@ -100,3 +100,18 @@ let inputMesh2: IV_MeshEntity = {
 let mesh2 = new Mesh(inputMesh2);
 await scene.add(mesh2);
 
+// let inputMesh3: IV_MeshEntity = {
+//   attributes: {
+//     geometry: planeGeometry,
+//   },
+//   material: textureMaterial,
+//   position: [0, 0, -4],
+
+//   // rotate: [1, 0, 0, Math.PI / 2],
+//   primitive: {
+//     cullMode: "none",
+//   }
+// }
+// let mesh3 = new Mesh(inputMesh3);
+// await scene.add(mesh3);
+

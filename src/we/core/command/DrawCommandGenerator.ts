@@ -946,7 +946,7 @@ export class DrawCommandGenerator {
                 let bindGroupLayout: GPUBindGroupLayout;
                 //BindGroup 的layout 描述，重点2->2.1
                 let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                    label: `BGLD(${layoutNumber})@${this.clock.now} ${values.label}`,
+                    label: `BGLD(${i})(${layoutNumber}) ${values.label}@${this.clock.now}`,
                     // label: values.label +" BGLD: "+ layoutNumber + " time:"+this.clock.now,
                     entries: []
                 };
@@ -971,7 +971,8 @@ export class DrawCommandGenerator {
                     }
 
                 }
-                else {//不在BindGroup 和BindGroupLayout的记录，创建
+                else
+                     {//不在BindGroup 和BindGroupLayout的记录，创建
                     for (let j in perGroup) {
                         let perEntry = perGroup[j];
                         let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
@@ -1061,7 +1062,7 @@ export class DrawCommandGenerator {
                 DC_bindGroups.push(bindGroup);
                 DC_bindGroupLayouts.push(bindGroupLayout);
                 layoutNumber++;
-            }
+            }//end for values.data.uniforms
         }
         return { DC_bindGroups, DC_bindGroupLayouts };
     }

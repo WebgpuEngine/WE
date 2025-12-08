@@ -19,7 +19,7 @@
  * 1、material使用
  * 
 */
-export type T_SHTReplaceList = Map<string, string | (() => string)>;
+export type T_SHTReplaceList = Map<string, string | ((scope?:any) => string)>;
 
 /**
  * add 模拟部分内容

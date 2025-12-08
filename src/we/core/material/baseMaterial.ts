@@ -255,11 +255,12 @@ export abstract class BaseMaterial extends RootGPU {
       * @param startBinding  起始绑定槽位
       * @returns 绑定槽位，组绑定字符串，uniform组，layout组
       */
-    abstract getUniformEntryBundleOfCommon(startBinding: number): {
-        bindingNumber: number,
-        groupAndBindingString: string,
-        entry: T_uniformOneGroup,
-    }
+    abstract getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial
+    //  {
+    //     bindingNumber: number,
+    //     groupAndBindingString: string,
+    //     entry: T_uniformOneGroup,
+    // }
     /**
      * 获取当前材质的TTPF的输出uniform bundle 。（在common uniform bundle之后）
      * @param renderObject 
@@ -421,11 +422,6 @@ export abstract class BaseMaterial extends RootGPU {
      * @param _startBinding binding开始值
      */
     getFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
-        let groupAndBindingString = "";
-        //生成 bind group相关内容
-        let uniform: T_uniformOneGroup = [];
-        let bindingNumber = startBinding;
-        let template: I_ShaderTemplate;
         let output: I_materialBundleOutput;
         if (renderObject instanceof BaseCamera) {
             output = this.formatFS_TTP(renderObject);
@@ -451,12 +447,12 @@ export abstract class BaseMaterial extends RootGPU {
         let groupAndBindingString = "";
         let uniformRoot: T_uniformOneGroup = [];
 
-        {//获取固定uniform序列
-            let uniformBundle = this.getUniformEntryBundleOfCommon(bindingNumber);
-            uniformRoot.push(...uniformBundle.entry);
-            bindingNumber = uniformBundle.bindingNumber;
-            groupAndBindingString += uniformBundle.groupAndBindingString;
-        }
+        // {//获取固定uniform序列
+        //     let uniformBundle = this.getUniformEntryBundleOfCommon(bindingNumber);
+        //     uniformRoot.push(...uniformBundle.entry);
+        //     bindingNumber = uniformBundle.bindingNumber;
+        //     groupAndBindingString += uniformBundle.groupAndBindingString;
+        // }
         //camera 的深度纹理，用于透明度测试（像素是否在不透明的前面）
         {/**end 
          * 是否开启TTP的深度测试	
@@ -779,10 +775,25 @@ export abstract class BaseMaterial extends RootGPU {
         return code;
     }
 
-    formatSHT(template: I_ShaderTemplate, replaceList: T_SHTReplaceList, startBinding: number): I_materialBundleOutput {
+    formatSHT(
+        template: I_ShaderTemplate,
+        replaceList: T_SHTReplaceList,
+        startBinding: number,
+        // isTTPF: boolean = false,
+        // renderObject?: BaseCamera
+    ): I_materialBundleOutput {
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
         //获取固定uniform序列
-        let uniformBundle = this.getUniformEntryBundleOfCommon(startBinding);
+        let uniformBundle: I_UniformBundleOfMaterial= this.getUniformEntryBundleOfCommon(startBinding);
+        // if (isTTPF === true) {
+        //     if (!renderObject) {
+        //         throw new Error("renderObject is undefined");
+        //     }
+        //     uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, startBinding);
+        // }
+        // else {
+        //     uniformBundle = this.getUniformEntryBundleOfCommon(startBinding);
+        // }
         for (let i in template) {
             let perPartSHT = template[i] as I_ShaderTemplate;
             if (i == "scene") {

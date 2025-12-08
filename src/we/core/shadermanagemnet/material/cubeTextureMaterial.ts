@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //material
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
 
 
 import cubeSKyTextureFSWGSL from "../../shader/material/texture/cubeSkyTexture.fs.wgsl?raw";
@@ -11,6 +11,7 @@ export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -38,6 +39,7 @@ export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAA_Guffer,
@@ -71,6 +73,7 @@ export var SHT_materialCubeSkyTextureFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAAinfo_Guffer,
@@ -108,6 +111,7 @@ export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_Guffer,
@@ -144,6 +148,7 @@ export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAA_Guffer,
@@ -178,6 +183,7 @@ export var SHT_materialCubePositionTextureFS_MSAAinfo: I_ShaderTemplate = {
     material: {
         owner: "ColorMaterial",
         add: [
+            SHT_vsStructOutput,
             {
                 name: "fsOnput",
                 code: WGSL_st_MSAAinfo_Guffer,

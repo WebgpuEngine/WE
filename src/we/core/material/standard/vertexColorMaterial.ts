@@ -33,47 +33,33 @@ export class VertexColorMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
-    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
     }
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        // let template = SHT_materialColorFS;
-
-        let uniform1: T_uniformGroups = [];
-        let code: string = "";
+        let replaceList = new Map<string, string | (() => string)>();
         let color: string = ` output.color = vec4f(fsInput.color,1); \n`;
-
-        for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-            code += perOne.code;
-        }
-        for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-            if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                code = code.replace(perOne.replace, perOne.replaceCode as string);
-            }
-            if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                code = code.replace(perOne.replace, color);
-            }
-        }
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
-            groupAndBindingString: "",
-            owner: this,
-        }
-        return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: startBinding };
+        replaceList.set("$fsOutputColor", color);
+        return this.formatSHT(template, replaceList, startBinding);
     }
-    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
+    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
-        throw new Error("Method not implemented.");
+        this.unifromEntryBundle_Common = {
+            bindingNumber: startBinding,
+            groupAndBindingString: "",
+            entry: []
+        };
+        return this.unifromEntryBundle_Common;
     }
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
@@ -84,16 +70,16 @@ export class VertexColorMaterial extends BaseMaterial {
     getFS_TO(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
+    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {
+    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     getTTFS(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
