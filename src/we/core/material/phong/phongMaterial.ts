@@ -8,7 +8,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_s
 import { SHT_materialPhongFS_defer, SHT_materialPhongFS, SHT_materialPhongFS_MSAA_info, SHT_materialPhongFS_MSAA } from "../../shadermanagemnet/material/phongMaterial";
 import { I_BaseTexture, T_textureSourceType } from "../../texture/base";
 import { Texture } from "../../texture/texture";
-import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 
@@ -87,19 +87,17 @@ export class PhongMaterial extends BaseMaterial {
     }
     this._state = E_lifeState.finished;
   }
-  getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
+  getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
     return this.getOpaqueCodeFS(SHT_materialPhongFS, startBinding);
 
   }
-  getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-    // let template: I_ShaderTemplate;
+  getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
     let groupAndBindingString: string = "";
     let binding: number = startBinding;
     let uniform1: T_uniformOneGroup = [];
-    let code: string = "";
     ///////////group binding
     ////group binding  texture 字符串
-    groupAndBindingString = ` @group(1) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
+    groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
     //uniform texture
     let uniformPhong: I_uniformArrayBufferEntry = {
       binding: binding,
@@ -132,7 +130,7 @@ export class PhongMaterial extends BaseMaterial {
 
     if (this.inputValues.textures && Object.keys(this.inputValues.textures).length > 0) {
       ////group bindgin sampler 字符串
-      groupAndBindingString += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
+      groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
       //uniform sampler
       let uniformSampler: GPUBindGroupEntry = {
         binding: binding,
@@ -185,119 +183,204 @@ export class PhongMaterial extends BaseMaterial {
         //push到uniform1队列
         uniform1.push(uniformTexture);
 
-        groupAndBindingString += `@group(1) @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
+        groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
         binding++;
       }
     }
+    let unifromEntryBundle_Common = {
+      bindingNumber: binding,
+      groupAndBindingString: groupAndBindingString,
+      entry: uniform1,
+    };
+    return unifromEntryBundle_Common;
+  }
+  getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number=0): I_materialBundleOutput {
+    let code: string = "";
 
-    // if (this.getTransparent()) {
-    //   let bundle = getOpacity_GBufferOfUniformOfDefer(binding, this.scene, camera);
-    //   uniform1.push(...bundle.uniformGroup);
-    //   groupAndBindingString += bundle.groupAndBindingString;
-    //   binding = bundle.binding;
-    //   template = SHT_materialTextureTransparentFS;
-    // }
-    // else
-    {
-      ////////////////shader 模板格式化部分
-      // template = SHT_materialPhongFS;
-      for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-        code += perOne.code;
+
+    let flag_spec = false;
+    let flag_texture = false;
+    let flag_normal = false;
+    let flag_parallax = false;
+    //循环绑定纹理
+    for (let i in this.textures) {
+      if (i == E_TextureType.specular) {
+        flag_spec = true;
       }
-      for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-        let replaceString = "";
-        if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-          code = code.replaceAll(perOne.replace, perOne.replaceCode as string);
-        }
-        else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-          switch (perOne.replace) {
-            case "$materialColor":
-              if (flag_texture) {
-                if (flag_parallax && flag_normal) {
-                  let parallaxLayer = this.inputValues.parallax?.layer || 0;
-                  let parallaxScale = this.inputValues.parallax?.scale || 0.001;
-                  // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
-                  replaceString = ` 
+      if (i == E_TextureType.color) {
+        flag_texture = true;
+      }
+      if (i == E_TextureType.normal) {
+        flag_normal = true;
+      }
+      if (i == E_TextureType.parallax) {
+        flag_parallax = true;
+      }
+    }
+    let replaceList = new Map<string, string | (() => string)>();
+    let materialColor = () => {
+      let replaceString = "";
+      if (flag_texture) {
+        if (flag_parallax && flag_normal) {
+          let parallaxLayer = this.inputValues.parallax?.layer || 0;
+          let parallaxScale = this.inputValues.parallax?.scale || 0.001;
+          // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
+          replaceString = ` 
                     let TBN=getTBN_ForNormal(normal,fsInput.worldPosition,uv);
                     let invertTBN=transpose(TBN );
                     let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
                     `;
-                  //todo:20250521
-                  //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
-                  //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
-                  //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-                  //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-                  if (this.inputValues.parallax?.layer) {
+          //todo:20250521
+          //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
+          //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
+          //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+          //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+          if (this.inputValues.parallax?.layer) {
 
-                    replaceString += `uv = parallax_occlusion(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
-                  }
-                  else {
-                    replaceString += ` uv = ParallaxMappingBase(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
-                  }
-                  replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
-                  // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
+            replaceString += `uv = parallax_occlusion(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+          }
+          else {
+            replaceString += ` uv = ParallaxMappingBase(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+          }
+          replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
+          // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
 
-                }
-                else
-                  replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy);\n `;
-              }
-              else {
-                replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
-              }
-
-              break;
-            case "$normal":
-              if (flag_normal) {
-                replaceString = `
+        }
+        else
+          replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy);\n `;
+      }
+      else {
+        replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
+      }
+      return replaceString;
+    };
+    let normal = () => {
+      let replaceString = "";
+      if (flag_normal) {
+        replaceString = `
                  let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb; 
                  normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
                 `;
-              }
-              else {
-                replaceString = "  ";
-              }
-              break;
-            case "$specular":
-              let specular = "";
-              if (flag_spec) {
-                replaceString = `
-                inSpecularColor= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;`
-                // specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
-              }
-              else {
-                replaceString = "  ";
-              }
-              // code = code.replaceAll(perOne.replace, replaceString);
-              break;
-          }
-          code = code.replaceAll(perOne.replace, replaceString);
-
-        }
       }
-    }
+      return replaceString;
+    };
+    let specular = () => {
+      let replaceString = "";
+      if (flag_spec) {
+        replaceString = `
+                inSpecularColor= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;`
+        // specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
+      }
+      return replaceString;
+    };
+    replaceList.set("$materialColor", materialColor);
+    replaceList.set("$normal", normal);
+    replaceList.set("$specular", specular);
+    return this.formatSHT(template, replaceList, startBinding);
+    // // if (this.getTransparent()) {
+    // //   let bundle = getOpacity_GBufferOfUniformOfDefer(binding, this.scene, camera);
+    // //   uniform1.push(...bundle.uniformGroup);
+    // //   groupAndBindingString += bundle.groupAndBindingString;
+    // //   binding = bundle.binding;
+    // //   template = SHT_materialTextureTransparentFS;
+    // // }
+    // // else
+    // {
+    //   ////////////////shader 模板格式化部分
+    //   // template = SHT_materialPhongFS;
+    //   for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
+    //     code += perOne.code;
+    //   }
+    //   for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
+    //     let replaceString = "";
+    //     if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+    //       code = code.replaceAll(perOne.replace, perOne.replaceCode as string);
+    //     }
+    //     else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+    //       switch (perOne.replace) {
+    //         case "$materialColor":
+    //           if (flag_texture) {
+    //             if (flag_parallax && flag_normal) {
+    //               let parallaxLayer = this.inputValues.parallax?.layer || 0;
+    //               let parallaxScale = this.inputValues.parallax?.scale || 0.001;
+    //               // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
+    //               replaceString = ` 
+    //                 let TBN=getTBN_ForNormal(normal,fsInput.worldPosition,uv);
+    //                 let invertTBN=transpose(TBN );
+    //                 let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+    //                 `;
+    //               //todo:20250521
+    //               //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
+    //               //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
+    //               //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+    //               //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+    //               if (this.inputValues.parallax?.layer) {
 
-    let outputFormat: I_singleShaderTemplate_Final = {
-      templateString: code,
-      groupAndBindingString: groupAndBindingString,
-      binding: binding,
-      owner: this,
-    }
-    return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
+    //                 replaceString += `uv = parallax_occlusion(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+    //               }
+    //               else {
+    //                 replaceString += ` uv = ParallaxMappingBase(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+    //               }
+    //               replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
+    //               // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
+
+    //             }
+    //             else
+    //               replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy);\n `;
+    //           }
+    //           else {
+    //             replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
+    //           }
+
+    //           break;
+    //         case "$normal":
+    //           if (flag_normal) {
+    //             replaceString = `
+    //              let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb; 
+    //              normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
+    //             `;
+    //           }
+    //           else {
+    //             replaceString = "  ";
+    //           }
+    //           break;
+    //         case "$specular":
+    //           let specular = "";
+    //           if (flag_spec) {
+    //             replaceString = `
+    //             inSpecularColor= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;`
+    //             // specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
+    //           }
+    //           else {
+    //             replaceString = "  ";
+    //           }
+    //           // code = code.replaceAll(perOne.replace, replaceString);
+    //           break;
+    //       }
+    //       code = code.replaceAll(perOne.replace, replaceString);
+    //     }
+    //   }
+    // }
+    // let outputFormat: I_singleShaderTemplate_Final = {
+    //   templateString: code,
+    //   groupAndBindingString: groupAndBindingString,
+    //   binding: binding,
+    //   owner: this,
+    // }
+    // return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
   }
-  getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+  getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
     let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPhongFS_MSAA, startBinding);
     let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPhongFS_MSAA_info, startBinding);
     return { MSAA, inforForward };
   }
-  getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+  getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
     throw new Error("Method not implemented.");
   }
-  getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
+  getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
     return this.getOpaqueCodeFS(SHT_materialPhongFS_defer, startBinding);
   }
-  getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
-    throw new Error("Method not implemented.");
-  }
+
   getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
     throw new Error("Method not implemented.");
   }
@@ -307,16 +390,16 @@ export class PhongMaterial extends BaseMaterial {
   getFS_TO(_startBinding: number): I_materialBundleOutput {
     throw new Error("Method not implemented.");
   }
-  getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+  getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
     throw new Error("Method not implemented.");
   }
-  getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+  getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
     throw new Error("Method not implemented.");
   }
-  getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
+  getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
     throw new Error("Method not implemented.");
   }
-  formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {
+  formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
     throw new Error("Method not implemented.");
   }
   setTO(): void {

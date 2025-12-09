@@ -36,7 +36,10 @@ export class ResourceManagerOfGPU {
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //透明渲染相关
-    cameraToEntryOfDepthTT: Map<string, T_uniformEntries> = new Map();//baseMaterial中使用，value=uniform（内容是function，返回depthTexture，不影响GC）
+    /**
+     * 20251208 谨慎使用，由于uniform biding的数量与顺序不同，会产生GPU错误
+     */
+    // cameraToEntryOfDepthTT: Map<string, T_uniformEntries> = new Map();//baseMaterial中使用，value=uniform（内容是function，返回depthTexture，不影响GC）
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // pipeline,按照pipeline进行归类，高效渲染使用
@@ -341,7 +344,7 @@ export class ResourceManagerOfGPU {
         this.check(this.entriesToEntriesLayout);
         this.check(this.uniformGroupToBindGroup);
         this.check(this.bindGroupToGroupLayout);
-        this.check(this.cameraToEntryOfDepthTT);
+        // this.check(this.cameraToEntryOfDepthTT);
 
         this.check(this.systemGroup0ByID);
         this.check(this.systemGroupToGroupLayout);
@@ -389,7 +392,7 @@ export enum E_resourceKind {
     entriesToEntriesLayout = "entriesToEntriesLayout",
     uniformGroupToBindGroup = "uniformGroupToBindGroup",
     bindGroupToGroupLayout = "bindGroupToGroupLayout",
-    cameraToEntryOfDepthTT = "cameraToEntryOfDepthTT",
+    // cameraToEntryOfDepthTT = "cameraToEntryOfDepthTT",
     // RenderPipeline = "RenderPipeline",
     // ComputePipeline = "ComputePipeline",
     systemGroup0ByID = "systemGroup0ByID",

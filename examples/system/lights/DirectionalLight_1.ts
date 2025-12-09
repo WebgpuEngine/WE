@@ -69,10 +69,10 @@ let geometry = new SphereGeometry({
 //   color: [0, 0.5, 0.5, 1]
 // });
 let phongMaterial = new PhongMaterial({
-  color: [0, 1., 1, 1],
-  roughness:1,
-  metalness:0.1,
-  shininess:64
+  color: [0, 1, 1, 1],
+  roughness:0.1,
+  metalness:0.91,
+  shininess:164
 });
 
 let inputMesh: IV_MeshEntity = {

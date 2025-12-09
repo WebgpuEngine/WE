@@ -49,10 +49,9 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, onelight : ST
     let diffColor = diff * light_atten_coff * lightColor * roughness;
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
-    let reflectDir = reflect(-lightDir, normal);
+    let reflectDir = reflect(lightDir, normal);
     let halfDir = normalize(lightDir + viewDir);
-    spec = pow (max(dot(viewDir, halfDir), 0.0), shininess);
-    //spec = pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
+    spec = pow (max(dot(normal, halfDir), 0.0), shininess);
     var  specularColor : vec3f = light_atten_coff *metallic * spec * lightColor * inSpecularColor;
     
     colos_DS[0]=diffColor;

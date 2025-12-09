@@ -646,7 +646,7 @@ export class PBRMaterial extends BaseMaterial {
             let code: string = "";
             ///////////group binding
             {/////uniform 
-                groupAndBindingString += ` @group(1) @binding(${binding}) var<uniform> u_pbr_uniform : PBRUniformInput; \n `;
+                groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_pbr_uniform : PBRUniformInput; \n `;
                 let uniformBuffer: GPUBindGroupEntry = {
                     binding: binding,
                     resource: this.uniformGPUBuffer,
@@ -671,7 +671,7 @@ export class PBRMaterial extends BaseMaterial {
                     let uniformName = perTexture.textureName;
                     if (uniformName == E_TextureType.envMap) { continue; }
                     {//texture
-                        groupAndBindingString += ` @group(1) @binding(${binding}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
+                        groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
                         let uniformTexture: GPUBindGroupEntry = {
                             binding: binding,
                             resource: perTexture.texture!.texture.createView(),//创建texture view,20251204 也可以直接使用texture
@@ -691,7 +691,7 @@ export class PBRMaterial extends BaseMaterial {
                         binding++;
                     }
                     {//sampler
-                        groupAndBindingString += ` @group(1) @binding(${binding}) var u_sampler_${uniformName} : sampler; \n `;
+                        groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_sampler_${uniformName} : sampler; \n `;
                         let uniformSampler: GPUBindGroupEntry = {
                             binding: binding,
                             resource: perTexture.sampler!,
@@ -730,118 +730,41 @@ export class PBRMaterial extends BaseMaterial {
      * @returns I_materialBundleOutput
      */
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
-        let groupAndBindingString: string = "";
-        let binding: number = startBinding;
-        let uniform1: T_uniformEntries[]  = [];
-        let code: string = "";
+        // let groupAndBindingString: string = "";
+        // let binding: number = startBinding;
+        // let uniform1: T_uniformEntries[]  = [];
+        // let code: string = "";
+        // {//获取固定uniform序列
+        //     let uniformBundle = this.getUniformEntryBundleOfCommon(startBinding);
+        //     // uniform1.push(...uniformBundle.entry;);
+        //     for (let perOne of uniformBundle.entry!) {
+        //         uniform1.push(perOne);
+        //     }
+        //     binding = uniformBundle.bindingNumber;
+        //     groupAndBindingString += uniformBundle.groupAndBindingString;
+        // }
+        // { ////////////////shader 模板格式化部分
+        //     //add 
+        //     for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
+        //         code += perOne.code;
+        //     }
+        //     //replace
+        //     for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
+        //         if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+        //             code = code.replace(perOne.replace, perOne.replaceCode as string);
+        //         }
+        //     }
+        // }
+        // let outputFormat: I_singleShaderTemplate_Final = {
+        //     templateString: code,
+        //     groupAndBindingString: groupAndBindingString,
+        //     binding: binding,
+        //     owner: this,
+        // }
+        // return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
 
-        {//获取固定uniform序列
-            let uniformBundle = this.getUniformEntryBundleOfCommon(startBinding);
-            // uniform1.push(...uniformBundle.entry;);
-            for (let perOne of uniformBundle.entry!) {
-                uniform1.push(perOne);
-            }
-            binding = uniformBundle.bindingNumber;
-            groupAndBindingString += uniformBundle.groupAndBindingString;
-        }
-        { ////////////////shader 模板格式化部分
-            // let flags = this.getFlagTexture();
-            // let flag_texture_albedo = flags.flag_texture_albedo;
-            // let flag_texture_metallic = flags.flag_texture_metallic;
-            // let flag_texture_roughness = flags.flag_texture_roughness;
-            // let flag_texture_ao = flags.flag_texture_ao;
-            // let flag_texture_normal = flags.flag_texture_normal;
-            // let flag_texture_color = flags.flag_texture_color;
-            //add 
-            for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-                code += perOne.code;
-            }
-            //replace
-            for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-                if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                    code = code.replace(perOne.replace, perOne.replaceCode as string);
-                }
-                // else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                //     let replactString = "";
-                //     switch (perOne.replace) {
-                //         case "$PBR_albedo":
-                //             if (flag_texture_albedo) {
-                //                 replactString = `albedo = textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb;`;//todo,检查以下是否需要解gamma 20250921
-                //                 // replactString = `albedo =pow( textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb,vec3f(2.2));`;//todo,检查以下是否需要解gamma 20250921
-                //             }
-                //             else {
-                //                 let albedo = this.textures[E_TextureType.albedo] as weVec3;
-                //                 replactString = ` albedo= vec3f(${albedo[0]},${albedo[1]},${albedo[2]});`;
-                //             }
-                //             break;
-                //         case "$PBR_metallic":
-                //             if (flag_texture_metallic) {
-                //                 replactString = `metallic = textureSample(u_metallicTexture,u_Sampler,fsInput.uv.xy).r;`;
-                //             }
-                //             else {
-                //                 let metallic = this.textures[E_TextureType.metallic] as number;
-                //                 replactString = ` metallic= f32(${metallic});`;
-                //             }
-                //             break;
-                //         case "$PBR_roughness":
-                //             if (flag_texture_roughness) {
-                //                 replactString = `roughness = textureSample(u_roughnessTexture,u_Sampler,fsInput.uv.xy).r;`;
-                //             }
-                //             else {
-                //                 let roughness = this.textures[E_TextureType.roughness] as number;
-                //                 replactString = ` roughness= f32(${roughness});`;
-                //             }
-                //             break;
-                //         case "$PBR_ao":
-                //             if (this.textures[E_TextureType.ao]) {
-                //                 if (flag_texture_ao) {
-                //                     replactString = `roughness = textureSample(u_roughnessTexture,u_Sampler,fsInput.uv.xy).r; `;
-                //                 }
-                //                 else {
-                //                     let ao = this.textures[E_TextureType.ao] as number;
-                //                     replactString = ` ao= f32(${ao});`;
-                //                 }
-                //             }
-                //             else {
-                //                 replactString = ` ao= f32(1.0);`;
-                //             }
-                //             break;
-                //         case "$PBR_normal":
-                //             if (flag_texture_normal) {
-                //                 replactString = `normal = textureSample(u_normalTexture,u_Sampler,fsInput.uv.xy).rgb;
-                //              normal= getNormalFromMap( fsInput.normal ,normal,fsInput.worldPosition,fsInput.uv.xy);`;
-                //             }
-                //             else {
-                //                 replactString = `normal = normalize(fsInput.normal);`;
-                //             }
-                //             break;
-                //         case "$PBR_color":
-                //             if (this.textures[E_TextureType.color]) {
-                //                 if (flag_texture_color) {//有颜色纹理
-                //                     replactString = `materialColor = textureSample(u_colorTexture,u_Sampler,fsInput.uv.xy);`;
-                //                 }
-                //                 else {//有颜色设定
-                //                     let color = this.textures[E_TextureType.color] as weVec3;
-                //                     replactString = ` materialColor= vec4f(${color[0]},${color[1]},${color[2]},1);`;
-                //                 }
-                //             }
-                //             else {//没有颜色纹理时同时没有设定颜色，
-                //                 // replactString =`materialColor=vec4f(albedo ,1);`;//使用albedo作为颜色,颜色双倍加深
-                //                 replactString = ` materialColor= vec4f(1.0,1.0,1.0,1.0);`;//需要使用白色作为基准数值
-                //             }
-                //             break;
-                //     }
-                //     code = code.replaceAll(perOne.replace, replactString);
-                // }
-            }
-        }
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
-            groupAndBindingString: groupAndBindingString,
-            binding: binding,
-            owner: this,
-        }
-        return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
+        let replaceList = new Map<string, string | (() => string)>();
+        return this.formatSHT(template, replaceList, startBinding);
     }
     getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialPBRFS, startBinding);
@@ -905,7 +828,7 @@ export class PBRMaterial extends BaseMaterial {
         throw new Error("Method not implemented.");
     }
 
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {
+    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     getTTFS(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {

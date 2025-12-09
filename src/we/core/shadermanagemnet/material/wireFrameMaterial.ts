@@ -41,14 +41,16 @@ export var SHT_WireFrameFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
-        add: [{
-            name: "fsOnput",
-            code: WGSL_st_MSAA_Guffer,
-        },
-        {
-            name: "fs",
-            code: wireFrameFS,
-        },
+        add: [
+            SHT_vsStructOutput,
+            {
+                name: "fsOnput",
+                code: WGSL_st_MSAA_Guffer,
+            },
+            {
+                name: "fs",
+                code: wireFrameFS,
+            },
 
         ],
         replace: [
@@ -68,14 +70,16 @@ export var SHT_WireFrameFS_MSAAinfo: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial",
-        add: [{
-            name: "fsOnput",
-            code: WGSL_st_MSAAinfo_Guffer,
-        },
-        {
-            name: "fs",
-            code: wireFrameFS,
-        },
+        add: [
+            SHT_vsStructOutput,
+            {
+                name: "fsOnput",
+                code: WGSL_st_MSAAinfo_Guffer,
+            },
+            {
+                name: "fs",
+                code: wireFrameFS,
+            },
 
         ],
         replace: [

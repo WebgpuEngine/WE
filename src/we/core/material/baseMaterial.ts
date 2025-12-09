@@ -499,7 +499,7 @@ export abstract class BaseMaterial extends RootGPU {
             groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_camera_opacity_depth : texture_depth_2d; \n `;
             // this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform1, uniformLayout_1);
             uniformRoot.push(uniform1);
-            console.log(`1 :TTP uniform binding ${bindingNumber},uniform:${uniform1.binding},layout:${uniformLayout_1.binding}`);
+            // console.log(`1 :TTP uniform binding ${bindingNumber},uniform:${uniform1.binding},layout:${uniformLayout_1.binding}`);
             bindingNumber++;
         }
 
@@ -557,7 +557,7 @@ export abstract class BaseMaterial extends RootGPU {
             uniformRoot.push(uniform2);
             let uniformType = V_TransparentGBufferNames[key as E_GBufferNames].uniformType;
             groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_${key} : ${uniformType}; \n `;
-            console.log(`2 :TTP uniform binding ${bindingNumber},uniform:${uniform2.binding},layout:${uniformLayout_2.binding}`, this);
+            // console.log(`2 :TTP uniform binding ${bindingNumber},uniform:${uniform2.binding},layout:${uniformLayout_2.binding}`, this);
             bindingNumber++;
         }
 

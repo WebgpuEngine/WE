@@ -17,7 +17,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_s
 import { BaseCamera } from "../../camera/baseCamera";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
-import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../base";
+import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial } from "../base";
 import { SHT_materialCubePositionTextureFS, SHT_materialCubePositionTextureFS_MSAA, SHT_materialCubePositionTextureFS_MSAAinfo, SHT_materialCubeSkyTextureFS, SHT_materialCubeSkyTextureFS_MSAA, SHT_materialCubeSkyTextureFS_MSAAinfo } from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { SHT_materialTextureFS_MSAA } from "../../shadermanagemnet/material/textureMaterial";
@@ -44,15 +44,11 @@ export class CubeTextureMaterial extends TextureMaterial {
         if (this.inputValues.textures[E_TextureType.cube] == undefined) {
             throw new Error("CubeTextureMaterial 缺少cubeTexture");
         }
-
         this.defaultSampler = this.checkSampler(this.inputValues);
-
         if (this.inputValues.textures[E_TextureType.cube] instanceof Texture) {
             this.textures[E_TextureType.cube] = this.inputValues.textures[E_TextureType.cube];
         }
         else if (typeof this.inputValues.textures[E_TextureType.cube] == "string") {
-
-
             let textureInstace = new CubeTexture({ source: this.inputValues.textures[E_TextureType.cube] }, this.device, this.scene);
             await textureInstace.init(this.scene);
             this.textures[E_TextureType.cube] = textureInstace;
@@ -63,16 +59,13 @@ export class CubeTextureMaterial extends TextureMaterial {
         // this.countOfTexturesOfFineshed++;
         this._state = E_lifeState.finished;
     }
-
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        //    let template: I_ShaderTemplate;
+    getUniformEntryBundleOfCommon(startBinding: number = 0): I_UniformBundleOfMaterial {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
         let uniform1: T_uniformOneGroup = [];
-        let code: string = "";
         ///////////group binding
         ////group binding  texture 字符串
-        groupAndBindingString = ` @group(1) @binding(${binding}) var u_cubeTexture: texture_cube<f32>;\n `;
+        groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_cubeTexture: texture_cube<f32>;\n `;
         //uniform texture
         let uniformTexture: GPUBindGroupEntry = {
             binding: binding,
@@ -102,7 +95,7 @@ export class CubeTextureMaterial extends TextureMaterial {
         binding++;
 
         ////group bindgin sampler 字符串
-        groupAndBindingString += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
+        groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
         //uniform sampler
         let uniformSampler: GPUBindGroupEntry = {
             binding: binding,
@@ -127,27 +120,18 @@ export class CubeTextureMaterial extends TextureMaterial {
         //+1
         binding++;
 
-        ////////////////shader 模板格式化部分
-
-        // template = SHT_materialCubeTextureFS;
-        for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-            code += perOne.code;
-        }
-        for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-            if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                code = code.replace(perOne.replace, perOne.replaceCode as string);
-            }
-        }
-
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
+        let unifromEntryBundle_Common = {
+            bindingNumber: binding,
             groupAndBindingString: groupAndBindingString,
-            binding: binding,
-            owner: this,
-        }
-        return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
+            entry: uniform1,
+        };
+        return unifromEntryBundle_Common;
     }
-    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
+    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        return this.formatSHT(template, replaceList, startBinding);
+    }
+    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         if (this.cubeType == "sky") {
             template = SHT_materialCubeSkyTextureFS;
@@ -156,7 +140,7 @@ export class CubeTextureMaterial extends TextureMaterial {
             template = SHT_materialCubePositionTextureFS;
         return this.getOpaqueCodeFS(template, startBinding);
     }
-    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         if (this.cubeType == "sky") {
             let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
             let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);

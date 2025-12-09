@@ -1,7 +1,7 @@
 import { BaseMaterial, } from "../baseMaterial";
-import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformEntries, T_uniformGroups, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
 import { IV_OptionVideoTexture, T_modelOfVideo, T_VIdeoSourceType, VideoTexture } from "../../texture/videoTexture";
@@ -9,8 +9,6 @@ import { SHT_materialVideoTextureFS, SHT_materialVideoTextureFS_MSAA_info, SHT_m
 import { BaseCamera } from "../../camera/baseCamera";
 import { BaseLight } from "../../light/baseLight";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
-
-
 /**
  * 视频材质的初始化参数 * 
  */
@@ -29,8 +27,6 @@ export interface IV_VideoMaterial extends IV_BaseMaterial {
 }
 
 export class VideoMaterial extends BaseMaterial {
-
-
     declare inputValues: IV_VideoMaterial;
     // /**是否上下翻转Y轴 */
     // _upsideDownY: boolean;
@@ -94,17 +90,16 @@ export class VideoMaterial extends BaseMaterial {
     getTOFS(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
         let template = SHT_materialVideoTextureFS;
         return this.getOpaqueCodeFS(template, startBinding);
 
     }
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
+    getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
         let uniform1: T_uniformOneGroup = [];
         let code: string = "";
-        let dynamic: boolean = false;
         ///////////group binding
         ////group binding  texture 字符串
         //uniform texture
@@ -112,7 +107,7 @@ export class VideoMaterial extends BaseMaterial {
         //uniform texture layout
         let uniformTextureLayout: GPUBindGroupLayoutEntry
         if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
-            groupAndBindingString = ` @group(1) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
+            groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
             uniformTexture = {
                 binding: binding,
                 resource: this.textures[E_TextureType.video].texture.createView(),
@@ -129,7 +124,7 @@ export class VideoMaterial extends BaseMaterial {
         }
         else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
         {
-            groupAndBindingString = ` @group(1) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
+            groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
             uniformTexture = ({
                 binding: binding,
                 // resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video])
@@ -143,11 +138,11 @@ export class VideoMaterial extends BaseMaterial {
                 visibility: GPUShaderStage.FRAGMENT,
                 externalTexture: {},
             };
-            dynamic = true;
+            // dynamic = true;
         }
 
         //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout)
+        this.scene.resourcesGPU.entriesToEntriesLayout.set(uniformTexture, uniformTextureLayout)
         this.mapList.push({
             key: uniformTexture,
             type: "",//GPUBindGroupEntry  ,
@@ -158,7 +153,7 @@ export class VideoMaterial extends BaseMaterial {
         binding++;
 
         ////group bindgin sampler 字符串
-        groupAndBindingString += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
+        groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
         //uniform sampler
         let uniformSampler: GPUBindGroupEntry = {
             binding: binding,
@@ -182,6 +177,17 @@ export class VideoMaterial extends BaseMaterial {
         uniform1.push(uniformSampler);
         //+1
         binding++;
+        let unifromEntryBundle_Common = {
+            bindingNumber: binding,
+            groupAndBindingString: groupAndBindingString,
+            entry: uniform1,
+        };
+        return unifromEntryBundle_Common;
+    }
+
+    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number=0): I_materialBundleOutput {
+
+
 
         // if (this.getTransparent()) {
         //     let bundle = getOpacity_GBufferOfUniformOfDefer(binding, this.scene, camera);
@@ -190,61 +196,77 @@ export class VideoMaterial extends BaseMaterial {
         //     binding = bundle.binding;
         //     template = SHT_materialTextureTransparentFS;
         // }
-        // else
-        {
-            ////////////////shader 模板格式化部分
-            // template = SHT_materialVideoTextureFS;
-            for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-                code += perOne.code;
+        // // else
+        // {
+        //     ////////////////shader 模板格式化部分
+        //     // template = SHT_materialVideoTextureFS;
+        //     for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
+        //         code += perOne.code;
+        //     }
+        //     for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
+        //         if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+        //             code = code.replace(perOne.replace, perOne.replaceCode as string);
+        //         }
+        //         else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+        //             if (perOne.name == "materialColor") {
+        //                 if (this.textures[E_TextureType.video].model == "copy") {
+        //                     //texture 默认是 'rgba8unorm-srgb'，已经完成解gamma
+        //                     code = code.replace(perOne.replace, `materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); `);
+        //                 }
+        //                 else {
+        //                     //外部texture 是 'rgba8unorm'，需要解gamma到线性空间
+        //                     code = code.replace(perOne.replace, `
+        //                         materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) ); 
+        //                         materialColor =vec4f( pow(materialColor.rgb,vec3f(2.2)),materialColor.a);
+        //                          `);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
+
+        let dynamic: boolean = false;
+        if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture)
+            dynamic = true;
+
+        let replaceList = new Map<string, string | (() => string)>();
+        let replaceValueFN = () => {
+            let replaceString = "";
+            if (this.textures[E_TextureType.video].model == "copy") {
+                //texture 默认是 'rgba8unorm-srgb'，已经完成解gamma
+                replaceString = `materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); `;
             }
-            for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-                if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                    code = code.replace(perOne.replace, perOne.replaceCode as string);
-                }
-                else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                    if (perOne.name == "materialColor") {
-                        if (this.textures[E_TextureType.video].model == "copy") {
-                            //texture 默认是 'rgba8unorm-srgb'，已经完成解gamma
-                            code = code.replace(perOne.replace, `materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); `);
-                        }
-                        else {
-                            //外部texture 是 'rgba8unorm'，需要解gamma到线性空间
-                            code = code.replace(perOne.replace, `
+            else {
+                //外部texture 是 'rgba8unorm'，需要解gamma到线性空间
+                replaceString = `
                                 materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) ); 
                                 materialColor =vec4f( pow(materialColor.rgb,vec3f(2.2)),materialColor.a);
-                                 `);
-                        }
-                    }
-                }
+                                 `;
             }
-        }
-        let outputFormat: I_singleShaderTemplate_Final = {
-            templateString: code,
-            groupAndBindingString: groupAndBindingString,
-            binding: binding,
-            owner: this,
-        }
+            return replaceString;
+        };
+        replaceList.set("$materialColor", replaceValueFN);
+        let output = this.formatSHT(template, replaceList, startBinding);
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
         if (dynamic) {
-            outputFormat.dynamic = dynamic;
+            output.shaderTemplateFinal.material.dynamic = dynamic;
         }
+        return output;
 
-        return { uniformGroup: uniform1, singleShaderTemplateFinal: outputFormat, bindingNumber: binding };
     }
-    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
+    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
-        throw new Error("Method not implemented.");
-    }
+
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
@@ -254,13 +276,13 @@ export class VideoMaterial extends BaseMaterial {
     getFS_TO(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
+    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {
