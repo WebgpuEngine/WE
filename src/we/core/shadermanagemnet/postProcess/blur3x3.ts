@@ -13,7 +13,7 @@ export var SHT_PP_Blur3x3: I_ShaderTemplate = {
             QuadVS,
         ]
     },
-    scene: SHT_ScenOfCamera_FS,    
+    // scene: SHT_ScenOfCamera_FS,    
     material: {
         owner: "Blur3x3",
         add: [
