@@ -61,7 +61,10 @@ export abstract class BaseEntity extends RootGPU {
 
     ///////////////////////////////////////////////////////////////////
     //空间属性
-    boundingBox!: boundingBox;//initDCC中赋值
+    boundingBox: boundingBox={
+        min: [0, 0, 0],
+        max: [0, 0, 0],
+    };//initDCC中赋值
     boundingSphere!: boundingSphere;
     ///////////////////////////////////////////////////////////////////
     //uniform

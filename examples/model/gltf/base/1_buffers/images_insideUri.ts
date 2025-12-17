@@ -42,8 +42,8 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/triangle/triangle.gltf"
+    url: "/models/gltf/base/texture/BoxTextured.gltf"
 }
 );
 window.gltf = gltf;
-console.log(gltf);
+console.log(gltf.modelData.json.images,typeof gltf.modelData.json.images[0].bufferView);

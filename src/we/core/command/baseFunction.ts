@@ -15,19 +15,43 @@ export function checkGPUBufferSize(size: number): number {
     }
     return size;
 }
+
+/**
+ * 克隆BufferSource
+ * 1、如果是ArrayBuffer，直接创建新的ArrayBuffer
+ * 2、如果是ArrayBufferView，创建新的ArrayBufferView
+ * @param src 源BufferSource
+ * @param offset 偏移量,如果是ArrayBufferView,则是视图的偏移量
+ * @param length 长度,如果是ArrayBufferView,则是视图的长度
+ * @returns 新的BufferSource
+ */
+export function cloneBufferSource(src: BufferSource | Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array, offset: number, length: number): ArrayBuffer {
+    if (!isArrayBuffer(src) && !isArrayBufferView(src)) {
+        throw new Error("src is not ArrayBuffer or ArrayBufferView");
+    }
+    let newArrayBuffer = new ArrayBuffer(length);
+    const newView = new Uint8Array(newArrayBuffer);
+    if (isArrayBufferView(src)) {
+        newView.set(new Uint8Array(src.buffer, src.byteOffset, src.byteLength)); // 将原视图数据复制到新视图（自动同步到新 Buffer）
+    }
+    else {
+        newView.set(new Uint8Array(src, offset, length)); // 将原视图数据复制到新视图（自动同步到新 Buffer）
+    }
+    return newArrayBuffer;
+}
 /** 确保ArrayBuffer或ArrayBufferView的大小是4的倍数 */
-export function ensureArrayBufferDivideByFour(src: BufferSource, offset?: number, length?: number): { dataArray: BufferSource, size: number } {
+export function ensureArrayBufferDivideByFour(src: BufferSource, offset: number, length: number): { dataArray: BufferSource, size: number, offset: number, length: number } {
     if (!isArrayBuffer(src) && !isArrayBufferView(src)) {
         throw new Error("src is not ArrayBuffer or ArrayBufferView");
     }
     let realSize = src.byteLength;
     if (offset != undefined && length != undefined) {
-        realSize = length - offset;
+        realSize = length;// - offset;
     }
     let size = checkGPUBufferSize(realSize);
 
     if (size == realSize) {
-        return { dataArray: src, size: realSize };
+        return { dataArray: src, size: realSize, offset, length };
     }
     if (isArrayBufferView(src)) {
         // 步骤 1：创建新的 ArrayBuffer
@@ -35,13 +59,13 @@ export function ensureArrayBufferDivideByFour(src: BufferSource, offset?: number
         // 步骤 2：创建新视图，复制原数据
         const newView = new Uint8Array(newArrayBuffer);
         newView.set(new Uint8Array(src.buffer, src.byteOffset, src.byteLength)); // 将原视图数据复制到新视图（自动同步到新 Buffer）
-        return { dataArray: newArrayBuffer, size: size };
+        return { dataArray: newArrayBuffer, size: size, offset: 0, length: size };
     }
     else {
         let newArrayBuffer = new ArrayBuffer(size);
         const newView = new Uint8Array(newArrayBuffer);
         newView.set(new Uint8Array(src, offset, length)); // 将原视图数据复制到新视图（自动同步到新 Buffer）
-        return { dataArray: newArrayBuffer, size: size };
+        return { dataArray: newArrayBuffer, size: size, offset: 0, length: size };
     }
 }
 /** 创建GPUBuffer ,内容为空*/
@@ -54,23 +78,29 @@ export function createEmptyGPUBuffer(device: GPUDevice, usage: GPUBufferUsageFla
     });;
 }
 /** 创建GPUBuffer，根据类型和数据 */
-function createGPUBufferByType(device: GPUDevice, label: string, usage: GPUBufferUsageFlags, data: BufferSource, offset?: number, length?: number) {
+function createGPUBufferByType(device: GPUDevice, label: string, usage: GPUBufferUsageFlags, data: BufferSource, offset: number, length: number) {
     const ensureData = ensureArrayBufferDivideByFour(data, offset, length);
     const buffer = createEmptyGPUBuffer(device, usage, ensureData.size, label);
+    let offsetUse = offset;
+    let lengthUse = length;
+    if (ensureData.offset != offset || ensureData.length != length) {
+        offsetUse = ensureData.offset;
+        lengthUse = ensureData.length
+    }
     if (ensureData.dataArray) {
-        if (offset == undefined) {
-            if (isArrayBufferView(ensureData.dataArray)) offset = ensureData.dataArray.byteOffset;
-            else offset = 0;
+        // if (offset == undefined) {
+        //     if (isArrayBufferView(ensureData.dataArray)) offset = ensureData.dataArray.byteOffset;
+        //     else offset = 0;
+        // }
+        // if (length == undefined) length = ensureData.dataArray.byteLength;
+        // else if (length != ensureData.size) {
+        //     length = ensureData.size;
+        // }
+        if (isArrayBuffer(ensureData.dataArray)) {
+            device.queue.writeBuffer(buffer, 0, ensureData.dataArray, offsetUse, lengthUse);
         }
-        if (length == undefined) length = ensureData.dataArray.byteLength;
-        else if (length != ensureData.size) {
-            length = ensureData.size;
-        }
-        if(isArrayBuffer(ensureData.dataArray)){
-            device.queue.writeBuffer(buffer, 0, ensureData.dataArray, offset, length);
-        }
-        else{
-            device.queue.writeBuffer(buffer, 0, (ensureData.dataArray as ArrayBufferView).buffer, offset, length);
+        else {
+            device.queue.writeBuffer(buffer, 0, (ensureData.dataArray as ArrayBufferView).buffer, offsetUse, lengthUse);
         }
         buffer.unmap();
     }
@@ -80,30 +110,30 @@ function createGPUBufferByType(device: GPUDevice, label: string, usage: GPUBuffe
 /** 创建uniform Buffer，  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST*/
 export function createUniformBuffer(device: GPUDevice, label: string, data: BufferSource, offset?: number, length?: number) {
     let usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST;
-    return createGPUBufferByType(device, label, usage, data, offset, length);
+    return createGPUBufferByType(device, label, usage, data, offset ?? 0, length || data.byteLength);
 
 }
 /** 创建uniform Buffer，  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST*/
 export function createStorageBuffer(device: GPUDevice, label: string, data: BufferSource, offset?: number, length?: number) {
     let usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
-    return createGPUBufferByType(device, label, usage, data, offset, length);
+    return createGPUBufferByType(device, label, usage, data, offset ?? 0, length || data.byteLength);
 }
 /**
  * 创建顶点GPUBuffer
  */
-export function createIndexBuffer(device: GPUDevice, label: string, data: BufferSource, offset?: number, length?: number) {
+export function createIndexBuffer(device: GPUDevice, label: string, data: BufferSource, offset: number = 0, length?: number) {
     const usage = GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST;
-    let size = checkGPUBufferSize(data.byteLength);
-    if (offset != undefined && length != undefined)
-        size = length - offset;
-    return createGPUBufferByType(device, label, usage, data, offset, length);
+    // let size = checkGPUBufferSize(data.byteLength);
+    // if (offset != undefined && length != undefined)
+    // size = length - offset;
+    return createGPUBufferByType(device, label, usage, data, offset, length || data.byteLength);
 }
 /**, offset?: number, length?: numbe
  * 创建顶点GPUBuffer
  */
-export function createVerticesBuffer(device: GPUDevice, label: string, data: BufferSource, offset?: number, length?: number) {
+export function createVerticesBuffer(device: GPUDevice, label: string, data: BufferSource, offset: number = 0, length?: number) {
     const usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST;
-    return createGPUBufferByType(device, label, usage, data, offset, length);
+    return createGPUBufferByType(device, label, usage, data, offset, length || data.byteLength);
 }
 /**
  * 创建所有类型GPUBuffer

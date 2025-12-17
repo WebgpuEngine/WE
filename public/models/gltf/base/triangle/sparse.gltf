@@ -40,7 +40,8 @@
     "byteLength" : 36
   } ],
   
-  "accessors" : [ {
+  "accessors" : [ 
+    {
     "bufferView" : 0,
     "byteOffset" : 0,
     "componentType" : 5123,
@@ -48,7 +49,8 @@
     "type" : "SCALAR",
     "max" : [ 13 ],
     "min" : [ 0 ]
-  }, {
+  }, 
+  {
     "bufferView" : 1,
     "byteOffset" : 0,
     "componentType" : 5126,

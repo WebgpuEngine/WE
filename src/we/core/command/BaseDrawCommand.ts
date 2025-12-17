@@ -151,7 +151,7 @@ export abstract class BaseDrawCommand {
             if ("baseVertex" in this.drawMode) {
                 baseVertex = this.drawMode.baseVertex as number;
             }
-            passEncoder.setIndexBuffer(this.indexBuffer, 'uint32');
+            passEncoder.setIndexBuffer(this.indexBuffer, this.indexFormat);// 'uint32');
             passEncoder.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
         }
         else {

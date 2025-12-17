@@ -9,6 +9,7 @@ import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
 import { LightsManager } from "../light/lightsManager";
 import { MaterialManager } from "../material/materialManager";
+import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
 import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { RootGPU, RootOrigin } from "../organization/root";
@@ -421,12 +422,21 @@ export class Scene {
 
         this.resourcesGPU = new ResourceManagerOfGPU();
         this.resourcesGPU.device = device;
-        let textureDefault = new DefaultTexture(device);        
+        let textureDefault = new DefaultTexture(device);
         this.resourcesGPU.textureOfString.set("default", textureDefault.texture);
         this.resourcesGPU.weTextureOfString.set("default", textureDefault);
         let cubeTextureDefault = new DefaultCubeTexture(device);
         this.resourcesGPU.textureOfString.set("defaultCube", cubeTextureDefault.texture);
         this.resourcesGPU.weTextureOfString.set("defaultCube", cubeTextureDefault);
+        let baseInputPBR: IV_PBRMaterial = {
+            textures: {
+                albedo: { value: [1, 1, 1] },
+                metallic: { value: 1 },
+                roughness: { value: 1 },
+            }
+        }
+        let defaultMaterial = new PBRMaterial(baseInputPBR);
+        this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
         this.root = new RootManager(this);
         await this.root.init(this);
         this.renderManager = new RenderManager(this);
@@ -814,13 +824,14 @@ export class Scene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //add 
-    async add(child: RootGPU) {
+    async addChild(child: RootGPU) {
         if (child.type == "Light" && child instanceof AmbientLight) {
             this.lightsManager.ambientLight = child;
         }
         else
             this.root.currentRenderID = await this.root.addChild(child);
     }
+    add = this.addChild;
     remove(child: RootOrigin) {
         this.root.removeChild(child);
     }

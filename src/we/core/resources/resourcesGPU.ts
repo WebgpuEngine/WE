@@ -1,5 +1,6 @@
 import type { I_dynamicTextureEntryForExternal, I_dynamicTextureEntryForView, I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
+import { BaseMaterial } from "../material/baseMaterial";
 import { Texture } from "../texture/texture";
 
 
@@ -84,6 +85,7 @@ export class ResourceManagerOfGPU {
     textureOfString: Map<any, GPUTexture> = new Map();
     textureToBindGroupLayoutEntry: Map<GPUTexture, GPUTextureBindingLayout> = new Map();
     weTextureOfString: Map<string, Texture> = new Map();
+    weMaterialOfString: Map<string, BaseMaterial> = new Map();
 
     //////////////////////////////////////////////////////////////////////////////////////////
     //sampler

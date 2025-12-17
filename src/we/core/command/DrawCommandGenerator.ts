@@ -8,7 +8,7 @@ import type { Scene } from "../scene/scene";
 import type { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
 import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
-import { E_renderForDC } from "../base/coreDefine";
+import { E_renderForDC, weVec3 } from "../base/coreDefine";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { AA } from "../scene/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
@@ -78,9 +78,11 @@ export interface I_vsGPUBufferBundle {
      * default: count*arrayStride
      */
     size?: number,
+    min: weVec3,
+    max: weVec3,
 }
 export function isVSGPUBufferBundle(attr: T_vsAttribute): attr is I_vsGPUBufferBundle {
-    return (attr as I_vsGPUBufferBundle).buffer !== undefined;
+    return (attr as I_vsGPUBufferBundle).buffer && (attr as I_vsGPUBufferBundle).min !== undefined && (attr as I_vsGPUBufferBundle).max !== undefined;
 }
 /**
  * 索引buffer的bundle，用于绑定到DC的index buffer 。GLTF使用
@@ -870,25 +872,26 @@ export class DrawCommandGenerator {
                 location_i++;
             }
             //1.2、索引资源
-            if (Array.isArray(values.data.indexes)) {
-                if (values.data.indexes && values.data.indexes.length > 0) {
-                    let u32Buffer = new Uint32Array(values.data.indexes);
-                    if (!this.resources.has(values.data.indexes, "indexes")) {
-                        let _indexBuffer = createIndexBuffer(this.device, values.label + " index GPUBuffer", u32Buffer.buffer);
-                        this.resources.set(values.data.indexes, _indexBuffer, "indexes");
-                    }
-                    let index = this.resources.get(values.data.indexes, "indexes");
-                    if (index) {
-                        DC_indexBuffer = index;
+            if (values.data.indexes)
+                if (Array.isArray(values.data.indexes)) {
+                    if (values.data.indexes && values.data.indexes.length > 0) {
+                        let u32Buffer = new Uint32Array(values.data.indexes);
+                        if (!this.resources.has(values.data.indexes, "indexes")) {
+                            let _indexBuffer = createIndexBuffer(this.device, values.label + " index GPUBuffer", u32Buffer.buffer);
+                            this.resources.set(values.data.indexes, _indexBuffer, "indexes");
+                        }
+                        let index = this.resources.get(values.data.indexes, "indexes");
+                        if (index) {
+                            DC_indexBuffer = index;
+                        }
                     }
                 }
-            }
-            else {
-                let indexBundle = values.data.indexes as I_indexGPUBufferBundle;
-                if (indexBundle) {
-                    DC_indexBuffer = indexBundle.buffer;
+                else {
+                    let indexBundle = values.data.indexes as I_indexGPUBufferBundle;
+                    if (indexBundle) {
+                        DC_indexBuffer = indexBundle.buffer;
+                    }
                 }
-            }
         }
         return { DC_vertexBuffers, DC_indexBuffer, DC_vertexNames, DC_localtions, DC_verticesBufferLayout };
     }
@@ -971,8 +974,7 @@ export class DrawCommandGenerator {
                     }
 
                 }
-                else
-                     {//不在BindGroup 和BindGroupLayout的记录，创建
+                else {//不在BindGroup 和BindGroupLayout的记录，创建
                     for (let j in perGroup) {
                         let perEntry = perGroup[j];
                         let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;

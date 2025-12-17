@@ -609,7 +609,7 @@ export abstract class RootGPU extends RootOrigin {
         this._isDestroy = true;
     }
     abstract _destroy(): void;
-
+    add = this.addChild;
     async addChild(child: RootGPU): Promise<number> {
         let renderID = await child.init(this.scene, this, this.renderID);
         await super.addChild(child);
@@ -643,7 +643,7 @@ export abstract class RootGPU extends RootOrigin {
             //     (child.inputValues.belongModel as BaseModel).entities.push(child as BaseEntity);
             // }
             // else {
-                this.scene.entityManager.add(child as BaseEntity);
+            this.scene.entityManager.add(child as BaseEntity);
             // }
         }
         else if (child.type == "material") {
@@ -651,7 +651,7 @@ export abstract class RootGPU extends RootOrigin {
             //     (child.inputValues.belongModel as BaseModel).materials.push(child as BaseMaterial);
             // }
             // else {
-                this.scene.materialManager.add(child as BaseMaterial);
+            this.scene.materialManager.add(child as BaseMaterial);
             // }
         }
         else {
@@ -659,6 +659,7 @@ export abstract class RootGPU extends RootOrigin {
         }
         return renderID;
     }
+    remove = this.removeChild;
     removeChild(child: RootOrigin): RootOrigin | false {
         let childRemoveResult = super.removeChild(child);
         if (childRemoveResult) {

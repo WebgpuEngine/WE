@@ -30,20 +30,27 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 5],
   lookAt: [0, 0, 0],
-  update: (scope: any) => {
-    const now = Date.now() / 1000;
-    // console.log(scope.lookAt);
-    scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
-    // console.log(scope.position);
-  },
+//   update: (scope: any) => {
+//     const now = Date.now() / 1000;
+//     // console.log(scope.lookAt);
+//     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
+//     // console.log(scope.position);
+//   },
+  controlType: "arcball",
+
 });
 await scene.add(camera);
 
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/triangle/triangle.gltf"
+    url: "/models/gltf/base/triangle/sparse.gltf"
 }
 );
 window.gltf = gltf;
-console.log(gltf);
+gltf.printAccessorContent(0)
+gltf.printBufferView(2,5123,3,"SCALAR",0)
+gltf.printAccessorContent(1)
+gltf.printBufferView(3,5126,3,"VEC3",0)
+
+// await scene.add(gltf);
