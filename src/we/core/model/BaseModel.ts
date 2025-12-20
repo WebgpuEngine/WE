@@ -88,11 +88,7 @@ export abstract class BaseModel extends RootGPU {
         this.type = "Model";
     }
 
-    _destroy(): void {
-        for (let perOne of this.children) {
-            (perOne as RootGPU).destroy();
-        }
-    }
+ 
 
     abstract detectData(): void;
 

@@ -829,7 +829,7 @@ export class Scene {
             this.lightsManager.ambientLight = child;
         }
         else
-            this.root.currentRenderID = await this.root.addChild(child);
+           await this.root.addChild(child);
     }
     add = this.addChild;
     remove(child: RootOrigin) {

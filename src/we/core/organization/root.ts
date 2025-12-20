@@ -565,19 +565,14 @@ export abstract class RootGPU extends RootOrigin {
         if (parent) {
             this.parent = parent;
         }
-        // this.parent = parent;
-        //如果是OBJ等，需要递归设置ID，或采用一个相同的ID，这个需要在OBJ、GLTF、FBX等中进行开发；基础的entity，不考虑这种情况
-        //material renderID =0
-        if (renderID) {
-            this.renderID = renderID;
-        }
-        else {
-            this.renderID = 0;
-        }
+        //获取最新的ID
         await this.setRootENV(scene);
+        this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
+
         await this.readyForGPU();
         return this.renderID + 1;
     }
+
 
     /**由init()调用 */
     async setRootENV(scene: Scene) {
@@ -596,6 +591,13 @@ export abstract class RootGPU extends RootOrigin {
      */
     abstract readyForGPU(): Promise<any>
     destroy(): void {
+        if (this.children.length > 0) {
+            for (let child of this.children) {
+                if (child instanceof RootGPU) {
+                    child.destroy();
+                }
+            }
+        }
         if (this.resourcesGPU) {
             for (let i of this.mapList) {
                 if (i.map && this.resourcesGPU.getProperty(i.map as keyof ResourceManagerOfGPU)) {
@@ -611,7 +613,7 @@ export abstract class RootGPU extends RootOrigin {
     abstract _destroy(): void;
     add = this.addChild;
     async addChild(child: RootGPU): Promise<number> {
-        let renderID = await child.init(this.scene, this, this.renderID);
+        await child.init(this.scene, this);
         await super.addChild(child);
         // if (child instanceof RootGPU) {
         //     child.init(this.scene, this);
@@ -657,7 +659,7 @@ export abstract class RootGPU extends RootOrigin {
         else {
             console.log("未找到对应的ECS manager", child);
         }
-        return renderID;
+        return this.renderID+1;
     }
     remove = this.removeChild;
     removeChild(child: RootOrigin): RootOrigin | false {

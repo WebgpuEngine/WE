@@ -2,7 +2,7 @@ import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
 import { load } from '@loaders.gl/core';
 import { DracoLoader } from "@loaders.gl/draco";
-import { GLB, GLTFLoader, GLTFWithBuffers } from '@loaders.gl/gltf';
+import { GLB, GLTFLoader, GLTFNode, GLTFScene, GLTFWithBuffers } from '@loaders.gl/gltf';
 import { GLBLoader } from '@loaders.gl/gltf';
 import { Scene } from "../../core/scene/scene";
 import { RootGPU } from "../../core/organization/root";
@@ -16,6 +16,8 @@ import { IV_PBRMaterial, PBRMaterial } from "../../core/material/PBR/PBRMaterial
 import { I_drawMode, I_drawModeIndexed, T_BindGroupLayout, T_uniformGroups } from "../../core/command/base";
 import { ColorMaterial } from "../../core/material/standard/colorMaterial";
 import * as BaseFunction from "./function";
+import { BaseEntity } from "../../core/entity/baseEntity";
+import { NodeEntity } from "../../core/entity/nodeEntity";
 
 export interface I_GLTFModel extends I_Model {
     type: "gltf" | "glb",
@@ -57,6 +59,8 @@ export class GLTFModel extends BaseModel {
     // nodes: any[] = [];
     modelGltfBuffers: any[] = [];
     modelAccessors: T_accessorBufferSource[] = [];
+    /** gltf当前场景索引 */
+    currentScene: number = 0;
 
     constructor(input: I_GLTFModel) {
         super(input);
@@ -86,9 +90,11 @@ export class GLTFModel extends BaseModel {
         this.initBufferViews();
         this.initAccessors();
         this.initMeshes();
+        this.initTextures();
         this.initMaterials();
-        this.initAnimations();
         this.initCameras();
+        this.initNodes();
+        this.initAnimations();
         this.initScene();
     }
 
@@ -574,46 +580,72 @@ export class GLTFModel extends BaseModel {
 
                 this.modelRes.entity.set(i, entity);
 
-                this.scene.add(entity);
+                // this.scene.add(entity);
             }
         }
     }
 
     initTextures() {
-        
+
     }
 
     initMaterials() {
-        
+
     }
 
     initNodes() {
-      
+
     }
     initSkins() {
-       
+
     }
     initAnimations() {
-   
+
     }
     initCameras() {
-   
+
     }
-    initScene() {
+    async initScene(id: number = 0) {
+        let scene: GLTFScene = this.getSceneByIndex(id);
+        if (scene == undefined) {
+            throw new Error(`scene ${id} not found`);
+        }
+        let nodes: number[] = [];
+        if (scene.nodes != undefined) {
+            nodes = scene.nodes as number[];
+        }
+        else {
+            console.warn(`scene ${id} not found nodes`);
+            return;
+        }
+        this.currentScene = id;
         /**
          *  push mesh to children
          */
-        for (let node of this.modelData.json.nodes) {
-            if ("mesh" in node) {
-                let mesh = this.getRes(T_ModelResKind.entity, node.mesh);
-                if (mesh == undefined) {
-                    throw new Error(`node ${node.name} mesh ${node.mesh} not found entity`);
-                }
-                if (mesh instanceof Mesh || mesh instanceof Points || mesh instanceof Lines) {
-                    this.children.push(mesh);
-                }
+        for (let nodeID of nodes) {
+            await addChild(this, nodeID, this);
+        }
+    }
+    getSceneByIndex(index: number = 0): GLTFScene {
+        return this.modelData.json.scenes[index];
+    }
+    /**
+     * 注销场景
+     * 1、注销所有实体和camera
+     * 
+     * 用途：
+     * 1、在场景切换时，注销当前场景的所有实体和camera
+     * 2、不适用在gltf的销毁时，gltf的注销有RootGPU的destroy方法实现
+     */
+    destroyScene() {
+        for (let child of this.children) {
+            if (child instanceof RootGPU) {//scene中的camera,也会被注销
+                child.destroy();
             }
         }
+    }
+    _destroy(): void {
+
     }
 
     //被parent的addChild调用
@@ -621,27 +653,20 @@ export class GLTFModel extends BaseModel {
         if (parent) {
             this.parent = parent;
         }
-        // this.parent = parent;
-        //如果是OBJ等，需要递归设置ID，或采用一个相同的ID，这个需要在OBJ、GLTF、FBX等中进行开发；基础的entity，不考虑这种情况
-        //material renderID =0
         if (renderID) {
             this.renderID = renderID;
         }
         else {
             this.renderID = 0;
         }
+        await this.initScene();
         await this.setRootENV(scene);
-        await this.readyForGPU();
+        // await this.readyForGPU();
         return this.renderID + 1;
     }
 
     async readyForGPU(): Promise<any> {
-        //1、for scenes (相当于children) -->scene--> nodes (相当于 entities)
-        // let defaultScene = this.modelData.json.scene;
-        // for (let scene of this.modelData.json.scenes[defaultScene]) {
-        //     let node = scene.nodes;
-        //     add(node, this);
-        // }
+        //已经在new时传入了GPUDevice，不需要再进行ready工作。
     }
 
 
@@ -660,9 +685,30 @@ export class GLTFModel extends BaseModel {
     }
 }
 
-function add(node: any[], scope: BaseModel) {
-    for (let perNodeID of node) {
-        let perNode = scope.modelData.json.nodes[perNodeID];
-        scope.nodes.push(perNode);
+
+
+async function addChild(gltf: GLTFModel, nodeID: number, parent: RootGPU): Promise<any> {
+
+    let node: GLTFNode = gltf.modelData.json.nodes[nodeID];
+    let mesh: BaseEntity | RootGPU;
+    {
+        if (node.mesh !== undefined && typeof node.mesh == "number") {//有mesh，就添加到parent中
+            mesh = <BaseEntity>gltf.getRes(T_ModelResKind.entity, node.mesh);
+            await parent.addChild(mesh);
+        }
+        else {//没有mesh，就添加一个nodeEntity
+            mesh = new NodeEntity();
+            await parent.addChild(mesh);
+        }
+        if (node.children) {
+            let children = node.children as number[];
+            for (let childID of children) {
+                await addChild(gltf, childID, mesh);
+            }
+        }
+
+        if ("skin" in node) {
+
+        }
     }
 }

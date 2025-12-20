@@ -3,7 +3,12 @@ import { Clock } from "./clock";
 import { Scene } from "./scene";
 
 export class RootManager extends RootGPU {
-    currentRenderID: number = 0;   
+    /** 
+     * 当前渲染ID
+     * 1、从1开始
+     * 2、此值时最新未适用的，是每个entity返回的自身 renderID+1 
+     */
+    currentRenderID: number = 1;   
     constructor(scene: Scene) {
         super();
         this.device = scene.device;
@@ -34,5 +39,8 @@ export class RootManager extends RootGPU {
         return true;
     }
 
+    getRenderID(): number {
+        return this.currentRenderID++;
+    }
 }
 

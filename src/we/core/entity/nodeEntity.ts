@@ -8,8 +8,9 @@ export class NodeEntity extends RootGPU {
         this.type = "node";
     }
 
-    readyForGPU(): Promise<any> {
+    async readyForGPU(): Promise<any> {
         // throw new Error("Method not implemented.");
+        return;
     }
     _destroy(): void {
         // throw new Error("Method not implemented.");

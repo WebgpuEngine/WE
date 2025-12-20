@@ -69,6 +69,7 @@ let gltf = await createGLTFModel({
 );
 window.gltf = gltf;
 console.log(gltf);
+scene.add(gltf);
 
 
 let geometry = new SphereGeometry(
