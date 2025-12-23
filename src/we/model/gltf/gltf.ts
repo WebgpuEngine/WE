@@ -18,6 +18,8 @@ import { ColorMaterial } from "../../core/material/standard/colorMaterial";
 import * as BaseFunction from "./function";
 import { BaseEntity } from "../../core/entity/baseEntity";
 import { NodeEntity } from "../../core/entity/nodeEntity";
+import { weVec3, weVec4 } from "../../core/base/coreDefine";
+import { mat4 } from "wgpu-matrix";
 
 export interface I_GLTFModel extends I_Model {
     type: "gltf" | "glb",
@@ -95,7 +97,7 @@ export class GLTFModel extends BaseModel {
         this.initCameras();
         this.initNodes();
         this.initAnimations();
-        this.initScene();
+        // this.initScene();
     }
 
     /**
@@ -623,7 +625,7 @@ export class GLTFModel extends BaseModel {
          *  push mesh to children
          */
         for (let nodeID of nodes) {
-            await addChild(this, nodeID, this);
+            await addChildMesh(this, nodeID, this);
         }
     }
     getSceneByIndex(index: number = 0): GLTFScene {
@@ -687,28 +689,76 @@ export class GLTFModel extends BaseModel {
 
 
 
-async function addChild(gltf: GLTFModel, nodeID: number, parent: RootGPU): Promise<any> {
+async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: RootGPU): Promise<any> {
 
     let node: GLTFNode = gltf.modelData.json.nodes[nodeID];
     let mesh: BaseEntity | RootGPU;
     {
         if (node.mesh !== undefined && typeof node.mesh == "number") {//有mesh，就添加到parent中
             mesh = <BaseEntity>gltf.getRes(T_ModelResKind.entity, node.mesh);
+            if (node.matrix !== undefined) {
+                // mesh.setMatrix(node.matrix);
+            }
+            else {
+                if (node.scale !== undefined) {
+                    // mesh.setScale(node.scale);
+                }
+                else if (node.rotation !== undefined) {
+                    // mesh.setRotation(node.rotation);
+                }
+                else if (node.translation !== undefined) {
+                    // mesh.setPosition(node.translation);
+                }
+            }
+            if (node.name !== undefined) {
+                mesh.Name = node.name;
+            }
+            //morph target，设置权重与mesh的权重相同，会被override，node的权重会被忽略
+            if (node.weights !== undefined) {
+                // mesh.setWeights(node.weights);
+            }
             await parent.addChild(mesh);
         }
         else {//没有mesh，就添加一个nodeEntity
             mesh = new NodeEntity();
             await parent.addChild(mesh);
         }
+        if(node.scale !== undefined) {
+            mesh.Scale=node.scale as weVec3;
+        }
+        if (node.rotation !== undefined) {
+            mesh.Quaternion=node.rotation as weVec4;
+        }
+        if (node.translation !== undefined) {
+            mesh.Position=node.translation as weVec3;
+        }
+        if(node.matrix !== undefined) {
+            mesh.Matrix = mat4.create(...node.matrix);
+        }
+
         if (node.children) {
             let children = node.children as number[];
             for (let childID of children) {
-                await addChild(gltf, childID, mesh);
+                await addChildMesh(gltf, childID, mesh);
             }
         }
 
+        if (node.camera !== undefined) {
+            // let camera = gltf.modelData.json.cameras[node.camera];
+            // let cameraEntity = new CameraEntity(camera);
+            // await mesh.addChild(cameraEntity);
+        }
         if ("skin" in node) {
 
+        }
+
+        if (node.extensions !== undefined) {
+            // if (node.extensions["KHR_morph_targets"] !== undefined) {
+            //     let morphTarget = node.extensions["KHR_morph_targets"];
+            //     if (morphTarget.weights !== undefined) {
+            //         // mesh.setWeights(morphTarget.weights);
+            //     }
+            // }
         }
     }
 }

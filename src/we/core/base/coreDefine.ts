@@ -43,6 +43,8 @@ export enum E_renderForDC {
 export type weVec2 = [number, number];
 export type weVec3 = [number, number, number];
 export type weVec4 = [number, number, number, number];
+export type weMat4 = [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number];
+export type weMat3 = [number, number, number, number, number, number, number, number, number];
 
 export type weColor4 = weVec4;
 /**RGBA四个数值的颜色interface，0--255 */

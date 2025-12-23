@@ -1,4 +1,4 @@
-import { vec3 } from "wgpu-matrix";
+import { quat, vec3 } from "wgpu-matrix";
 import { PerspectiveCamera } from "../../../../../src/we/core/camera/perspectiveCamera";
 import { IV_Scene } from "../../../../../src/we/core/scene/base";
 import { initScene } from "../../../../../src/we/core/scene/fn";
@@ -44,13 +44,16 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/triangle/sparse.gltf"
+    url: "/models/gltf/base/animation/simpleAnimation.gltf"
 }
 );
 window.gltf = gltf;
-gltf.printAccessorContent(0)
-gltf.printBufferView(2,5123,3,"SCALAR",0)
-gltf.printAccessorContent(1)
-gltf.printBufferView(3,5126,3,"VEC3",0)
+// gltf.printAccessorContent(0)
+// gltf.printBufferView(2,5123,3,"SCALAR",0)
+// gltf.printAccessorContent(1)
+// gltf.printBufferView(3,5126,3,"VEC3",0)
 
 await scene.add(gltf);
+
+// const q = quat.fromEuler(0,0, Math.PI/8,  'xyz'); // 角度（弧度）、旋转顺序
+// console.log(q)

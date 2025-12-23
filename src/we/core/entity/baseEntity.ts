@@ -138,7 +138,7 @@ export abstract class BaseEntity extends RootGPU {
     entityManager!: EntityManager;
 
     constructor(input: IV_BaseEntity) {
-        super();
+        super(input);
         this.type = "entity";
         this._state = E_lifeState.constructing;
         this.input = input;

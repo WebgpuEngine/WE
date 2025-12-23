@@ -1,4 +1,4 @@
-import { weColor3, weColor4, weVec2, weVec3, weVec4 } from "./coreDefine";
+import { weColor3, weColor4, weMat3, weMat4, weVec2, weVec3, weVec4 } from "./coreDefine";
 
 export async function weGetResource(param: string): Promise<any> {
 
@@ -77,6 +77,12 @@ export function isWeVec3(value: any): value is weVec3 {
 }
 export function isWeVec4(value: any): value is weVec4 {
     return Array.isArray(value) && value.length == 4;
+}
+export function isWeMat4(value: any): value is weMat4 {
+    return Array.isArray(value) && value.length == 16;
+}
+export function isWeMat3(value: any): value is weMat3 {
+    return Array.isArray(value) && value.length == 9;
 }
 
 /**

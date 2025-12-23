@@ -1,14 +1,14 @@
-import { mat4, vec3, vec4, Vec4, type Mat4, type Vec3 } from "wgpu-matrix";
+import { mat4, quat, Quat, vec3, vec4, Vec4, type Mat4, type Vec3 } from "wgpu-matrix";
 import type { Rotation } from "../math/baseDefine";
 import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import type { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { E_lifeState, I_Update, weVec3 } from "../base/coreDefine";
+import { E_lifeState, I_Update, weMat4, weVec3, weVec4 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseMaterial } from "../material/baseMaterial";
-import { isWeVec3 } from "../base/coreFunction";
+import { isWeMat4, isWeVec3, isWeVec4 } from "../base/coreFunction";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_renderPassName } from "../scene/renderManager";
 import { BaseAnimation } from "../animation/BaseAnimation";
@@ -28,11 +28,12 @@ export interface RootOriginJSON {
     // renderID: number,
     UUID: string,
     position: number[],
-    scale: number[],
+    scale: number[] | undefined,
     rotate: {
         axis: number[],
         angleInRadians: number,
     } | undefined,
+    quaternion: weVec4 | undefined,
     enable: boolean,
     visible: boolean,
     matrix: number[],
@@ -71,8 +72,11 @@ export abstract class RootOrigin implements I_UUID {
     UUID!: string;
     //空间属性
     _position: Vec3 = vec3.create();
-    _scale: Vec3 = vec3.create(1, 1, 1);
+    _scale: Vec3 | undefined = undefined;// = vec3.create(1, 1, 1);
     _rotate: Rotation | undefined = undefined;
+    _quaternion: Quat | undefined = undefined;
+    _matrix: Mat4 | undefined;
+
     worldPosition: Vec3 = vec3.create();
 
     enable: boolean = true;
@@ -275,6 +279,19 @@ export abstract class RootOrigin implements I_UUID {
     set ID(id) { this._id = id; }
     get ID(): number { return this._id; }
 
+    set Matrix(matrix: Mat4 | weMat4) {
+        if (isWeMat4(matrix)) {
+            this._matrix = mat4.create(...matrix);
+        }
+        else {
+            this._matrix = mat4.create();
+            mat4.copy(matrix, this._matrix);
+        }
+    }
+    get Matrix(): Mat4 | undefined {
+        return this._matrix;
+    }
+
     set Scale(scale: Vec3 | weVec3) {
         // this._scale = scale;
         // return ;
@@ -285,8 +302,19 @@ export abstract class RootOrigin implements I_UUID {
             vec3.copy(scale, this._scale);
         }
     }
-    get Scale(): Vec3 {
+    get Scale(): Vec3 | undefined {
         return this._scale;
+    }
+    set Quaternion(quaternion: Vec4 | weVec4) {
+        if (isWeVec4(quaternion)) {
+            this._quaternion = quat.fromValues(...quaternion);
+        }
+        else {
+            vec4.copy(quaternion, this._quaternion);
+        }
+    }
+    get Quaternion(): Vec4 | undefined {
+        return this._quaternion;
     }
 
     set Rotate(rotate: Rotation) {
@@ -313,6 +341,12 @@ export abstract class RootOrigin implements I_UUID {
     set Name(value: string) {
         this._name = value;
     }
+    quaternion() {
+        // 1. 四元数转4×4矩阵
+        const rotationMatrix = mat4.fromQuat(this._quaternion!);
+        //2 矩阵相乘
+        this.matrix = mat4.multiply(this.matrix, rotationMatrix);
+    }
 
     /** 绕任意轴旋转 */
     rotate = this.rotateAxis;
@@ -322,7 +356,8 @@ export abstract class RootOrigin implements I_UUID {
         //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
         // }
 
-        this.matrix = mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
+        let rotationMatrix = mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
+        this.matrix = mat4.multiply(this.matrix, rotationMatrix);
     }
 
     /**绕X轴(1,0,0)旋转 */
@@ -346,7 +381,9 @@ export abstract class RootOrigin implements I_UUID {
      * @param pos :Vec3
      */
     translate(pos: Vec3) {
-        this.matrix = mat4.translate(this.matrix as Mat4, pos);
+        let translationMatrix = mat4.translate(this.matrix as Mat4, pos);
+        this.matrix = mat4.multiply(this.matrix, translationMatrix);
+
     }
 
     /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos
@@ -368,32 +405,42 @@ export abstract class RootOrigin implements I_UUID {
     /**scale */
     scale(vec: Vec3) {
         this._scale = vec;
-        this.matrix = mat4.scale(this.matrix, vec);
+        let scaleMatrix = mat4.scale(this.matrix, vec);
+        this.matrix = mat4.multiply(this.matrix, scaleMatrix);
     }
 
     /**
-     * 更新矩阵的顺序是先进行线性变换，再进行位置变换
-     *      CPU中：S*R*T(右乘)
-     *      GPU中: T*R*S(左乘)
+     * 1、矩阵操作一般来说：
+     *      CPU中：S*R*T(右乘)，行向量*列矩阵=行向量
+     *      GPU中: T*R*S(左乘)，列矩阵*列向量=列向量
      * 
-     *      其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]，列优先。
+     * 2、更新矩阵的顺序是先进行线性变换，再进行位置变换。其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]，列优先。
+     * 
+     * 3、旋转部分，四元数优先，然后后轴旋转。
+     *    A、在模型gltf中，旋转使用四元数。
      */
     updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
-        this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        // this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         if (_m4) {
             if (_opera === "copy")
                 this.matrix = mat4.copy(_m4);
             else if (_opera === "multiply")
                 this.matrix = mat4.multiply(this.matrix, _m4);
         }
+        else if (this._matrix !== undefined) {
+            mat4.copy(this._matrix, this.matrix);
+        }
 
-        if (this._scale)
+
+        if (this._quaternion)
+            this.quaternion();
+        else if (this._scale)
             this.scale(this._scale);
 
         if (this._rotate)
             this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
 
-        if (this._position)
+        if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
             // this.translate(this._position);
             this.setTranslation(this._position);
 
@@ -486,6 +533,7 @@ export abstract class RootOrigin implements I_UUID {
                 axis: [],
                 angleInRadians: 0,
             },
+            quaternion: undefined,
             enable: this.enable,
             visible: this.visible,
             matrix: [],// this.matrix,
@@ -496,9 +544,20 @@ export abstract class RootOrigin implements I_UUID {
         for (let i of this._position)
             outputJSON.position.push(i);
 
-        for (let i of this._scale)
-            outputJSON.scale.push(i);
-
+        if (this._quaternion) {
+            for (let i of this._quaternion)
+                outputJSON.quaternion!.push(i);
+        }
+        else {
+            outputJSON.quaternion = undefined;
+        }
+        if (this._scale) {
+            for (let i of this._scale)
+                outputJSON.scale.push(i);
+        }
+        else {
+            outputJSON.scale = undefined;
+        }
         if (this._rotate) {
             for (let i of this._rotate.axis)
                 outputJSON.rotate!.axis.push(i);
@@ -659,7 +718,7 @@ export abstract class RootGPU extends RootOrigin {
         else {
             console.log("未找到对应的ECS manager", child);
         }
-        return this.renderID+1;
+        return this.renderID + 1;
     }
     remove = this.removeChild;
     removeChild(child: RootOrigin): RootOrigin | false {
