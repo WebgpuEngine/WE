@@ -186,7 +186,7 @@ export class Mesh extends EntityBundleMaterial {
         // this.TT2TTPF.forEach((value, key) => {
         //     key.destroy();
         // });
-        throw new Error("Method not implemented.");
+        // throw new Error("Method not implemented.");
     }
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */

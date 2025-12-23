@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "wgpu-matrix";
-import { RootGPU } from "../organization/root";
+import { RootOrigin } from "../organization/root";
 
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
@@ -27,7 +27,7 @@ import { E_renderPassName } from "../scene/renderManager";
 import { mergeLightUUID } from "../light/lightsManager";
 
 
-export abstract class BaseEntity extends RootGPU {
+export abstract class BaseEntity extends RootOrigin {
     ///////////////////////////////////////////
     // shader
     /**for shader  */
@@ -61,7 +61,7 @@ export abstract class BaseEntity extends RootGPU {
 
     ///////////////////////////////////////////////////////////////////
     //空间属性
-    boundingBox: boundingBox={
+    boundingBox: boundingBox = {
         min: [0, 0, 0],
         max: [0, 0, 0],
     };//initDCC中赋值
@@ -225,7 +225,7 @@ export abstract class BaseEntity extends RootGPU {
      * 三段式初始化的第二步：init
      * @param values
      */
-    async init(scene: Scene, parent: RootGPU, renderID: number): Promise<number> {
+    async init(scene: Scene, parent: RootOrigin, renderID: number): Promise<number> {
         this.MSAA = scene.MSAA;
         this.deferColor = scene.deferRender.deferRenderColor;
         this.structUnifomrBuffer = new ArrayBuffer(this.getSizeOfUniformArrayBuffer());//4 * 4 * this.numInstances * 4 + this._entityIdSizeForWGSL * 4
@@ -474,7 +474,13 @@ export abstract class BaseEntity extends RootGPU {
         }
     }
 
-    update(clock: Clock, updateSelftFN?: boolean): boolean {
+    /**
+     * 
+     * @param clock 
+     * @param updateSelftFN 是否call updateSelf()
+     * @returns 
+     */
+    update(clock: Clock, updateSelftFN?: boolean,): boolean {
         if (this.updatePerFrame === true || this.needUpdate === true || this._state != E_lifeState.finished) {
             super.update(clock, updateSelftFN);
         }

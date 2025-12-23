@@ -1,5 +1,5 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
-import { RootGPU, } from '../organization/root';
+import { RootOrigin, } from '../organization/root';
 import { CamreaControl, optionCamreaControl } from '../control/cameracCntrol';
 import { I_Update } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
@@ -61,7 +61,7 @@ export interface projectionOptions extends I_Update {
 /***
  * 摄像机抽象类
  */
-export abstract class BaseCamera extends RootGPU {
+export abstract class BaseCamera extends RootOrigin {
   /** 初始化参数  */
   declare inpuValues: projectionOptions;
   manager!: CameraManager;

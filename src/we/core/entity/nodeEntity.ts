@@ -1,8 +1,8 @@
-import { RootGPU } from "../organization/root";
+import { RootOrigin } from "../organization/root";
 import { Clock } from "../scene/clock";
 
 
-export class NodeEntity extends RootGPU {
+export class NodeEntity extends RootOrigin {
     constructor() {
         super();
         this.type = "node";

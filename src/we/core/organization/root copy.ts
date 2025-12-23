@@ -7,6 +7,7 @@ import { BaseLight } from "../light/baseLight";
 import { E_lifeState, I_Update, weMat4, weVec3, weVec4 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
+import { BaseMaterial } from "../material/baseMaterial";
 import { isWeMat4, isWeVec3, isWeVec4 } from "../base/coreFunction";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_renderPassName } from "../scene/renderManager";
@@ -20,153 +21,6 @@ export interface I_UUID {
     _isDestroy: boolean,
 
 }
-
-export abstract class RootGPU implements I_UUID {
-
-    device!: GPUDevice;
-
-    scene!: Scene;
-    /**
-     * 节点名称
-     * node name
-     */
-    _name: string;
-
-    /**
-     * 节点ID
-     * node ID
-     */
-
-    _id!: number;
-
-
-
-    /**
-     * 节点UUID
-     * node UUID
-     */
-
-    UUID!: string;
-    _isDestroy: boolean = false;
-    _state: E_lifeState = E_lifeState.unstart;
-    inputValues!: I_Update;
-    lastUpdaeTime: number = 0;
-
-    /**
-     * 节点类型
-     * node type
-     */
-    type!: string;
-
-    /**
-     * 映射列表，用于存储映射关系，例如：[texture, bindGroupEntry]
-     * 例如：[texture, bindGroupEntry]
-     * destroy时需要删除映射关系
-     */
-    mapList: {
-        key: any,//key of map
-        type: string, //类型
-        map?: string,//明确的Map<>
-    }[] = [];
-
-    resourcesGPU!: ResourceManagerOfGPU;
-    /**
-     * 节点是否以及GPU准备好
-     * node is ready of GPU
-     */
-    _readyForGPU!: boolean;
-    animation: BaseAnimation[] | undefined;
-    constructor(input?: I_Update) {
-        this.UUID = WeGenerateUUID();
-        this.ID = WeGenerateID();
-        // console.log("create root:", this.ID);
-        if (input) this.inputValues = input;
-        if (input?.name) this._name = input!.name!;
-        else this._name = this.ID.toString();
-
-    }
-
-    isDestroy() {
-        return this._isDestroy;
-    }
-    /**
-     * 三段式初始化的第二步：init()
-     * 
-     * @param scene 
-     * @param parent 
-     * @param renderID 
-     * @returns 
-     */
-    async init(scene: Scene): Promise<any> {
-        await this.setRootENV(scene);
-        await this.readyForGPU();
-    }
-
-
-    /**由init()调用 */
-    async setRootENV(scene: Scene) {
-        this.device = scene.device;
-        this.scene = scene;
-        this.resourcesGPU = scene.resourcesGPU;
-        this._readyForGPU = true;
-    }
-
-
-
-    /**
-     * 三段式初始化的第三步：readyForGPU
-     * 当前对象的GPU已经可以用时，执行此调用。
-     * when GPU is ready, call this function
-     */
-    abstract readyForGPU(): Promise<any>
-    destroy(): void {
-        if (this.resourcesGPU) {
-            for (let i of this.mapList) {
-                if (i.map && this.resourcesGPU.getProperty(i.map as keyof ResourceManagerOfGPU)) {
-                    (this.resourcesGPU[i.map as keyof ResourceManagerOfGPU] as Map<any, any>).delete(i.map);
-                }
-                else
-                    this.resourcesGPU.delete(i.key, i.type);
-            }
-        }
-        this._destroy();
-        this._isDestroy = true;
-    }
-    abstract _destroy(): void;
-
-    // update(clock: Clock, updateSelftFN: boolean = true): boolean {
-    //     if (this._readyForGPU === false)
-    //         return false;
-    //     else
-    //         return super.update(clock, updateSelftFN);
-    // }
-    /**
-     * 正常更新，从上到下 
-     * @param clock Clock 时钟
-     * @param updateSelftFN 是否调用自身的updateSelf(),默认=true
-     *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
-     * @returns 
-     */
-    update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        if (this.lastUpdaeTime === clock.now) //更新检查
-            return false;
-        // this.updateSelfAttribute(clock);                //更新自身的属性
-        // if (this.children.length > 0)                   //更新子节点
-        //     for (let i of this.children)
-        //         i.update(clock);
-        if (updateSelftFN)
-            this.updateSelf(clock);                         //更新自身
-        return true;
-    }
-    abstract updateSelf(clock: Clock): void;
-
-
-    set ID(id) { this._id = id; }
-    get ID(): number { return this._id; }
-}
-
-
-
 export interface RootOriginJSON {
     type: string,
     name: string,
@@ -189,7 +43,58 @@ export interface RootOriginJSON {
 
 }
 
-export abstract class RootOrigin extends RootGPU {
+export abstract class RootOrigin implements I_UUID {
+    /**
+     * 节点名称
+     * node name
+     */
+    _name: string;
+
+    /**
+     * 节点ID
+     * node ID
+     */
+
+    _id!: number;
+
+    /**
+     * renderID，use for pickup
+     * generate by stage 
+     */
+    _renderID!: number;
+
+
+    /**
+     * 节点UUID
+     * node UUID
+     */
+
+    UUID!: string;
+    //空间属性
+    _position: Vec3 = vec3.create();
+    _scale: Vec3 | undefined = undefined;// = vec3.create(1, 1, 1);
+    _rotate: Rotation | undefined = undefined;
+    _quaternion: Quat | undefined = undefined;
+    _matrix: Mat4 | undefined;
+
+    worldPosition: Vec3 = vec3.create();
+
+    enable: boolean = true;
+    _isDestroy: boolean = false;
+    /**
+     * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
+     * node visible
+     */
+    visible: boolean = true;
+
+    _state: E_lifeState = E_lifeState.unstart;
+
+    /**当前mesh的local的矩阵，按需更新 */
+    matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+
+    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
+    matrixWorld: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+
     /**
      * 父节点
      * parent node
@@ -201,160 +106,50 @@ export abstract class RootOrigin extends RootGPU {
      * child nodes
      */
     _children: RootOrigin[] = [];
-    /**
-     * renderID，use for pickup
-     * generate by stage 
-     */
-    _renderID!: number;
-
-
-    //空间属性
-    _position: Vec3 = vec3.create();
-    _scale: Vec3 | undefined = undefined;// = vec3.create(1, 1, 1);
-    _rotate: Rotation | undefined = undefined;
-    _quaternion: Quat | undefined = undefined;
-    _matrix: Mat4 | undefined;   
-    /**当前mesh的local的矩阵，按需更新 */
-    matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
-    matrixWorld: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-    worldPosition: Vec3 = vec3.create();
 
     /**
-     * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
-     * node visible
+     * 节点类型
+     * node type
      */
-    visible: boolean = true;
-    enable: boolean = true;
+    type!: string;
+
     /**是否为entity */
     noEntity!: boolean;
+
+    inputValues!: I_Update;
+
+    lastUpdaeTime: number = 0;
     /**是否为模型的子节点 */
     belongModel?: BaseModel | undefined;
 
     constructor(input?: I_Update) {
-        super(input);
+        this.UUID = WeGenerateUUID();
+        this.ID = WeGenerateID();
+        // console.log("create root:", this.ID);
+        if (input) this.inputValues = input;
+        if (input?.name) this._name = input!.name!;
+        else this._name = this.ID.toString();
+
+        this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         if (input?.belongModel) this.belongModel = input.belongModel;
     }
 
-    /**
-     * 三段式初始化的第二步：init()
-     * 
-     * @param scene 
-     * @param parent 
-     * @param renderID 
-     * @returns 
-     */
-    async init(scene: Scene, parent?: RootOrigin, renderID?: number): Promise<number> {
-        super.init(scene);
-        if (parent) {
-            this.parent = parent;
-        }
-        //获取最新的ID
-        this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
-        return this.renderID + 1;
+    isDestroy() {
+        return this._isDestroy;
     }
-    destroy(): void {
-        if (this.children.length > 0) {
-            for (let child of this.children) {
-                if (child instanceof RootOrigin) {
-                    child.destroy();
-                }
-            }
-        }
-        super.destroy();
-    }
-
     get children() { return this._children; }
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // add 
-    add = this.addChild;
-    async addChild(child: RootOrigin): Promise<number> {
-        await child.init(this.scene, this);
-        child.parent = this;
-        this._children.push(child);
-
-        if (this.parent instanceof RootOrigin && child instanceof RootOrigin) {
-            await child.setRootENV(this.scene);
-        }
-        if (child.type == "Camera") {
-            this.scene.cameraManager.add(child as BaseCamera);
-
-        }
-        else if (child.type == "Light") {
-            this.scene.lightsManager.add(child as BaseLight);
-            this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
-            if ((child as BaseLight).Shadow)
-                this.scene.renderManager.RC[E_renderPassName.transparent][child.UUID] = [];
-            // this.scene.renderManager.initRenderCommandForLight(child.UUID);//改到enityManager的update中
-
-        }
-        // else if (child.type == "ParticleSystem") {
-        //     this.scene.particleManager.addParticleSystem(child as ParticleSystem);
-        // }
-        else if (child.type == "Model") {
-            // this.scene.modelManager.addModel(child as Model);
-        }
-        else if (child.type == "entity") {
-            // if (child.belongModel) {
-            //     (child.inputValues.belongModel as BaseModel).entities.push(child as BaseEntity);
-            // }
-            // else {
-            this.scene.entityManager.add(child as BaseEntity);
-            // }
-        }
-        // else if (child.type == "material") {
-        //     // if (child.belongModel) {
-        //     //     (child.inputValues.belongModel as BaseModel).materials.push(child as BaseMaterial);
-        //     // }
-        //     // else {
-        //     this.scene.materialManager.add(child as BaseMaterial);
-        //     // }
-        // }
-        else {
-            console.log("未找到对应的ECS manager", child);
-        }
-        return this.renderID + 1;
-    }
-    remove = this.removeChild;
-    removeChild(child: RootOrigin): RootOrigin | false {
-        let childRemoveResult = this.removeChild(child);
-        if (childRemoveResult) {
-            if (child.type == "Camera") {
-                this.scene.cameraManager.remove(child as BaseCamera);
-                delete this.scene.renderManager.RC[E_renderPassName.forward][child.UUID];
-            }
-            else if (child.type == "Light") {
-                this.scene.lightsManager.remove(child as BaseLight);
-                this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
-
-                if (this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID])
-                    delete this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID];
-                if (this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID])
-                    delete this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID];
-            }
-            else if (child.type == "entity") {
-                this.scene.entityManager.remove(child as BaseEntity);
-            }
-            // else if (child.type == "material") {
-            //     this.scene.materialManager.remove(child as BaseMaterial);
-            // }
-            else {
-                console.log("未找到对应的ECS manager", child);
-            }
-        }
-        return childRemoveResult;
-    }
 
     /**
      * add child 
      * 添加子节点
      * @param child 
      */
-    // async addChild(child: RootOrigin): Promise<number> {
-    //     child.parent = this;
-    //     this._children.push(child);
-    //     return child._renderID;
-    // }
+    async addChild(child: RootOrigin): Promise<number> {
+        child.parent = this;
+        this._children.push(child);
+        return child._renderID;
+    }
 
     /**
      * remove child
@@ -364,17 +159,17 @@ export abstract class RootOrigin extends RootGPU {
      *           移除成功返回子节点，失败返回false
      *           success return child, fail return false
      */
-    // removeChild(child: RootOrigin): RootOrigin | false {
-    //     let index = this._children.indexOf(child);
+    removeChild(child: RootOrigin): RootOrigin | false {
+        let index = this._children.indexOf(child);
 
-    //     if (index !== -1) {
-    //         this._children[index].removeChildren();
-    //         this._children[index].visible = false;
-    //         let child = this._children.splice(index, 1);
-    //         return child[0];
-    //     }
-    //     return false;
-    // }
+        if (index !== -1) {
+            this._children[index].removeChildren();
+            this._children[index].visible = false;
+            let child = this._children.splice(index, 1);
+            return child[0];
+        }
+        return false;
+    }
     /**
      * remove all children
      * 移除所有子节点
@@ -441,12 +236,7 @@ export abstract class RootOrigin extends RootGPU {
         }
         return false;
     }
-    set renderID(id: number) {
-        this._renderID = id;
-    }
-    get renderID() {
-        return this._renderID;
-    }
+
     set Enable(value: boolean) {
         if (value === this.enable) return;
         else {
@@ -479,7 +269,15 @@ export abstract class RootOrigin extends RootGPU {
         this._parent = value;
     }
 
+    set renderID(id: number) {
+        this._renderID = id;
+    }
+    get renderID() {
+        return this._renderID;
+    }
 
+    set ID(id) { this._id = id; }
+    get ID(): number { return this._id; }
 
     set Matrix(matrix: Mat4 | weMat4) {
         if (isWeMat4(matrix)) {
@@ -697,6 +495,7 @@ export abstract class RootOrigin extends RootGPU {
             // console.log(this.Position)
         }
     }
+    abstract updateSelf(clock: Clock): void;
     /**
      * 自下而上的更新，一条线而上，不更新兄弟节点
      * @param clock 
@@ -711,8 +510,6 @@ export abstract class RootOrigin extends RootGPU {
             this.updateSelf(clock);
         }
     }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 输出JSON格式
      * 需要每个继承类覆盖属性实现
@@ -788,4 +585,176 @@ export abstract class RootOrigin extends RootGPU {
 }
 
 
+export abstract class RootGPU extends RootOrigin {
+
+    device!: GPUDevice;
+
+    scene!: Scene;
+
+    /**
+     * 映射列表，用于存储映射关系，例如：[texture, bindGroupEntry]
+     * 例如：[texture, bindGroupEntry]
+     * destroy时需要删除映射关系
+     */
+    mapList: {
+        key: any,//key of map
+        type: string, //类型
+        map?: string,//明确的Map<>
+    }[] = [];
+
+    resourcesGPU!: ResourceManagerOfGPU;
+    /**
+     * 节点是否以及GPU准备好
+     * node is ready of GPU
+     */
+    _readyForGPU!: boolean;
+    animation: BaseAnimation[] | undefined;
+
+
+
+    /**
+     * 三段式初始化的第二步：init()
+     * 
+     * @param scene 
+     * @param parent 
+     * @param renderID 
+     * @returns 
+     */
+    async init(scene: Scene, parent?: RootGPU, renderID?: number): Promise<number> {
+        if (parent) {
+            this.parent = parent;
+        }
+        //获取最新的ID
+        await this.setRootENV(scene);
+        this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
+
+        await this.readyForGPU();
+        return this.renderID + 1;
+    }
+
+
+    /**由init()调用 */
+    async setRootENV(scene: Scene) {
+        this.device = scene.device;
+        this.scene = scene;
+        this.resourcesGPU = scene.resourcesGPU;
+        this._readyForGPU = true;
+    }
+
+
+
+    /**
+     * 三段式初始化的第三步：readyForGPU
+     * 当前对象的GPU已经可以用时，执行此调用。
+     * when GPU is ready, call this function
+     */
+    abstract readyForGPU(): Promise<any>
+    destroy(): void {
+        if (this.children.length > 0) {
+            for (let child of this.children) {
+                if (child instanceof RootGPU) {
+                    child.destroy();
+                }
+            }
+        }
+        if (this.resourcesGPU) {
+            for (let i of this.mapList) {
+                if (i.map && this.resourcesGPU.getProperty(i.map as keyof ResourceManagerOfGPU)) {
+                    (this.resourcesGPU[i.map as keyof ResourceManagerOfGPU] as Map<any, any>).delete(i.map);
+                }
+                else
+                    this.resourcesGPU.delete(i.key, i.type);
+            }
+        }
+        this._destroy();
+        this._isDestroy = true;
+    }
+    abstract _destroy(): void;
+    add = this.addChild;
+    async addChild(child: RootGPU): Promise<number> {
+        await child.init(this.scene, this);
+        await super.addChild(child);
+        // if (child instanceof RootGPU) {
+        //     child.init(this.scene, this);
+        // }
+        // super.addChild(child);
+        if (this.parent instanceof RootGPU && child instanceof RootGPU) {
+            await child.setRootENV(this.scene);
+        }
+        if (child.type == "Camera") {
+            this.scene.cameraManager.add(child as BaseCamera);
+
+        }
+        else if (child.type == "Light") {
+            this.scene.lightsManager.add(child as BaseLight);
+            this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+            if ((child as BaseLight).Shadow)
+                this.scene.renderManager.RC[E_renderPassName.transparent][child.UUID] = [];
+            // this.scene.renderManager.initRenderCommandForLight(child.UUID);//改到enityManager的update中
+
+        }
+        // else if (child.type == "ParticleSystem") {
+        //     this.scene.particleManager.addParticleSystem(child as ParticleSystem);
+        // }
+        else if (child.type == "Model") {
+            // this.scene.modelManager.addModel(child as Model);
+        }
+        else if (child.type == "entity") {
+            // if (child.belongModel) {
+            //     (child.inputValues.belongModel as BaseModel).entities.push(child as BaseEntity);
+            // }
+            // else {
+            this.scene.entityManager.add(child as BaseEntity);
+            // }
+        }
+        else if (child.type == "material") {
+            // if (child.belongModel) {
+            //     (child.inputValues.belongModel as BaseModel).materials.push(child as BaseMaterial);
+            // }
+            // else {
+            this.scene.materialManager.add(child as BaseMaterial);
+            // }
+        }
+        else {
+            console.log("未找到对应的ECS manager", child);
+        }
+        return this.renderID + 1;
+    }
+    remove = this.removeChild;
+    removeChild(child: RootOrigin): RootOrigin | false {
+        let childRemoveResult = super.removeChild(child);
+        if (childRemoveResult) {
+            if (child.type == "Camera") {
+                this.scene.cameraManager.remove(child as BaseCamera);
+                delete this.scene.renderManager.RC[E_renderPassName.forward][child.UUID];
+            }
+            else if (child.type == "Light") {
+                this.scene.lightsManager.remove(child as BaseLight);
+                this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+
+                if (this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID])
+                    delete this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID];
+                if (this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID])
+                    delete this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID];
+            }
+            else if (child.type == "entity") {
+                this.scene.entityManager.remove(child as BaseEntity);
+            }
+            else if (child.type == "material") {
+                this.scene.materialManager.remove(child as BaseMaterial);
+            }
+            else {
+                console.log("未找到对应的ECS manager", child);
+            }
+        }
+        return childRemoveResult;
+    }
+    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+        if (this._readyForGPU === false)
+            return false;
+        else
+            return super.update(clock, updateSelftFN);
+    }
+
+}
 
