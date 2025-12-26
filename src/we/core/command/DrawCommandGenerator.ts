@@ -6,7 +6,7 @@
 
 import type { Scene } from "../scene/scene";
 import type { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
-import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, updataOneUniformBuffer } from "./baseFunction";
+import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, weVec3 } from "../base/coreDefine";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, ResourceManagerOfGPU } from "../resources/resourcesGPU";
@@ -15,6 +15,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from 
 import { BaseCamera } from "../camera/baseCamera";
 import { E_TransparentType, I_TransparentOptionOfMaterial } from "../material/base";
 import { Clock } from "../scene/clock";
+import { BaseEntity } from "../entity/baseEntity";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
@@ -230,7 +231,7 @@ export interface IV_DC {
              */
             targets?: GPUColorTargetState[],
         },
-        drawMode: I_drawMode | I_drawModeIndexed,
+        drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]),
         primitive?: GPUPrimitiveState,
         // multisample?: GPUMultisampleState,
         /**
@@ -252,6 +253,7 @@ export interface IV_DC {
         type: E_renderForDC,//"camera" | "light"
         MSAA?: T_rpdInfomationOfMSAA,
     },
+    parent?: BaseEntity,
     /**
      * 渲染pass的描述符，
      * 1、如果有同级别中的system存在，则安装camera或light，去scene中获取
@@ -307,7 +309,7 @@ export class DrawCommandGenerator {
                 }
                 else systemFlag = false
                 for (let perGroup of i.data.uniforms) {
-                    if (perGroup != undefined && perGroup.length > 0)//判断是当前的bindgroup否有uniform
+                    if (perGroup != undefined && (Array.isArray(perGroup) && perGroup.length > 0))//判断是当前的bindgroup否有uniform
                         for (let perEntry of perGroup)
                             if ("data" in perEntry && "update" in perEntry && perEntry.update === true) {//需要更新,只更新数据
                                 if (this.resources.has(perEntry, "uniformBuffer")) {
@@ -466,7 +468,11 @@ export class DrawCommandGenerator {
                 commandOption.indexFormat = values.data.indexes.format;
             }
         }
-        //5.7 创建DC
+        //5.7 parent 
+        if (values.parent) {
+            commandOption.parent = values.parent;
+        }
+        //6 创建DC
         let drawCommand = new DrawCommand(commandOption);
         return drawCommand;
     }
@@ -927,8 +933,9 @@ export class DrawCommandGenerator {
                     console.warn("uniforms 最多只能有4个BindGroup");
                     break;
                 }
+
                 let perGroup = values.data.uniforms[i];
-                if (perGroup == undefined || perGroup.length == 0) {
+                if (perGroup == undefined || (Array.isArray(perGroup) && perGroup.length == 0)) {
                     // console.warn("uniforms 组", i, "为空");
                     continue;
                 }
@@ -945,6 +952,7 @@ export class DrawCommandGenerator {
                 let bindGroupEntry: GPUBindGroupEntry[] = [];
 
 
+
                 //BindGroupLayout，重点2
                 let bindGroupLayout: GPUBindGroupLayout;
                 //BindGroup 的layout 描述，重点2->2.1
@@ -955,7 +963,18 @@ export class DrawCommandGenerator {
                 };
                 //BindGroup layout的数据入口  -->2.1.1
                 let bindGroupLayoutEntry: GPUBindGroupLayoutEntry[] = [];
-                if (!values.dynamic && this.resources.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
+
+                if (isGPUBindGroup(perGroup)) {
+                    bindGroup = perGroup;
+                    let bindGroupLayoutGet = this.resources.get(bindGroup)!;//是否有对应的layout
+                    if (bindGroupLayoutGet) {
+                        bindGroupLayout = bindGroupLayoutGet;
+                    }
+                    else {
+                        throw new Error("bindGroupLayout 不存在");
+                    };
+                }
+                else if (!values.dynamic && this.resources.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
                     let bindGroupGet = this.resources.get(perGroup);
                     if (bindGroupGet) {
                         bindGroup = bindGroupGet;
@@ -992,7 +1011,7 @@ export class DrawCommandGenerator {
                                 bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
                             }
                             else {
-                                console.warn("bindGroupLayoutEntry 不存在", perEntry);
+                                // console.warn("bindGroupLayoutEntry 不存在", perEntry);
                                 throw new Error("bindGroupLayoutEntry 不存在");
                             }
                         }

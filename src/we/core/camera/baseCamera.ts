@@ -1,7 +1,7 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
 import { RootOrigin, } from '../organization/root';
 import { CamreaControl, optionCamreaControl } from '../control/cameracCntrol';
-import { I_Update } from '../base/coreDefine';
+import { I_Update, weVec3 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
 import { ArcballCameraControl } from '../control/arcballCameraControl';
 import { WASDCameraControl } from '../control/wasdCameraControl';
@@ -10,6 +10,7 @@ import { boundingBox } from '../math/Box';
 import { boundingSphere } from '../math/sphere';
 import { CameraManager } from './cameraManager';
 import { I_viewport } from '../command/base';
+import { isWeVec3 } from '../base/coreFunction';
 
 
 
@@ -30,8 +31,26 @@ export interface projectionOptions extends I_Update {
   // top?:number,
   // bottom?:number,
   name?: string,
+  /** 相机位置 
+   * 1、局部坐标，这里是local position
+   * 2、shader使用的是全局坐标
+   *  A、如果camera在root，则全局坐标与局部坐标相同
+   *  B、如果camera不在root，则全局坐标是局部坐标经过world Matrix变换后的坐标
+  */
   position: [number, number, number],
+  /** 相机目标点，默认是(0,0,0) ，默认是全局坐标。
+   * 1、初始目标点默认是(0,0,0)，并且是由控制器来操作方向;即如果由控制器，lookAt是控制器的“初始目标点”；
+   * 2、如果没有控制器，则使用lookAt为相机的目标点，即由位置与目标点确定相机的方向；
+   *    A、lookAt是可以动态改变的，即可以在运行时改变lookAt的坐标；产生跟随效果；
+   *    B、lookAt的坐标可以是全局坐标，也可以是局部坐标，跟随目标模式视场景而定；
+   * 3、这里的坐标是全局坐标。可以通过isLookAtGlobal判断是否是全局坐标；
+  */
   lookAt?: [number, number, number],
+  /**
+   * 是否是全局坐标，默认是true
+   * todo:20251011,未验证，在updateSelf中使用
+   */
+  isLookAtGlobal?: boolean,
   viewport?: I_viewport;
   backGroundColor?: [number, number, number, number],
   premultipliedAlpha?: boolean,
@@ -114,7 +133,19 @@ export abstract class BaseCamera extends RootOrigin {
   /** MVP的Mat4的数组，[model,view,projection]  */
   MVP: Mat4[] = [];
 
-  lookAt!: Vec3;
+  lookAt: Vec3 = vec3.create();
+  set LookAt(value: Vec3 | weVec3) {
+    if (isWeVec3(value)) {
+      this.LookAt = vec3.fromValues(...value);
+    }
+    else {
+      vec3.copy(this.lookAt, value);
+    }
+  }
+  get LookAt() {
+    return this.lookAt;
+  }
+  isLookAtGlobal: boolean = true;
 
 
   /**归一化的方向 
@@ -225,6 +256,10 @@ export abstract class BaseCamera extends RootOrigin {
     else {
       this.lookAt = vec3.create(0, 0, 0);
     }
+    if (option.isLookAtGlobal != undefined) {
+      this.isLookAtGlobal = option.isLookAtGlobal;
+    }
+
 
 
   }
@@ -299,7 +334,7 @@ export abstract class BaseCamera extends RootOrigin {
     else {
       this.back = direction;
     }
-    /**方向在世界坐标系的-Y轴
+    /**方向在世界坐标系的-Y轴，特殊判断条件，防止up向量和back向量平行
      *   Z|  / Y
      *    | /
      *    |/______X
@@ -308,7 +343,7 @@ export abstract class BaseCamera extends RootOrigin {
       vec3.copy(vec3.create(1, 0, 0), this.right);
       vec3.copy(vec3.create(0, 0, 1), this.up);
     }
-    /**方向在世界坐标系的+Y轴
+    /**方向在世界坐标系的+Y轴，特殊判断条件，防止up向量和back向量平行
      *    ______X
      *   /|
      * Y/ |Z
@@ -421,7 +456,11 @@ export abstract class BaseCamera extends RootOrigin {
     }
     else {
       // this.updateProjectionMatrix();//构造投影矩阵
-      this.updateByPositionDirection(this.worldPosition, this.lookAt, false);//这里需要是world position
+      let lookat = this.lookAt;
+      if (this.isLookAtGlobal === false) {
+        vec3.transformMat4(lookat, this.matrixWorld, lookat);
+      }
+      this.updateByPositionDirection(this.worldPosition, lookat, false);//这里需要是world position
     }
     this.updateWorldPositionByPosition(this.position);
     this.updateBufferOfSystemMVP();//更新GPUBuffer of Uniform

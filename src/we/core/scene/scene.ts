@@ -824,12 +824,12 @@ export class Scene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //add 
-    async addChild(child: RootGPU) {
+    async addChild(child: RootOrigin) {
         if (child.type == "Light" && child instanceof AmbientLight) {
             this.lightsManager.ambientLight = child;
         }
         else
-           await this.root.addChild(child);
+            await this.root.addChild(child);
     }
     add = this.addChild;
     remove(child: RootOrigin) {
@@ -1223,8 +1223,8 @@ export class Scene {
                         // view: this.finalTarget.createView(),
                         view: (this.context as GPUCanvasContext).getCurrentTexture().createView(),
                         // clearValue: this.backgroudColor,//未预乘alpha
-                        clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
-                        // clearValue: [1,1,1,1],
+                        // clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
+                        clearValue: [0.5, 0.5, 0.5, 1],
                         loadOp: 'clear',
                         storeOp: "store"
                     }

@@ -3,7 +3,7 @@ import { E_TransparentType } from "../material/base";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
 import { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformArrayBufferEntry, I_viewport, IV_BaseCommand, T_uniformGroups } from "./base";
-import { BaseDrawCommand } from "./BaseDrawCommand";
+import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
 import { createUniformBuffer } from "./baseFunction";
 
 
@@ -31,8 +31,8 @@ export interface I_DynamicUniformOfDrawCommand {
 /**
  * DrawCommand input value 
  */
-export interface IV_DrawCommand extends IV_BaseCommand {
-    scene: Scene,
+export interface IV_DrawCommand extends IV_BaseDrawCommand {
+    // scene: Scene,
     // /** label */
     // label: string,
     // device: GPUDevice,
@@ -41,19 +41,19 @@ export interface IV_DrawCommand extends IV_BaseCommand {
     indexBuffer?: GPUBuffer,
     indexFormat?: GPUIndexFormat,
     uniform?: GPUBindGroup[],
-    viewport?: I_viewport,
+    // viewport?: I_viewport,
     renderPassDescriptor: () => GPURenderPassDescriptor,
-    drawMode: I_drawMode | I_drawModeIndexed,
+    // drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]),
     dynamicUniform?: I_DynamicUniformOfDrawCommand,
     /**
      * ID组
      */
     IDS?: I_DrawCommandIDs,
     transparentType?: E_TransparentType,
-    system?: {
-        UUID: string,
-        type: E_renderForDC,//"camera" | "light"
-    }
+    // system?: {
+    //     UUID: string,
+    //     type: E_renderForDC,//"camera" | "light"
+    // }
 }
 
 export class DrawCommand extends BaseDrawCommand {
@@ -106,7 +106,7 @@ export class DrawCommand extends BaseDrawCommand {
         if (input.IDS) this.IDS = input.IDS;
         // this.resourcesGPU = input.scene.resourcesGPU;
         this.transparentType = input.transparentType;
-        if (input.system) this.system = input.system;
+        // if (input.system) this.system = input.system;
     }
 
     /**

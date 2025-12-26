@@ -210,10 +210,10 @@ export abstract class RootOrigin extends RootGPU {
 
     //空间属性
     _position: Vec3 = vec3.create();
-    _scale: Vec3 | undefined = undefined;// = vec3.create(1, 1, 1);
+    _scale: Vec3 = vec3.create(1, 1, 1);
     _rotate: Rotation | undefined = undefined;
     _quaternion: Quat | undefined = undefined;
-    _matrix: Mat4 | undefined;   
+    _matrix: Mat4 | undefined;
     /**当前mesh的local的矩阵，按需更新 */
     matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
     /**当前entity在世界坐标（层级的到root)，可以动态更新 */
@@ -543,13 +543,21 @@ export abstract class RootOrigin extends RootGPU {
     set Name(value: string) {
         this._name = value;
     }
+
+    /**scale */
+    scale(vec: Vec3) {
+        this._scale = vec;
+        if (this._matrix)
+            this.matrix = mat4.scale(this._matrix, vec);
+        else
+            this.matrix = mat4.scale(this.matrix, vec);
+    }
     quaternion() {
         // 1. 四元数转4×4矩阵
         const rotationMatrix = mat4.fromQuat(this._quaternion!);
         //2 矩阵相乘
         this.matrix = mat4.multiply(this.matrix, rotationMatrix);
     }
-
     /** 绕任意轴旋转 */
     rotate = this.rotateAxis;
     rotateAxis(axis: Vec3, angle: number) {
@@ -557,35 +565,27 @@ export abstract class RootOrigin extends RootGPU {
         // for (let i = 0; i < this.numInstances; i++) {
         //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
         // }
-
-        let rotationMatrix = mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
-        this.matrix = mat4.multiply(this.matrix, rotationMatrix);
+        mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
     }
-
     /**绕X轴(1,0,0)旋转 */
     rotateX(angle: number) {
         this.rotateAxis(vec3.create(1, 0, 0), angle);
     }
-
     /**绕y轴(0,1,0)旋转 */
     rotateY(angle: number) {
         this.rotateAxis(vec3.create(0, 1, 0), angle);
     }
-
     /**绕z轴(0,0,1)旋转 */
     rotateZ(angle: number) {
         this.rotateAxis(vec3.create(0, 0, 1), angle);
     }
-
     /**
      * 在现有matrix（原有的position）上增加pos的xyz，
      * 将entity的矩阵应用POS的位置变换，是在原有矩阵上增加
      * @param pos :Vec3
      */
     translate(pos: Vec3) {
-        let translationMatrix = mat4.translate(this.matrix as Mat4, pos);
-        this.matrix = mat4.multiply(this.matrix, translationMatrix);
-
+        mat4.translate(this.matrix as Mat4, pos,this.matrix);
     }
 
     /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos
@@ -604,12 +604,7 @@ export abstract class RootOrigin extends RootGPU {
         this.matrix = mat4.setTranslation(this.matrix, pos);
     }
 
-    /**scale */
-    scale(vec: Vec3) {
-        this._scale = vec;
-        let scaleMatrix = mat4.scale(this.matrix, vec);
-        this.matrix = mat4.multiply(this.matrix, scaleMatrix);
-    }
+
 
     /**
      * 1、矩阵操作一般来说：
@@ -622,7 +617,7 @@ export abstract class RootOrigin extends RootGPU {
      *    A、在模型gltf中，旋转使用四元数。
      */
     updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
-        // this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         if (_m4) {
             if (_opera === "copy")
                 this.matrix = mat4.copy(_m4);
@@ -633,15 +628,14 @@ export abstract class RootOrigin extends RootGPU {
             mat4.copy(this._matrix, this.matrix);
         }
 
+        if (this._scale)
+            this.scale(this._scale);
 
         if (this._quaternion)
             this.quaternion();
-        else if (this._scale)
-            this.scale(this._scale);
-
-        if (this._rotate)
+        else if (this._rotate) {
             this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
-
+        }
         if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
             // this.translate(this._position);
             this.setTranslation(this._position);

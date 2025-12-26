@@ -396,7 +396,7 @@ export class Mesh extends EntityBundleMaterial {
 
                     this.scene.resourcesGPU.set(unifromTTPF, uniformTTPF_Layout);
                     bindingNumber++;
-                    uniformsMaterialTOTT.TTPF.uniformGroup.push(unifromTTPF);
+                    (uniformsMaterialTOTT.TTPF.uniformGroup as I_uniformArrayBufferEntry[]).push(unifromTTPF);
                     this.unifromTTPF = unifromTTPF;
                 }
                 // //增加TTPF部分

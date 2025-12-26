@@ -13,12 +13,12 @@ import {
     I_optionShadowEntity,
     I_ShadowMapValueOfDC,
 } from "./base";
-import { E_lifeState } from "../base/coreDefine";
+import { E_lifeState, E_renderForDC } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { I_uniformArrayBufferEntry } from "../command/base";
+import { I_bindGroupAndGroupLayout, I_uniformArrayBufferEntry } from "../command/base";
 import { I_ShaderTemplate } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
@@ -592,7 +592,226 @@ export abstract class BaseEntity extends RootOrigin {
         }
         return "";
     }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //uniform merge part
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * 
+     * @param UUID UUID,camera的UUID是正常的UUID，light的UUID是merge的UUID，通过“__”分割shadowmap的index（默认=0，point有6个：0-5）
+     * @param kind 渲染的类型
+     * @returns 
+     */
+    getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout {
+        let bindGroup: GPUBindGroup;
+        let bindGroupLayout: GPUBindGroupLayout;
+        let generate = true;
+        if (this.resourcesGPU.systemGroup0ByID.has(UUID)) {
+            bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID)!;
+            if (this.resourcesGPU.systemGroupToGroupLayout.has(bindGroup)) {
+                bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup)!;
+                generate = false;
+            }
+        }
+        let systemUniform: T_uniformGroups;
+        let entriesGroupLayout: GPUBindGroupLayoutEntry[] = []
+        let entriesGroup: GPUBindGroupEntry[] = [];
+        if (generate) {
+            let workFor = "";
+            if (kind == E_renderForDC.light) {
+                workFor = " light ";
+                let light = this.lightsManager.getLightByMergeID(UUID);
+                // return this.lightsManager.getLightBindGroupAndBindGroupLayoutByMergeID(id);
+                let mvpGPUBuffer = this.lightsManager.getOneLightMVP_ByMergeID(UUID);
+                if (!mvpGPUBuffer) {
+                    throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,mvpGPUBuffer is undefined");
+                }
+                ////////////////////////////////
+                //camera uniform 
+                let uniformMVP: GPUBindGroupEntry = {
+                    binding: 0,
+                    resource: {
+                        buffer: mvpGPUBuffer,//更新在perlight的updateSelf()中更新MVP,lightmanager.updateSytemUniformOfShadowMap()更结构中的GPUBuffer
+                    }
+                };
+                let uniformMVPLayout: GPUBindGroupLayoutEntry = {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: "uniform"
+                    }
+                };
+                entriesGroupLayout.push(uniformMVPLayout);
+                entriesGroup.push(uniformMVP);
 
+            }
+            else {
+                workFor = " camera ";
+                let camera = this.cameraManager.getCameraByUUID(UUID);
+                if (camera) {
+                    /////////////////////////////////
+                    //保留，Map操作
+                    // if (this.resourcesGPU.systemGroup0ByID.has(UUID)) {
+                    //     bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID)!;
+                    //     if(!bindGroup){
+                    //         throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,bindGroup is undefined");
+                    //     }
+                    //     bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup)!;
+                    //     if(!bindGroupLayout){
+                    //         throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,bindGroupLayout is undefined");
+                    //     }
+                    // }
+                    // else 
+                    {
+                        ////////////////////////////////
+                        //camera uniform 
+                        let uniformMVP: GPUBindGroupEntry = {
+                            binding: 0,
+                            resource: {
+                                buffer: camera.systemUniformBuffersOfGPU,//更新在perlight的updateSelf（）中
+                            }
+                        };
+                        let uniformMVPLayout: GPUBindGroupLayoutEntry = {
+                            binding: 0,
+                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                            buffer: {
+                                type: "uniform"
+                            }
+                        };
+                        entriesGroupLayout.push(uniformMVPLayout);
+                        entriesGroup.push(uniformMVP);
+                        ////////////////////////////////////
+                        //lights uniform 
+                        let uniformLights: GPUBindGroupEntry = {
+                            binding: 1,
+                            resource: {
+                                buffer: this.lightsManager.getLightsUniformForSystem(),//更新在lightManager.update()
+                            }
+                        };
+                        let uniformLightsLayout: GPUBindGroupLayoutEntry = {
+                            binding: 1,
+                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                            buffer: {
+                                type: "uniform"
+                            }
+                        };
+                        entriesGroupLayout.push(uniformLightsLayout);
+                        entriesGroup.push(uniformLights);
+
+                        //////////////////////////////////
+                        //shadow map matrix uniform 
+                        let shadowMapMatrix: GPUBindGroupEntry = {
+                            binding: 2,
+                            resource: {
+                                buffer: this.lightsManager.getShadowMapUniformForSystem(),//更新在lightManager.update()
+                            }
+                        };
+                        let shadowMapMatrixLayout: GPUBindGroupLayoutEntry = {
+                            binding: 2,
+                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                            buffer: {
+                                type: "uniform"
+                            }
+                        };
+                        entriesGroupLayout.push(shadowMapMatrixLayout);
+                        entriesGroup.push(shadowMapMatrix);
+
+                        //////////////////////////////////
+                        //shadow map depth texture
+                        let shadowMapTextures: GPUBindGroupEntry = {
+                            binding: 3,
+                            resource: this.lightsManager.shadowMapTexture.createView({ dimension: "2d-array" }),
+
+                        };
+                        let shadowMapTexturesLayout: GPUBindGroupLayoutEntry = {
+                            binding: 3,
+                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                            texture: {
+                                sampleType: "depth",
+                                viewDimension: "2d-array",
+                                multisampled: false,
+                            }
+                        };
+                        entriesGroupLayout.push(shadowMapTexturesLayout);
+                        entriesGroup.push(shadowMapTextures);
+
+                        //////////////////////////////////
+                        //shadow map sampler 
+                        let samplerName = "system shadow map sampler : less ";
+                        let sampler: GPUSampler;
+                        let samplerLayout: GPUSamplerBindingLayout;
+                        if (this.resourcesGPU.samplerOfString.has(samplerName)) {
+                            sampler = this.resourcesGPU.samplerOfString.get(samplerName)!;
+                            samplerLayout = this.resourcesGPU.samplerToBindGroupLayoutEntry.get(sampler)!;
+                        }
+                        else {
+                            if (this.reversedZ.isReversedZ === true) {
+                                sampler = this.device.createSampler({
+                                    compare: "greater-equal",
+                                });
+                            }
+                            else {
+                                sampler = this.device.createSampler({
+                                    compare: 'less',
+                                });
+                            }
+                            this.resourcesGPU.samplerOfString.set(samplerName, sampler);
+                            samplerLayout = {
+                                type: "comparison"
+                            }
+                            this.resourcesGPU.samplerToBindGroupLayoutEntry.set(sampler, samplerLayout);
+                        }
+                        if (!sampler || !samplerLayout) {
+                            throw new Error("shadow map sampler or sampler layout is underfined")
+                        }
+                        let shadowMapSampler: GPUBindGroupEntry = {
+                            binding: 4,
+                            resource: sampler
+
+                        };
+                        let shadowMapSamplerayout: GPUBindGroupLayoutEntry = {
+                            binding: 4,
+                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                            sampler: samplerLayout
+                        };
+                        entriesGroupLayout.push(shadowMapSamplerayout);
+                        entriesGroup.push(shadowMapSampler);
+                        // //////////////////////////////////////////////////
+                        // //bind group zero  保留，Map操作
+                        // let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+                        //     entries: entriesGroupLayout
+                        // }
+                        // bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+
+                        // let bindGroupDescriptor: GPUBindGroupDescriptor = {
+                        //     layout: bindGroupLayout,
+                        //     entries: entriesGroup
+                        // }
+                        // bindGroup = this.device.createBindGroup(bindGroupDescriptor);
+                        // this.resourcesGPU.systemGroup0ByID.set(UUID, bindGroup);
+                        // this.resourcesGPU.systemGroupToGroupLayout.set(bindGroup, bindGroupLayout);
+                    }
+                }
+                else
+                    throw new Error("获取Camera失败");
+            }
+            //////////////////////////////////////////////////
+            //bind group zero 
+            let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+                label: "System BGLD(0)@" + this.clock.now + workFor + UUID,
+                entries: entriesGroupLayout
+            }
+            bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+            let bindGroupDescriptor: GPUBindGroupDescriptor = {
+                label: "System BGD(0)@" + this.clock.now + workFor + UUID,
+                layout: bindGroupLayout,
+                entries: entriesGroup
+            }
+            bindGroup = this.device.createBindGroup(bindGroupDescriptor);
+            this.resourcesGPU.systemGroup0ByID.set(UUID, bindGroup);
+            this.resourcesGPU.systemGroupToGroupLayout.set(bindGroup, bindGroupLayout);
+        }
+        return { bindGroup: bindGroup!, bindGroupLayout: bindGroupLayout! };
+    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //TTPF 相关部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////

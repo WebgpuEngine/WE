@@ -1,3 +1,5 @@
+import { T_uniformOneGroup } from "./base";
+
 function isArrayBuffer(v: any): v is ArrayBuffer {
     // 严格判断是否为 ArrayBuffer 实例
     return v instanceof ArrayBuffer;
@@ -15,7 +17,9 @@ export function checkGPUBufferSize(size: number): number {
     }
     return size;
 }
-
+export function isGPUBindGroup(obj: T_uniformOneGroup): obj is GPUBindGroup {
+    return obj instanceof GPUBindGroup;
+}
 /**
  * 克隆BufferSource
  * 1、如果是ArrayBuffer，直接创建新的ArrayBuffer
@@ -78,12 +82,12 @@ export function createEmptyGPUBuffer(device: GPUDevice, usage: GPUBufferUsageFla
     });;
 }
 /** 创建GPUBuffer，根据类型和数据 */
-function createGPUBufferByType(device: GPUDevice, label: string, usage: GPUBufferUsageFlags, data: BufferSource, offset: number, length: number) {
-    const ensureData = ensureArrayBufferDivideByFour(data, offset, length);
+function createGPUBufferByType(device: GPUDevice, label: string, usage: GPUBufferUsageFlags, data: BufferSource, offset: number, byteLength: number) {
+    const ensureData = ensureArrayBufferDivideByFour(data, offset, byteLength);
     const buffer = createEmptyGPUBuffer(device, usage, ensureData.size, label);
     let offsetUse = offset;
-    let lengthUse = length;
-    if (ensureData.offset != offset || ensureData.length != length) {
+    let lengthUse = byteLength;
+    if (ensureData.offset != offset || ensureData.length != byteLength) {
         offsetUse = ensureData.offset;
         lengthUse = ensureData.length
     }
@@ -138,7 +142,7 @@ export function createVerticesBuffer(device: GPUDevice, label: string, data: Buf
 /**
  * 创建所有类型GPUBuffer
  */
-export function createCommonGPUBuffer(device: GPUDevice, label: string = "allTypeBuffer", data: BufferSource, offset: number = 0, length: number) {
+export function createCommonGPUBuffer(device: GPUDevice, label: string = "allTypeBuffer", data: BufferSource, offset: number = 0, byteLength: number) {
     if (label == "allTypeBuffer") label += ":" + data.byteLength;
     const usage =
         GPUBufferUsage.VERTEX |
@@ -148,7 +152,7 @@ export function createCommonGPUBuffer(device: GPUDevice, label: string = "allTyp
         GPUBufferUsage.COPY_DST |
         GPUBufferUsage.COPY_SRC;
 
-    return createGPUBufferByType(device, label, usage, data, offset, length);
+    return createGPUBufferByType(device, label, usage, data, offset, byteLength);
 }
 
 export function updataOneUniformBuffer(device: GPUDevice, uniformBuffer: GPUBuffer, data: BufferSource) {
