@@ -71,7 +71,7 @@ export class WASDCameraControl extends CamreaControl {
         // Wrap yaw between [0° .. 360°], just to prevent large accumulation.
         this.yaw = MathFun.mod(this.yaw, Math.PI * 2);
         // Clamp pitch between [-90° .. +90°] to prevent somersaults.
-        this.pitch = MathFun.clamp(this.pitch, -Math.PI / 4, Math.PI / 4);
+        this.pitch = MathFun.clamp(this.pitch, -Math.PI / 2, Math.PI / 2);
 
         let position = this.camera.worldPosition;
 

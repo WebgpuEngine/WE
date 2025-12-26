@@ -127,10 +127,10 @@ let DCManager = new DrawCommandGenerator(inputDC);
 let valueDC: IV_DC = {
   label: "dc1",
   data: {
-    vertices: new Map([
-      ["position", oneTriangleVertexArray],
-      ["color", oneTriangleColorArray]
-    ]),
+    vertices: {      
+      "position": oneTriangleVertexArray,
+      "color": oneTriangleColorArray
+    },
   },
   render: {
     vertex: {
@@ -151,7 +151,7 @@ let valueDC: IV_DC = {
     type: E_renderForDC.camera
   }
 }
-let lightRadius =0.65;
+let lightRadius = 0.65;
 let lightZ = 0.35
 let orthCamera = new OrthographicCamera({
   left: -2,
