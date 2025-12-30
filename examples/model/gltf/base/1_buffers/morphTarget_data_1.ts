@@ -24,19 +24,19 @@ window.scene = scene;
 let radius = 5;
 let Y = 0;
 let camera = new PerspectiveCamera({
-  fov: (2 * Math.PI) / 5,
-  aspect: scene.aspect,
-  near: 0.01,
-  far: 100,
-  position: [0, 0, 5],
-  lookAt: [0, 0, 0],
-//   update: (scope: any) => {
-//     const now = Date.now() / 1000;
-//     // console.log(scope.lookAt);
-//     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
-//     // console.log(scope.position);
-//   },
-  controlType: "arcball",
+    fov: (2 * Math.PI) / 5,
+    aspect: scene.aspect,
+    near: 0.01,
+    far: 100,
+    position: [0, 0, 5],
+    lookAt: [0, 0, 0],
+    //   update: (scope: any) => {
+    //     const now = Date.now() / 1000;
+    //     // console.log(scope.lookAt);
+    //     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
+    //     // console.log(scope.position);
+    //   },
+    controlType: "arcball",
 
 });
 await scene.add(camera);
@@ -44,12 +44,20 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/animation/simpleAnimation.gltf"
+    url: "/models/gltf/base/morphTarget/MorphTarget.gltf"
 }
 );
 window.gltf = gltf;
- gltf.printAccessorContent(2)
- gltf.printAccessorContent(3)
+
+console.log("Time")
+gltf.printAccessorContent(4)
+console.log("weight")
+gltf.printAccessorContent(5)
+console.log("========================================position 2,3 ========================================");
+gltf.printAccessorContent(1)
+gltf.printAccessorContent(2)
+gltf.printAccessorContent(3)
+
 
 
 await scene.add(gltf);

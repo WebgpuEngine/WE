@@ -48,9 +48,25 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-gltf.printAccessorContent(0)
-gltf.printBufferView(2,5123,3,"SCALAR",0)
-gltf.printAccessorContent(1)
-gltf.printBufferView(3,5126,3,"VEC3",0)
+// console.log("index")
+// gltf.printAccessorContent(0)
+// console.log("position")
+// gltf.printAccessorContent(1)
+console.log("joints_0")
+let joints_0 = gltf.printAccessorContent(2)
+// for (let i = 0; i < joints_0.length; i+=4) {
+//     console.log(joints_0[i],joints_0[i+1],joints_0[i+2],joints_0[i+3])
+// }
+console.log("weights_0")
+let weights_0 = gltf.printAccessorContent(3)
+for (let i = 0; i < weights_0.length; i+=4) {
+    console.log(weights_0[i],weights_0[i+1],weights_0[i+2],weights_0[i+3])
+}
+// console.log("invers matrix *2")
+// gltf.printAccessorContent(4)
+// console.log(("time *12"))
+// gltf.printAccessorContent(5)
+// console.log("rotatie *12")
+// gltf.printAccessorContent(6)
 
 await scene.add(gltf);

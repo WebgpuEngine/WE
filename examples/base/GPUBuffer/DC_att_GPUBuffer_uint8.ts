@@ -38,6 +38,7 @@ let shader = `
         return vec4f(1,0,0,1);
       }
 `;
+//此数值在shader中除以2.0,所以这里的坐标范围是[-1,1]
 const oneTriangleVertexArray = [
   0, 1, 0, 1, 
   - 1, -1, 0, 1,
@@ -52,6 +53,7 @@ let inputDC: IV_DrawCommandGenerator = {
 let DCManager = new DrawCommandGenerator(inputDC);
 
 let gpuBuffer1 = createVerticesBuffer(scene.device, "position", oneTriangleVertexF32A);
+console.log(oneTriangleVertexF32A)
 
 let position: I_vsGPUBufferBundle = {
   buffer: gpuBuffer1,
@@ -59,7 +61,9 @@ let position: I_vsGPUBufferBundle = {
   wgslFormat: "vec4i",
   name: "position",
   arrayStride: 4,
-  count: 3
+  count: 3,
+  min: [-1, -1, 1],
+  max: [1, 1, 1]
 }
 
 let valueDC: IV_DC = {

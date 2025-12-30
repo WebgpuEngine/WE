@@ -79,6 +79,7 @@ export interface I_vsGPUBufferBundle {
      * default: count*arrayStride
      */
     size?: number,
+    /**计算包围盒用 */
     min: weVec3,
     max: weVec3,
 }

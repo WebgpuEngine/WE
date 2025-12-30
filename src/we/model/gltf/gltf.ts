@@ -2,13 +2,12 @@ import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
 import { load } from '@loaders.gl/core';
 import { DracoLoader } from "@loaders.gl/draco";
-import { GLB, GLTFLoader, GLTFNode, GLTFScene, GLTFWithBuffers } from '@loaders.gl/gltf';
+import { GLB, GLTF, GLTFAccessor, GLTFLoader, GLTFNode, GLTFScene, GLTFWithBuffers } from '@loaders.gl/gltf';
 import { GLBLoader } from '@loaders.gl/gltf';
 import { Scene } from "../../core/scene/scene";
 import { RootGPU } from "../../core/organization/root";
 import { cloneBufferSource, createCommonGPUBuffer, createIndexBuffer, createUniformBuffer, createVerticesBuffer } from "../../core/command/baseFunction";
 import { I_indexGPUBufferBundle, I_vsGPUBufferBundle, T_indexAttribute } from "../../core/command/DrawCommandGenerator";
-// import { checkRebulidBufferForVec3, getAccessorByteStride, getAccessorSize, getAccessorTypeForGPUIndexFormat, getAccessorTypeForGPUVertexFormat, getComponentTypeSize, getTypeSize } from "./function";
 import { IV_MeshEntity, Mesh } from "../../core/entity/mesh/mesh";
 import { IV_PointsEntity, Points } from "../../core/entity/mesh/points";
 import { IV_LinesEntity, Lines } from "../../core/entity/mesh/lines";
@@ -161,12 +160,12 @@ export class GLTFModel extends BaseModel {
                      * 读取数据的大小，默认=count*arrayStride
                      * default: count*arrayStride
                      */
-                    size: BaseFunction.getAccessorSize(accessor).size,
+                    size: BaseFunction.getAccessorSize(accessor, bufferView).size,
                 } as I_indexGPUBufferBundle;
             }
             else if (bufferView.target == 34962) {
-                let size = BaseFunction.getAccessorSize(accessor).size;
-                let arrayStride = BaseFunction.getAccessorByteStride(accessor);
+                let size = BaseFunction.getAccessorSize(accessor, bufferView).size;
+                let arrayStride = BaseFunction.getAccessorByteStride(accessor, bufferView);
 
                 //获取对应的wgsl的format
                 const { format, wgslFormat } = BaseFunction.getAccessorTypeForGPUVertexFormat(accessor);
@@ -217,9 +216,9 @@ export class GLTFModel extends BaseModel {
                 // webGPU的属性格式和wgsl中的格式
                 const { format, wgslFormat } = BaseFunction.getAccessorTypeForGPUVertexFormat(accessor);
                 // 访问器的字节步长，每个元素占用的字节数
-                let arrayStride = BaseFunction.getAccessorByteStride(accessor);
+                let arrayStride = BaseFunction.getAccessorByteStride(accessor, bufferView);
                 // 访问器的元素数量：数量*组件构成数量
-                let size = BaseFunction.getAccessorSize(accessor).size;
+                let size = BaseFunction.getAccessorSize(accessor, bufferView).size;
                 // let buffer = this.modelGPUBuffers[accessor.bufferView]
                 let reBuildBuffer = BaseFunction.checkRebulidBufferForVec3(accessor);
                 // 检查是否需要新构建buffer
@@ -241,7 +240,7 @@ export class GLTFModel extends BaseModel {
                 }
                 // 没有bufferView的情况，构建一个sparse count大小的bufferAttribute
                 else if (accessor.bufferView == undefined) {
-                    bufferAttribute = new ArrayBuffer(accessor.sparse.count * BaseFunction.getAccessorByteStride(accessor));
+                    bufferAttribute = new ArrayBuffer(accessor.sparse.count * BaseFunction.getAccessorByteStride(accessor, bufferView));
                 }
                 // 有bufferView的情况且不需要重构的，直接从bufferView中读取数据
                 else {
@@ -318,12 +317,22 @@ export class GLTFModel extends BaseModel {
      * @param accessor 
      * @returns Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array
      */
-    getBufferSourceForAccessor(accessor: any): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
+    getBufferSourceForAccessor(accessor: GLTFAccessor): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
         let bufferView = this.modelData.json.bufferViews[accessor.bufferView];
         let componentType = accessor.componentType;
-        let byteOffset = (accessor.byteOffset || 0) + bufferView.byteOffset;
-        let { size, unitByteSize } = BaseFunction.getAccessorSize(accessor);
-        return BaseFunction.getBufferSourceOfArrayBuffer(this.modelGltfBuffers[bufferView.buffer].arrayBuffer, componentType, byteOffset, size);
+        let byteOffset = (accessor.byteOffset || 0) + (bufferView.byteOffset || 0);
+        let { size, unitByteSize, byteStride, componentSize, typeSize } = BaseFunction.getAccessorSize(accessor, bufferView);
+        //数据元素是紧密排列的。
+        if (byteStride === 0) {
+            return BaseFunction.getBufferSourceOfArrayBuffer(this.modelGltfBuffers[bufferView.buffer].arrayBuffer, componentType, byteOffset, size);
+        }
+        else if (byteStride == unitByteSize) {
+            return BaseFunction.getBufferSourceOfArrayBuffer(this.modelGltfBuffers[bufferView.buffer].arrayBuffer, componentType, byteOffset, size);
+        }
+        //数据元素是有跨度排序的，多个原始||有填充
+        else {
+
+        }
     }
     /**
      * 从获取bufferView的数据来源,ArrayView 
@@ -338,7 +347,7 @@ export class GLTFModel extends BaseModel {
      */
     getArrayViewForBufferView(bufferViewIndex: number, componentType: number, count: number, type: string, byteOffset: number = 0): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
         let bufferView = this.modelData.json.bufferViews[bufferViewIndex];
-        let offset = bufferView.byteOffset + byteOffset;
+        let offset = (bufferView.byteOffset || 0) + byteOffset;
         let size = count * BaseFunction.getTypeSize(type);
         return BaseFunction.getBufferSourceOfArrayBuffer(this.modelGltfBuffers[bufferView.buffer].arrayBuffer, componentType, offset, size);
     }
@@ -354,6 +363,7 @@ export class GLTFModel extends BaseModel {
         let accessor = this.modelData.json.accessors[accessorIndex];
         let buffer = this.getBufferSourceForAccessor(accessor);
         console.log(buffer);
+        return buffer;
     }
     /**
      * 测试使用
@@ -723,16 +733,16 @@ async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: RootGPU): P
             mesh = new NodeEntity();
             await parent.addChild(mesh);
         }
-        if(node.scale !== undefined) {
-            mesh.Scale=node.scale as weVec3;
+        if (node.scale !== undefined) {
+            mesh.Scale = node.scale as weVec3;
         }
         if (node.rotation !== undefined) {
-            mesh.Quaternion=node.rotation as weVec4;
+            mesh.Quaternion = node.rotation as weVec4;
         }
         if (node.translation !== undefined) {
-            mesh.Position=node.translation as weVec3;
+            mesh.Position = node.translation as weVec3;
         }
-        if(node.matrix !== undefined) {
+        if (node.matrix !== undefined) {
             mesh.Matrix = mat4.create(...node.matrix);
         }
 

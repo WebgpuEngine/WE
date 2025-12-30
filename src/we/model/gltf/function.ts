@@ -1,3 +1,5 @@
+import { GLTFAccessor, GLTFBufferView } from "@loaders.gl/gltf";
+
 /**
  * 获取accessor的component type size，用于计算accessor的size
  * @param componentType 
@@ -70,7 +72,8 @@ export function getTypeSize(type: string): number {
  * 
  *  unitByteSize: number ，组件byte大小
  */
-export function getAccessorSize(accessor: any): { size: number, unitByteSize: number } {
+export function getAccessorSize(accessor: GLTFAccessor, bufferView: GLTFBufferView): { size: number, unitByteSize: number, byteStride: number, componentSize: number, componentTypeSize: number } {
+    let byteStride = bufferView.byteStride || 0;
     let type = accessor.type;
     let count = accessor.count;
     let componentSize = getTypeSize(type);
@@ -81,20 +84,23 @@ export function getAccessorSize(accessor: any): { size: number, unitByteSize: nu
     if (componentTypeSize == undefined) {
         throw new Error("GLTFModel: unknown component type");
     }
-    return { size: count * componentSize, unitByteSize: componentTypeSize };
+    return { size: count * componentSize, unitByteSize: componentTypeSize * componentSize, byteStride: byteStride, componentSize: componentSize, componentTypeSize };
 }
 /**
  * 获取accessor的byte stride，用于计算accessor中引用bufferView的byte offset
  * @param accessor 
  * @returns number
+ * 1、如果bufferView有byteStride，直接返回。
+ * 2、如果没有，根据accessor的type和componentType计算。
+ * 3、如果type是VEC3，需要将其转换为u32x3，byteStride=4*3。
  */
-export function getAccessorByteStride(accessor: any): number {
-    let byteStride = accessor.byteStride || 0;
+export function getAccessorByteStride(accessor: GLTFAccessor, bufferView: GLTFBufferView): number {
+    let byteStride = bufferView.byteStride || 0;
     if (byteStride == 0) {
         byteStride = getTypeSize(accessor.type) * getComponentTypeSize(accessor.componentType);
-    }
-    if (accessor.type == "VEC3") {//5120|5121|5122|5123 ,即（sint8|uint8|sint16|uint16）。需要将其转换为u32x3。
-        byteStride = 4 * 3;
+        if (accessor.type == "VEC3") {//5120|5121|5122|5123 ,即（sint8|uint8|sint16|uint16）。需要将其转换为u32x3。
+            byteStride = 4 * 3;
+        }
     }
     return byteStride;
 }
@@ -103,7 +109,7 @@ export function getAccessorByteStride(accessor: any): number {
  * @param accessor 
  * @returns GPUIndexFormat
  */
-export function getAccessorTypeForGPUIndexFormat(accessor: any): GPUIndexFormat {
+export function getAccessorTypeForGPUIndexFormat(accessor: GLTFAccessor): GPUIndexFormat {
     if (accessor.type == "SCALAR") {
         if (accessor.componentType == 5123) {
             return "uint16";
@@ -124,7 +130,7 @@ export function getAccessorTypeForGPUIndexFormat(accessor: any): GPUIndexFormat 
  * @param accessor 
  * @returns { format: GPUVertexFormat, wgslFormat: string }
  */
-export function getAccessorTypeForGPUVertexFormat(accessor: any): { format: GPUVertexFormat, wgslFormat: string } {
+export function getAccessorTypeForGPUVertexFormat(accessor: GLTFAccessor): { format: GPUVertexFormat, wgslFormat: string } {
     let type = accessor.type;
     let format: GPUVertexFormat;
     let wgslFormat: string;
@@ -270,7 +276,7 @@ export function getAccessorTypeForGPUVertexFormat(accessor: any): { format: GPUV
  * @param accessors 所有accessor
  * @returns 
  */
-export function checkRebulidBufferForVec3(accessor: any): boolean {
+export function checkRebulidBufferForVec3(accessor: GLTFAccessor): boolean {
     if (accessor.type == "VEC3") {
         if (accessor.componentType == 5120 || accessor.componentType == 5121 || accessor.componentType == 5122 || accessor.componentType == 5123) {
             return true;
@@ -288,7 +294,7 @@ export function checkRebulidBufferForVec3(accessor: any): boolean {
  * @param size 大小
  * @returns 
  */
-export function getBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType: number, byteOffset: number, size: number): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array  {
+export function getBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType: number, byteOffset: number, size: number): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
     let buffer;
     if (componentType == 5120) {
         buffer = new Int8Array(data, byteOffset, size);
@@ -312,32 +318,16 @@ export function getBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType: n
         throw new Error(`GLTFModel:  component type ${componentType} not support`);
     }
     return buffer;
+    
 }
 
-export function createBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType: number, byteOffset: number, size: number): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array  {
-    let buffer;
-    if (componentType == 5120) {
-        buffer = new Int8Array(data, byteOffset, size);
-    }
-    else if (componentType == 5121) {
-        buffer = new Uint8Array(data, byteOffset, size);
-    }
-    else if (componentType == 5122) {
-        buffer = new Int16Array(data, byteOffset, size);
-    }
-    else if (componentType == 5123) {
-        buffer = new Uint16Array(data, byteOffset, size);
-    }
-    else if (componentType == 5125) {
-        buffer = new Uint32Array(data, byteOffset, size);
-    }
-    else if (componentType == 5126) {
-        buffer = new Float32Array(data, byteOffset, size);
-    }
-    else {
-        throw new Error(`GLTFModel:  component type ${componentType} not support`);
-    }
-    return buffer;
+
+export function getDataViewByStrideAndCount(data: ArrayBuffer, componentType: number, byteOffset: number, stride: number, count: number): DataView {
+    let size = stride * count;
+    // let bufferView = new Int8Array(data, byteOffset, size); 
+    let dataView = new DataView(data, byteOffset, size);
+
+    return dataView;
 }
 
 /**
@@ -347,8 +337,8 @@ export function createBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType
  * @param index 索引
  * @param value 值
  */
-export function writeArayBufferViewForSparse(buffe: ArrayBuffer,type:string,componentType:number,index:number,value:any,sparseIndex:number){
-    let bufferView ;
+export function writeArayBufferViewForSparse(buffe: ArrayBuffer, type: string, componentType: number, index: number, value: any, sparseIndex: number) {
+    let bufferView;
     if (componentType == 5120) {
         bufferView = new Int8Array(buffe);
     }
@@ -370,25 +360,25 @@ export function writeArayBufferViewForSparse(buffe: ArrayBuffer,type:string,comp
     else {
         throw new Error(`GLTFModel:  component type ${componentType} not support`);
     }
-    if(type == "SCALAR"){
+    if (type == "SCALAR") {
         bufferView[index] = value[sparseIndex];
     }
-    else if(type == "VEC2"){
-        bufferView[index*2] = value[sparseIndex*2];
-        bufferView[index*2+1] = value[sparseIndex*2+1];
+    else if (type == "VEC2") {
+        bufferView[index * 2] = value[sparseIndex * 2];
+        bufferView[index * 2 + 1] = value[sparseIndex * 2 + 1];
     }
-    else if(type == "VEC3"){
-        bufferView[index*3] = value[sparseIndex*3];
-        bufferView[index*3+1] = value[sparseIndex*3+1];
-        bufferView[index*3+2] = value[sparseIndex*3+2];
+    else if (type == "VEC3") {
+        bufferView[index * 3] = value[sparseIndex * 3];
+        bufferView[index * 3 + 1] = value[sparseIndex * 3 + 1];
+        bufferView[index * 3 + 2] = value[sparseIndex * 3 + 2];
     }
-    else if(type == "VEC4"){
-        bufferView[index*4] = value[sparseIndex*4];
-        bufferView[index*4+1] = value[sparseIndex*4+1];
-        bufferView[index*4+2] = value[sparseIndex*4+2];
-        bufferView[index*4+3] = value[sparseIndex*4+3];
+    else if (type == "VEC4") {
+        bufferView[index * 4] = value[sparseIndex * 4];
+        bufferView[index * 4 + 1] = value[sparseIndex * 4 + 1];
+        bufferView[index * 4 + 2] = value[sparseIndex * 4 + 2];
+        bufferView[index * 4 + 3] = value[sparseIndex * 4 + 3];
     }
-    else{
+    else {
         throw new Error(`GLTFModel:  type ${type} not support`);
     }
 }

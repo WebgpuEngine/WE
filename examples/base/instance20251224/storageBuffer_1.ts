@@ -74,7 +74,7 @@ let uniform10Layout: GPUBindGroupLayoutEntry = {
   visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
   buffer: {
     // type: "storage"
-    type: "read-only-storage", // 关键：改为只读（原错误是 read-write）
+    type: "read-only-storage", // 关键：改为只读 
   }
 };
 //1.2 layout Descriptor 
