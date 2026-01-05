@@ -8,6 +8,7 @@ export class RootManager extends RootOrigin {
      * 1、从1开始
      * 2、此值时最新未适用的，是每个entity返回的自身 renderID+1 
      */
+    isRoot = true;
     currentRenderID: number = 1;
     constructor(scene: Scene) {
         super();
@@ -18,7 +19,6 @@ export class RootManager extends RootOrigin {
         this.renderID = 0;
         this._readyForGPU = true;
         this.ID = 0;
-
     }
     _destroy(): void {
         throw new Error("Method not implemented.");

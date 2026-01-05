@@ -123,18 +123,11 @@ export enum E_renderPassName {
  * 1、pipelineOrder：按照pipeline结构进行分类的命令队列
  * 2、dynmaicOrder：动态命令队列，不进行分类与优化
 */
-// interface I_renderDrawCommand {
-//     [name: string]: {
-//         pipelineOrder: Map<I_PipelineStructure, commmandType[]>,
-//         dynmaicOrder: commmandType[],
-//     }
-// }
 interface I_renderDrawCommand {
-    [name: string]: commmandType[],
-    // {
-    //     pipelineOrder: Map<I_PipelineStructure, commmandType[]>,
-    //     dynmaicOrder: commmandType[],
-    // }
+    [name: string]: {
+        pipelineOrder: Map<I_PipelineStructure, commmandType[]>,
+        dynmaicOrder: commmandType[],
+    }
 }
 /**
  * 通用的渲染通道
@@ -246,13 +239,22 @@ export class RenderManager {
      */
     initRenderCommandForCamera(UUID: string) {
         if (!this.RC[E_renderPassName.depth][UUID]) {
-            this.RC[E_renderPassName.depth][UUID] = [];
+            this.RC[E_renderPassName.depth][UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.RC[E_renderPassName.MSAA][UUID]) {
-            this.RC[E_renderPassName.MSAA][UUID] = [];
+            this.RC[E_renderPassName.MSAA][UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.RC[E_renderPassName.forward][UUID]) {
-            this.RC[E_renderPassName.forward][UUID] = [];
+            this.RC[E_renderPassName.forward][UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.RC[E_renderPassName.defer][UUID]) {
             this.RC[E_renderPassName.defer][UUID] = [];
@@ -262,7 +264,10 @@ export class RenderManager {
         }
 
         if (!this.RC[E_renderPassName.sprite][UUID]) {
-            this.RC[E_renderPassName.sprite][UUID] = [];
+            this.RC[E_renderPassName.sprite][UUID] = {
+                pipelineOrder: new Map(),
+                dynmaicOrder: [],
+            };
         }
         if (!this.RC[E_renderPassName.spriteTransparent][UUID]) {
             this.RC[E_renderPassName.spriteTransparent][UUID] = [];
@@ -299,37 +304,33 @@ export class RenderManager {
             this.RC[E_renderPassName.shadowmapTransparent][UUID as E_renderPassName] = [];
         }
         for (let UUID in this.RC[E_renderPassName.depth]) {
-            // let cameraCommand = this.RC[E_renderPassName.depth][UUID as E_renderPassName];
-            // cameraCommand.pipelineOrder.clear();
-            // cameraCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.depth][UUID as E_renderPassName] = [];
+            let cameraCommand = this.RC[E_renderPassName.depth][UUID as E_renderPassName];
+            cameraCommand.pipelineOrder.clear();
+            cameraCommand.dynmaicOrder = [];
         }
         for (let UUID in this.RC[E_renderPassName.MSAA]) {
-            // let cameraCommand = this.RC[E_renderPassName.MSAA][UUID as E_renderPassName];
-            // cameraCommand.pipelineOrder.clear();
-            // cameraCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.MSAA][UUID as E_renderPassName] = [];
+            let cameraCommand = this.RC[E_renderPassName.MSAA][UUID as E_renderPassName];
+            cameraCommand.pipelineOrder.clear();
+            cameraCommand.dynmaicOrder = [];
         }
         for (let UUID in this.RC[E_renderPassName.forward]) {
-            // let cameraCommand = this.RC[E_renderPassName.forward][UUID as E_renderPassName];
-            // cameraCommand.pipelineOrder.clear();
-            // cameraCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.forward][UUID as E_renderPassName] = [];
+            let cameraCommand = this.RC[E_renderPassName.forward][UUID as E_renderPassName];
+            cameraCommand.pipelineOrder.clear();
+            cameraCommand.dynmaicOrder = [];
         }
 
         for (let UUID in this.RC[E_renderPassName.defer]) {
             this.RC[E_renderPassName.defer][UUID as E_renderPassName] = [];
         }
-
+        
         for (let UUID in this.RC[E_renderPassName.transparent]) {
             this.RC[E_renderPassName.transparent][UUID as E_renderPassName] = [];
         }
 
         for (let UUID in this.RC[E_renderPassName.sprite]) {
-            // let spriteCommand = this.RC[E_renderPassName.sprite][UUID as E_renderPassName];
-            // spriteCommand.pipelineOrder.clear();
-            // spriteCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.sprite][UUID as E_renderPassName] = [];
+            let spriteCommand = this.RC[E_renderPassName.sprite][UUID as E_renderPassName];
+            spriteCommand.pipelineOrder.clear();
+            spriteCommand.dynmaicOrder = [];
         }
         for (let UUID in this.RC[E_renderPassName.spriteTransparent]) {
             this.RC[E_renderPassName.spriteTransparent][UUID as E_renderPassName] = [];
@@ -379,83 +380,79 @@ export class RenderManager {
                 this.RC[E_renderPassName.shadowmapTransparent][_UUID!].push(command);
                 break;
             case E_renderPassName.MSAA:
-                this.RC[E_renderPassName.MSAA][_UUID!].push(command);
-                // if (command instanceof DrawCommand) {
-                //     if (command.dynamic === false) {
-                //         flag = (command as DrawCommand).getPipeLineStructure();
-                //         if (this.RC[E_renderPassName.MSAA][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
-                //             this.RC[E_renderPassName.MSAA][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
-                //         }
-                //         else {                                                                            //没有map
-                //             this.RC[E_renderPassName.MSAA][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
-                //         }
-                //     }
-                //     else {
-                //         this.RC[E_renderPassName.MSAA][_UUID!].dynmaicOrder.push(command);
-                //     }
-                // }
-                // else {
-                //     this.RC[E_renderPassName.MSAA][_UUID!].dynmaicOrder.push(command);
-                // }
+                // this.RC[E_renderPassName.MSAA].push(command);
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.RC[E_renderPassName.MSAA][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.RC[E_renderPassName.MSAA][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        }
+                        else {                                                                            //没有map
+                            this.RC[E_renderPassName.MSAA][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.RC[E_renderPassName.MSAA][_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.RC[E_renderPassName.MSAA][_UUID!].dynmaicOrder.push(command);
+                }
                 break;
             case E_renderPassName.forward:
-                this.RC[E_renderPassName.forward][_UUID!].push(command);
-
-                // if (command instanceof DrawCommand) {
-                //     if (command.dynamic === false) {
-                //         flag = (command as DrawCommand).getPipeLineStructure();
-                //         if (this.RC[E_renderPassName.forward][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
-                //             this.RC[E_renderPassName.forward][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
-                //         }
-                //         else {                                                                            //没有map
-                //             this.RC[E_renderPassName.forward][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
-                //         }
-                //     }
-                //     else {
-                //         this.RC[E_renderPassName.forward][_UUID!].dynmaicOrder.push(command);
-                //     }
-                // }
-                // else {
-                //     this.RC[E_renderPassName.forward][_UUID!].dynmaicOrder.push(command);
-                // }
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.RC[E_renderPassName.forward][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.RC[E_renderPassName.forward][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        }
+                        else {                                                                            //没有map
+                            this.RC[E_renderPassName.forward][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.RC[E_renderPassName.forward][_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.RC[E_renderPassName.forward][_UUID!].dynmaicOrder.push(command);
+                }
                 break;
             case E_renderPassName.sprite:
-                this.RC[E_renderPassName.sprite][_UUID!].push(command);
-                // if (command instanceof DrawCommand) {
-                //     if (command.dynamic === false) {
-                //         flag = (command as DrawCommand).getPipeLineStructure();
-                //         if (this.RC[E_renderPassName.sprite][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
-                //             this.RC[E_renderPassName.sprite][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
-                //         } else {                                                                               //没有map
-                //             this.RC[E_renderPassName.sprite][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
-                //         }
-                //     }
-                //     else {
-                //         this.RC[E_renderPassName.sprite][_UUID!].dynmaicOrder.push(command);
-                //     }
-                // }
-                // else {
-                //     this.RC[E_renderPassName.sprite][_UUID!].dynmaicOrder.push(command);
-                // }
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.RC[E_renderPassName.sprite][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.RC[E_renderPassName.sprite][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        } else {                                                                               //没有map
+                            this.RC[E_renderPassName.sprite][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.RC[E_renderPassName.sprite][_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.RC[E_renderPassName.sprite][_UUID!].dynmaicOrder.push(command);
+                }
                 break;
             case E_renderPassName.depth:
-                this.RC[E_renderPassName.depth][_UUID!].push(command);
-                // if (command instanceof DrawCommand) {
-                //     if (command.dynamic === false) {
-                //         flag = (command as DrawCommand).getPipeLineStructure();
-                //         if (this.RC[E_renderPassName.depth][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
-                //             this.RC[E_renderPassName.depth][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
-                //         } else {                                                                               //没有map
-                //             this.RC[E_renderPassName.depth][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
-                //         }
-                //     }
-                //     else {
-                //         this.RC[E_renderPassName.depth][_UUID!].dynmaicOrder.push(command);
-                //     }
-                // }
-                // else {
-                //     this.RC[E_renderPassName.depth][_UUID!].dynmaicOrder.push(command);
-                // }
+                if (command instanceof DrawCommand) {
+                    if (command.dynamic === false) {
+                        flag = (command as DrawCommand).getPipeLineStructure();
+                        if (this.RC[E_renderPassName.depth][_UUID!].pipelineOrder.has(flag)) {                            //是否有map
+                            this.RC[E_renderPassName.depth][_UUID!].pipelineOrder.get(flag)?.push(command);               //push command
+                        } else {                                                                               //没有map
+                            this.RC[E_renderPassName.depth][_UUID!].pipelineOrder.set(flag, [command]);                   //set map
+                        }
+                    }
+                    else {
+                        this.RC[E_renderPassName.depth][_UUID!].dynmaicOrder.push(command);
+                    }
+                }
+                else {
+                    this.RC[E_renderPassName.depth][_UUID!].dynmaicOrder.push(command);
+                }
                 break;
             case E_renderPassName.defer:
                 this.RC[E_renderPassName.defer][_UUID!].push(command);
@@ -463,6 +460,8 @@ export class RenderManager {
             case E_renderPassName.transparent:
                 this.RC[E_renderPassName.transparent][_UUID!].push(command);
                 break;
+
+
             case E_renderPassName.spriteTransparent:
                 this.RC[E_renderPassName.spriteTransparent][_UUID!].push(command);
                 break;
@@ -661,8 +660,9 @@ export class RenderManager {
             //pipeline passEncoder 部分
             let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
 
-            for (let perCommand of perOne) {
-
+            // forward render by pipeline
+            for (const [key2, value] of perOne.pipelineOrder.entries()) {
+                //camera pipeline submit count  and rpd loadOP chang part 
                 if (MSAA != undefined) {
                     if (MSAA == "MSAA")
                         this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
@@ -674,9 +674,21 @@ export class RenderManager {
                 else {
                     this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
                 }
-                let commandBuffer = await perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
+                let { passEncoder, commandEncoder } = (value[0] as DrawCommand).doEncoderStart();//获取encoder
+                for (let i = 0; i < value.length; i++) {
+                    (value[i] as DrawCommand).doEncoder(passEncoder);                           //绘制命令
+                }
+                let commandBuffer = (value[0] as DrawCommand).dotEncoderEnd(passEncoder, commandEncoder);//结束encoder
+                submitCommand.push(commandBuffer);
                 this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
+                //push commandBuffer
+            }
+            for (let perDyn of perOne.dynmaicOrder) {
+                //camera pipeline submit count  and rpd loadOP chang part 
+                this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
+                let commandBuffer = await perDyn.update();
+                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
             }
             //submit part
             if (submitCommand.length > 0) {

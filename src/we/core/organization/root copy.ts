@@ -162,14 +162,76 @@ export abstract class RootGPU implements I_UUID {
 
 }
 
-export interface IV_NodeSpace extends I_Update {
+
+
+export interface RootOriginJSON {
+    type: string,
+    name: string,
+    id: number,
+    // renderID: number,
+    UUID: string,
+    position: number[],
+    scale: number[] | undefined,
+    rotate: {
+        axis: number[],
+        angleInRadians: number,
+    } | undefined,
+    quaternion: weVec4 | undefined,
+    enable: boolean,
+    visible: boolean,
+    matrix: number[],
+    matrixWorld: number[],
+    parent: number,
+    children: number[],
+
+}
+export interface IV_Node extends I_Update {
     position?: weVec3,
     scale?: weVec3,
     rotate?: Rotation,
     quaternion?: weVec4,
     matrix?: weMat4,
+    entity?: BaseEntity,
+    // camera?: BaseCamera,
+    // light?: BaseLight,
+    // particle?: BaseParticle,
+    // animation?: BaseAnimation[],
 }
-export abstract class NodeSpace extends RootGPU {
+export abstract class RootOrigin extends RootGPU {
+    constructor(input?: IV_Node) {
+        super(input);
+        if (input) {
+            if (input.position) this.Position = input.position;
+            if (input.scale) this.Scale = input.scale;
+            if (input.rotate) this.Rotate = input.rotate;
+            if (input.quaternion) this.Quaternion = input.quaternion;
+            if (input.matrix) mat4.copy(input.matrix, this.matrix);
+            if (input.entity) this.Entity = input.entity;
+            // if (input.particle) this.Particle = input.particle;
+            // if (input.animation) this.Animation = input.animation;
+        }
+    }
+    _entity: BaseEntity | undefined;
+    get Entity(): BaseEntity | undefined {
+        return this._entity;
+    }
+    set Entity(entity: BaseEntity) {
+        this._entity = entity;
+    }
+    _particle: BaseParticle | undefined;
+    get Particle(): BaseParticle | undefined {
+        return this._particle;
+    }
+    set Particle(particle: BaseParticle) {
+        this._particle = particle;
+    }
+    _animation: BaseAnimation[] | undefined;
+    get Animation(): BaseAnimation[] | undefined {
+        return this._animation;
+    }
+    set Animation(animation: BaseAnimation[]) {
+        this._animation = animation;
+    }
     /**当前mesh的local的矩阵，按需更新 */
     matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
     /**当前entity在世界坐标（层级的到root)，可以动态更新 */
@@ -179,6 +241,28 @@ export abstract class NodeSpace extends RootGPU {
     stageID: number = 0;
     /** uv动画使用 */
     _uv: weVec2 = [0, 0];
+    /**父节点 parent node     */
+    _parent: RootOrigin | undefined;
+    get parent(): RootOrigin | undefined {
+        return this._parent;
+    }
+    set parent(value: RootOrigin) {
+        this._parent = value;
+    }
+
+    /**  子节点 child nodes     */
+    _children: RootOrigin[] = [];
+    /**
+     * renderID，use for pickup
+     * generate by stage 
+     */
+    _renderID!: number;
+    set renderID(id: number) {
+        this._renderID = id;
+    }
+    get renderID() {
+        return this._renderID;
+    }
 
     //空间属性
     _position: Vec3 = vec3.create();
@@ -245,201 +329,6 @@ export abstract class NodeSpace extends RootGPU {
     get Matrix(): Mat4 | undefined {
         return this._matrix;
     }
-    constructor(input?: IV_NodeSpace) {
-        super(input);
-        if (input) {
-            if (input.position) this.Position = input.position;
-            if (input.scale) this.Scale = input.scale;
-            if (input.rotate) this.Rotate = input.rotate;
-            if (input.quaternion) this.Quaternion = input.quaternion;
-            if (input.matrix) mat4.copy(input.matrix, this.matrix);
-        }
-    }
-    /**scale */
-    scale(vec: Vec3) {
-        this._scale = vec;
-        if (this._matrix)
-            this.matrix = mat4.scale(this._matrix, vec);
-        else
-            this.matrix = mat4.scale(this.matrix, vec);
-    }
-    quaternion() {
-        // 1. 四元数转4×4矩阵
-        const rotationMatrix = mat4.fromQuat(this._quaternion!);
-        //2 矩阵相乘
-        this.matrix = mat4.multiply(this.matrix, rotationMatrix);
-    }
-    /** 绕任意轴旋转 */
-    rotate = this.rotateAxis;
-    rotateAxis(axis: Vec3, angle: number) {
-        ////这里注销到的是因为，for操作的是instance的每个个体
-        // for (let i = 0; i < this.numInstances; i++) {
-        //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
-        // }
-        mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
-    }
-    /**绕X轴(1,0,0)旋转 */
-    rotateX(angle: number) {
-        this.rotateAxis(vec3.create(1, 0, 0), angle);
-    }
-    /**绕y轴(0,1,0)旋转 */
-    rotateY(angle: number) {
-        this.rotateAxis(vec3.create(0, 1, 0), angle);
-    }
-    /**绕z轴(0,0,1)旋转 */
-    rotateZ(angle: number) {
-        this.rotateAxis(vec3.create(0, 0, 1), angle);
-    }
-    /**
-     * 在现有matrix（原有的position）上增加pos的xyz，
-     * 将entity的矩阵应用POS的位置变换，是在原有矩阵上增加
-     * @param pos :Vec3
-     */
-    translate(pos: Vec3) {
-        mat4.translate(this.matrix as Mat4, pos, this.matrix);
-    }
-
-    /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos
-    * @param pos :Vec3
-    */
-    translation(pos: Vec3,) {
-        this.matrix = mat4.translation(this.matrix, pos);
-    }
-
-    /**
-     * 替换pos的位置（matrix的:12,13,14），其他的matrix数据不变，
-     * 将entity的位置变为POS,等价wgpu-matrix的mat4的translation，是替换，不是增加
-     * @param pos :Vec3
-     */
-    setTranslation(pos: Vec3,) {
-        this.matrix = mat4.setTranslation(this.matrix, pos);
-    }
-
-    /**
-     * 1、矩阵操作一般来说：
-     *      CPU中：S*R*T(右乘)，行向量*列矩阵=行向量
-     *      GPU中: T*R*S(左乘)，列矩阵*列向量=列向量
-     * 
-     * 2、更新矩阵的顺序是先进行线性变换，再进行位置变换。其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]，列优先。
-     * 
-     * 3、旋转部分，四元数优先，然后后轴旋转。
-     *    A、在模型gltf中，旋转使用四元数。
-     */
-    updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
-        this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        if (_m4) {
-            if (_opera === "copy")
-                this.matrix = mat4.copy(_m4);
-            else if (_opera === "multiply")
-                this.matrix = mat4.multiply(this.matrix, _m4);
-        }
-        else if (this._matrix !== undefined) {
-            mat4.copy(this._matrix, this.matrix);
-        }
-
-        if (this._scale)
-            this.scale(this._scale);
-
-        if (this._quaternion)
-            this.quaternion();
-        else if (this._rotate) {
-            this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
-        }
-        if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
-            // this.translate(this._position);
-            this.setTranslation(this._position);
-
-        return this.matrix;
-    }
-    updateWorldPosition() {
-        this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
-    }
-
-
-}
-
-export interface RootOriginJSON {
-    type: string,
-    name: string,
-    id: number,
-    // renderID: number,
-    UUID: string,
-    position: number[],
-    scale: number[] | undefined,
-    rotate: {
-        axis: number[],
-        angleInRadians: number,
-    } | undefined,
-    quaternion: weVec4 | undefined,
-    enable: boolean,
-    visible: boolean,
-    matrix: number[],
-    matrixWorld: number[],
-    parent: number,
-    children: number[],
-
-}
-
-export interface IV_Node extends IV_NodeSpace {
-    entity?: BaseEntity,
-    // camera?: BaseCamera,
-    // light?: BaseLight,
-    // particle?: BaseParticle,
-    // animation?: BaseAnimation[],
-}
-export abstract class RootOrigin extends NodeSpace {
-    constructor(input?: IV_Node) {
-        super(input);
-        if (input) {
-            if (input.entity) this.Entity = input.entity;
-            // if (input.particle) this.Particle = input.particle;
-            // if (input.animation) this.Animation = input.animation;
-        }
-    }
-    /**父节点 parent node     */
-    _parent: RootOrigin | undefined;
-    get parent(): RootOrigin | undefined {
-        return this._parent;
-    }
-    set parent(value: RootOrigin) {
-        this._parent = value;
-    }
-
-    /**  子节点 child nodes     */
-    _children: RootOrigin[] = [];
-    /**
-     * renderID，use for pickup
-     * generate by stage 
-     */
-    _renderID!: number;
-    set renderID(id: number) {
-        this._renderID = id;
-    }
-    get renderID() {
-        return this._renderID;
-    }
-    _entity: BaseEntity | undefined;
-    get Entity(): BaseEntity | undefined {
-        return this._entity;
-    }
-    set Entity(entity: BaseEntity) {
-        this._entity = entity;
-    }
-    _particle: BaseParticle | undefined;
-    get Particle(): BaseParticle | undefined {
-        return this._particle;
-    }
-    set Particle(particle: BaseParticle) {
-        this._particle = particle;
-    }
-    _animation: BaseAnimation[] | undefined;
-    get Animation(): BaseAnimation[] | undefined {
-        return this._animation;
-    }
-    set Animation(animation: BaseAnimation[]) {
-        this._animation = animation;
-    }
-
     /**
      * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
      * node visible
@@ -457,7 +346,7 @@ export abstract class RootOrigin extends NodeSpace {
     get Visible(): boolean {
         return this.visible;
     }
-    getVisibleAndParents(): boolean {
+    getVisibleOfParents(): boolean {
         if (this.visible == false) {
             return false;
         }
@@ -465,7 +354,7 @@ export abstract class RootOrigin extends NodeSpace {
             return true;
         }
         else {
-            return this.Visible && this.parent.getVisibleAndParents();
+            return this.Visible && this.parent.getVisibleOfParents();
         }
     }
 
@@ -546,13 +435,13 @@ export abstract class RootOrigin extends NodeSpace {
         if (child instanceof RootOrigin) {
             await child.init(this.scene, this);
             // child.parent = this;
-            if (child instanceof RootOrigin) {
+            if (this.parent instanceof RootOrigin && child instanceof RootOrigin) {
                 await child.setRootENV(this.scene);
             }
-            if (child.type == "Camera") {
+            if (child.type == "Camera" && child instanceof BaseCamera) {
                 this.scene.cameraManager.add(child as BaseCamera);
             }
-            else if (child.type == "Light") {
+            else if (child.type == "Light" && child instanceof BaseLight) {
                 this.scene.lightsManager.add(child as BaseLight);
                 this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
                 if ((child as BaseLight).Shadow)
@@ -587,14 +476,13 @@ export abstract class RootOrigin extends NodeSpace {
         return childNode;
     }
     async initNodeObject(value: IV_Node): Promise<NodeObject> {
-        let childNode: NodeObject = new NodeObject(value);//创建node object
-        await childNode.init(this.scene, this);  //初始化node object
-        childNode.parent = this;    //设置parent
-        if (value.entity) {//如果有entity
-            if (value.entity._state == E_lifeState.constructed) {//如果entity已经constructed,但没有init,则init entity
+        let childNode: NodeObject = new NodeObject(value);
+        childNode.parent = this;
+        if (value.entity) {
+            if (value.entity._state == E_lifeState.unstart) {
                 await value.entity.init(this.scene);
             }
-            this.scene.entityManager.add(value.entity, childNode);//将entity添加到entityManager中
+            this.scene.entityManager.add(value.entity, childNode);
         }
         // if (value.animation) {
         //     throw new Error("animation 未实现");
@@ -733,6 +621,120 @@ export abstract class RootOrigin extends NodeSpace {
 
 
 
+    /**scale */
+    scale(vec: Vec3) {
+        this._scale = vec;
+        if (this._matrix)
+            this.matrix = mat4.scale(this._matrix, vec);
+        else
+            this.matrix = mat4.scale(this.matrix, vec);
+    }
+    quaternion() {
+        // 1. 四元数转4×4矩阵
+        const rotationMatrix = mat4.fromQuat(this._quaternion!);
+        //2 矩阵相乘
+        this.matrix = mat4.multiply(this.matrix, rotationMatrix);
+    }
+    /** 绕任意轴旋转 */
+    rotate = this.rotateAxis;
+    rotateAxis(axis: Vec3, angle: number) {
+        ////这里注销到的是因为，for操作的是instance的每个个体
+        // for (let i = 0; i < this.numInstances; i++) {
+        //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
+        // }
+        mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
+    }
+    /**绕X轴(1,0,0)旋转 */
+    rotateX(angle: number) {
+        this.rotateAxis(vec3.create(1, 0, 0), angle);
+    }
+    /**绕y轴(0,1,0)旋转 */
+    rotateY(angle: number) {
+        this.rotateAxis(vec3.create(0, 1, 0), angle);
+    }
+    /**绕z轴(0,0,1)旋转 */
+    rotateZ(angle: number) {
+        this.rotateAxis(vec3.create(0, 0, 1), angle);
+    }
+    /**
+     * 在现有matrix（原有的position）上增加pos的xyz，
+     * 将entity的矩阵应用POS的位置变换，是在原有矩阵上增加
+     * @param pos :Vec3
+     */
+    translate(pos: Vec3) {
+        mat4.translate(this.matrix as Mat4, pos, this.matrix);
+    }
+
+    /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos
+    * @param pos :Vec3
+    */
+    translation(pos: Vec3,) {
+        this.matrix = mat4.translation(this.matrix, pos);
+    }
+
+    /**
+     * 替换pos的位置（matrix的:12,13,14），其他的matrix数据不变，
+     * 将entity的位置变为POS,等价wgpu-matrix的mat4的translation，是替换，不是增加
+     * @param pos :Vec3
+     */
+    setTranslation(pos: Vec3,) {
+        this.matrix = mat4.setTranslation(this.matrix, pos);
+    }
+
+
+
+    /**
+     * 1、矩阵操作一般来说：
+     *      CPU中：S*R*T(右乘)，行向量*列矩阵=行向量
+     *      GPU中: T*R*S(左乘)，列矩阵*列向量=列向量
+     * 
+     * 2、更新矩阵的顺序是先进行线性变换，再进行位置变换。其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]，列优先。
+     * 
+     * 3、旋转部分，四元数优先，然后后轴旋转。
+     *    A、在模型gltf中，旋转使用四元数。
+     */
+    updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
+        this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        if (_m4) {
+            if (_opera === "copy")
+                this.matrix = mat4.copy(_m4);
+            else if (_opera === "multiply")
+                this.matrix = mat4.multiply(this.matrix, _m4);
+        }
+        else if (this._matrix !== undefined) {
+            mat4.copy(this._matrix, this.matrix);
+        }
+
+        if (this._scale)
+            this.scale(this._scale);
+
+        if (this._quaternion)
+            this.quaternion();
+        else if (this._rotate) {
+            this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
+        }
+        if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
+            // this.translate(this._position);
+            this.setTranslation(this._position);
+
+        return this.matrix;
+    }
+
+    /** 
+     * 更新世界矩阵，
+     *          递归乘以父节点的矩阵
+     */
+    updateMatrixWorld(): void {
+        if (this.parent !== undefined) {
+            this.matrixWorld = mat4.multiply(this.parent.matrixWorld, this.updateMatrix());
+        }
+        else {
+            this.matrixWorld = this.updateMatrix();
+        }
+    }
+    updateWorldPosition() {
+        this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+    }
 
     /**
      * 正常更新，从上到下 
@@ -791,21 +793,6 @@ export abstract class RootOrigin extends NodeSpace {
         if (this.lastUpdaeTime !== clock.now) {//更新自己
             this.updateSelfAttribute(clock);
             this.updateSelf(clock);
-        }
-    }
-
-
-
-    /** 
-     * 更新世界矩阵，
-     *          递归乘以父节点的矩阵
-     */
-    updateMatrixWorld(): void {
-        if (this.parent !== undefined) {
-            this.matrixWorld = mat4.multiply(this.parent.matrixWorld, this.updateMatrix());
-        }
-        else {
-            this.matrixWorld = this.updateMatrix();
         }
     }
 

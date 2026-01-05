@@ -1,6 +1,6 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { I_UUID } from "./root";
+import { I_UUID, RootOrigin } from "./root";
 
 export abstract class ECSManager<T extends I_UUID> {
     scene: Scene;
@@ -13,14 +13,14 @@ export abstract class ECSManager<T extends I_UUID> {
     }
     // abstract add(entity: T): void;
     // abstract remove(entity: T): void;
-    add(entity: T) {
+    add(entity: T, node?: RootOrigin) {
         let index = this.list.indexOf(entity);
         if (index != -1) {
             return;
         }
         this.list.push(entity);
     }
-    remove(entity: T) {
+    remove(entity: T, node?: RootOrigin) {
         let index = this.list.indexOf(entity);
         if (index != -1) {
             this.list.splice(index, 1);

@@ -1,4 +1,4 @@
-import { E_renderForDC, weColor4 } from "../../base/coreDefine";
+import { E_lifeState, E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformGroups } from "../../command/base";
 import { DrawCommand } from "../../command/DrawCommand";
@@ -201,6 +201,7 @@ export class Mesh extends EntityBundleMaterial {
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
         }
+        // this._state = E_lifeState.finished;
     }
     /**
      * 反转法线，未测试过

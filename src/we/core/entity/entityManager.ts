@@ -1,30 +1,43 @@
 import { ECSManager } from "../organization/manager";
+import { RootOrigin } from "../organization/root";
+import { pickupTargetOfIDs } from "../pickup/base";
 import { Clock } from "../scene/clock";
 import { RenderManager, E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { BaseEntity } from "./baseEntity";
 
 export class EntityManager extends ECSManager<BaseEntity> {
-
+    instances: Map<BaseEntity, RootOrigin[]> = new Map();
     renderManager: RenderManager;
     constructor(scene: Scene) {
         super(scene);
         this.renderManager = scene.renderManager;
     }
-    // add(entity: BaseEntity) {
-    //     this.list.push(entity);
-    // }
-    // remove(entity: BaseEntity) {
-    //     let index = this.list.indexOf(entity);
-    //     if (index != -1) {
-    //         this.list.splice(index, 1);
-    //     }
-    // }
+    add(entity: BaseEntity, instance: RootOrigin) {
+        super.add(entity);
+        let instances = this.instances.get(entity);
+        if (instances == undefined) {
+            instances = [] as RootOrigin[];
+            this.instances.set(entity, instances);
+        }
+        instances.push(instance);
+        entity.outSideInstance = instances;
+    }
+    remove(entity: BaseEntity, instance: RootOrigin) {
+        let instances = this.instances.get(entity);
+        if (instances != undefined) {
+            let index = instances.indexOf(instance);
+            if (index != -1) {
+                instances.splice(index, 1);
+            }
+        }
+    }
     update(clock: Clock) {
         this.checkDestroy();
         for (let entity of this.list) {//所有entity
-            if (entity.isDestroy() === false && entity.enable === true && entity.visible === true) {
-                this.scene.Box3s.push(entity.boundingBox);
+            if (entity.isDestroy() === false) {//&& entity.enable === true && entity.visible === true
+                //更新entity bindGroup
+                entity.update(clock);
                 //camera
                 for (let UUID in entity.cameraDC) {//一个entity的所有camera
                     let perCamera = entity.cameraDC[UUID];
@@ -75,14 +88,36 @@ export class EntityManager extends ECSManager<BaseEntity> {
             throw new Error("Entity not found");
         }
     }
-    getEntityByRenderID(renderID: number): BaseEntity {
-        let entity = this.list.find((entity) => entity.renderID == renderID);
+
+    getNodeByIDs(IDs: pickupTargetOfIDs): RootOrigin {
+        let entity = this.list.find((entity) => entity.ID == IDs.entityID);
         if (entity) {
-            return entity;
+            let instances = this.instances.get(entity);
+            if (instances != undefined) {
+                let index = instances.findIndex((instance) => instance.ID == IDs.instanceID);
+                if (index != -1) {
+                    return instances[index];
+                }
+                else {
+                    throw new Error("Instance not found");
+                }
+            }
+            else {
+                throw new Error("Instances array not found");
+            }
         }
         else {
             throw new Error("Entity not found");
         }
     }
+    // getEntityByRenderID(renderID: number): BaseEntity {
+    //     let entity = this.list.find((entity) => entity.renderID == renderID);
+    //     if (entity) {
+    //         return entity;
+    //     }
+    //     else {
+    //         throw new Error("Entity not found");
+    //     }
+    // }
 
 }

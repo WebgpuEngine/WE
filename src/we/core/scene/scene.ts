@@ -1,21 +1,19 @@
+import { IV_Node, RootOrigin } from "../organization/root";
 import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "../command/base";
-import { createEmptyGPUBuffer, createStorageBuffer } from "../command/baseFunction";
+import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { CamreaControl } from "../control/cameracCntrol";
 import { EntityManager } from "../entity/entityManager";
 import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
 import { LightsManager } from "../light/lightsManager";
-import { BaseMaterial } from "../material/baseMaterial";
 import { MaterialManager } from "../material/materialManager";
 import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
 import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
-import { RootGPU, RootOrigin } from "../organization/root";
-import { Pickup } from "../pickup/pickup";
 import { pickupManager } from "../pickup/pickupManager";
 import { PostProcessManager } from "../postprocess/postProcessManager";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
@@ -29,6 +27,7 @@ import { Clock } from "./clock";
 // import { classList } from "../base/coreClass";
 import { RenderManager } from "./renderManager";
 import { RootManager } from "./rootManager";
+import { BaseEntity } from "../entity/baseEntity";
 
 
 
@@ -440,7 +439,7 @@ export class Scene {
         }
         let defaultMaterial = new PBRMaterial(baseInputPBR);//gltf 默认材质
         this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
-        let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16*4, "oneStorageMatrix");
+        let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
         this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
         this.root = new RootManager(this);
         await this.root.init(this);
@@ -460,7 +459,7 @@ export class Scene {
         else {
             throw new Error("default defaultPBR 不存在");
         }
-    }    
+    }
     getResourceDefaultTexture(): Texture {
         let one = this.resourcesGPU.weTextureOfString.get("default");
         if (one) return one;
@@ -856,12 +855,12 @@ export class Scene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //add 
-    async addChild(child: RootOrigin) {
-        if (child.type == "Light" && child instanceof AmbientLight) {
+    async addChild(child: RootOrigin | BaseEntity | IV_Node) {
+        if (child instanceof AmbientLight) {
             this.lightsManager.ambientLight = child;
         }
         else
-            await this.root.addChild(child);
+            return await this.root.addChild(child);
     }
     add = this.addChild;
     remove(child: RootOrigin) {

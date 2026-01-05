@@ -66,11 +66,17 @@ let inputMesh: IV_MeshEntity = {
     // wireFrameOnly: true,
     offset: 1
   },
-  instance: {
-    numInstances: 2,
-    position: [1, 0, 0, -1, 0, 0],
-  }
+
 }
 let mesh = new Mesh(inputMesh);
-await scene.add(mesh);
-
+let node1=await scene.add({
+    position: [1, 0, 0],
+    entity: mesh,
+  });
+let node2=await scene.add({
+    position: [-1, 0, 0],
+    entity: mesh,
+  }
+);
+console.log(node1);
+console.log(node2);

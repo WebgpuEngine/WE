@@ -9,7 +9,7 @@ export interface pickupTargetOfIDs {
     stageID: number,
     entityID: number;
     instanceID: number;
-    worldPosition?: [number, number, number]
+    worldPosition?: [number, number, number]//未实现，在map中没有进行worldposition的数据
 }
 /**
  * pickupManager 使用的创建Pickup对象的初始化参数

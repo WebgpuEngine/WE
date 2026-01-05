@@ -83,7 +83,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     getTransparent(): boolean {
         return this._material.getTransparent();
     }
+    /** 生成原始包围盒，基于当前entity的原始包围盒，不涉及变换 */
     generateBox(position: number[]): boundingBox {
+        //gltf 模型的box，需要从模型中获取
         if (this.inputValues.attributes &&
             this.inputValues.attributes.data &&
             this.inputValues.attributes.data.vertices &&
@@ -95,10 +97,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             };
             return box;
         }
+        //其他情况，使用父类的方法
         else {
             return super.generateBox(position);
         }
     }
+    /**
+     * 生成boundingBox和boundingSphere，基于当前entity的原始包围盒和原始包围球，不涉及变换
+     */
     generateBoxAndSphere(): void {
         if (this.checkStatus()) {
             let position: number[] = [];
@@ -127,6 +133,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
     }
     getBoundingBoxMaxSize(): number {
+        if (this.boundingBox == undefined)
+            this.generateBoxAndSphere();
         let box3 = this.boundingBox;
         if (box3) {
             return Math.max(box3.max[0] - box3.min[0], box3.max[1] - box3.min[1], box3.max[2] - box3.min[2]);
@@ -309,8 +317,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         scope?: EntityBundleMaterial
     ): IV_DC {
         if (scope == undefined) scope = this;
-        if (scope.boundingBox == undefined)
-            scope.generateBoxAndSphere();
+        // if (scope.boundingBox == undefined)
+        //     scope.generateBoxAndSphere();
         let boundingBoxMaxSize = scope.getBoundingBoxMaxSize();//生成 shader 中的cubeVecUV使用
         if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
 

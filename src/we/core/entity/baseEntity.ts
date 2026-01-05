@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "wgpu-matrix";
-import { RootOrigin } from "../organization/root";
+import { RootGPU, RootOrigin } from "../organization/root";
 
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
@@ -31,7 +31,7 @@ import { MorphTargetAnimation } from "../animation/morphTarget";
 import { SkinSkeletonAnimation } from "../animation/skinSkeleton";
 
 
-export abstract class BaseEntity extends RootOrigin {
+export abstract class BaseEntity extends RootGPU {
     ////////////////////////////////////////////////////////////////////
     //基础属性
     input: IV_BaseEntity;
@@ -127,11 +127,12 @@ export abstract class BaseEntity extends RootOrigin {
     bindGroupLayout!: GPUBindGroupLayout;
     ///////////////////////////////////////////////////////////////////
     //空间属性
-    boundingBox: boundingBox = {
-        min: [0, 0, 0],
-        max: [0, 0, 0],
-    };//initDCC中赋值
-    boundingSphere!: boundingSphere;
+    boundingBox: boundingBox | undefined;
+    // = {
+    //     min: [0, 0, 0],
+    //     max: [0, 0, 0],
+    // };//initDCC中赋值
+    boundingSphere!: boundingSphere | undefined;
     //////////////////////////////////////////////////////////////////
     //动画相关
     _animation: BaseAnimation | undefined;
@@ -164,16 +165,20 @@ export abstract class BaseEntity extends RootOrigin {
     }
     ///////////////////////////////////////////////////////////////////
     //状态属性
+
     // _init: E_lifeState = E_lifeState.unstart;
     /**是否每帧更新 */
-    updatePerFrame: boolean = true;
+    // updatePerFrame: boolean = true;
 
     // /**是否单独更新每个instance  默认=false    */
     // flagUpdateForPerInstance: boolean = false;
+
     /**
      * 是否需要更新,根据初始化状态，或触发更新
      */
-    needUpdate: boolean = true;
+    // needUpdate: boolean = true;
+
+
     //////////////////////////////////////////////////////////////////
     //是否透明属性
     /**透明属性     , 默认=false， 通过后续材质或函数设置     */
@@ -243,7 +248,7 @@ export abstract class BaseEntity extends RootOrigin {
      * 上级group的状态（可见性、使用性）
      */
     abstract checkStatus(): boolean
-    /** 生成Box和Sphere */
+    /** 生成原始包围盒和原始包围球 */
     abstract generateBoxAndSphere(): void
     /** 获取混合模式 */
     abstract getBlend(): GPUBlendState | undefined;
@@ -278,22 +283,23 @@ export abstract class BaseEntity extends RootOrigin {
         this._state = E_lifeState.constructing;
         this.input = input;
 
-        //是否每帧更新矩阵等
-        if (input.updatePerFrame !== undefined) {
-            this.updatePerFrame = input.updatePerFrame;
-        }
-        else if (input.dynamicMesh !== undefined) {
-            this.updatePerFrame = input.dynamicMesh;
-        }
-        else if (input.dynamicPostion !== undefined) {
-            this.updatePerFrame = input.dynamicPostion;
-        }
-        else if (input.update !== undefined) {
-            this.updatePerFrame = true;
-        }
-        else {
-            this.updatePerFrame = false;
-        }
+        // //是否每帧更新矩阵等
+        // if (input.updatePerFrame !== undefined) {
+        //     this.updatePerFrame = input.updatePerFrame;
+        // }
+        // else if (input.dynamicMesh !== undefined) {
+        //     this.updatePerFrame = input.dynamicMesh;
+        // }
+        // else if (input.dynamicPostion !== undefined) {
+        //     this.updatePerFrame = input.dynamicPostion;
+        // }
+        // else if (input.update !== undefined) {
+        //     this.updatePerFrame = true;
+        // }
+        // else {
+        //     this.updatePerFrame = false;
+        // }
+
         // if (input.instance) {
         //     this.instance = input.instance;
         //     this.checkInstance();
@@ -301,13 +307,13 @@ export abstract class BaseEntity extends RootOrigin {
         if (input.cullmode) {
             this._cullMode = input.cullmode;
         }
-        if (input.position) this._position = vec3.fromValues(input.position[0], input.position[1], input.position[2]);
-        if (input.scale) this._scale = vec3.fromValues(input.scale[0], input.scale[1], input.scale[2]);
-        if (input.rotate) this._rotate = {
-            axis: vec3.fromValues(input.rotate[0], input.rotate[1], input.rotate[2]),
-            angleInRadians: input.rotate[3],
-        };
-        if (input.name) this.Name = input.name;
+        // if (input.position) this._position = vec3.fromValues(input.position[0], input.position[1], input.position[2]);
+        // if (input.scale) this._scale = vec3.fromValues(input.scale[0], input.scale[1], input.scale[2]);
+        // if (input.rotate) this._rotate = {
+        //     axis: vec3.fromValues(input.rotate[0], input.rotate[1], input.rotate[2]),
+        //     angleInRadians: input.rotate[3],
+        // };
+        // if (input.name) this.Name = input.name;
 
         //////////////////
         //about shader
@@ -318,6 +324,8 @@ export abstract class BaseEntity extends RootOrigin {
             }
         }
         // console.log(this.ID);
+        this._state = E_lifeState.constructed;
+
     }
     abstract detachData(): void;
     // /**
@@ -360,13 +368,14 @@ export abstract class BaseEntity extends RootOrigin {
      * 三段式初始化的第二步：init
      * @param values
      */
-    async init(scene: Scene, parent: RootOrigin, renderID: number): Promise<number> {
+    async init(scene: Scene): Promise<any> {
+        this._state = E_lifeState.initializing;
         this.MSAA = scene.MSAA;
         this.deferColor = scene.deferRender.deferRenderColor;
 
-        this.outSideInstance.push(this);//临时代码
+        // this.outSideInstance.push(this);//临时代码
 
-        await super.init(scene, parent, renderID);
+        await super.init(scene);
         this.intUniformCommonEntity();
         this.updateInstanceBuffer();
         this.updateWorldMatrixBuffer();
@@ -375,8 +384,8 @@ export abstract class BaseEntity extends RootOrigin {
 
         this.transparent = this.getTransparent();
         this.DCG = new DrawCommandGenerator({ scene: this.scene });
-        this._state = E_lifeState.constructed;
-        return this.renderID + 1;
+        this._state = E_lifeState.finished;
+        // return this.renderID + 1;
     }
 
 
@@ -395,20 +404,21 @@ export abstract class BaseEntity extends RootOrigin {
         this.boundingSphere = this.generateSphere(box);
     }
 
-    /** 世界坐标的Box */
+
+    /** 生成世界坐标的Box，当前entity的原始包围盒，不涉及变换 */
     generateBox(position: number[]): boundingBox {
         let box = generateBox3(position);
-        const min = vec3.transformMat4(box.min, this.matrixWorld);
-        const max = vec3.transformMat4(box.max, this.matrixWorld);
-        box.max[0] = max[0];
-        box.max[1] = max[1];
-        box.max[2] = max[2];
-        box.min[0] = min[0];
-        box.min[1] = min[1];
-        box.min[2] = min[2];
+        // const min = vec3.transformMat4(box.min, instance.matrixWorld);
+        // const max = vec3.transformMat4(box.max, instance.matrixWorld);
+        // box.max[0] = max[0];
+        // box.max[1] = max[1];
+        // box.max[2] = max[2];
+        // box.min[0] = min[0];
+        // box.min[1] = min[1];
+        // box.min[2] = min[2];
         return box;
     }
-    /**世界坐标的sphere */
+    /** 生成世界坐标的sphere，基于当前entity的原始包围球，不涉及变换 */
     generateSphere(box: boundingBox): boundingSphere {
         if (this.boundingBox == undefined) {
             console.error("boundingBox 没有计算");
@@ -456,11 +466,12 @@ export abstract class BaseEntity extends RootOrigin {
      * @param updateSelftFN 是否call updateSelf()
      * @returns 
      */
-    update(clock: Clock, updateSelftFN?: boolean,): boolean {
-        if (this.updatePerFrame === true || this.needUpdate === true || this._state != E_lifeState.finished) {
+    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+        if (this._state === E_lifeState.finished && this.checkStatus()) {//initial finish
             super.update(clock, updateSelftFN);
+            return true;
         }
-        return this.needUpdate;
+        return false;
     }
 
     updateSelf(clock: Clock) {
@@ -468,42 +479,19 @@ export abstract class BaseEntity extends RootOrigin {
         this.updateUniformCommonEntity(clock);
         this.updateInstanceBuffer();
         this.updateWorldMatrixBuffer(clock);
-        this.updateMorphtTargetBuffer() ;
+        this.updateMorphtTargetBuffer();
         this.updateJointMatrixBuffer();
 
-        //比如：material 是在运行中是可以更改的，需要重新初始化。
-        //由人工按需触发
-        if (this.needUpdate === true) {
-            this._state = E_lifeState.constructed;//重新初始化，下一帧进行重新初始化工作 
-            this.DCG.clear();
-        }
-        if (this._state === E_lifeState.constructed) {
-            this.clearDC();
-            if (this.checkStatus()) {
-                this._state = E_lifeState.initializing;
-                this.generateBoxAndSphere();
-                this.upgradeLights();//todo:20250911 ，light完成
-                this.upgradeCameras();
-                this._state = E_lifeState.finished;//this.createDCCC(valueOfCamera);
-            }
-            this.needUpdate = false;
-        }
-        //初始化是完成状态，同时checkStatus=true
-        //material 是在运行中是可以更改的，所以需要检查状态。
-        else if (this._state === E_lifeState.finished && this.checkStatus()) {
-            //检查是否有新摄像机，有进行更新
-            this.checkUpgradeCameras();
-            //检查是否有新光源，有进行更新
-            this.checkUpgradeLights();
-        }
-        else if (this._state == E_lifeState.initializing) {
-            this.checkStatus();
-        }
+        //检查是否有新摄像机，有进行更新
+        this.checkUpgradeCameras();
+        //检查是否有新光源，有进行更新
+        this.checkUpgradeLights();
+
         this.DCG.upadate();
     }
     /** 获取当前状态（是否可以进行update）*/
     getStateus(): boolean {
-        if (this.checkStatus() && this.visible && this.enable) {
+        if (this.checkStatus()) {
             return true;
         }
         return false;
@@ -792,7 +780,7 @@ export abstract class BaseEntity extends RootOrigin {
                 st_instance_infoViews.stage_id[0] = perNode.stageID;
                 // st_instance_infoViews.uv[0] = perNode._uv[0];
                 // st_instance_infoViews.uv[1] = perNode._uv[1];
-                st_instance_infoViews.uv.set(perNode._uv);
+                // st_instance_infoViews.uv.set(perNode._uv);
             }
             this.device.queue.writeBuffer(this.bufferGPU.instances, 0, this.bufferCPU.instances);
         }
