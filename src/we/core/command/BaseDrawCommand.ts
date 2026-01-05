@@ -1,7 +1,7 @@
 import { E_renderForDC } from "../base/coreDefine";
 import { BaseEntity } from "../entity/baseEntity";
 import { Scene } from "../scene/scene";
-import { I_drawMode, I_drawModeIndexed, I_viewport, IV_BaseCommand, T_BindGroupType } from "./base";
+import { I_drawMode, I_drawModeIndexed, I_viewport, IV_BaseCommand, T_BindGroupType, T_drawMode } from "./base";
 
 
 /**
@@ -11,7 +11,7 @@ export interface IV_BaseDrawCommand extends IV_BaseCommand {
     scene: Scene,
     viewport?: I_viewport,
     renderPassDescriptor: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
-    drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]),
+    drawMode: T_drawMode,
     system?: {
         UUID: string,
         type: E_renderForDC,//"camera" | "light"
@@ -29,7 +29,7 @@ export abstract class BaseDrawCommand {
     isOwner: boolean = false;
     /**bind group 是否动态更新,例如：GPUTexture的注销与重建(外部模式的video等) */
     dynamic: boolean = false;
-    drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]);
+    drawMode: T_drawMode;
     scene: Scene;
     label: string;
     // rawUniform!: boolean;
@@ -127,8 +127,8 @@ export abstract class BaseDrawCommand {
                 this.bindGroups[0] = bindGroupBundle.bindGroup;
             }
         }
-        // 如果有parent(entity)，则绑定parent的bindGroup0
-        if (this.parent !== undefined) {
+        // 如果有parent(entity)，则绑定parent的bindGroup0; PP的DC也有parent
+        if (this.parent !== undefined && this.parent.type === "entity") {
             let bindGroupBundle = this.parent.getBindGroupAndBindGroupLayout();
             this.bindGroups[1] = bindGroupBundle.bindGroup;
         }

@@ -271,6 +271,7 @@ export class Mesh extends EntityBundleMaterial {
                     topology: "line-list",
                 },
             },
+            parent: scope,
             system: {
                 UUID,
                 type//: E_renderForDC.camera

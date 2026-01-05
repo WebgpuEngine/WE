@@ -5,7 +5,7 @@
  */
 
 import type { Scene } from "../scene/scene";
-import type { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
+import type { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_drawMode, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
 import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, weVec3 } from "../base/coreDefine";
@@ -232,7 +232,7 @@ export interface IV_DC {
              */
             targets?: GPUColorTargetState[],
         },
-        drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]),
+        drawMode: T_drawMode,
         primitive?: GPUPrimitiveState,
         // multisample?: GPUMultisampleState,
         /**

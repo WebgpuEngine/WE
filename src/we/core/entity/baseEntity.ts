@@ -294,10 +294,10 @@ export abstract class BaseEntity extends RootOrigin {
         else {
             this.updatePerFrame = false;
         }
-        if (input.instance) {
-            this.instance = input.instance;
-            this.checkInstance();
-        }
+        // if (input.instance) {
+        //     this.instance = input.instance;
+        //     this.checkInstance();
+        // }
         if (input.cullmode) {
             this._cullMode = input.cullmode;
         }
@@ -320,42 +320,42 @@ export abstract class BaseEntity extends RootOrigin {
         // console.log(this.ID);
     }
     abstract detachData(): void;
-    /**
-     * 检查内部instance是否合法
-     */
-    checkInstance() {
-        if (this.instance.index) {
-            if (this.instance.index.length < this.instance.numInstances) {
-                throw new Error("instance.index 长度必须大于等于 instance.numInstances");
-            }
-        }
-        else if (this.instance.position) {
-            if (this.instance.numInstances > this.instance.position.length) {
-                throw new Error("instance.position 长度必须大于等于 instance.numInstances");
-            }
-            this.instance.numInstances = this.instance.position.length / 3;
-        }
-        let posLen = 0, rotLen = 0, scaleLen = 0;
-        if (this.instance.position) {
-            posLen = this.instance.position.length;
-        }
-        else {
-            throw new Error("instance.position 必须有");
-        }
-        if (this.instance.rotate) {
-            rotLen = this.instance.rotate.length;
-        }
-        if (this.instance.scale) {
-            scaleLen = this.instance.scale.length;
-        }
+    // /**
+    //  * 检查内部instance是否合法
+    //  */
+    // checkInstance() {
+    //     if (this.instance.index) {
+    //         if (this.instance.index.length < this.instance.numInstances) {
+    //             throw new Error("instance.index 长度必须大于等于 instance.numInstances");
+    //         }
+    //     }
+    //     else if (this.instance.position) {
+    //         if (this.instance.numInstances > this.instance.position.length) {
+    //             throw new Error("instance.position 长度必须大于等于 instance.numInstances");
+    //         }
+    //         this.instance.numInstances = this.instance.position.length / 3;
+    //     }
+    //     let posLen = 0, rotLen = 0, scaleLen = 0;
+    //     if (this.instance.position) {
+    //         posLen = this.instance.position.length;
+    //     }
+    //     else {
+    //         throw new Error("instance.position 必须有");
+    //     }
+    //     if (this.instance.rotate) {
+    //         rotLen = this.instance.rotate.length;
+    //     }
+    //     if (this.instance.scale) {
+    //         scaleLen = this.instance.scale.length;
+    //     }
 
-        if (rotLen != 0 && rotLen / 4 != posLen / 3) {
-            throw new Error("position rotate 长度必须相同");
-        }
-        if (scaleLen != 0 && scaleLen != posLen) {
-            throw new Error("position scale 长度必须相同");
-        }
-    }
+    //     if (rotLen != 0 && rotLen / 4 != posLen / 3) {
+    //         throw new Error("position rotate 长度必须相同");
+    //     }
+    //     if (scaleLen != 0 && scaleLen != posLen) {
+    //         throw new Error("position scale 长度必须相同");
+    //     }
+    // }
     /**
      * 三段式初始化的第二步：init
      * @param values

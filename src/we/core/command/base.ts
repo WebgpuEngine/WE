@@ -65,6 +65,8 @@ export interface I_drawMode {
     firstInstance?: number
 }
 
+
+
 /**索引模式的draw mode定义
  * @indexCount The number of indices to draw.
  * @instanceCount 多少个，默认=1
@@ -79,6 +81,15 @@ export interface I_drawModeIndexed {
     baseVertex?: number,
     firstInstance?: number,
 }
+export function isDrawModeIndexed(drawMode: any): drawMode is I_drawModeIndexed {
+    return "indexCount" in drawMode;
+}
+
+export function isDrawModeVertex(drawMode: any): drawMode is I_drawMode {
+    return "vertexCount" in drawMode;
+}
+
+export type T_drawMode = I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]);
 //draw mode end
 /////////////////////////////////////////////////////////////////////////////////////////////////
 

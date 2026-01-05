@@ -9,7 +9,7 @@
  * 3、非共性或功能不相同的，各自实现
  */
 import { E_lifeState, E_renderForDC } from "../base/coreDefine";
-import { I_drawMode, I_drawModeIndexed } from "../command/base";
+import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed, isDrawModeVertex } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
 import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
@@ -232,26 +232,15 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         return { bindingNumber: bindingNumber, uniformGroup: this.bindGroup, shaderTemplateFinal };
     }
 
-
-    /**
-     * mesh 生成DrawCommand的input value
-     * @param type 渲染类型
-     * @param UUID camera UUID or light merge UUID
-     * @param vsBundle 实体的uniform和shader模板
-     * @param vsOnly 是否只渲染顶点
-     * @returns IV_DrawCommand
-     */
-    generateInputValueOfDC(
-        renderType: E_renderForDC,
-        UUID: string,
-        bundle: I_vsfsBundle,
-        vsOnly: boolean = false,
-        scope?: EntityBundleMaterial
-    ): IV_DC {
-        if (scope == undefined) scope = this;
-        let drawMode: I_drawMode | I_drawModeIndexed;
-        if (scope.inputValues.drawMode != undefined) {
-            drawMode = scope.inputValues.drawMode;
+    getDrawMode(): I_drawMode[] | I_drawModeIndexed[] {
+        let drawMode: I_drawMode[] | I_drawModeIndexed[] = [];
+        if (this.inputValues.drawMode != undefined) {
+            if (isDrawModeIndexed(this.inputValues.drawMode)) {
+                (drawMode as I_drawModeIndexed[]).push(this.inputValues.drawMode);
+            }
+            else if (isDrawModeVertex(this.inputValues.drawMode)) {
+                (drawMode as I_drawMode[]).push(this.inputValues.drawMode);
+            }
         }
         else {
             let drawModeMesh: I_drawMode = {
@@ -268,20 +257,20 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
             //index mode
             // if (scope.attributes.indexes) {
-            if (Array.isArray(scope.attributes.indexes) && scope.attributes.indexes.length > 0) {
-                drawModeIndexMesh.indexCount = scope.attributes.indexes.length;
-                drawModeIndexMesh.instanceCount = scope.instance.numInstances;
-                drawMode = drawModeIndexMesh;
+            if (Array.isArray(this.attributes.indexes) && this.attributes.indexes.length > 0) {
+                drawModeIndexMesh.indexCount = this.attributes.indexes.length;
+                drawModeIndexMesh.instanceCount = this.instance.numInstances;
+                (drawMode as I_drawModeIndexed[]).push(drawModeIndexMesh);
             }
-            else if (scope.attributes.indexes && isIndexGPUBufferBundle(scope.attributes.indexes)) {
-                drawModeIndexMesh.indexCount = scope.attributes.indexes.count;
-                drawModeIndexMesh.instanceCount = scope.instance.numInstances;
-                drawMode = drawModeIndexMesh;
+            else if (this.attributes.indexes && isIndexGPUBufferBundle(this.attributes.indexes)) {
+                drawModeIndexMesh.indexCount = this.attributes.indexes.count;
+                drawModeIndexMesh.instanceCount = this.instance.numInstances;
+                (drawMode as I_drawModeIndexed[]).push(drawModeIndexMesh);
             }
             //non-index mode
             else {
-                if (scope.attributes.vertices["position"]) {
-                    let pos = scope.attributes.vertices["position"]!;
+                if (this.attributes.vertices["position"]) {
+                    let pos = this.attributes.vertices["position"]!;
                     if (isVSGPUBufferBundle(pos)) {
                         drawModeMesh.vertexCount = pos.count;
                     }
@@ -298,10 +287,28 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 else {
                     throw new Error("position is not array or GPUBufferBundle");
                 }
-                drawModeMesh.instanceCount = scope.instance.numInstances;
-                drawMode = drawModeMesh;
+                drawModeMesh.instanceCount = this.instance.numInstances;
+                (drawMode as I_drawMode[]).push(drawModeMesh);
             }
         }
+        return drawMode;
+    }
+    /**
+     * mesh 生成DrawCommand的input value
+     * @param type 渲染类型
+     * @param UUID camera UUID or light merge UUID
+     * @param vsBundle 实体的uniform和shader模板
+     * @param vsOnly 是否只渲染顶点
+     * @returns IV_DrawCommand
+     */
+    generateInputValueOfDC(
+        renderType: E_renderForDC,
+        UUID: string,
+        bundle: I_vsfsBundle,
+        vsOnly: boolean = false,
+        scope?: EntityBundleMaterial
+    ): IV_DC {
+        if (scope == undefined) scope = this;
         if (scope.boundingBox == undefined)
             scope.generateBoxAndSphere();
         let boundingBoxMaxSize = scope.getBoundingBoxMaxSize();//生成 shader 中的cubeVecUV使用
@@ -339,7 +346,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     },
                 },
                 fragment,
-                drawMode,
+                drawMode: () => { return scope.getDrawMode() },
                 primitive: {
                     cullMode: scope._cullMode,
                 }
@@ -348,7 +355,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 UUID,
                 type: renderType
             },
-            parent:this,
+            parent: scope,
             IDS: {
                 UUID: scope.UUID,
                 ID: scope.ID,
@@ -434,7 +441,6 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO MSAA info:" + valueDC.label;
                 else
                     valueDC.label = "opacity MSAA info:" + valueDC.label;
-                valueDC.parent = this;
                 dc = this.DCG.generateDrawCommand(valueDC);
                 // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }
@@ -468,7 +474,6 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO:" + valueDC.label;
                 else
                     valueDC.label = "opacity:" + valueDC.label;
-                valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
                 dc = this.DCG.generateDrawCommand(valueDC);
                 // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }
