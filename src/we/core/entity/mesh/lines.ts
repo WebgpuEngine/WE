@@ -1,5 +1,6 @@
 import {  E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
+import { E_renderPassName } from "../../scene/renderManager";
 import {  SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
 import {  E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput,  I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
@@ -65,7 +66,7 @@ export class Lines extends EntityBundleMaterial {
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
-        await this._material.init(this.scene, this);
+        await this._material.init(this.scene);
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
         }
@@ -90,8 +91,8 @@ export class Lines extends EntityBundleMaterial {
      */
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
-        this.generateOpacityDC(UUID, SHT_MeshVS);
-
+        let dc = this.generateOpacityDC(UUID, SHT_MeshVS);
+        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         // //mesh 前向渲染
         // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_LineVS);
         // let uniformsMaterial = this._material.getOpacity_Forward(bundle.bindingNumber);

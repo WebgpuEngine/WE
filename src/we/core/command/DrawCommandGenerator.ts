@@ -254,6 +254,12 @@ export interface IV_DC {
         type: E_renderForDC,//"camera" | "light"
         MSAA?: T_rpdInfomationOfMSAA,
     },
+    /**
+     * 父实体，
+     * 1、entity的bindGroup占用bindGroup1的位置；
+     * 2、如果存在parent，bindgroup和bindgrouplayout通过parent.getBindGroupAndBindGroupLayout()获取
+     * 2、如果没有父实体，则entity的bindGroup使用data中的uniform数据生成bindgroup；同时layout 通过cache获取
+     */
     parent?: BaseEntity,
     /**
      * 渲染pass的描述符，
@@ -926,6 +932,12 @@ export class DrawCommandGenerator {
                 DC_bindGroupLayouts.push(bindGroupLayout);
                 layoutNumber++;
             }
+        }
+        if (values.parent) {
+            let { bindGroup, bindGroupLayout } = values.parent.getBindGroupAndBindGroupLayout();
+            DC_bindGroups.push(bindGroup);
+            DC_bindGroupLayouts.push(bindGroupLayout);
+            layoutNumber++;
         }
         //2.2、创建其他uniforms的BindGroup和BindGroupLayout
         if (values.data.uniforms) {

@@ -1,8 +1,10 @@
 import { weColor3, E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
+import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { ColorMaterial } from "../../material/standard/colorMaterial";
+import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_PointEmuSpriteVS, SHT_PointVS } from "../../shadermanagemnet/mesh/meshVS";
 import { E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
@@ -170,10 +172,10 @@ export class Points extends EntityBundleMaterial {
             this._material = new ColorMaterial({
                 color: [...this.color, 1],
             });
-            await this._material.init(this.scene, this);
+            await this._material.init(this.scene);
         }
         else {
-            await this._material.init(this.scene, this);
+            await this._material.init(this.scene);
         }
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
@@ -197,7 +199,7 @@ export class Points extends EntityBundleMaterial {
     //         label: this.Name + " uniform at group(1) binding(0)",
     //         binding: bindingNumber,
     //         size: this.getSizeOfUniformArrayBuffer(),
-    //         data: this.getUniformArrayBuffer()
+    //         data: this.getUniformCommonEntityInfo()
     //     };
     //     let uniform10Layout: GPUBindGroupLayoutEntry = {
     //         binding: bindingNumber,
@@ -291,18 +293,19 @@ export class Points extends EntityBundleMaterial {
      */
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
+        let dc: DrawCommand;
         if (this.emulate == "none") {
-            this.generateOpacityDC(UUID, SHT_PointVS);
+            dc = this.generateOpacityDC(UUID, SHT_PointVS);
         }
         else {
             if (this.emulate == "sprite") {
-                this.generateOpacityDC(UUID, SHT_PointEmuSpriteVS, undefined, undefined, this.generateEmuInputValueOfDC);
-
+                dc = this.generateOpacityDC(UUID, SHT_PointEmuSpriteVS, undefined, undefined, this.generateEmuInputValueOfDC);
             }
             else {
-                this.generateOpacityDC(UUID, SHT_PointVS, undefined, undefined, this.generateEmuInputValueOfDC);
+                dc = this.generateOpacityDC(UUID, SHT_PointVS, undefined, undefined, this.generateEmuInputValueOfDC);
             }
         }
+        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
     }
     // createForwardDC(camera: BaseCamera): void {
     //     let UUID = camera.UUID;

@@ -73,8 +73,8 @@ export function ensureArrayBufferDivideByFour(src: BufferSource, offset: number,
     }
 }
 /** 创建GPUBuffer ,内容为空*/
-export function createEmptyGPUBuffer(device: GPUDevice, usage: GPUBufferUsageFlags, size: number, label: string,) {
-    checkGPUBufferSize(size);
+export function createEmptyGPUBuffer(device: GPUDevice, usage: GPUBufferUsageFlags, byteSize: number, label: string,) {
+    let size= checkGPUBufferSize(byteSize);
     return device.createBuffer({
         label: label,
         size: size,

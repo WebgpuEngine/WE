@@ -4,6 +4,7 @@
  */
 import { BaseCamera } from "../../camera/baseCamera";
 import { BaseMaterial } from "../../material/baseMaterial";
+import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/meshVS";
 import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
@@ -59,7 +60,7 @@ export class Sprite extends EntityBundleMaterial {
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
-        await this._material.init(this.scene, this);
+        await this._material.init(this.scene);
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
         }
@@ -76,8 +77,8 @@ export class Sprite extends EntityBundleMaterial {
 
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
-        this.generateOpacityDC(UUID, SHT_PointEmuSpriteVS);
-
+        let dc = this.generateOpacityDC(UUID, SHT_PointEmuSpriteVS);
+        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
     }
 
     createTransparent(camera: BaseCamera): void {

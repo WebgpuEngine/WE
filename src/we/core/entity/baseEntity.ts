@@ -13,7 +13,7 @@ import {
     I_optionShadowEntity,
     I_ShadowMapValueOfDC,
 } from "./base";
-import { E_lifeState, E_renderForDC } from "../base/coreDefine";
+import { E_lifeState } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
@@ -25,33 +25,22 @@ import { Scene } from "../scene/scene";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { E_renderPassName } from "../scene/renderManager";
 import { mergeLightUUID } from "../light/lightsManager";
+import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFunction";
+import { BaseAnimation, E_AnimationType } from "../animation/BaseAnimation";
+import { MorphTargetAnimation } from "../animation/morphTarget";
+import { SkinSkeletonAnimation } from "../animation/skinSkeleton";
 
 
 export abstract class BaseEntity extends RootOrigin {
-    ///////////////////////////////////////////
-    // shader
-    /**for shader  */
-    entity_id!: Uint32Array;
-    /**for shader */
-    stage_id!: Uint32Array;
-
-    /** 实体类型 */
-    kind!: E_entityType;
-
-    /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
-    _entityIdSizeForWGSL = 4;//以u32（f32）计算
     ////////////////////////////////////////////////////////////////////
     //基础属性
     input: IV_BaseEntity;
-    /** stageID*/
-    stageID: number = 0;
     /**实例化数量，默认为1 */
     instance: I_entityInstance = {
         numInstances: 1,
     }
     /**     剔除模式    默认=back      */
     _cullMode: GPUCullMode = "back";
-
     /**MSAA */
     MSAA: boolean = false;
     /**
@@ -59,6 +48,83 @@ export abstract class BaseEntity extends RootOrigin {
      */
     deferColor!: boolean;
 
+    vertexCount: number = 0;
+    ///////////////////////////////////////////
+    // shader
+    /** 顶点偏移量，材质编辑器适用，目前(20260103)未使用*/
+    vsOffset: number = 0;
+    /**for shader  */
+    entity_id!: Uint32Array;
+    /**for shader */
+    stage_id!: Uint32Array;
+    /** 实体类型 */
+    kind!: E_entityType;
+
+    /**uniform :  st_entity 数据     */
+    _entityCommonSizeForWGSL = 32;//以byte计算
+    /** storage array
+     * 每个instance的st_instance_info size
+     * 1、每个instance的结构大小 ，st_instance_info 大小=16
+     * 2、instance数量（M=1，动态，程序中）
+     */
+    _instanceInfoSizeForWGSL = 16;//以byte计算
+    /**storage array
+     * 每个instance的world matrix大小(固定的)
+     * 1、matrix以16byte一个单位计算，16 byte
+     * 2、instance数量
+     */
+    _instanceWorldMatrixForWGSL = 16 * 4;
+    /**storage array
+     * 每个instance的joint matrix size
+     * 1、matrix以16*4 byte一个单位计算
+     * 2、当前entity的jonit数组数量：N=1(不使用时),N=4(一般情况)
+     * 3、instance 数量（M=1，动态，程序中）
+     */
+    _instanceJointMatrixForWGSL = 16 * 4;
+    /**storage array
+     * 1、不使用的默认大小（为了在内没有morph target的情况下，使用default one storage buffer，最小以16计算 ）
+     * 2、size计算= N*P
+     *  A、instance 数量（M=1，动态，程序中）
+     *  B、一个顶点的morphTarget数量：N=4(一般情况)
+     *  C、顶点count：P
+     */
+    _instanceMorphTargetSizeForWGSL = 16 * 4;
+    ///////////////////////////////////////////////////////////////////
+    //uniform
+    /** */
+    flagInstanceArrayBufferReNewTime: number = 0;
+    bufferCPU: {
+        /** 最终输出@group(1) @binding(0)的uniform buffer*/
+        uniformCommonEntity?: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
+        /** 实例化数组@group(1) @binding(1)*/
+        instances?: ArrayBuffer;
+        /** 世界矩阵数组@group(1) @binding(2)*/
+        wolrdMatrix?: ArrayBuffer;
+        /** 变形矩阵数组@group(1) @binding(3)*/
+        morphMatrix?: ArrayBuffer;
+        /** 骨骼矩阵数组@group(1) @binding(4)*/
+        jointMatrix?: ArrayBuffer;
+    } = {};
+    bufferGPU: {
+        /** 最终输出@group(1) @binding(0)的uniform buffer*/
+        uniformCommonEntity?: GPUBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
+        /** 实例化数组@group(1) @binding(1)*/
+        instances?: GPUBuffer;
+        /** 世界矩阵数组@group(1) @binding(2)*/
+        wolrdMatrix?: GPUBuffer;
+        /** 变形矩阵数组@group(1) @binding(3)*/
+        morphMatrix?: GPUBuffer;
+        /** 骨骼矩阵数组@group(1) @binding(4)*/
+        jointMatrix?: GPUBuffer;
+    } = {};
+    /**
+     * 外部实例化数组
+     */
+    outSideInstance: RootOrigin[] = [];
+    ///////////////////////////////////////////////////////////////////
+    //bind group
+    bindGroup!: GPUBindGroup;
+    bindGroupLayout!: GPUBindGroupLayout;
     ///////////////////////////////////////////////////////////////////
     //空间属性
     boundingBox: boundingBox = {
@@ -66,12 +132,36 @@ export abstract class BaseEntity extends RootOrigin {
         max: [0, 0, 0],
     };//initDCC中赋值
     boundingSphere!: boundingSphere;
-    ///////////////////////////////////////////////////////////////////
-    //uniform
-    /** 最终输出@group(1) @binding(0)的uniform buffer*/
-    structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-    /** matrix buffer是structUnifomrBuffer的matrix部分的arrybuffer view，因为实例化可能是一个或多个，最终输出是一个structUnifomrBuffer的buffer     */
-    matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
+    //////////////////////////////////////////////////////////////////
+    //动画相关
+    _animation: BaseAnimation | undefined;
+    get Animation() {
+        return this._animation;
+    }
+    set Animation(animation: BaseAnimation | undefined) {
+        this._animation = animation;
+    }
+    /** 获取动画类型 */
+    getAnimationKind(): E_AnimationType {
+        if (this.Animation) {
+            return this.Animation.kind;
+        }
+        return E_AnimationType.none;
+    }
+    /** 获取变形目标数量 */
+    getMorphtTargetCount(): number {
+        if (this.Animation?.kind === E_AnimationType.morphTarget && this.Animation instanceof MorphTargetAnimation) {
+            return this.Animation.Count;
+        }
+        return 0;
+    }
+    /** 获取骨骼动画数量 */
+    getSkeletonCount(): number {
+        if (this.Animation?.kind === E_AnimationType.skeleton && this.Animation instanceof SkinSkeletonAnimation) {
+            return this.Animation.Count;
+        }
+        return 0;
+    }
     ///////////////////////////////////////////////////////////////////
     //状态属性
     // _init: E_lifeState = E_lifeState.unstart;
@@ -88,14 +178,26 @@ export abstract class BaseEntity extends RootOrigin {
     //是否透明属性
     /**透明属性     , 默认=false， 通过后续材质或函数设置     */
     _transparent: boolean = false;
-
+    /** 设置是否透明 */
+    set transparent(transparent: boolean) {
+        this._transparent = transparent;
+    }
+    /** 获取是否透明 */
+    get transparent() {
+        return this._transparent;
+    }
     //////////////////////////////////////////////////////////////////
     //阴影相关
     _shadow: I_optionShadowEntity = {
         accept: true,
         generate: true,
     };
-
+    ////////////////////////////////////////////////////////////////////////////
+    //渲染相关
+    //延迟渲染，depth模式，先绘制depth，单像素
+    deferRenderDepth!: boolean;
+    //延迟渲染，color模式，todo：先绘制color，depth，材质集中在一起处理，需要一个shader进行处理，即，合批shader
+    deferRenderColor!: boolean;
     /**
      * cameraDC 队列 
      * 1、由enity生成(每个摄像机)
@@ -127,15 +229,48 @@ export abstract class BaseEntity extends RootOrigin {
      * DrawCommand 生成器
      */
     DCG!: DrawCommandGenerator;
-
     ////////////////////////////////////////////////////////////////////////////
-    //渲染相关
-    //延迟渲染，depth模式，先绘制depth，单像素
-    deferRenderDepth!: boolean;
-    //延迟渲染，color模式，todo：先绘制color，depth，材质集中在一起处理，需要一个shader进行处理，即，合批shader
-    deferRenderColor!: boolean;
-    ////////////////////////////////////////////////////////////////////////////
+    //ECS
     entityManager!: EntityManager;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // abstract 部分
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * 可见性(visible)、
+     * 可用性(enable)、
+     * 初始化状态(_state)
+     * 上级group的状态（可见性、使用性）
+     */
+    abstract checkStatus(): boolean
+    /** 生成Box和Sphere */
+    abstract generateBoxAndSphere(): void
+    /** 获取混合模式 */
+    abstract getBlend(): GPUBlendState | undefined;
+    /** 获取是否透明 */
+    abstract getTransparent(): boolean;
+
+    /**延迟渲染的深度渲染：单像素模延迟 ，不透明*/
+    abstract createDeferDepthDC(camera: BaseCamera): void
+    /**前向渲染 不透明 */
+    abstract createForwardDC(camera: BaseCamera): void
+    /**透明渲染 */
+    abstract createTransparent(camera: BaseCamera): void
+
+    /**渲染shadowmap 不透明*/
+    abstract createShadowMapDC(input: I_ShadowMapValueOfDC): void
+    /**渲染shadowmap 透明模式 */
+    abstract createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void
+
+    /**获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
+     * 涉及三个部分：
+     * 1、uniformGroups：uniform多组，至少有group0(system),group1(entity)。
+     * 2、shaderTemplateFinal：shader模板输出，包括了shader代码和groupAndBindingString。
+     * 3、enity 和material的uniform layout 到ResourceGPU的Map操作
+     * @param startBinding 
+     * @returns  uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
+     */
+    abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput
 
     constructor(input: IV_BaseEntity) {
         super(input);
@@ -186,7 +321,7 @@ export abstract class BaseEntity extends RootOrigin {
     }
     abstract detachData(): void;
     /**
-     * 检查instance是否合法
+     * 检查内部instance是否合法
      */
     checkInstance() {
         if (this.instance.index) {
@@ -228,71 +363,38 @@ export abstract class BaseEntity extends RootOrigin {
     async init(scene: Scene, parent: RootOrigin, renderID: number): Promise<number> {
         this.MSAA = scene.MSAA;
         this.deferColor = scene.deferRender.deferRenderColor;
-        this.structUnifomrBuffer = new ArrayBuffer(this.getSizeOfUniformArrayBuffer());//4 * 4 * this.numInstances * 4 + this._entityIdSizeForWGSL * 4
-        this.matrixWorldBuffer = new Float32Array(this.structUnifomrBuffer, 0, 4 * 4 * this.instance.numInstances);
-        this.entity_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.instance.numInstances * 4, 1);
-        this.stage_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.instance.numInstances * 4 + 4, 1);
+
+        this.outSideInstance.push(this);//临时代码
+
         await super.init(scene, parent, renderID);
+        this.intUniformCommonEntity();
+        this.updateInstanceBuffer();
+        this.updateWorldMatrixBuffer();
+        this.updateWorldMatrixBuffer();
+        this.updateJointMatrixBuffer();
+
         this.transparent = this.getTransparent();
         this.DCG = new DrawCommandGenerator({ scene: this.scene });
         this._state = E_lifeState.constructed;
         return this.renderID + 1;
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // abstract 部分
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * 可见性(visible)、
-     * 可用性(enable)、
-     * 初始化状态(_state)
-     * 上级group的状态（可见性、使用性）
-     */
-    abstract checkStatus(): boolean
-    /** 生成Box和Sphere */
-    abstract generateBoxAndSphere(): void
-    /** 获取混合模式 */
-    abstract getBlend(): GPUBlendState | undefined;
-    /** 获取是否透明 */
-    abstract getTransparent(): boolean;
 
-    /**延迟渲染的深度渲染：单像素模延迟 ，不透明*/
-    abstract createDeferDepthDC(camera: BaseCamera): void
-    /**前向渲染 不透明 */
-    abstract createForwardDC(camera: BaseCamera): void
-    /**透明渲染 */
-    abstract createTransparent(camera: BaseCamera): void
-
-    /**渲染shadowmap 不透明*/
-    abstract createShadowMapDC(input: I_ShadowMapValueOfDC): void
-    /**渲染shadowmap 透明模式 */
-    abstract createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void
-
-    /**获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
-     * 涉及三个部分：
-     * 1、uniformGroups：uniform多组，至少有group0(system),group1(entity)。
-     * 2、shaderTemplateFinal：shader模板输出，包括了shader代码和groupAndBindingString。
-     * 3、enity 和material的uniform layout 到ResourceGPU的Map操作
-     * @param startBinding 
-     * @returns  uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
-     */
-    abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput
-
+    /**顶点数量，morph target 使用 */
+    getVertexCount(): number {
+        if (this.vertexCount === 0) {
+            // console.warn("vertexCount 没有计算");
+        }
+        return this.vertexCount;
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /** 设置是否透明 */
-    set transparent(transparent: boolean) {
-        this._transparent = transparent;
-    }
-    /** 获取是否透明 */
-    get transparent() {
-        return this._transparent;
-    }
     setBoundingBox(box: boundingBox) {
         this.boundingBox = box;
         this.boundingSphere = this.generateSphere(box);
     }
+
     /** 世界坐标的Box */
     generateBox(position: number[]): boundingBox {
         let box = generateBox3(position);
@@ -313,15 +415,13 @@ export abstract class BaseEntity extends RootOrigin {
         }
         return generateSphereFromBox3(box);
     }
-    /**获取实例渲染的buffer， 单个示例可以在input.update（）进行更新     */
-    getUniformArrayBuffer() {
-        // return this.matrixWorldBuffer;
-        return this.structUnifomrBuffer;
+    /**获取uniformCommonEntityInfo
+     * 基础信息,st_entity_instances.vs.wgsl  
+     */
+    getUniformCommonEntityInfo() {
+        return this.bufferCPU.uniformCommonEntity;
     }
-    /**size of uniform of this.structUnifomrBuffer */
-    getSizeOfUniformArrayBuffer() {
-        return this._entityIdSizeForWGSL * 4 + 4 * 16 * this.instance.numInstances;
-    }
+
     /**检查camear的id在commands中是否已经存在 */
     checkIdOfCommands(id: string, commands: Object): boolean {
         for (let i in commands) {
@@ -350,6 +450,57 @@ export abstract class BaseEntity extends RootOrigin {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// update 部分
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * 
+     * @param clock 
+     * @param updateSelftFN 是否call updateSelf()
+     * @returns 
+     */
+    update(clock: Clock, updateSelftFN?: boolean,): boolean {
+        if (this.updatePerFrame === true || this.needUpdate === true || this._state != E_lifeState.finished) {
+            super.update(clock, updateSelftFN);
+        }
+        return this.needUpdate;
+    }
+
+    updateSelf(clock: Clock) {
+        //uniform @group(1) @binding(0)
+        this.updateUniformCommonEntity(clock);
+        this.updateInstanceBuffer();
+        this.updateWorldMatrixBuffer(clock);
+        this.updateMorphtTargetBuffer() ;
+        this.updateJointMatrixBuffer();
+
+        //比如：material 是在运行中是可以更改的，需要重新初始化。
+        //由人工按需触发
+        if (this.needUpdate === true) {
+            this._state = E_lifeState.constructed;//重新初始化，下一帧进行重新初始化工作 
+            this.DCG.clear();
+        }
+        if (this._state === E_lifeState.constructed) {
+            this.clearDC();
+            if (this.checkStatus()) {
+                this._state = E_lifeState.initializing;
+                this.generateBoxAndSphere();
+                this.upgradeLights();//todo:20250911 ，light完成
+                this.upgradeCameras();
+                this._state = E_lifeState.finished;//this.createDCCC(valueOfCamera);
+            }
+            this.needUpdate = false;
+        }
+        //初始化是完成状态，同时checkStatus=true
+        //material 是在运行中是可以更改的，所以需要检查状态。
+        else if (this._state === E_lifeState.finished && this.checkStatus()) {
+            //检查是否有新摄像机，有进行更新
+            this.checkUpgradeCameras();
+            //检查是否有新光源，有进行更新
+            this.checkUpgradeLights();
+        }
+        else if (this._state == E_lifeState.initializing) {
+            this.checkStatus();
+        }
+        this.DCG.upadate();
+    }
     /** 获取当前状态（是否可以进行update）*/
     getStateus(): boolean {
         if (this.checkStatus() && this.visible && this.enable) {
@@ -474,112 +625,246 @@ export abstract class BaseEntity extends RootOrigin {
         }
     }
 
-    /**
-     * 
-     * @param clock 
-     * @param updateSelftFN 是否call updateSelf()
-     * @returns 
-     */
-    update(clock: Clock, updateSelftFN?: boolean,): boolean {
-        if (this.updatePerFrame === true || this.needUpdate === true || this._state != E_lifeState.finished) {
-            super.update(clock, updateSelftFN);
-        }
-        return this.needUpdate;
-    }
-
-    updateSelf(clock: Clock) {
-        //uniform @group(1) @binding(0)
-        this.updateUniformBuffer();
-        //比如：material 是在运行中是可以更改的，需要重新初始化。
-        //由人工按需触发
-        if (this.needUpdate === true) {
-            this._state = E_lifeState.constructed;//重新初始化，下一帧进行重新初始化工作 
-            this.DCG.clear();
-        }
-        if (this._state === E_lifeState.constructed) {
-            this.clearDC();
-            if (this.checkStatus()) {
-                this._state = E_lifeState.initializing;
-                this.generateBoxAndSphere();
-                this.upgradeLights();//todo:20250911 ，light完成
-                this.upgradeCameras();
-                this._state = E_lifeState.finished;//this.createDCCC(valueOfCamera);
-            }
-            this.needUpdate = false;
-        }
-        //初始化是完成状态，同时checkStatus=true
-        //material 是在运行中是可以更改的，所以需要检查状态。
-        else if (this._state === E_lifeState.finished && this.checkStatus()) {
-            //检查是否有新摄像机，有进行更新
-            this.checkUpgradeCameras();
-            //检查是否有新光源，有进行更新
-            this.checkUpgradeLights();
-        }
-        else if (this._state == E_lifeState.initializing) {
-            this.checkStatus();
-        }
-        this.DCG.upadate();
+    intUniformCommonEntity() {
+        this.bufferCPU.uniformCommonEntity = new ArrayBuffer(this._entityCommonSizeForWGSL);
+        this.bufferGPU.uniformCommonEntity = createUniformBuffer(this.device, "uniformCommonEntity:" + this.ID, this.bufferCPU.uniformCommonEntity);
     }
     /**
      * 被update调用，更新vs、fs的uniform
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    updateUniformBuffer(): void {
-        if (this.instance.numInstances == 1) {
-            this.matrixWorldBuffer.set(this.matrixWorld, 0 * 16);
-        }
-        else if (this.instance.numInstances > 1) {
-            let positionEnable: boolean = false;
-            let rotateEnable: boolean = false;
-            let scaleEnable: boolean = false;
-            if (this.instance.position && this.instance.position.length > 0) {
-                positionEnable = true;
-            }
-            if (this.instance.rotate && this.instance.rotate.length > 0) {
-                rotateEnable = true;
-            }
-            if (this.instance.scale && this.instance.scale.length > 0) {
-                scaleEnable = true;
-            }
-            if (this.instance.index && this.instance.numInstances != this.instance.index.length) {
-                this.instance.numInstances = this.instance.index.length;
-            }
-            else if (this.instance.position && this.instance.numInstances != this.instance.position.length / 3) {
-                this.instance.numInstances = this.instance.position.length / 3;
-            }
-            for (let i = 0; i < this.instance.numInstances; i++) {
-                let perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
-                let index: number = i;
-                if (this.instance.index) {
-                    index = this.instance.index[i];
-                }
-                perMatrix = mat4.identity();
-                if (scaleEnable) {
-                    let perScale = vec3.fromValues(this.instance.scale![index * 3 + 0], this.instance.scale![index * 3 + 1], this.instance.scale![index * 3 + 2]);
-                    mat4.scale(perMatrix, perScale, perMatrix);
-                }
-                if (rotateEnable) {
-                    let perAxis = vec3.fromValues(this.instance.rotate![index * 3] + 0, this.instance.rotate![index * 3] + 1, this.instance.rotate![index * 3] + 2);
-                    let perAngle = this.instance.rotate![index * 3 + 3];
-                    if (perAngle != 0 && (this.instance.rotate![index * 3 + 0] != 0 || this.instance.rotate![index * 3 + 1] != 0 || this.instance.rotate![index * 3 + 2] != 0)) {
-                        mat4.axisRotate(perMatrix, perAxis, perAngle, perMatrix);
-                    }
-                }
-                if (positionEnable) {
-                    let perPosition = vec3.fromValues(this.instance.position![index * 3 + 0], this.instance.position![index * 3 + 1], this.instance.position![index * 3 + 2]);
-                    mat4.setTranslation(perMatrix, perPosition, perMatrix);
-                }
-                // mat4.scale(perMatrix, this.instance.scale[i], perMatrix);
-                // mat4.axisRotate(perMatrix, this.instance.rotate[i].axis, this.instance.rotate[i].angleInRadians, perMatrix);
-                // mat4.translate(perMatrix, this.instance.position[i], perMatrix);
-                mat4.multiply(this.matrixWorld, perMatrix, perMatrix);     // 先缩放，再旋转，最后平移，然后乘以world matrix ，得到instance的world matrix，在shader中的VS是再次的局部坐标*这个world matrix，得到顶点的world position
-                this.matrixWorldBuffer.set(perMatrix, i * 16);
-            }
+    updateUniformCommonEntity(clock: Clock): void {
+        if (this.bufferCPU.uniformCommonEntity !== undefined) {
 
+            const st_entityValues = this.bufferCPU.uniformCommonEntity;
+            const st_entityViews = {
+                time: new Float32Array(st_entityValues, 0, 1),
+                last_time: new Float32Array(st_entityValues, 4, 1),
+                instance_count: new Uint32Array(st_entityValues, 8, 1),
+                vs_offset: new Float32Array(st_entityValues, 12, 1),
+                animation_kind: new Uint32Array(st_entityValues, 16, 1),
+                morpht_target_count: new Uint32Array(st_entityValues, 20, 1),
+                vertex_count: new Uint32Array(st_entityValues, 24, 1),
+                joint_matrix_count: new Uint32Array(st_entityValues, 28, 1),
+            };
+            st_entityViews.time[0] = clock.now;
+            st_entityViews.last_time[0] = clock.last;
+            st_entityViews.instance_count[0] = this.getInstancesCount();
+            st_entityViews.vs_offset[0] = this.vsOffset;
+            st_entityViews.animation_kind[0] = this.getAnimationKind();
+            st_entityViews.morpht_target_count[0] = this.getMorphtTargetCount();
+            st_entityViews.vertex_count[0] = this.getVertexCount();
+            st_entityViews.joint_matrix_count[0] = this.getSkeletonCount();
         }
-        this.entity_id[0] = this.ID;
-        this.stage_id[0] = this.stageID;
+    }
+    /**
+     * 获取instance总数量：内部instance*外部instance
+     * @returns number
+     */
+    getInstancesCount(): number {
+        let outsideInstanceCount = this.outSideInstance.length;
+        if (outsideInstanceCount === 0) outsideInstanceCount = 1;
+        return this.instance.numInstances * outsideInstanceCount
+    }
+    checkInstanceEQ() {
+
+    }
+    /**
+     * 检查相关storage buffer的状态，根据instance数量已经动画进行创建、更新或保持
+     * @param name buffer name
+     * @returns  boolen :是否存在
+     * 1、instances 和 worldMatrix 会忽略返回值
+     * 2、morph target 和 骨骼动画 根据是否有动画返回boolean值
+     */
+    checkStorageBuffer(name: string): boolean {
+        /**
+         * 1、判断ArrayBuffer是否存在
+         * 2、判断长度是否与instance数量匹配
+         * 3、判断是否存在动画
+         *      A、morph target
+         *      B、skins
+         * 4、根据reNew是否创建ArrayBuffer和GPUBuffer
+         */
+        let reNew = false;
+        let nameCPU = name as keyof typeof this.bufferCPU;
+        //实例化
+        if (name == "instances") {
+            //没有
+            if (this.bufferCPU[nameCPU] == undefined) {
+                reNew = true;
+            }
+            //长度不相等
+            else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceInfoSizeForWGSL) {
+                reNew = true;
+            }
+        }
+        else if (name == "wolrdMatrix") {
+            //没有
+            if (this.bufferCPU[nameCPU] == undefined) {
+                reNew = true;
+            }
+            //长度不相等
+            else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceWorldMatrixForWGSL) {
+                reNew = true;
+            }
+        }
+        //morph target 
+        else if (name == "morphMatrix") {//如果是变形目标
+            //如果有morph target动画
+            if (this.getAnimationKind() == E_AnimationType.morphTarget) {
+                //没有
+                if (this.bufferCPU[nameCPU] == undefined) {
+                    reNew = true;
+                }
+                //长度不相等
+                else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceMorphTargetSizeForWGSL) {
+                    reNew = true;
+                }
+            }
+            else {
+                return false;//不存在
+            }
+        }
+        //骨骼动画
+        else if (name == "jointMatrix") {
+            //如果有骨骼动画
+            if (this.getAnimationKind() == E_AnimationType.skeleton) {
+                //没有
+                if (this.bufferCPU[nameCPU] == undefined) {
+                    reNew = true;
+                }
+                //长度不相等
+                else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceJointMatrixForWGSL) {
+                    reNew = true;
+                }
+            }
+            else {
+                return false;//不存在
+            }
+        }
+        //new or renew :cpu and gpu
+        if (reNew) {
+            this.flagInstanceArrayBufferReNewTime = this.scene.clock.now;
+            let size = 16;
+            if (name == "instances") {
+                size = this._instanceInfoSizeForWGSL;
+            }
+            else if (name == "wolrdMatrix") {
+                size = this._instanceWorldMatrixForWGSL;
+            }
+            else if (name == "jointMatrix") {
+                size = this._instanceJointMatrixForWGSL;
+            }
+            else if (name == "morphMatrix") {
+                size = this._instanceMorphTargetSizeForWGSL;
+            }
+            else {
+                throw new Error("checkStorageBuffer: unknown name:" + name);
+            }
+            let sizeOfInstances = this.getInstancesCount() * size;
+            //创建ArrayBuffer，旧的ArrayBuffer由GC回收
+            this.bufferCPU[nameCPU] = new ArrayBuffer(sizeOfInstances);
+            //销毁旧的GPUBuffer，句柄由webGPU GC回收
+            if (this.bufferGPU[nameCPU]) {
+                this.bufferGPU[nameCPU].destroy();
+            }
+            //创建新的GPUBuffer
+            this.bufferGPU[nameCPU] = createEmptyGPUBuffer(this.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, sizeOfInstances, name + ":" + this.ID);
+        }
+
+        return reNew;
+    }
+    /** 更新|初始化实例化数组 */
+    updateInstanceBuffer() {
+        this.checkStorageBuffer("instances");//instance 不考虑返回值
+        //update：cpu and gpu
+        if (this.bufferGPU.instances && this.bufferCPU.instances) {
+            for (let i in this.outSideInstance) {
+                let perNode = this.outSideInstance[i];
+                let instanceIndex = parseInt(i) * this._instanceInfoSizeForWGSL;
+                const st_instance_infoViews = {
+                    node_id: new Uint32Array(this.bufferCPU.instances, instanceIndex, 1),
+                    stage_id: new Uint32Array(this.bufferCPU.instances, instanceIndex + 4, 1),
+                    uv: new Float32Array(this.bufferCPU.instances, instanceIndex + 8, 2),
+                };
+                st_instance_infoViews.node_id[0] = perNode.ID;
+                st_instance_infoViews.stage_id[0] = perNode.stageID;
+                // st_instance_infoViews.uv[0] = perNode._uv[0];
+                // st_instance_infoViews.uv[1] = perNode._uv[1];
+                st_instance_infoViews.uv.set(perNode._uv);
+            }
+            this.device.queue.writeBuffer(this.bufferGPU.instances, 0, this.bufferCPU.instances);
+        }
+        else {
+            throw new Error("更新实例化数组与GPU实例化数组失败");
+        }
+    }
+    /** 更新|初始化 world matrix 数组（cpu and gpu） */
+    updateWorldMatrixBuffer(_clock?: Clock) {
+        this.checkStorageBuffer("wolrdMatrix");//world matrix 不考虑返回值
+        //update：cpu and gpu
+        if (this.bufferGPU.wolrdMatrix && this.bufferCPU.wolrdMatrix) {
+            for (let i in this.outSideInstance) {
+                let perNode = this.outSideInstance[i];
+                let instanceIndex = parseInt(i) * this._instanceWorldMatrixForWGSL;
+                const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);
+                worldMatrix.set(perNode.matrixWorld)
+            }
+            this.device.queue.writeBuffer(this.bufferGPU.wolrdMatrix, 0, this.bufferCPU.wolrdMatrix);
+        }
+        else {
+            throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
+        }
+    }
+    /**
+     * morph target update 
+     * 如果没有morph target，使用默认的storage buffer占位
+     */
+    updateMorphtTargetBuffer() {
+        let state = this.checkStorageBuffer("morphMatrix");
+        if (state == false) {
+            this.bufferGPU.morphMatrix = this.scene.getResourceOneStorageMatrix();
+        }
+        else {
+            throw new Error("未完成")
+            //update：cpu and gpu
+            if (this.bufferGPU.morphMatrix && this.bufferCPU.morphMatrix) {
+                for (let i in this.outSideInstance) {
+                    let perNode = this.outSideInstance[i];
+                    let instanceIndex = parseInt(i) * this._instanceMorphTargetSizeForWGSL;
+                }
+                this.device.queue.writeBuffer(this.bufferGPU.morphMatrix, 0, this.bufferCPU.morphMatrix);
+            }
+            else {
+                throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
+            }
+        }
+    }
+    /**
+     * 骨骼动画 update 
+     * 如果没有morph target，使用默认的storage buffer占位
+     */
+    updateJointMatrixBuffer() {
+        let state = this.checkStorageBuffer("jointMatrix");
+        if (state == false) {
+            this.bufferGPU.jointMatrix = this.scene.getResourceOneStorageMatrix();
+        }
+        else {
+            throw new Error("未完成")
+            //update：cpu and gpu
+            if (this.bufferGPU.jointMatrix && this.bufferCPU.jointMatrix) {
+                for (let i in this.outSideInstance) {
+                    let perNode = this.outSideInstance[i];
+                    let instanceIndex = parseInt(i) * this._instanceJointMatrixForWGSL;
+
+                }
+                this.device.queue.writeBuffer(this.bufferGPU.jointMatrix, 0, this.bufferCPU.jointMatrix);
+            }
+            else {
+                throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
+            }
+        }
     }
 
     /**
@@ -596,221 +881,124 @@ export abstract class BaseEntity extends RootOrigin {
     //uniform merge part
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * 
-     * @param UUID UUID,camera的UUID是正常的UUID，light的UUID是merge的UUID，通过“__”分割shadowmap的index（默认=0，point有6个：0-5）
-     * @param kind 渲染的类型
-     * @returns 
+     * 获取bindGroup和bindGroupLayout。
+     * 时间轴：render阶段
+     * @returns I_bindGroupAndGroupLayout
      */
     getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout {
-        let bindGroup: GPUBindGroup;
-        let bindGroupLayout: GPUBindGroupLayout;
-        let generate = true;
-        if (this.resourcesGPU.systemGroup0ByID.has(UUID)) {
-            bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID)!;
-            if (this.resourcesGPU.systemGroupToGroupLayout.has(bindGroup)) {
-                bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup)!;
-                generate = false;
-            }
-        }
-        let systemUniform: T_uniformGroups;
-        let entriesGroupLayout: GPUBindGroupLayoutEntry[] = []
-        let entriesGroup: GPUBindGroupEntry[] = [];
-        if (generate) {
-            let workFor = "";
-            if (kind == E_renderForDC.light) {
-                workFor = " light ";
-                let light = this.lightsManager.getLightByMergeID(UUID);
-                // return this.lightsManager.getLightBindGroupAndBindGroupLayoutByMergeID(id);
-                let mvpGPUBuffer = this.lightsManager.getOneLightMVP_ByMergeID(UUID);
-                if (!mvpGPUBuffer) {
-                    throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,mvpGPUBuffer is undefined");
-                }
-                ////////////////////////////////
-                //camera uniform 
-                let uniformMVP: GPUBindGroupEntry = {
-                    binding: 0,
-                    resource: {
-                        buffer: mvpGPUBuffer,//更新在perlight的updateSelf()中更新MVP,lightmanager.updateSytemUniformOfShadowMap()更结构中的GPUBuffer
-                    }
-                };
-                let uniformMVPLayout: GPUBindGroupLayoutEntry = {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: {
-                        type: "uniform"
-                    }
-                };
-                entriesGroupLayout.push(uniformMVPLayout);
-                entriesGroup.push(uniformMVP);
-
-            }
-            else {
-                workFor = " camera ";
-                let camera = this.cameraManager.getCameraByUUID(UUID);
-                if (camera) {
-                    /////////////////////////////////
-                    //保留，Map操作
-                    // if (this.resourcesGPU.systemGroup0ByID.has(UUID)) {
-                    //     bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID)!;
-                    //     if(!bindGroup){
-                    //         throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,bindGroup is undefined");
-                    //     }
-                    //     bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup)!;
-                    //     if(!bindGroupLayout){
-                    //         throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,bindGroupLayout is undefined");
-                    //     }
-                    // }
-                    // else 
-                    {
-                        ////////////////////////////////
-                        //camera uniform 
-                        let uniformMVP: GPUBindGroupEntry = {
-                            binding: 0,
-                            resource: {
-                                buffer: camera.systemUniformBuffersOfGPU,//更新在perlight的updateSelf（）中
-                            }
-                        };
-                        let uniformMVPLayout: GPUBindGroupLayoutEntry = {
-                            binding: 0,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: {
-                                type: "uniform"
-                            }
-                        };
-                        entriesGroupLayout.push(uniformMVPLayout);
-                        entriesGroup.push(uniformMVP);
-                        ////////////////////////////////////
-                        //lights uniform 
-                        let uniformLights: GPUBindGroupEntry = {
-                            binding: 1,
-                            resource: {
-                                buffer: this.lightsManager.getLightsUniformForSystem(),//更新在lightManager.update()
-                            }
-                        };
-                        let uniformLightsLayout: GPUBindGroupLayoutEntry = {
-                            binding: 1,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: {
-                                type: "uniform"
-                            }
-                        };
-                        entriesGroupLayout.push(uniformLightsLayout);
-                        entriesGroup.push(uniformLights);
-
-                        //////////////////////////////////
-                        //shadow map matrix uniform 
-                        let shadowMapMatrix: GPUBindGroupEntry = {
-                            binding: 2,
-                            resource: {
-                                buffer: this.lightsManager.getShadowMapUniformForSystem(),//更新在lightManager.update()
-                            }
-                        };
-                        let shadowMapMatrixLayout: GPUBindGroupLayoutEntry = {
-                            binding: 2,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: {
-                                type: "uniform"
-                            }
-                        };
-                        entriesGroupLayout.push(shadowMapMatrixLayout);
-                        entriesGroup.push(shadowMapMatrix);
-
-                        //////////////////////////////////
-                        //shadow map depth texture
-                        let shadowMapTextures: GPUBindGroupEntry = {
-                            binding: 3,
-                            resource: this.lightsManager.shadowMapTexture.createView({ dimension: "2d-array" }),
-
-                        };
-                        let shadowMapTexturesLayout: GPUBindGroupLayoutEntry = {
-                            binding: 3,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            texture: {
-                                sampleType: "depth",
-                                viewDimension: "2d-array",
-                                multisampled: false,
-                            }
-                        };
-                        entriesGroupLayout.push(shadowMapTexturesLayout);
-                        entriesGroup.push(shadowMapTextures);
-
-                        //////////////////////////////////
-                        //shadow map sampler 
-                        let samplerName = "system shadow map sampler : less ";
-                        let sampler: GPUSampler;
-                        let samplerLayout: GPUSamplerBindingLayout;
-                        if (this.resourcesGPU.samplerOfString.has(samplerName)) {
-                            sampler = this.resourcesGPU.samplerOfString.get(samplerName)!;
-                            samplerLayout = this.resourcesGPU.samplerToBindGroupLayoutEntry.get(sampler)!;
-                        }
-                        else {
-                            if (this.reversedZ.isReversedZ === true) {
-                                sampler = this.device.createSampler({
-                                    compare: "greater-equal",
-                                });
-                            }
-                            else {
-                                sampler = this.device.createSampler({
-                                    compare: 'less',
-                                });
-                            }
-                            this.resourcesGPU.samplerOfString.set(samplerName, sampler);
-                            samplerLayout = {
-                                type: "comparison"
-                            }
-                            this.resourcesGPU.samplerToBindGroupLayoutEntry.set(sampler, samplerLayout);
-                        }
-                        if (!sampler || !samplerLayout) {
-                            throw new Error("shadow map sampler or sampler layout is underfined")
-                        }
-                        let shadowMapSampler: GPUBindGroupEntry = {
-                            binding: 4,
-                            resource: sampler
-
-                        };
-                        let shadowMapSamplerayout: GPUBindGroupLayoutEntry = {
-                            binding: 4,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            sampler: samplerLayout
-                        };
-                        entriesGroupLayout.push(shadowMapSamplerayout);
-                        entriesGroup.push(shadowMapSampler);
-                        // //////////////////////////////////////////////////
-                        // //bind group zero  保留，Map操作
-                        // let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                        //     entries: entriesGroupLayout
-                        // }
-                        // bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
-
-                        // let bindGroupDescriptor: GPUBindGroupDescriptor = {
-                        //     layout: bindGroupLayout,
-                        //     entries: entriesGroup
-                        // }
-                        // bindGroup = this.device.createBindGroup(bindGroupDescriptor);
-                        // this.resourcesGPU.systemGroup0ByID.set(UUID, bindGroup);
-                        // this.resourcesGPU.systemGroupToGroupLayout.set(bindGroup, bindGroupLayout);
-                    }
-                }
-                else
-                    throw new Error("获取Camera失败");
-            }
+        /**
+         * 1、判断bind group 和layout 是否存在，没有新建
+         *      A、判断 this.bindGroup ,this.bindGroupLayout  undefined
+         *      B、新建
+         *      C、缓存layout ，bindgroup
+         * 2、如果存在，判断是否需要更新bind group。layout 不变.
+         *      A、判断 flagInstanceArrayBufferReNewTime ，
+         *      B、如果=clock.new ，更新，
+         *      C、返回值
+         * 
+         */
+        //undefined，创建
+        if (this.bindGroup == undefined && this.bindGroupLayout == undefined) {
             //////////////////////////////////////////////////
-            //bind group zero 
+            //bind group  layout
             let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                label: "System BGLD(0)@" + this.clock.now + workFor + UUID,
-                entries: entriesGroupLayout
+                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "read-only-storage"
+                        }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "read-only-storage"
+                        }
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "read-only-storage"
+                        }
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "read-only-storage"
+                        }
+                    },
+                ]
             }
-            bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+            this.bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);;
+            //////////////////////////////////////////////////
+            //bind group  
+            let entries: GPUBindGroupEntry[] = this.generateGPUBindGroupEntries();
             let bindGroupDescriptor: GPUBindGroupDescriptor = {
-                label: "System BGD(0)@" + this.clock.now + workFor + UUID,
-                layout: bindGroupLayout,
-                entries: entriesGroup
+                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
+                layout: this.bindGroupLayout,
+                entries: entries
             }
-            bindGroup = this.device.createBindGroup(bindGroupDescriptor);
-            this.resourcesGPU.systemGroup0ByID.set(UUID, bindGroup);
-            this.resourcesGPU.systemGroupToGroupLayout.set(bindGroup, bindGroupLayout);
+            this.bindGroup = this.device.createBindGroup(bindGroupDescriptor);
         }
-        return { bindGroup: bindGroup!, bindGroupLayout: bindGroupLayout! };
+        //当前帧有instance变化，更新
+        else if (this.flagInstanceArrayBufferReNewTime == this.scene.clock.now) {
+            let entries: GPUBindGroupEntry[] = this.generateGPUBindGroupEntries();
+            let bindGroupDescriptor: GPUBindGroupDescriptor = {
+                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
+                layout: this.bindGroupLayout,
+                entries: entries
+            }
+            this.bindGroup = this.device.createBindGroup(bindGroupDescriptor);
+        }
+        return {
+            bindGroup: this.bindGroup,
+            bindGroupLayout: this.bindGroupLayout
+        }
+    }
+    /**
+     * 生成bind group 的entries
+     * @returns GPUBindGroupEntry[]
+     */
+    generateGPUBindGroupEntries(): GPUBindGroupEntry[] {
+        let entries: GPUBindGroupEntry[] = [];
+        for (let i in this.bufferGPU) {
+            let binding = this.getBindingOfBindGroup(i);
+            let perEntry: GPUBindGroupEntry = {
+                binding: binding,
+                resource: {
+                    buffer: this.bufferGPU[i as keyof typeof this.bufferGPU]!,
+                }
+            }
+            entries.push(perEntry)
+        }
+        return entries;
+    }
+    getBindingOfBindGroup(name: string): number {
+        switch (name) {
+            case "uniformCommonEntity":
+                return 0;
+            case "instances":
+                return 1;
+            case "wolrdMatrix":
+                return 2;
+            case "morphMatrix":
+                return 3;
+            case "jointMatrix":
+                return 4;
+        }
+        throw new Error(`未找到绑定${name}`);
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //TTPF 相关部分

@@ -1,6 +1,6 @@
 import { E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_drawModeIndexed, I_uniformArrayBufferEntry } from "../../command/base";
+import { I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformGroups } from "../../command/base";
 import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { mergeLightUUID } from "../../light/lightsManager";
@@ -191,12 +191,12 @@ export class Mesh extends EntityBundleMaterial {
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
-        await this._material.init(this.scene, this);
+        await this._material.init(this.scene);
         if (this._wireframe.enable) {
             this._materialWireframe = new WireFrameMaterial({
                 color: this._wireframe.wireFrameColor as weColor4,
             })
-            await this._materialWireframe.init(this.scene, this);
+            await this._materialWireframe.init(this.scene);
         }
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
@@ -241,7 +241,8 @@ export class Mesh extends EntityBundleMaterial {
         else {
             throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
         }
-        let uniforms = [bundle.vsBundle.uniformGroup];
+        let uniforms: T_uniformGroups[] = [];
+        // let uniforms = [bundle.vsBundle.uniformGroup];
 
         let valueDC: IV_DC = {
             // label: "wireframe" + scope.Name + " for  " + type + ": " + UUID,
@@ -285,10 +286,8 @@ export class Mesh extends EntityBundleMaterial {
     generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh) {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
-        // valueDC.render.primitive!.cullMode = this._cullMode;
         return valueDC;
     }
-
 
     /**
      * 为每个camera创建前向渲染的DrawCommand
@@ -297,22 +296,13 @@ export class Mesh extends EntityBundleMaterial {
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
-            // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
-            this.generateOpacityDC(UUID, SHT_MeshVS);
+            let dc = this.generateOpacityDC(UUID, SHT_MeshVS);
+            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
-            // // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
-            // // let uniformsMaterial = this._materialWireframe.getOpacity_Forward(bundle.bindingNumber);
-            // // if (uniformsMaterial) {
-            // //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
-            // //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-            // // }
-            // // let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, UUID, bundle);
-            // // let dc = this.DCG.generateDrawCommand(valueDC);
-            // // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
-            // this.generateWireFrameOpacityDC(UUID, SHT_MeshWireframeVS, undefined, this._materialWireframe);
-            this.generateOpacityDC(UUID, SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
+            let dc = this.generateOpacityDC(UUID, SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
+            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         }
     }
 
@@ -332,10 +322,10 @@ export class Mesh extends EntityBundleMaterial {
 
                 this.generateOpacityDC(UUID, SHT_MeshVS, uniformsMaterialTOTT.TO);
             }
-            let dcTT:DrawCommand;
+            let dcTT: DrawCommand;
             //TT
             {
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, {vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TT});
+                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TT });
                 //设置为透明
                 let transparentOption = this._material.getTransparentOption();
                 //材质的透明混合参数
@@ -345,13 +335,13 @@ export class Mesh extends EntityBundleMaterial {
                 else {
                     throw new Error("透明材质的transparentOption不能为空");
                 }
-                valueDC.label = "TT mesh:" + this.ID  ;
+                valueDC.label = "TT mesh:" + this.ID;
                 dcTT = this.DCG.generateDrawCommand(valueDC);
                 this.cameraDC[UUID][E_renderPassName.transparent].push(dcTT);
             }
             // //TTP
             if (uniformsMaterialTOTT.TTP) {
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, {vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTP});
+                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTP });
                 /** 不需要设置透明，TTP的透明是xxxTTP.wgsl 中的透明逻辑,按需写代码。
                  *   ColorMaterial 不需要设置透明 （要么不透明，要么全透明）
                  *   TextureMaterial，是discard判断 。
@@ -362,7 +352,7 @@ export class Mesh extends EntityBundleMaterial {
                     return camera.manager.getTT_RenderRPD(UUID);
                 };
                 //label
-                valueDC.label = "TTP mesh:" + this.ID  ;
+                valueDC.label = "TTP mesh:" + this.ID;
                 if (valueDC.render.fragment)
                     valueDC.render.fragment.targets = camera.manager.getTTColorAttachmentTargets();
                 //深度
@@ -402,12 +392,12 @@ export class Mesh extends EntityBundleMaterial {
                 // //增加TTPF部分
                 // bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TTPF.uniformGroup);
                 // bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TTPF.singleShaderTemplateFinal;
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, {vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTPF});
+                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTPF });
 
                 //RPD
                 valueDC.renderPassDescriptor = () => { return camera.manager.GBufferManager.getGBufferColorRPD_TTPF(UUID); };
                 //label
-                valueDC.label =`TTPF mesh:${this.ID}`;
+                valueDC.label = `TTPF mesh:${this.ID}`;
                 ////没有深度比较，没有深度写入
                 valueDC.render.depthStencil = false;
                 // GPUColorTargetState
@@ -437,7 +427,7 @@ export class Mesh extends EntityBundleMaterial {
             //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
             //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
             // }
-            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, UUID, {vsBundle: bundle, fsBundle: uniformsMaterial});
+            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterial });
             let dc = this.DCG.generateDrawCommand(valueDC);
             this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         }
@@ -453,6 +443,7 @@ export class Mesh extends EntityBundleMaterial {
             let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
 
             let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
+            valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
             let dc = this.DCG.generateDrawCommand(valueDC);
             this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
         }

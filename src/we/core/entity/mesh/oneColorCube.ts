@@ -46,61 +46,9 @@ export class OneColoeCube extends Mesh {
     }
     async readyForGPU() {
         this._material = new VertexColorMaterial();
-        await this._material.init(this.scene, this);
+        await this._material.init(this.scene);
     }
-    getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate,startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
-        //uniform 部分
-        let bindingNumber = startBinding;
-        let uniform1: T_uniformOneGroup = [];
-
-        let unifrom10: I_uniformArrayBufferEntry = {
-            label: this.Name + " uniform at group(1) binding(0)",
-            binding: bindingNumber,
-            size: this.getSizeOfUniformArrayBuffer(),
-            data: this.getUniformArrayBuffer()
-        };
-        let uniform10Layout: GPUBindGroupLayoutEntry = {
-            binding: bindingNumber,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: {
-                type: "uniform"
-            }
-        };
-        let uniform10GroupAndBindingString = " @group(1) @binding(0) var<uniform> entity : ST_entity; \n ";
-        this.scene.resourcesGPU.set(unifrom10, uniform10Layout);
-        bindingNumber++;
-        uniform1.push(unifrom10);
-
-        //scene 和 entity 的shader模板部分
-        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-         SHT_VS = SHT_OneCubeColorVS;
-
-        for (let i in SHT_VS) {
-            if (i == "scene") {
-                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
-                shaderTemplateFinal.scene = shader.scene;
-            }
-            else if (i == "entity") {
-                shaderTemplateFinal.entity = {
-                    templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
-                    groupAndBindingString: uniform10GroupAndBindingString,
-                    owner: this,
-                };
-            }
-        }
-        // let uniformsMaterial
-        // if (wireFrame === false) {
-        //     //material 部分：uniform 和 shader模板输出
-        //     uniformsMaterial = this._material.getOpacity_Forward(bindingNumber);
-        // }
-        // else {
-        //     uniformsMaterial = this._materialWireframe.getOpacity_Forward(bindingNumber);
-        // }
-        // if (uniformsMaterial) {
-        //     uniform1.push(...uniformsMaterial.uniformGroup);
-        //     shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-        // }
-
-        return { uniformGroup:uniform1, shaderTemplateFinal, bindingNumber };
+    getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
+        return super.getVSUniformAndShaderTemplateFinal(SHT_OneCubeColorVS);//使用OneCubeColorVS 模板
     }
 }

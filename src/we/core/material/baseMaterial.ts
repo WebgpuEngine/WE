@@ -145,20 +145,18 @@ export abstract class BaseMaterial extends RootGPU {
         return this._state;
     }
 
-    async init(scene: Scene, parent: RootGPU, renderID: number = 0): Promise<number> {
+    async init(scene: Scene): Promise<any> {
         // this._shadow = (parent as BaseEntity)._shadow;
-        this.renderID = renderID
         this.scene = scene;
         this.defaultTexture2D = this.scene.resourcesGPU.weTextureOfString.get("default") as Texture;
         this.defaultTexture3D = this.scene.resourcesGPU.weTextureOfString.get("defaultCube") as CubeTexture;
         this.defaultSampler = this.checkSampler(this.inputValues);
         this.resourcesGPU = this.scene.resourcesGPU;
-        await super.init(scene, parent, renderID);
+        await super.init(scene);
 
         this.setTO();
         this.scene.materialManager.add(this);
         // this._state == E_lifeState.finished;
-        return renderID;
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Opacity 部分

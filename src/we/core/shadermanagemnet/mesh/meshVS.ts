@@ -4,7 +4,9 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_addSystemOfLight, SH
 import meshMainWGSL from "../../shader/entity/mesh/main.vs.wgsl?raw"
 var meshMain = meshMainWGSL.toString();
 
-import st_entityWGSL from "../../shader/entity/st_entity.vs.wgsl?raw"
+// import st_entityWGSL from "../../shader/entity/st_entity.vs.wgsl?raw"
+// var st_entity = st_entityWGSL.toString();
+import st_entityWGSL from "../../shader/entity/st_entity_instances.vs.wgsl?raw"
 var st_entity = st_entityWGSL.toString();
 
 import replace_meshoutputWGSL from "../../shader/entity/mesh/replace_output.vs.wgsl?raw"

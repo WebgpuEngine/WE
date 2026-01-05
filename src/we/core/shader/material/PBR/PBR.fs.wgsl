@@ -40,7 +40,7 @@ struct PBRUniformInput{
     // brdfLUT:PBRUniformTexture,  //u_brdfLUT
     envmap:PBRUniformTexture,  //是否使用环境贴图
 }
-// @group(1) @binding(2) var<uniform> u_pbr_uniform : PBRUniformInput ;
+// @group(1) @binding(2) var<uniform> u_pbr_uniform : PBRUniformInput ;     //这里可以写成固定，因为就是固定的。考虑到扩展，目前是在PBRMaterial.getUniformEntryBundleOfCommon()中定义的。
 
 
 

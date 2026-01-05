@@ -102,6 +102,11 @@ export class ResourceManagerOfGPU {
     //shaderModule
     shaderModuleOfString: Map<string, GPUShaderModule> = new Map();
 
+    //////////////////////////////////////////////////////////////////////////////////////////
+    //stroge buffer
+    /**string 可以是buffer的名称等 */
+    storageBuffer: Map<any, GPUBuffer> = new Map();
+
     has(key: any, _kind?: string) {
         if (_kind) {
             if (_kind == E_resourceKind.vertices) return this.vertices.has(key);
@@ -409,6 +414,7 @@ export enum E_resourceKind {
     TT2TTPF = "TT2TTPF",
     shaderModuleOfString = "shaderModuleOfString",
     weTextureOfString = "weTextureOfString",
+    storageBuffer = "storageBuffer",
 }
 
 class GPUBindGroupEntryImpl implements GPUBindGroupEntry {

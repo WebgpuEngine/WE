@@ -207,6 +207,13 @@ export abstract class BaseDrawCommand {
      * 提交单次命令
      */
     submit() {
+        // 检查动态drawMode的数组长度是否为空
+        if (typeof this.drawMode === "function") {
+            let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode();
+            if (drawModeTemp.length === 0) {
+                return;
+            }
+        }
         let commandBuffer = this.update()
         this.device.queue.submit([commandBuffer]);
     }

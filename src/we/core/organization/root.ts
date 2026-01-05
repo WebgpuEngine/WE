@@ -4,7 +4,7 @@ import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import type { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { E_lifeState, I_Update, weMat4, weVec3, weVec4 } from "../base/coreDefine";
+import { E_lifeState, I_Update, weMat4, weVec2, weVec3, weVec4 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
 import { isWeMat4, isWeVec3, isWeVec4 } from "../base/coreFunction";
@@ -190,16 +190,9 @@ export interface RootOriginJSON {
 }
 
 export abstract class RootOrigin extends RootGPU {
-    /**
-     * 父节点
-     * parent node
-     */
+    /**父节点 parent node     */
     _parent: RootOrigin | undefined;
-
-    /**
-     * 子节点
-     * child nodes
-     */
+    /**  子节点 child nodes     */
     _children: RootOrigin[] = [];
     /**
      * renderID，use for pickup
@@ -207,6 +200,11 @@ export abstract class RootOrigin extends RootGPU {
      */
     _renderID!: number;
 
+    /** stageID*/
+    stageID: number = 0;
+
+    /** uv动画使用 */
+    _uv: weVec2 = [0, 0];
 
     //空间属性
     _position: Vec3 = vec3.create();
@@ -585,7 +583,7 @@ export abstract class RootOrigin extends RootGPU {
      * @param pos :Vec3
      */
     translate(pos: Vec3) {
-        mat4.translate(this.matrix as Mat4, pos,this.matrix);
+        mat4.translate(this.matrix as Mat4, pos, this.matrix);
     }
 
     /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos

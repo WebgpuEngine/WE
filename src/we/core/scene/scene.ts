@@ -3,11 +3,13 @@ import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "../command/base";
+import { createEmptyGPUBuffer, createStorageBuffer } from "../command/baseFunction";
 import { CamreaControl } from "../control/cameracCntrol";
 import { EntityManager } from "../entity/entityManager";
 import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
 import { LightsManager } from "../light/lightsManager";
+import { BaseMaterial } from "../material/baseMaterial";
 import { MaterialManager } from "../material/materialManager";
 import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
@@ -20,6 +22,7 @@ import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
 import { DefaultTexture } from "../texture/defaultTexture";
+import { Texture } from "../texture/texture";
 import { TextureManager } from "../texture/textureManager";
 import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
 import { Clock } from "./clock";
@@ -435,8 +438,10 @@ export class Scene {
                 roughness: { value: 1 },
             }
         }
-        let defaultMaterial = new PBRMaterial(baseInputPBR);
+        let defaultMaterial = new PBRMaterial(baseInputPBR);//gltf 默认材质
         this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
+        let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16*4, "oneStorageMatrix");
+        this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
         this.root = new RootManager(this);
         await this.root.init(this);
         this.renderManager = new RenderManager(this);
@@ -449,7 +454,34 @@ export class Scene {
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
     }
-
+    getResourceDefaultPBR(): PBRMaterial {
+        let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");
+        if (one) return one as PBRMaterial;
+        else {
+            throw new Error("default defaultPBR 不存在");
+        }
+    }    
+    getResourceDefaultTexture(): Texture {
+        let one = this.resourcesGPU.weTextureOfString.get("default");
+        if (one) return one;
+        else {
+            throw new Error("default Texture 不存在");
+        }
+    }
+    getResourceDefaultGPUTexture(): GPUTexture {
+        let one = this.resourcesGPU.textureOfString.get("default");
+        if (one) return one;
+        else {
+            throw new Error("default GPUTexture 不存在");
+        }
+    }
+    getResourceOneStorageMatrix(): GPUBuffer {
+        let one = this.resourcesGPU.storageBuffer.get("oneStorageMatrix");
+        if (one) return one;
+        else {
+            throw new Error("oneStorageMatrix 不存在");
+        }
+    }
 
     /**
      * 
