@@ -847,8 +847,8 @@ export abstract class BaseEntity extends NodeSpace {
             for (let i in this.outSideInstance) {
                 let perNode = this.outSideInstance[i];
                 let instanceIndex = parseInt(i) * this._instanceWorldMatrixForWGSL;
-                const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);
-                let matrixWorld = this.updateMatrixWorld(perNode.matrixWorld);
+                const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);//array buffer view 
+                let matrixWorld = this.getMatrixWorldOfInstance(perNode);
                 worldMatrix.set(matrixWorld)
             }
             this.device.queue.writeBuffer(this.bufferGPU.wolrdMatrix, 0, this.bufferCPU.wolrdMatrix);
