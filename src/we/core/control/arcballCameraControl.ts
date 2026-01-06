@@ -54,7 +54,7 @@ export class ArcballCameraControl extends CamreaControl {
 
             let position = this.camera.worldPosition;
             //计算当前距离，旋转距离不变
-            this.distance = vec3.distance(this.camera.position, this.camera.lookAt);
+            this.distance = vec3.distance(this.camera.positionOfModelMatrix, this.camera.lookAt);
             let oldDistance = this.distance;
             //阈值，for 旋转角 & 旋转轴
             const epsilon = 0.0000001;

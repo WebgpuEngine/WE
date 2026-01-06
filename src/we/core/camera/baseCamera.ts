@@ -1,7 +1,7 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
-import { NodeObject, } from '../organization/root';
+import { IV_NodeSpace, NodeObject, } from '../organization/root';
 import { CamreaControl, optionCamreaControl } from '../control/cameracCntrol';
-import { I_Update, weVec3 } from '../base/coreDefine';
+import { I_Update, weVec3, weVec4 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
 import { ArcballCameraControl } from '../control/arcballCameraControl';
 import { WASDCameraControl } from '../control/wasdCameraControl';
@@ -17,7 +17,7 @@ import { isWeVec3 } from '../base/coreFunction';
 /**
  * 投影矩阵的参数(base)
  */
-export interface projectionOptions extends I_Update {
+export interface projectionOptions extends IV_NodeSpace {
   /** 向上的方向，默认是(0,1,0) */
   upDirection?: Vec3,
 
@@ -30,14 +30,16 @@ export interface projectionOptions extends I_Update {
   // right?:number,
   // top?:number,
   // bottom?:number,
-  name?: string,
+
+  // name?: string,//从I_Update继承
+
   /** 相机位置 
    * 1、局部坐标，这里是local position
    * 2、shader使用的是全局坐标
    *  A、如果camera在root，则全局坐标与局部坐标相同
    *  B、如果camera不在root，则全局坐标是局部坐标经过world Matrix变换后的坐标
   */
-  position: [number, number, number],
+  position: weVec3,
   /** 相机目标点，默认是(0,0,0) ，默认是全局坐标。
    * 1、初始目标点默认是(0,0,0)，并且是由控制器来操作方向;即如果由控制器，lookAt是控制器的“初始目标点”；
    * 2、如果没有控制器，则使用lookAt为相机的目标点，即由位置与目标点确定相机的方向；
@@ -45,14 +47,14 @@ export interface projectionOptions extends I_Update {
    *    B、lookAt的坐标可以是全局坐标，也可以是局部坐标，跟随目标模式视场景而定；
    * 3、这里的坐标是全局坐标。可以通过isLookAtGlobal判断是否是全局坐标；
   */
-  lookAt?: [number, number, number],
+  lookAt?: weVec3,
   /**
    * 是否是全局坐标，默认是true
    * todo:20251011,未验证，在updateSelf中使用
    */
   isLookAtGlobal?: boolean,
   viewport?: I_viewport;
-  backGroundColor?: [number, number, number, number],
+  backGroundColor?: weVec4,
   premultipliedAlpha?: boolean,
   /**附加的控制器，与contrlType互斥 */
   control?: CamreaControl,
@@ -238,8 +240,8 @@ export abstract class BaseCamera extends NodeObject {
     }
 
     if (option.position) {
-      this.position = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
-      this.Position = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
+      this.positionOfModelMatrix = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
+      // this.Position = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
     }
     if (option.lookAt) {
       this.back = vec3.normalize(vec3.sub(option.position, option.lookAt));
@@ -327,7 +329,7 @@ export abstract class BaseCamera extends NodeObject {
    * @returns  MVP的Mat4[]
    */
   updateByPositionDirection(position: Vec3, direction: Vec3, normalize = false): Mat4[] {
-    this.position = position;
+    this.positionOfModelMatrix = position;
     if (normalize === false) {
       this.back = vec3.normalize(vec3.subtract(position, direction));
     }
@@ -368,7 +370,7 @@ export abstract class BaseCamera extends NodeObject {
     let view = mat4.rotateX(mat4.rotationY(yaw), pitch);
     mat4.copy(view, this.viewMatrix);
 
-    this.position = position;
+    this.positionOfModelMatrix = position;
     this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
     return this.MVP;
   }
@@ -441,11 +443,12 @@ export abstract class BaseCamera extends NodeObject {
   }
 
   // Returns column vector 3 of the camera matrix
-  get position() {
+  /**modelMatrix 第四行,位置 */
+  get positionOfModelMatrix() {
     return this.position_;
   }
   // Assigns `vec` to the first 3 elements of column vector 3 of the camera matrix
-  set position(vec: Vec3) {
+  set positionOfModelMatrix(vec: Vec3) {
     vec3.copy(vec, this.position_);
   }
   ////更新自身,可以定义为空函数
@@ -462,15 +465,16 @@ export abstract class BaseCamera extends NodeObject {
       }
       this.updateByPositionDirection(this.worldPosition, lookat, false);//这里需要是world position
     }
-    this.updateWorldPositionByPosition(this.position);
+    this.updateWorldPositionByPosition(this.positionOfModelMatrix);
     this.updateBufferOfSystemMVP();//更新GPUBuffer of Uniform
   }
 
-  updateWorldPosition() {
+  updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
     ////移动到NodeObject中
     // this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
     super.updateWorldPosition();
-    this.position = this.worldPosition;//更新model matrix
+    this.positionOfModelMatrix = this.worldPosition;//更新model matrix
+    return this.worldPosition;
   }
   /**
    * 控制器更新
@@ -480,8 +484,8 @@ export abstract class BaseCamera extends NodeObject {
    * @param position 
    */
   updateWorldPositionByPosition(position: Vec3) {
-    if (this.parent) {
-      let pos = vec3.sub(position, this.parent.worldPosition);
+    if (this.Parent) {
+      let pos = vec3.sub(position, this.Parent.worldPosition);
       vec3.copy(pos, this._position);
     }
     else {

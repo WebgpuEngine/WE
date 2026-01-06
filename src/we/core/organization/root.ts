@@ -141,8 +141,12 @@ export abstract class RootGPU implements I_UUID {
     //     else
     //         return super.update(clock, updateSelftFN);
     // }
+
     /**
-     * 正常更新，从上到下 
+     * 正常更新
+     * 1、更新I_Update的自定义function
+     * 2、调用updateSelf()更新自身私有属性
+     * 
      * @param clock Clock 时钟
      * @param updateSelftFN 是否调用自身的updateSelf(),默认=true
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
@@ -156,6 +160,7 @@ export abstract class RootGPU implements I_UUID {
         }
         if (updateSelftFN)
             this.updateSelf(clock);                         //更新自身
+        this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         return true;
     }
     abstract updateSelf(clock: Clock): void;
@@ -372,6 +377,23 @@ export abstract class NodeSpace extends RootGPU {
      * @returns 世界矩阵
      */
     abstract updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4
+    /**
+     * 正常更新
+     * 1、更新空间属性
+     * 
+     * 2、调用super.update()更新
+     * 
+     * @param clock Clock 时钟
+     * @param updateSelftFN 是否调用自身的updateSelf(),默认=true
+     *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
+     * @returns 
+     */
+    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+        this.updateMatrixWorld();//更新 world matrix
+        this.updateWorldPosition(); //更新 world position
+        super.update(clock, updateSelftFN);
+        return true;
+    }
 }
 
 export interface NodeObjectJSON {
@@ -433,11 +455,11 @@ export abstract class NodeObject extends NodeSpace {
     stageID: number = 0;
 
     /**父节点 parent node     */
-    _parent: NodeObject |  undefined;
+    _parent: NodeObject | undefined;
     get Parent(): NodeObject | undefined {
         return this._parent;
     }
-    set Parent(value: NodeObject |  undefined) {
+    set Parent(value: NodeObject | undefined) {
         this._parent = value;
     }
     /**  子节点 child nodes     */
@@ -799,48 +821,45 @@ export abstract class NodeObject extends NodeSpace {
 
 
     /**
-     * 正常更新，从上到下 
+     * 更新
+     * 1、判断是否需要更新（时间上）
+     * 2、调用super.update()更新，
+     *      A、NodeSpace：更新空间属性
+     *      B、RootGPU：更新user call back，调用最终子类更新自身updateSelf()
+     * 3、更新NodeObject的属性
+     * 4、更新子节点
      * @param clock Clock 时钟
      * @param updateSelftFN 是否调用自身的updateSelf(),默认=true
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        if (super.update(clock, updateSelftFN)) {
-            this.updateSelfAttribute(clock);                //更新自身的属性
-            if (this.children.length > 0)                   //更新子节点
-                for (let i of this.children)
-                    i.update(clock);
-            return true;
-        }
-        else
+        if (this.lastUpdaeTime === clock.now) //更新检查
             return false;
+        this.updateSelfAttribute(clock);
+        super.update(clock, updateSelftFN)
+        if (this.children.length > 0)                   //更新子节点
+            for (let i of this.children)
+                i.update(clock);
+        return true;
+
     }
     /**
-     * 更新自己的属性，并更新lastUpdateTime
+     * 更新自己的属性
      */
     updateSelfAttribute(clock: Clock) {
-        if (this.lastUpdaeTime !== clock.now) {
-            // if (this.inputValues)
-            //     if (this.inputValues.update)
-            //         this.inputValues.update(this);
-            this.updateMatrixWorld();//更新 world matrix
-            this.updateWorldPosition(); //更新 world position
-            //更新包围盒
-            if (this.Entity && this.Entity.boundingBox) {
-                let box = this.Entity.boundingBox;
-                const min = vec3.transformMat4(box.min, this.matrixWorld);
-                const max = vec3.transformMat4(box.max, this.matrixWorld);
-                box.max[0] = max[0];
-                box.max[1] = max[1];
-                box.max[2] = max[2];
-                box.min[0] = min[0];
-                box.min[1] = min[1];
-                box.min[2] = min[2];
-                this.scene.Box3s.push(box);//更新scene的包围盒数组
-            }
-            this.lastUpdaeTime = clock.now;
-            // console.log(this.Position)
+        //更新包围盒
+        if (this.Entity && this.Entity.boundingBox) {
+            let box = this.Entity.boundingBox;
+            const min = vec3.transformMat4(box.min, this.matrixWorld);
+            const max = vec3.transformMat4(box.max, this.matrixWorld);
+            box.max[0] = max[0];
+            box.max[1] = max[1];
+            box.max[2] = max[2];
+            box.min[0] = min[0];
+            box.min[1] = min[1];
+            box.min[2] = min[2];
+            this.scene.Box3s.push(box);//更新scene的包围盒数组
         }
     }
     /**
