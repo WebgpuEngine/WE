@@ -1,4 +1,4 @@
-import { IV_Node, RootOrigin } from "../organization/root";
+import { IV_Node, NodeObject } from "../organization/root";
 import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
@@ -24,7 +24,6 @@ import { Texture } from "../texture/texture";
 import { TextureManager } from "../texture/textureManager";
 import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
 import { Clock } from "./clock";
-// import { classList } from "../base/coreClass";
 import { RenderManager } from "./renderManager";
 import { RootManager } from "./rootManager";
 import { BaseEntity } from "../entity/baseEntity";
@@ -855,7 +854,7 @@ export class Scene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //add 
-    async addChild(child: RootOrigin | BaseEntity | IV_Node) {
+    async addChild(child: NodeObject | BaseEntity | IV_Node) {
         if (child instanceof AmbientLight) {
             this.lightsManager.ambientLight = child;
         }
@@ -863,7 +862,7 @@ export class Scene {
             return await this.root.addChild(child);
     }
     add = this.addChild;
-    remove(child: RootOrigin) {
+    remove(child: NodeObject) {
         this.root.removeChild(child);
     }
 

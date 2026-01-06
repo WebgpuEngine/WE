@@ -1,8 +1,8 @@
-import { RootOrigin } from "../organization/root";
+import { NodeObject } from "../organization/root";
 import { Clock } from "./clock";
 import { Scene } from "./scene";
 
-export class RootManager extends RootOrigin {
+export class RootManager extends NodeObject {
     /** 
      * 当前渲染ID
      * 1、从1开始
@@ -19,7 +19,9 @@ export class RootManager extends RootOrigin {
         this.renderID = 0;
         this._readyForGPU = true;
         this.ID = 0;
+        // this.Parent = "root";
     }
+    
     _destroy(): void {
         throw new Error("Method not implemented.");
     }
@@ -32,7 +34,7 @@ export class RootManager extends RootOrigin {
     updateSelf(clock: Clock): void {
 
     }
-    // async addChild(child: RootOrigin): Promise<number> {
+    // async addChild(child: NodeObject): Promise<number> {
     //     return await super.addChild(child);
     // }
     async readyForGPU(): Promise<any> {

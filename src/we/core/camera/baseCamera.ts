@@ -1,5 +1,5 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
-import { RootOrigin, } from '../organization/root';
+import { NodeObject, } from '../organization/root';
 import { CamreaControl, optionCamreaControl } from '../control/cameracCntrol';
 import { I_Update, weVec3 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
@@ -80,7 +80,7 @@ export interface projectionOptions extends I_Update {
 /***
  * 摄像机抽象类
  */
-export abstract class BaseCamera extends RootOrigin {
+export abstract class BaseCamera extends NodeObject {
   /** 初始化参数  */
   declare inpuValues: projectionOptions;
   manager!: CameraManager;
@@ -467,7 +467,7 @@ export abstract class BaseCamera extends RootOrigin {
   }
 
   updateWorldPosition() {
-    ////移动到RootOrigin中
+    ////移动到NodeObject中
     // this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
     super.updateWorldPosition();
     this.position = this.worldPosition;//更新model matrix
@@ -557,5 +557,13 @@ export abstract class BaseCamera extends RootOrigin {
   //   return generateSphereFromBox3(box);
   // }
 
+  /**
+   * 判断节点是否在BVH中可见
+   * @param node 节点
+   * @returns 是否在BVH中可见
+   */
+  getVisibleInBVH(node: NodeObject): boolean {
+    return true;
+  }
 
 }

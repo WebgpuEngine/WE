@@ -164,7 +164,7 @@ export abstract class RootGPU implements I_UUID {
 
 
 
-export interface RootOriginJSON {
+export interface NodeObjectJSON {
     type: string,
     name: string,
     id: number,
@@ -197,7 +197,7 @@ export interface IV_Node extends I_Update {
     // particle?: BaseParticle,
     // animation?: BaseAnimation[],
 }
-export abstract class RootOrigin extends RootGPU {
+export abstract class NodeObject extends RootGPU {
     constructor(input?: IV_Node) {
         super(input);
         if (input) {
@@ -242,16 +242,16 @@ export abstract class RootOrigin extends RootGPU {
     /** uv动画使用 */
     _uv: weVec2 = [0, 0];
     /**父节点 parent node     */
-    _parent: RootOrigin | undefined;
-    get parent(): RootOrigin | undefined {
+    _parent: NodeObject | undefined;
+    get parent(): NodeObject | undefined {
         return this._parent;
     }
-    set parent(value: RootOrigin) {
+    set parent(value: NodeObject) {
         this._parent = value;
     }
 
     /**  子节点 child nodes     */
-    _children: RootOrigin[] = [];
+    _children: NodeObject[] = [];
     /**
      * renderID，use for pickup
      * generate by stage 
@@ -388,7 +388,7 @@ export abstract class RootOrigin extends RootGPU {
      * @param renderID 
      * @returns 
      */
-    async init(scene: Scene, parent?: RootOrigin, renderID?: number): Promise<number> {
+    async init(scene: Scene, parent?: NodeObject, renderID?: number): Promise<number> {
         super.init(scene);
         if (parent) {
             this.parent = parent;
@@ -400,7 +400,7 @@ export abstract class RootOrigin extends RootGPU {
     destroy(): void {
         if (this.children.length > 0) {
             for (let child of this.children) {
-                if (child instanceof RootOrigin) {
+                if (child instanceof NodeObject) {
                     child.destroy();
                 }
             }
@@ -417,7 +417,7 @@ export abstract class RootOrigin extends RootGPU {
      * 1. 如果是子节点，直接添加到children中
      *      A、camera
      *      B、light
-     *      C、其他类型的RootOrigin，直接添加到children中
+     *      C、其他类型的NodeObject，直接添加到children中
      *          model，particle
      * 2、entity
      *      A. 如果是BaseEntity，通过新建参数，
@@ -427,15 +427,15 @@ export abstract class RootOrigin extends RootGPU {
      *      C、将entity和node添加到entityManager中
      * 3、如果不存在entity，将node添加到children中
      * 
-     * @param child  RootOrigin | BaseEntity | IV_Node 
-     * @returns  Promise<RootOrigin> 
+     * @param child  NodeObject | BaseEntity | IV_Node 
+     * @returns  Promise<NodeObject> 
      */
-    async addChild(child: RootOrigin | BaseEntity | IV_Node): Promise<RootOrigin> {
-        let childNode: RootOrigin;
-        if (child instanceof RootOrigin) {
+    async addChild(child: NodeObject | BaseEntity | IV_Node): Promise<NodeObject> {
+        let childNode: NodeObject;
+        if (child instanceof NodeObject) {
             await child.init(this.scene, this);
             // child.parent = this;
-            if (this.parent instanceof RootOrigin && child instanceof RootOrigin) {
+            if (this.parent instanceof NodeObject && child instanceof NodeObject) {
                 await child.setRootENV(this.scene);
             }
             if (child.type == "Camera" && child instanceof BaseCamera) {
@@ -493,7 +493,7 @@ export abstract class RootOrigin extends RootGPU {
         return childNode;
     }
     remove = this.removeChild;
-    removeChild(child: RootOrigin): RootOrigin | false {
+    removeChild(child: NodeObject): NodeObject | false {
         let childRemoveResult = this.removeChild(child);
         if (childRemoveResult) {
             if (child.type == "Camera") {
@@ -527,7 +527,7 @@ export abstract class RootOrigin extends RootGPU {
      * 添加子节点
      * @param child 
      */
-    // async addChild(child: RootOrigin): Promise<number> {
+    // async addChild(child: NodeObject): Promise<number> {
     //     child.parent = this;
     //     this._children.push(child);
     //     return child._renderID;
@@ -537,11 +537,11 @@ export abstract class RootOrigin extends RootGPU {
      * remove child
      * 移除子节点
      * @param child 
-     * @returns RootOrigin | false
+     * @returns NodeObject | false
      *           移除成功返回子节点，失败返回false
      *           success return child, fail return false
      */
-    // removeChild(child: RootOrigin): RootOrigin | false {
+    // removeChild(child: NodeObject): NodeObject | false {
     //     let index = this._children.indexOf(child);
 
     //     if (index !== -1) {
@@ -604,12 +604,12 @@ export abstract class RootOrigin extends RootGPU {
      * @param name 
      * @returns 
      */
-    getObjectByName(name: string): RootOrigin | boolean {
+    getObjectByName(name: string): NodeObject | boolean {
         for (let i of this.children) {
             if (i.Name == name) {
                 return this;
             }
-            else if (i instanceof RootOrigin) {
+            else if (i instanceof NodeObject) {
                 let scope = i.getObjectByName(name);
                 if (typeof scope != "boolean") {
                     return scope;
@@ -807,8 +807,8 @@ export abstract class RootOrigin extends RootGPU {
      * @param json 输入的JSON格式数据
      */
     abstract loadJSON(json: any): void;
-    getBaseJSON(): RootOriginJSON {
-        let outputJSON: RootOriginJSON = {
+    getBaseJSON(): NodeObjectJSON {
+        let outputJSON: NodeObjectJSON = {
             type: this.type,
             name: this._name,
             id: this._id,
@@ -871,7 +871,7 @@ export abstract class RootOrigin extends RootGPU {
     }
 }
 
-export class NodeObject extends RootOrigin {
+export class NodeObject extends NodeObject {
     saveJSON() {
         throw new Error("Method not implemented.");
     }

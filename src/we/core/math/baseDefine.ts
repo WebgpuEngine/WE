@@ -13,4 +13,4 @@ export interface Rotation {
 /**
  * 旋转数组
  */
-export type RotationArray =[number,number,number,number]
+// export type RotationArray =weVec4;//[number,number,number,number]

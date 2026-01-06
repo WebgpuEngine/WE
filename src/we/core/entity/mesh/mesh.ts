@@ -1,16 +1,15 @@
-import { E_lifeState, E_renderForDC, weColor4 } from "../../base/coreDefine";
+import { E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformGroups } from "../../command/base";
 import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { mergeLightUUID } from "../../light/lightsManager";
-import { I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../../material/base";
+import { I_TransparentOptionOfMaterial } from "../../material/base";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_MeshShadowMapVS, SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -267,7 +266,9 @@ export class Mesh extends EntityBundleMaterial {
                         offsetOfWireframeVale: scope._wireframe.offset,
                     }
                 },
-                drawMode,
+                // drawMode,
+                drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind) },
+
                 primitive: {
                     topology: "line-list",
                 },

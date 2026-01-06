@@ -1,13 +1,12 @@
-import { Mat4, Vec3 } from "wgpu-matrix";
-import { I_Update, E_renderForDC } from "../base/coreDefine";
+import { E_renderForDC, weVec4, weVec3 } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
-import { Rotation, RotationArray } from "../math/baseDefine";
-import { T_indexAttribute, T_vsAttribute, vsAttribute, vsAttributeMerge } from "../command/DrawCommandGenerator";
-import { I_drawMode, I_drawModeIndexed, T_uniformGroups, T_uniformOneGroup } from "../command/base";
+import { T_indexAttribute, T_vsAttribute, } from "../command/DrawCommandGenerator";
+import { I_drawMode, I_drawModeIndexed, T_uniformOneGroup } from "../command/base";
 import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 import { BaseLight } from "../light/baseLight";
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseGeometry } from "../geometry/baseGeometry";
+import { IV_NodeSpace } from "../organization/root";
 
 export enum E_entityType {
     mesh = "mesh",
@@ -89,59 +88,57 @@ export interface I_optionShadowEntity {
 
 
 /**三段式初始化的第一步： input参数 */
-export interface IV_BaseEntity extends I_Update {
-    /**
-     * 两种情况：
-     * 
-     * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
-     * 
-     * 2、代码实时构建，可以显示的带入scene，则不用等待
-     * 
-     * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
-     * 
-     * 20241129,类型从any 改为BaseStage
-     */
-    parent?: any,
-    name?: string,
-
-    //todo
-    /** 顶点和材质组一对一 */
-    // vertexAndMaterialGroup?: entityContentGroup,
-
+export interface IV_BaseEntity extends IV_NodeSpace {
     /**阴影选项 */
     shadow?: I_optionShadowEntity,
-    /**初始化的参数matrix  ，这个mesh的   */
-    matrix?: Mat4,
-    /**初始化的参数scale     */
-    scale?: [number, number, number],
-    /**初始化的参数position     */
-    position?: [number, number, number],
-    /**初始化的参数rotatae     */
-    rotate?: RotationArray,
 
-    /**是否每帧更新Matrix，默认=false */
-    updatePerFrame?: boolean,
-
-    /**剔除面 
-     *  "front" | "back" | "all"
+    /**剔除面  :    "front" | "back" | "all"
      * side,显示的面，默认:front，剔除的是 ：back
     */
     cullmode?: GPUCullMode,
-    /**
-     * 实体是否为动态，boolean
-     * 默认=false
-     */
-    dynamicPostion?: boolean,
-    /**
-     * 是否未动态形变物体
-     * 默认=false
-     */
-    dynamicMesh?: boolean,
 
     /**实例化数量，默认为当前entity，无其他实例化 */
     instance?: I_entityInstance,
+
     /**自定义shader代码，包括VS和FS */
     shaderCode?: string,
+
+
+    // /**
+    //  * 实体是否为动态，boolean
+    //  * 默认=false
+    //  */
+    // dynamicPostion?: boolean,
+    // /**
+    //  * 是否未动态形变物体
+    //  * 默认=false
+    //  */
+    // dynamicMesh?: boolean,
+    /**初始化的参数matrix  ，这个mesh的   */
+    // matrix?: Mat4,
+    // /**初始化的参数scale     */
+    // scale?: [number, number, number],
+    // /**初始化的参数position     */
+    // position?: [number, number, number],
+    // /**初始化的参数rotatae     */
+    // rotate?: weVec4,
+
+    // /**是否每帧更新Matrix，默认=false */
+    // updatePerFrame?: boolean,
+    // name?: string,
+    /**
+ * 两种情况：
+ * 
+ * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
+ * 
+ * 2、代码实时构建，可以显示的带入scene，则不用等待
+ * 
+ * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
+ * 
+ * 20241129,类型从any 改为BaseStage
+ */
+    // parent?: any,
+
 }
 
 export interface I_EntityBundleMaterial extends IV_BaseEntity {
@@ -176,9 +173,9 @@ export interface I_entityInstance {
      * 如果有index，则按照index的长度来实例化
      */
     numInstances: number,
-    position?: number[],
-    rotate?: number[],
-    scale?: number[],
+    position?: weVec3,
+    rotate?: weVec4,
+    scale?: weVec3,
     index?: number[],
 }
 

@@ -1,5 +1,4 @@
-import { mat4, vec3 } from "wgpu-matrix";
-import { RootGPU, RootOrigin } from "../organization/root";
+import { NodeObject, NodeSpace } from "../organization/root";
 
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
@@ -13,7 +12,7 @@ import {
     I_optionShadowEntity,
     I_ShadowMapValueOfDC,
 } from "./base";
-import { E_lifeState } from "../base/coreDefine";
+import { E_lifeState, weVec2 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
@@ -29,9 +28,10 @@ import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFuncti
 import { BaseAnimation, E_AnimationType } from "../animation/BaseAnimation";
 import { MorphTargetAnimation } from "../animation/morphTarget";
 import { SkinSkeletonAnimation } from "../animation/skinSkeleton";
+import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 
 
-export abstract class BaseEntity extends RootGPU {
+export abstract class BaseEntity extends NodeSpace {
     ////////////////////////////////////////////////////////////////////
     //基础属性
     input: IV_BaseEntity;
@@ -49,6 +49,9 @@ export abstract class BaseEntity extends RootGPU {
     deferColor!: boolean;
 
     vertexCount: number = 0;
+
+    /** uv动画使用 */
+    _uv: weVec2 = [0, 0];
     ///////////////////////////////////////////
     // shader
     /** 顶点偏移量，材质编辑器适用，目前(20260103)未使用*/
@@ -120,7 +123,7 @@ export abstract class BaseEntity extends RootGPU {
     /**
      * 外部实例化数组
      */
-    outSideInstance: RootOrigin[] = [];
+    outSideInstance: NodeObject[] = [];
     ///////////////////////////////////////////////////////////////////
     //bind group
     bindGroup!: GPUBindGroup;
@@ -399,6 +402,32 @@ export abstract class BaseEntity extends RootGPU {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /** 
+     * 更新世界矩阵，返回世界矩阵，不更新entity的世界矩阵
+     * 1、entity的matrixWorld 是单位矩阵
+     * 2、这里只返回世界矩阵，不更新entity的worldPosition
+     * @param parentMatrixWorld 父矩阵
+     * @returns 世界矩阵
+     */
+    updateMatrixWorld(parentMatrixWorld: Mat4): Mat4 {
+        return mat4.multiply(parentMatrixWorld, this.updateMatrix());
+    }
+    /**
+     * 更新世界位置,由于entity的worldPosition是在本地坐标系下的位置，而且与每个instance的世界矩阵不同而不同，所以这里的更新世界位置=返回世界坐标系（不更新entity的worldPosition）
+     * 1、entity的worldPosition 是entity的position在世界坐标系下的位置
+     * 2、如果没有提供世界矩阵，默认使用entity的matrixWorld
+     * @param _matrixWorld 世界矩阵
+     * @returns 世界位置
+     */
+    updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
+        if (_matrixWorld) {
+            return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
+        }
+        else {
+            return vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+        }
+    }
+
     setBoundingBox(box: boundingBox) {
         this.boundingBox = box;
         this.boundingSphere = this.generateSphere(box);
@@ -476,6 +505,7 @@ export abstract class BaseEntity extends RootGPU {
 
     updateSelf(clock: Clock) {
         //uniform @group(1) @binding(0)
+        this.updateMatrix();
         this.updateUniformCommonEntity(clock);
         this.updateInstanceBuffer();
         this.updateWorldMatrixBuffer(clock);
@@ -778,9 +808,7 @@ export abstract class BaseEntity extends RootGPU {
                 };
                 st_instance_infoViews.node_id[0] = perNode.ID;
                 st_instance_infoViews.stage_id[0] = perNode.stageID;
-                // st_instance_infoViews.uv[0] = perNode._uv[0];
-                // st_instance_infoViews.uv[1] = perNode._uv[1];
-                // st_instance_infoViews.uv.set(perNode._uv);
+                st_instance_infoViews.uv.set(this._uv);
             }
             this.device.queue.writeBuffer(this.bufferGPU.instances, 0, this.bufferCPU.instances);
         }
@@ -797,7 +825,8 @@ export abstract class BaseEntity extends RootGPU {
                 let perNode = this.outSideInstance[i];
                 let instanceIndex = parseInt(i) * this._instanceWorldMatrixForWGSL;
                 const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);
-                worldMatrix.set(perNode.matrixWorld)
+                let matrixWorld = this.updateMatrixWorld(perNode.matrixWorld);
+                worldMatrix.set(matrixWorld)
             }
             this.device.queue.writeBuffer(this.bufferGPU.wolrdMatrix, 0, this.bufferCPU.wolrdMatrix);
         }

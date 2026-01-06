@@ -13,6 +13,7 @@ import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed, isDrawModeVertex } fr
 import { DrawCommand } from "../command/DrawCommand";
 import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
+import { BaseLight } from "../light/baseLight";
 import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
@@ -240,66 +241,178 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         return { bindingNumber: bindingNumber, uniformGroup: this.bindGroup, shaderTemplateFinal };
     }
 
-    getDrawMode(): I_drawMode[] | I_drawModeIndexed[] {
-        let drawMode: I_drawMode[] | I_drawModeIndexed[] = [];
-        if (this.inputValues.drawMode != undefined) {
-            if (isDrawModeIndexed(this.inputValues.drawMode)) {
-                (drawMode as I_drawModeIndexed[]).push(this.inputValues.drawMode);
+    /**
+     * drawMode 模板,保存drawMode的模板,后续实例化时使用
+     */
+    _drawModeTemplate!: I_drawMode | I_drawModeIndexed;
+    /**
+     * 获取drawMode 模板,如果没有则创建一个
+     * @returns I_drawMode | I_drawModeIndexed 
+     */
+    getDrawModeTemplate(): I_drawMode | I_drawModeIndexed {
+        if (this._drawModeTemplate == undefined) {
+            let drawMode: I_drawMode | I_drawModeIndexed;
+            if (this.inputValues.drawMode != undefined) {
+                // if (isDrawModeIndexed(this.inputValues.drawMode)) {
+                //     (drawMode as I_drawModeIndexed[]).push(this.inputValues.drawMode);
+                // }
+                // else if (isDrawModeVertex(this.inputValues.drawMode)) {
+                //     (drawMode as I_drawMode[]).push(this.inputValues.drawMode);
+                // }
+                drawMode = this.inputValues.drawMode;
             }
-            else if (isDrawModeVertex(this.inputValues.drawMode)) {
-                (drawMode as I_drawMode[]).push(this.inputValues.drawMode);
-            }
-        }
-        else {
-            let drawModeMesh: I_drawMode = {
-                vertexCount: 0,
-                firstInstance: 0,
-                instanceCount: 1,
-            };
-            let drawModeIndexMesh: I_drawModeIndexed = {
-                indexCount: 0,//this.attributes.indexes.length,
-                instanceCount: 1,
-                firstIndex: 0,
-                baseVertex: 0,
-                firstInstance: 0,
-            }
-            //index mode
-            // if (scope.attributes.indexes) {
-            if (Array.isArray(this.attributes.indexes) && this.attributes.indexes.length > 0) {
-                drawModeIndexMesh.indexCount = this.attributes.indexes.length;
-                drawModeIndexMesh.instanceCount = this.instance.numInstances;
-                (drawMode as I_drawModeIndexed[]).push(drawModeIndexMesh);
-            }
-            else if (this.attributes.indexes && isIndexGPUBufferBundle(this.attributes.indexes)) {
-                drawModeIndexMesh.indexCount = this.attributes.indexes.count;
-                drawModeIndexMesh.instanceCount = this.instance.numInstances;
-                (drawMode as I_drawModeIndexed[]).push(drawModeIndexMesh);
-            }
-            //non-index mode
             else {
-                if (this.attributes.vertices["position"]) {
-                    let pos = this.attributes.vertices["position"]!;
-                    if (isVSGPUBufferBundle(pos)) {
-                        drawModeMesh.vertexCount = pos.count;
-                    }
-                    else if ("count" in pos) {//vsAttribute | vsAttributeMerge |I_vsGPUBufferBundle
-                        drawModeMesh.vertexCount = pos.count;
-                    }
-                    else if (Array.isArray(pos)) {// array[]
-                        drawModeMesh.vertexCount = pos.length / 3;
+                let drawModeMesh: I_drawMode = {
+                    vertexCount: 0,
+                    firstInstance: 0,
+                    instanceCount: 1,
+                };
+                let drawModeIndexMesh: I_drawModeIndexed = {
+                    indexCount: 0,//this.attributes.indexes.length,
+                    instanceCount: 1,
+                    firstIndex: 0,
+                    baseVertex: 0,
+                    firstInstance: 0,
+                }
+                //index mode
+                // if (scope.attributes.indexes) {
+                if (Array.isArray(this.attributes.indexes) && this.attributes.indexes.length > 0) {
+                    drawModeIndexMesh.indexCount = this.attributes.indexes.length;
+                    drawModeIndexMesh.instanceCount = this.instance.numInstances;
+                    drawMode = drawModeIndexMesh;
+                }
+                else if (this.attributes.indexes && isIndexGPUBufferBundle(this.attributes.indexes)) {
+                    drawModeIndexMesh.indexCount = this.attributes.indexes.count;
+                    drawModeIndexMesh.instanceCount = this.instance.numInstances;
+                    drawMode = drawModeIndexMesh;
+                }
+                //non-index mode
+                else {
+                    if (this.attributes.vertices["position"]) {
+                        let pos = this.attributes.vertices["position"]!;
+                        if (isVSGPUBufferBundle(pos)) {
+                            drawModeMesh.vertexCount = pos.count;
+                        }
+                        else if ("count" in pos) {//vsAttribute | vsAttributeMerge |I_vsGPUBufferBundle
+                            drawModeMesh.vertexCount = pos.count;
+                        }
+                        else if (Array.isArray(pos)) {// array[]
+                            drawModeMesh.vertexCount = pos.length / 3;
+                        }
+                        else {
+                            throw new Error("position is not array or GPUBufferBundle");
+                        }
                     }
                     else {
                         throw new Error("position is not array or GPUBufferBundle");
                     }
+                    drawModeMesh.instanceCount = this.instance.numInstances;
+                    drawMode = drawModeMesh;
                 }
-                else {
-                    throw new Error("position is not array or GPUBufferBundle");
-                }
-                drawModeMesh.instanceCount = this.instance.numInstances;
-                (drawMode as I_drawMode[]).push(drawModeMesh);
+            }
+            this._drawModeTemplate = drawMode;
+        }
+        return this._drawModeTemplate;
+    }
+    /**
+     * 获取实例化的drawMode数组
+     * 1、DC 进行实例化优化使用
+     * 2、DC获取的是动态的数组，提交instance index 根据可见性进行剔除，需要保持 instance index的编号与entityManager中的Map的instance数组下标一致（涉及storage buffer array）
+     * @returns I_drawMode[] | I_drawModeIndexed[]
+     */
+    getDrawModeArrayOfInstances(UUID: string, kind: E_renderForDC): I_drawMode[] | I_drawModeIndexed[] {
+        /**步骤
+         * 1、获取entity drawMode模板
+         * 2、可见性
+         *      A、确认NodeObject的自身（parent）的enable和visible；
+         *      B、确认当前渲染（摄像机、light）的BVH可见性
+         *      C、输出形成可见性instanceID数组
+         * 3、聚合bundle instance ID 连续的实例ID
+         * 4、实例化drawMode数组
+         * 5、返回
+         */
+        //1、获取entity drawMode模板
+        let drawMode: I_drawMode | I_drawModeIndexed = this.getDrawModeTemplate();
+
+
+        //2、可见性
+        // 可见的实例ID数组
+        let visibleInstanceIDArray: number[] = [];
+        // 遍历所有实例ID：可见性可用性判断
+        for (let i in this.outSideInstance) {
+            let visibleOfNode = true;
+            let enableOfNode = true;
+            let visibleInBVH = true;
+            let perNode = this.outSideInstance[i];
+            visibleOfNode = perNode.getVisibleAndParents();
+            enableOfNode = perNode.getEnableAndParents();
+            if (kind == E_renderForDC.camera) {
+                visibleInBVH = this.scene.cameraManager.getCameraByUUID(UUID).getVisibleInBVH(perNode);
+            }
+            else if (kind == E_renderForDC.light) {
+                let light = this.scene.lightsManager.getLightByMergeID(UUID);
+                if (light != false && light instanceof BaseLight)
+                    visibleInBVH = light.getVisibleInBVH(perNode);
+            }
+            if (visibleInBVH && visibleOfNode && enableOfNode) {
+                visibleInstanceIDArray.push(Number(i));
             }
         }
-        return drawMode;
+
+        //3、聚合instance bundle，形成 instance ID 连续的实例ID
+        let visibleInstanceIDBundle: { count: number, firstInstance: number }[] = [];
+        let firstInstance = visibleInstanceIDArray[0];
+        // let instanceCount = visibleInstanceIDArray.length;
+        let lastVisibleInstanceID = visibleInstanceIDArray[0];
+
+        //3.1 bundle instance ID 连续的实例ID
+        let lastInBundle = false;
+        for (let i in visibleInstanceIDArray) {
+            let id = visibleInstanceIDArray[i];
+            if (i == "0") {
+                firstInstance = id;
+                lastVisibleInstanceID = id;
+                continue;
+            }
+            if (id != lastVisibleInstanceID + 1) {
+                visibleInstanceIDBundle.push({
+                    count: lastVisibleInstanceID - firstInstance + 1,//+1=包含当前实例ID
+                    firstInstance: firstInstance,
+                });
+                firstInstance = id;
+                lastVisibleInstanceID = id;
+                lastInBundle = true;
+            }
+            else {
+                lastVisibleInstanceID = id;
+                lastInBundle = false;
+            }
+        }
+        //3.2 最后一个实例ID是否在bundle中
+        if (!lastInBundle) {
+            visibleInstanceIDBundle.push({
+                count: lastVisibleInstanceID - firstInstance + 1,
+                firstInstance: firstInstance,
+            });
+        }
+        //4、实例化drawMode数组
+        // 数组：实例化的drawMode数组
+        let instanceDrawArray: I_drawMode[] | I_drawModeIndexed[] = [];
+        for (let perPart of visibleInstanceIDBundle) {
+            let instanceDraw: I_drawMode | I_drawModeIndexed = {
+                ...drawMode
+            };
+            instanceDraw.instanceCount = perPart.count;
+            instanceDraw.firstInstance = perPart.firstInstance;
+            if (isDrawModeIndexed(drawMode)) {
+                (instanceDrawArray as I_drawModeIndexed[]).push(instanceDraw as I_drawModeIndexed);
+            }
+            else {
+                (instanceDrawArray as I_drawMode[]).push(instanceDraw as I_drawMode);
+            }
+        }
+        //5、返回
+        return instanceDrawArray;
     }
     /**
      * mesh 生成DrawCommand的input value
@@ -354,7 +467,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     },
                 },
                 fragment,
-                drawMode: () => { return scope.getDrawMode() },
+                drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind) },
                 primitive: {
                     cullMode: scope._cullMode,
                 }

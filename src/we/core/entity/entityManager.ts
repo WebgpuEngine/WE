@@ -1,5 +1,5 @@
 import { ECSManager } from "../organization/manager";
-import { RootOrigin } from "../organization/root";
+import { NodeObject } from "../organization/root";
 import { pickupTargetOfIDs } from "../pickup/base";
 import { Clock } from "../scene/clock";
 import { RenderManager, E_renderPassName } from "../scene/renderManager";
@@ -7,23 +7,23 @@ import { Scene } from "../scene/scene";
 import { BaseEntity } from "./baseEntity";
 
 export class EntityManager extends ECSManager<BaseEntity> {
-    instances: Map<BaseEntity, RootOrigin[]> = new Map();
+    instances: Map<BaseEntity, NodeObject[]> = new Map();
     renderManager: RenderManager;
     constructor(scene: Scene) {
         super(scene);
         this.renderManager = scene.renderManager;
     }
-    add(entity: BaseEntity, instance: RootOrigin) {
+    add(entity: BaseEntity, instance: NodeObject) {
         super.add(entity);
         let instances = this.instances.get(entity);
         if (instances == undefined) {
-            instances = [] as RootOrigin[];
+            instances = [] as NodeObject[];
             this.instances.set(entity, instances);
         }
         instances.push(instance);
         entity.outSideInstance = instances;
     }
-    remove(entity: BaseEntity, instance: RootOrigin) {
+    remove(entity: BaseEntity, instance: NodeObject) {
         let instances = this.instances.get(entity);
         if (instances != undefined) {
             let index = instances.indexOf(instance);
@@ -89,7 +89,7 @@ export class EntityManager extends ECSManager<BaseEntity> {
         }
     }
 
-    getNodeByIDs(IDs: pickupTargetOfIDs): RootOrigin {
+    getNodeByIDs(IDs: pickupTargetOfIDs): NodeObject {
         let entity = this.list.find((entity) => entity.ID == IDs.entityID);
         if (entity) {
             let instances = this.instances.get(entity);

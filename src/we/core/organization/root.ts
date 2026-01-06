@@ -1,5 +1,4 @@
 import { mat4, quat, Quat, vec3, vec4, Vec4, type Mat4, type Vec3 } from "wgpu-matrix";
-import type { Rotation } from "../math/baseDefine";
 import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import type { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
@@ -11,8 +10,8 @@ import { isWeMat4, isWeVec3, isWeVec4 } from "../base/coreFunction";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_renderPassName } from "../scene/renderManager";
 import { BaseAnimation } from "../animation/BaseAnimation";
-import { BaseModel } from "../model/BaseModel";
 import { BaseParticle } from "../particle/baseParticle";
+import { AnimationGroup } from "../animation/animationGroup";
 
 
 export interface I_UUID {
@@ -152,6 +151,9 @@ export abstract class RootGPU implements I_UUID {
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
         if (this.lastUpdaeTime === clock.now) //更新检查
             return false;
+        if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
+            this.inputValues.update(clock);
+        }
         if (updateSelftFN)
             this.updateSelf(clock);                         //更新自身
         return true;
@@ -165,7 +167,7 @@ export abstract class RootGPU implements I_UUID {
 export interface IV_NodeSpace extends I_Update {
     position?: weVec3,
     scale?: weVec3,
-    rotate?: Rotation,
+    rotate?: weVec4,
     quaternion?: weVec4,
     matrix?: weMat4,
 }
@@ -175,10 +177,6 @@ export abstract class NodeSpace extends RootGPU {
     /**当前entity在世界坐标（层级的到root)，可以动态更新 */
     matrixWorld: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
     worldPosition: Vec3 = vec3.create();
-    /** stageID*/
-    stageID: number = 0;
-    /** uv动画使用 */
-    _uv: weVec2 = [0, 0];
 
     //空间属性
     _position: Vec3 = vec3.create();
@@ -211,11 +209,11 @@ export abstract class NodeSpace extends RootGPU {
         return this._scale;
     }
 
-    _rotate: Rotation | undefined = undefined;
-    set Rotate(rotate: Rotation) {
+    _rotate: weVec4 | undefined = undefined;
+    set Rotate(rotate: weVec4) {
         this._rotate = rotate;
     }
-    get Rotate(): Rotation | undefined {
+    get Rotate(): weVec4 | undefined {
         return this._rotate;
     }
 
@@ -343,7 +341,8 @@ export abstract class NodeSpace extends RootGPU {
         if (this._quaternion)
             this.quaternion();
         else if (this._rotate) {
-            this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
+            // this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
+            this.rotateAxis(vec3.fromValues(this._rotate[0], this._rotate[1], this._rotate[2]), this._rotate[3]);
         }
         if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
             // this.translate(this._position);
@@ -351,14 +350,31 @@ export abstract class NodeSpace extends RootGPU {
 
         return this.matrix;
     }
-    updateWorldPosition() {
-        this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+    /**
+     * 更新世界位置
+     * 1、entity的worldPosition 是entity的position在世界坐标系下的位置
+     * 2、如果没有提供世界矩阵，默认使用entity的matrixWorld
+     * @param _matrixWorld 世界矩阵
+     * @returns 世界位置
+     */
+    updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
+        if (_matrixWorld) {
+            this.worldPosition = vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
+        }
+        else {
+            this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+        }
+        return this.worldPosition;
     }
-
-
+    /**
+     * 更新世界矩阵，返回世界矩阵
+     * @param _parentMatrixWorld 父节点的世界矩阵（可选项）
+     * @returns 世界矩阵
+     */
+    abstract updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4
 }
 
-export interface RootOriginJSON {
+export interface NodeObjectJSON {
     type: string,
     name: string,
     id: number,
@@ -382,12 +398,29 @@ export interface RootOriginJSON {
 
 export interface IV_Node extends IV_NodeSpace {
     entity?: BaseEntity,
+    /** 实例化的节点对象 */
+    // instanceNode?: NodeObject,
+
+    /**todo 实例化的相机对象(目前将相机作为节点的属性：非子对象) */
     // camera?: BaseCamera,
+
+    /**todo  实例化的光源对象(目前将光源作为节点的属性，非子对象) */
     // light?: BaseLight,
+
+    /**todo 实例化的粒子对象(目前将粒子作为节点的子对象) */
     // particle?: BaseParticle,
+
+    /**todo 实例化的动画对象(目前将动画作为节点的属性) */
     // animation?: BaseAnimation[],
 }
-export abstract class RootOrigin extends NodeSpace {
+/**
+ * 节点对象
+ * 1、导入导出需要实例化
+ * 2、readyForGPU需要实例化
+ * 3、_destroy需要实例化
+ * 4、updateSelf需要实例化
+ */
+export abstract class NodeObject extends NodeSpace {
     constructor(input?: IV_Node) {
         super(input);
         if (input) {
@@ -396,21 +429,22 @@ export abstract class RootOrigin extends NodeSpace {
             // if (input.animation) this.Animation = input.animation;
         }
     }
+    /** stageID*/
+    stageID: number = 0;
+
     /**父节点 parent node     */
-    _parent: RootOrigin | undefined;
-    get parent(): RootOrigin | undefined {
+    _parent: NodeObject |  undefined;
+    get Parent(): NodeObject | undefined {
         return this._parent;
     }
-    set parent(value: RootOrigin) {
+    set Parent(value: NodeObject |  undefined) {
         this._parent = value;
     }
-
     /**  子节点 child nodes     */
-    _children: RootOrigin[] = [];
-    /**
-     * renderID，use for pickup
-     * generate by stage 
-     */
+    _children: NodeObject[] = [];
+
+
+    /** renderID，use for pickup generate by stage      */
     _renderID!: number;
     set renderID(id: number) {
         this._renderID = id;
@@ -432,6 +466,7 @@ export abstract class RootOrigin extends NodeSpace {
     set Particle(particle: BaseParticle) {
         this._particle = particle;
     }
+
     _animation: BaseAnimation[] | undefined;
     get Animation(): BaseAnimation[] | undefined {
         return this._animation;
@@ -439,7 +474,13 @@ export abstract class RootOrigin extends NodeSpace {
     set Animation(animation: BaseAnimation[]) {
         this._animation = animation;
     }
-
+    _animationGroup: AnimationGroup | undefined;
+    get AnimationGroup(): AnimationGroup | undefined {
+        return this._animationGroup;
+    }
+    set AnimationGroup(animationGroup: AnimationGroup) {
+        this._animationGroup = animationGroup;
+    }
     /**
      * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
      * node visible
@@ -457,15 +498,21 @@ export abstract class RootOrigin extends NodeSpace {
     get Visible(): boolean {
         return this.visible;
     }
+    /**
+     * 向上递归，判断是否可见
+     */
     getVisibleAndParents(): boolean {
         if (this.visible == false) {
             return false;
         }
-        if (this.parent == undefined) {
+        if (this.Parent == undefined) {
+            return false;
+        }
+        else if (this.Parent.Name == "root") {
             return true;
         }
         else {
-            return this.Visible && this.parent.getVisibleAndParents();
+            return this.Visible && this.Parent.getVisibleAndParents();
         }
     }
 
@@ -482,7 +529,23 @@ export abstract class RootOrigin extends NodeSpace {
     get Enable(): boolean {
         return this.enable;
     }
-
+    /**
+     * 向上递归，判断是否可用性
+     */
+    getEnableAndParents(): boolean {
+        if (this.Enable == false) {
+            return false;
+        }
+        if (this.Parent == undefined) {
+            return false;
+        }
+        else if (this.Parent.Name == "root") {
+            return true;
+        }
+        else {
+            return this.Enable && this.Parent.getEnableAndParents();
+        }
+    }
 
     // /**是否为entity */
     // noEntity!: boolean;
@@ -499,10 +562,10 @@ export abstract class RootOrigin extends NodeSpace {
      * @param renderID 
      * @returns 
      */
-    async init(scene: Scene, parent?: RootOrigin, renderID?: number): Promise<number> {
+    async init(scene: Scene, parent?: NodeObject, renderID?: number): Promise<number> {
         super.init(scene);
         if (parent) {
-            this.parent = parent;
+            this.Parent = parent;
         }
         //获取最新的ID
         this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
@@ -511,7 +574,7 @@ export abstract class RootOrigin extends NodeSpace {
     destroy(): void {
         if (this.children.length > 0) {
             for (let child of this.children) {
-                if (child instanceof RootOrigin) {
+                if (child instanceof NodeObject) {
                     child.destroy();
                 }
             }
@@ -522,13 +585,39 @@ export abstract class RootOrigin extends NodeSpace {
     get children() { return this._children; }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // add 
-    add = this.addChild;
+    /**
+     * 附着entity到NodeObject上
+     * 1. 如果NodeObject已经有entity，抛出错误
+     * 2. 如果entity已经constructed,但没有init,则init entity
+     * 3. 将entity添加到entityManager中
+     * 
+     * @param entity 
+     */
+    async attachEntity(entity: BaseEntity) {
+        if (this.Entity) {
+            console.warn("NodeObject already has an entity, remove it first");
+        }
+        else {
+            this.Entity = entity;
+            if (entity._state == E_lifeState.constructed) {//如果entity已经constructed,但没有init,则init entity
+                await entity.init(this.scene);
+            }
+            this.scene.entityManager.add(entity, this);//将entity添加到entityManager中
+        }
+    }
+    /** 从NodeObject上分离entity     */
+    detachEntity() {
+        if (this.Entity) {
+            this.scene.entityManager.remove(this.Entity, this);//将entity从entityManager中移除
+        }
+    }
+
     /**
      * 添加子节点
      * 1. 如果是子节点，直接添加到children中
      *      A、camera
      *      B、light
-     *      C、其他类型的RootOrigin，直接添加到children中
+     *      C、其他类型的NodeObject，直接添加到children中
      *          model，particle
      * 2、entity
      *      A. 如果是BaseEntity，通过新建参数，
@@ -538,21 +627,21 @@ export abstract class RootOrigin extends NodeSpace {
      *      C、将entity和node添加到entityManager中
      * 3、如果不存在entity，将node添加到children中
      * 
-     * @param child  RootOrigin | BaseEntity | IV_Node 
-     * @returns  Promise<RootOrigin> 
+     * @param child  NodeObject | BaseEntity | IV_Node 
+     * @returns  Promise<NodeObject> 
      */
-    async addChild(child: RootOrigin | BaseEntity | IV_Node): Promise<RootOrigin> {
-        let childNode: RootOrigin;
-        if (child instanceof RootOrigin) {
+    async addChild(child: NodeObject | BaseEntity | IV_Node): Promise<NodeObject> {
+        let childNode: NodeObject;
+        if (child instanceof NodeObject) {
             await child.init(this.scene, this);
             // child.parent = this;
-            if (child instanceof RootOrigin) {
+            if (child instanceof NodeObject) {
                 await child.setRootENV(this.scene);
             }
             if (child.type == "Camera") {
-                this.scene.cameraManager.add(child as BaseCamera);
+                this.scene.cameraManager.add(child as unknown as BaseCamera);
             }
-            else if (child.type == "Light") {
+            else if (child.type == "Light") {//这里不能使用 instanceof BaseLight，会遇到 “暂时性死区 Uncaught ReferenceError: Cannot access 'NodeOrigin' before initialization” 问题，应该是BaseLight的在NodeObject解析完成之前进行了初始化
                 this.scene.lightsManager.add(child as BaseLight);
                 this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
                 if ((child as BaseLight).Shadow)
@@ -586,10 +675,12 @@ export abstract class RootOrigin extends NodeSpace {
         this._children.push(childNode);
         return childNode;
     }
+    add = this.addChild;
+
     async initNodeObject(value: IV_Node): Promise<NodeObject> {
-        let childNode: NodeObject = new NodeObject(value);//创建node object
+        let childNode: NodeObject = new NodeInstance(value);//创建node object
         await childNode.init(this.scene, this);  //初始化node object
-        childNode.parent = this;    //设置parent
+        childNode.Parent = this;    //设置parent
         if (value.entity) {//如果有entity
             if (value.entity._state == E_lifeState.constructed) {//如果entity已经constructed,但没有init,则init entity
                 await value.entity.init(this.scene);
@@ -604,66 +695,39 @@ export abstract class RootOrigin extends NodeSpace {
         // }
         return childNode;
     }
-    remove = this.removeChild;
-    removeChild(child: RootOrigin): RootOrigin | false {
-        let childRemoveResult = this.removeChild(child);
-        if (childRemoveResult) {
-            if (child.type == "Camera") {
-                this.scene.cameraManager.remove(child as BaseCamera);
-                delete this.scene.renderManager.RC[E_renderPassName.forward][child.UUID];
-            }
-            else if (child.type == "Light") {
-                this.scene.lightsManager.remove(child as BaseLight);
-                this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
-
-                if (this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID])
-                    delete this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID];
-                if (this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID])
-                    delete this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID];
-            }
-            else if (child.type == "entity") {
-                this.scene.entityManager.remove(child as BaseEntity);
-            }
-            // else if (child.type == "material") {
-            //     this.scene.materialManager.remove(child as BaseMaterial);
-            // }
-            else {
-                console.log("未找到对应的ECS manager", child);
-            }
+    removeChild(child: NodeObject): NodeObject | false {
+        let index = this._children.indexOf(child);
+        if (index !== -1) {
+            // this._children[index].removeChildren();//递归移除子节点
+            child.Parent = undefined;
+            this._children[index].visible = false;
+            this._children.splice(index, 1);
+            return child;
         }
-        return childRemoveResult;
+        console.log("未找到对应的子节点", child);
+        return false;
+
+        ////20260106 camera 和  light 的删除有ECS附着，之后转移到ESC中
+        // if (childRemoveResult) {
+        //     if (child.type == "Camera") {
+        //         this.scene.cameraManager.remove(child as unknown as BaseCamera);
+        //         delete this.scene.renderManager.RC[E_renderPassName.forward][child.UUID];
+        //     }
+        //     else if (child.type == "Light") {
+        //         this.scene.lightsManager.remove(child as BaseLight);
+        //         this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+        //         if (this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID])
+        //             delete this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID];
+        //         if (this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID])
+        //             delete this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID];
+        //     }
+        //     else {
+        //         console.log("未找到对应的ECS manager", child);
+        //     }
+        // }
+        // return childRemoveResult;
     }
-
-    /**
-     * add child 
-     * 添加子节点
-     * @param child 
-     */
-    // async addChild(child: RootOrigin): Promise<number> {
-    //     child.parent = this;
-    //     this._children.push(child);
-    //     return child._renderID;
-    // }
-
-    /**
-     * remove child
-     * 移除子节点
-     * @param child 
-     * @returns RootOrigin | false
-     *           移除成功返回子节点，失败返回false
-     *           success return child, fail return false
-     */
-    // removeChild(child: RootOrigin): RootOrigin | false {
-    //     let index = this._children.indexOf(child);
-
-    //     if (index !== -1) {
-    //         this._children[index].removeChildren();
-    //         this._children[index].visible = false;
-    //         let child = this._children.splice(index, 1);
-    //         return child[0];
-    //     }
-    //     return false;
-    // }
+    remove = this.removeChild;
     /**
      * remove all children
      * 移除所有子节点
@@ -716,12 +780,12 @@ export abstract class RootOrigin extends NodeSpace {
      * @param name 
      * @returns 
      */
-    getObjectByName(name: string): RootOrigin | boolean {
+    getObjectByName(name: string): NodeObject | boolean {
         for (let i of this.children) {
             if (i.Name == name) {
                 return this;
             }
-            else if (i instanceof RootOrigin) {
+            else if (i instanceof NodeObject) {
                 let scope = i.getObjectByName(name);
                 if (typeof scope != "boolean") {
                     return scope;
@@ -757,9 +821,9 @@ export abstract class RootOrigin extends NodeSpace {
      */
     updateSelfAttribute(clock: Clock) {
         if (this.lastUpdaeTime !== clock.now) {
-            if (this.inputValues)
-                if (this.inputValues.update)
-                    this.inputValues.update(this);
+            // if (this.inputValues)
+            //     if (this.inputValues.update)
+            //         this.inputValues.update(this);
             this.updateMatrixWorld();//更新 world matrix
             this.updateWorldPosition(); //更新 world position
             //更新包围盒
@@ -785,8 +849,8 @@ export abstract class RootOrigin extends NodeSpace {
      * @returns 
      */
     updateParentOnly(clock: Clock) {
-        if (this.parent) {
-            this.parent.updateParentOnly(clock);//递归
+        if (this.Parent !== undefined && this.Parent.Name == "root") {
+            this.Parent.updateParentOnly(clock);//递归
         }
         if (this.lastUpdaeTime !== clock.now) {//更新自己
             this.updateSelfAttribute(clock);
@@ -800,13 +864,14 @@ export abstract class RootOrigin extends NodeSpace {
      * 更新世界矩阵，
      *          递归乘以父节点的矩阵
      */
-    updateMatrixWorld(): void {
-        if (this.parent !== undefined) {
-            this.matrixWorld = mat4.multiply(this.parent.matrixWorld, this.updateMatrix());
+    updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
+        if (this.Parent !== undefined && this.Parent.Name !== "root") {
+            this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
         }
         else {
             this.matrixWorld = this.updateMatrix();
         }
+        return this.matrixWorld;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -820,71 +885,75 @@ export abstract class RootOrigin extends NodeSpace {
      * @param json 输入的JSON格式数据
      */
     abstract loadJSON(json: any): void;
-    getBaseJSON(): RootOriginJSON {
-        let outputJSON: RootOriginJSON = {
-            type: this.type,
-            name: this._name,
-            id: this._id,
-            // renderID: this._renderID,
-            UUID: this.UUID,
-            position: [],// this._position,
-            scale: [],// this._scale,
-            rotate: {
-                axis: [],
-                angleInRadians: 0,
-            },
-            quaternion: undefined,
-            enable: this.enable,
-            visible: this.visible,
-            matrix: [],// this.matrix,
-            matrixWorld: [],//this.matrixWorld,
-            parent: 0,
-            children: []
-        };
-        for (let i of this._position)
-            outputJSON.position.push(i);
+    // getBaseJSON(): NodeObjectJSON {
+    //     let outputJSON: NodeObjectJSON = {
+    //         type: this.type,
+    //         name: this._name,
+    //         id: this._id,
+    //         // renderID: this._renderID,
+    //         UUID: this.UUID,
+    //         position: [],// this._position,
+    //         scale: [],// this._scale,
+    //         rotate: {
+    //             axis: [],
+    //             angleInRadians: 0,
+    //         },
+    //         quaternion: undefined,
+    //         enable: this.enable,
+    //         visible: this.visible,
+    //         matrix: [],// this.matrix,
+    //         matrixWorld: [],//this.matrixWorld,
+    //         parent: 0,
+    //         children: []
+    //     };
+    //     for (let i of this._position)
+    //         outputJSON.position.push(i);
 
-        if (this._quaternion) {
-            for (let i of this._quaternion)
-                outputJSON.quaternion!.push(i);
-        }
-        else {
-            outputJSON.quaternion = undefined;
-        }
-        if (this._scale) {
-            for (let i of this._scale)
-                outputJSON.scale.push(i);
-        }
-        else {
-            outputJSON.scale = undefined;
-        }
-        if (this._rotate) {
-            for (let i of this._rotate.axis)
-                outputJSON.rotate!.axis.push(i);
-            outputJSON.rotate!.angleInRadians = this._rotate.angleInRadians;
-        }
-        else {
-            outputJSON.rotate = undefined;
-        }
+    //     if (this._quaternion) {
+    //         for (let i of this._quaternion)
+    //             outputJSON.quaternion!.push(i);
+    //     }
+    //     else {
+    //         outputJSON.quaternion = undefined;
+    //     }
+    //     if (this._scale) {
+    //         for (let i of this._scale)
+    //             outputJSON.scale.push(i);
+    //     }
+    //     else {
+    //         outputJSON.scale = undefined;
+    //     }
+    //     if (this._rotate) {
+    //         for (let i of this._rotate.axis)
+    //             outputJSON.rotate!.axis.push(i);
+    //         outputJSON.rotate!.angleInRadians = this._rotate.angleInRadians;
+    //     }
+    //     else {
+    //         outputJSON.rotate = undefined;
+    //     }
 
-        if (this.matrix)
-            for (let i of this.matrix)
-                outputJSON.matrix.push(i);
+    //     if (this.matrix)
+    //         for (let i of this.matrix)
+    //             outputJSON.matrix.push(i);
 
-        if (this.matrixWorld)
-            for (let i of this.matrixWorld)
-                outputJSON.matrixWorld.push(i);
-        if (this.parent)
-            outputJSON.parent = this.parent.ID;
-        for (let i of this._children) {
-            outputJSON.children.push(i.ID);
-        }
+    //     if (this.matrixWorld)
+    //         for (let i of this.matrixWorld)
+    //             outputJSON.matrixWorld.push(i);
+    //     if (this.parent)
+    //         outputJSON.parent = this.parent.ID;
+    //     for (let i of this._children) {
+    //         outputJSON.children.push(i.ID);
+    //     }
 
-        return outputJSON
-    }
+    //     return outputJSON
+    // }
 }
 
-export class NodeObject extends RootOrigin {
+/**
+ * 节点实例
+ * 用于实例化节点对象
+ */
+export class NodeInstance extends NodeObject {
     saveJSON() {
         throw new Error("Method not implemented.");
     }

@@ -1,11 +1,6 @@
-import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
+import { E_renderForDC } from "../base/coreDefine";
 import { commmandType, I_PipelineStructure, T_rpdInfomationOfMSAA } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
-import { DrawCommandGenerator, IV_DC } from "../command/DrawCommandGenerator";
-import { Mesh } from "../entity/mesh/mesh";
-import { E_GBufferNames } from "../gbuffers/base";
-import { splitLightUUID } from "../light/lightsManager";
-import { BaseMaterial } from "../material/baseMaterial";
 import { Scene } from "./scene";
 
 /**

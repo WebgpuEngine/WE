@@ -5,7 +5,7 @@ import { DrawCommand } from "../command/DrawCommand";
 import { BaseEntity } from "../entity/baseEntity";
 import { NodeEntity } from "../entity/nodeEntity";
 import { BaseMaterial } from "../material/baseMaterial";
-import { RootOrigin } from "../organization/root";
+import { NodeObject } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
@@ -32,7 +32,7 @@ export enum T_ModelResKind {
     camera = "camera",
 }
 
-export abstract class BaseModel extends RootOrigin {
+export abstract class BaseModel extends NodeObject {
 
 
     /**
@@ -95,7 +95,7 @@ export abstract class BaseModel extends RootOrigin {
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
 
         for (let perOne of this.children) {
-            (perOne as RootOrigin).update(clock);
+            (perOne as NodeObject).update(clock);
         }
     }
 

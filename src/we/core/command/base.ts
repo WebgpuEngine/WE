@@ -1,3 +1,4 @@
+import { E_renderForDC } from "../base/coreDefine";
 import { ComputeCommand } from "./ComputeCommand";
 import { CopyCommandT2T } from "./copyCommandT2T";
 import { DrawCommand } from "./DrawCommand";
@@ -55,11 +56,12 @@ export interface I_viewport {
 export interface I_drawMode {
     vertexCount: number,
     /**实例化数量，默认=1 
-     * intance 的其他参数可以通过unform 或 storage buffer 传递，
+     * 1、intance 的其他参数可以通过unform 或 storage buffer 传递，
      *          A、比如scale，position ，color，matrix等
      *          B、这些参数在shader中操作
      *          C、也可以通过shader生成random,进行随机（上述）操作，比如花草的摇曳的matrix
-    */
+     * 2、(20260106)entity的外部实例化过程会覆盖instaceCount和firstInstance
+     */
     instanceCount?: number,
     firstVertex?: number
     firstInstance?: number
@@ -89,7 +91,7 @@ export function isDrawModeVertex(drawMode: any): drawMode is I_drawMode {
     return "vertexCount" in drawMode;
 }
 
-export type T_drawMode = I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]);
+export type T_drawMode = I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]);
 //draw mode end
 /////////////////////////////////////////////////////////////////////////////////////////////////
 

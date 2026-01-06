@@ -1,5 +1,5 @@
 import { mat4, Mat4, vec3, Vec3, } from "wgpu-matrix";
-import { RootOrigin } from "../organization/root";
+import { NodeObject } from "../organization/root";
 import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
 import { weColor3, I_Update, weVec3 } from "../base/coreDefine";
@@ -110,7 +110,7 @@ interface optionBaseShadowMapOfST_Light {
     shadow_map_enable: number,  //depth texture array 会在light add之后的下一帧生效，这个是标志位
 }
 
-export abstract class BaseLight extends RootOrigin {
+export abstract class BaseLight extends NodeObject {
     /**
      * type of lights
      * 光源的类型
@@ -483,8 +483,13 @@ export abstract class BaseLight extends RootOrigin {
         ST_LightViews.shadow_map_array_index[0] = index;
         ST_LightViews.shadow_map_array_lenght[0] = count;
         ST_LightViews.shadow_map_enable[0] = 1;//todo ,20250105，如果是动态管理shadowmap texture大小，这个需要适配，目前未使用
-
-
     }
-
+    /**
+     * 判断节点是否在BVH中可见
+     * @param node 节点
+     * @returns 是否在BVH中可见
+     */
+    getVisibleInBVH(node: NodeObject): boolean {
+        return true;
+    }
 }
