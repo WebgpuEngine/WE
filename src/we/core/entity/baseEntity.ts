@@ -403,19 +403,24 @@ export abstract class BaseEntity extends NodeSpace {
     // 基础部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /** 
-     * 更新世界矩阵，返回世界矩阵，不更新entity的世界矩阵
-     * 1、entity的matrixWorld 是单位矩阵
-     * 2、这里只返回世界矩阵，不更新entity的worldPosition
+     * 更新世界矩阵，
+     * 1、更新局部矩阵，不更新entity的世界矩阵（entity是instance化后使用，使用使用实例化nodeInstance的世界矩阵）
+     * 2、entity的matrixWorld 是单位矩阵
+     * 3、这里只返回局部矩阵
      * @param parentMatrixWorld 父矩阵
      * @returns 世界矩阵
      */
-    updateMatrixWorld(parentMatrixWorld: Mat4): Mat4 {
-        return mat4.multiply(parentMatrixWorld, this.updateMatrix());
+    updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
+        this.updateMatrix();
+        return this.matrix;
     }
+
     /**
-     * 更新世界位置,由于entity的worldPosition是在本地坐标系下的位置，而且与每个instance的世界矩阵不同而不同，所以这里的更新世界位置=返回世界坐标系（不更新entity的worldPosition）
-     * 1、entity的worldPosition 是entity的position在世界坐标系下的位置
-     * 2、如果没有提供世界矩阵，默认使用entity的matrixWorld
+     * 更新世界位置,entity无worldPosition，只有position在本地坐标系下的位置
+     * 1、entity需要实例化，并使用实例的世界坐标。
+     * 2、由于entity的worldPosition是在本地坐标系下的位置，worldPostion=(0,0,0)
+     * 3、每个instance的世界矩阵不同而不同，所以这里的更新世界位置=返回世界坐标系（不更新entity的worldPosition）
+     * 4、如果没有提供世界矩阵，默认使用entity的matrixWorld，并返回entity的position在世界坐标系下的位置（0,0,0）
      * @param _matrixWorld 世界矩阵
      * @returns 世界位置
      */
@@ -424,10 +429,28 @@ export abstract class BaseEntity extends NodeSpace {
             return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
         }
         else {
-            return vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+            return vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);//（0,0,0）
         }
     }
-
+    /**
+     * 获取实例的世界矩阵，不更新entity的worldPosition
+     * 1、entity的matrixWorld 是单位矩阵
+     * 2、返回instance的世界矩阵
+     * @param instance 实例
+     * @returns instance 世界矩阵
+     */
+    getMatrixWorldOfInstance(instance: NodeObject): Mat4 {
+        let parentMatrixWorld: Mat4 = instance.matrixWorld;
+        return mat4.multiply(parentMatrixWorld, this.matrix);
+    }
+    /**
+     * 获取实例的世界位置
+     * @param instance 实例
+     * @returns 实例的世界位置
+     */
+    getWorldPositionOfInstance(instance: NodeObject): Vec3 {
+        return this.updateWorldPosition(this.getMatrixWorldOfInstance(instance));
+    }
     setBoundingBox(box: boundingBox) {
         this.boundingBox = box;
         this.boundingSphere = this.generateSphere(box);

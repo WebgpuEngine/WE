@@ -318,9 +318,12 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * 获取实例化的drawMode数组
      * 1、DC 进行实例化优化使用
      * 2、DC获取的是动态的数组，提交instance index 根据可见性进行剔除，需要保持 instance index的编号与entityManager中的Map的instance数组下标一致（涉及storage buffer array）
+     * @param UUID entity's UUID
+     * @param kind 渲染类型(相机、light)
+     * @param wireFrameDrawModeTemplate  wireFrame 模式的drawMode模板
      * @returns I_drawMode[] | I_drawModeIndexed[]
      */
-    getDrawModeArrayOfInstances(UUID: string, kind: E_renderForDC): I_drawMode[] | I_drawModeIndexed[] {
+    getDrawModeArrayOfInstances(UUID: string, kind: E_renderForDC, wireFrameDrawModeTemplate?: I_drawMode | I_drawModeIndexed): I_drawMode[] | I_drawModeIndexed[] {
         /**步骤
          * 1、获取entity drawMode模板
          * 2、可见性
@@ -332,7 +335,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
          * 5、返回
          */
         //1、获取entity drawMode模板
-        let drawMode: I_drawMode | I_drawModeIndexed = this.getDrawModeTemplate();
+        let drawMode: I_drawMode | I_drawModeIndexed;
+        if (wireFrameDrawModeTemplate != undefined) {
+            drawMode = wireFrameDrawModeTemplate;
+        }
+        else {
+            drawMode = this.getDrawModeTemplate();
+        }
 
 
         //2、可见性

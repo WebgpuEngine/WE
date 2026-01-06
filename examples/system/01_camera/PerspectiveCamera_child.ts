@@ -1,6 +1,5 @@
-import { mat4, vec3, vec4 } from "wgpu-matrix";
+import { vec3 } from "wgpu-matrix";
 import { E_renderForDC } from "../../../src/we/core/base/coreDefine";
-import { OrthographicCamera } from "../../../src/we/core/camera/orthographicCamera";
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
 import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
 import { eventOfScene, type IV_Scene, type userDefineEventCall } from "../../../src/we/core/scene/base";
@@ -8,7 +7,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { RootManager } from "../../../src/we/core/scene/rootManager";
-import { RootGPU } from "../../../src/we/core/organization/root";
+import { NodeInstance } from "../../../src/we/core/organization/root";
 
 declare global {
   interface Window {
@@ -131,7 +130,7 @@ let DCManager = new DrawCommandGenerator(inputDC);
 let valueDC: IV_DC = {
   label: "dc1",
   data: {
-    vertices:{
+    vertices: {
       "position": oneTriangleVertexArray,
       "color": oneTriangleColorArray
     },
@@ -165,6 +164,7 @@ let camera = new PerspectiveCamera({
   far: 1000,
   position: [11, 0, 0.],
   lookAt: [0, 0, 1],
+
   // update: (scope: any) => {
   //   const now = Date.now() / 1000;
   //   // console.log(scope.lookAt);
@@ -174,23 +174,23 @@ let camera = new PerspectiveCamera({
 });
 // await scene.add(camera);
 
-let root1=new RootManager(scene);
-root1.Position=vec3.create(0,0,11);
-// root1.Rotate={
+let node_1 = new NodeInstance(scene);
+node_1.Position = vec3.create(0, 0, 11);
+// node_1.Rotate={
 //   axis:vec3.create(0,1,0),
 //   angleInRadians:Math.PI/1.3,
 // }
-root1.updateMatrixWorld();
-console.log("root1 world position:",vec3.transformMat4(root1._position,root1.matrixWorld),root1._position,root1.matrixWorld)
-await scene.add(root1)
-await root1.addChild(camera);
+node_1.updateMatrixWorld();
+console.log("node_1 world position:", vec3.transformMat4(node_1._position, node_1.matrixWorld), node_1._position, node_1.matrixWorld)
+await scene.add(node_1)
+await node_1.addChild(camera);
 
 let dc = DCManager.generateDrawCommand(valueDC);
 
 let oneCall: userDefineEventCall = {
   call: (scope: Scene) => {
     // scope.renderManager.clean();
-    root1.updateMatrixWorld();
+    node_1.updateMatrixWorld();
     scope.renderManager.push(dc, E_renderPassName.forward, camera.UUID);
     // dc.submit()
   },
