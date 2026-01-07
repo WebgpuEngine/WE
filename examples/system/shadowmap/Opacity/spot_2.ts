@@ -129,8 +129,8 @@ let ambientLight = new AmbientLight(
 /////////////////////////////////////////////
 //add all light
 await scene.add(ambientLight);
-// await scene.add(onelightDirectional_1);
-// await scene.add(onelightDirectional_2);
+await scene.add(onelightDirectional_1);
+await scene.add(onelightDirectional_2);
 await lightNode1.addChild(onelight);
 
 ///////////////////////////////////////////////////////////////////////

@@ -26,7 +26,7 @@ let input: IV_Scene = {
     MSAA: {
       enable: true
     }
-  },    
+  },
 };
 let scene = await initScene({
   initConfig: input,
@@ -68,39 +68,37 @@ let lightMaterial = new ColorMaterial(
     color: [1, 1, 1, 1]
   });
 
-let lightRadius = 0.65;
-let lightRadiusFlag = true;
-let lightZ = 1.
-let light1Entity1 = new Mesh(
+let lightBall = new Mesh(
   {
     attributes: {
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [1, 1, 1],
+    // position: [1, 1, 1],//instance 改造后，这个是local position
+  });
+/////////////////////////// nodeInstance  light ball 
+let lightRadius = 0.65;
+let lightZ = 1.
+
+let nodeLight1 = await scene.add(
+  {
+    entity: lightBall,
     update: (scope: any) => {
       const now = Date.now() / 2000;
       let pos = [Math.sin(now) * lightRadius, Math.cos(now) * lightRadius, lightZ];
-      // console.log("pos set :", pos)
       scope.Position = pos;
-      // console.log("Position = ",scope.Position[0],scope.Position[1],scope.Position[2])
-      // console.log("worldPosition = ",scope.worldPosition[0],scope.worldPosition[1],scope.worldPosition[2])
     }
-  });
-await scene.add(light1Entity1);
-
-
-
-
-
+  }
+);
+//////////////////////////////////  light  add to nodeLight1
 let onelight = new PointLight(
   {
-    position: [0,0,0],
+    position: [0, 0, 0],
     // position: [1, 1, 1],
     intensity: 1.0,
   }
 );
-await light1Entity1.addChild(onelight);
+await nodeLight1.addChild(onelight);
 
 
 

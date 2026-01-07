@@ -23,7 +23,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   // reversedZ:true,
-  deferRender: "color",
+  // deferRender: "color",
 };
 let scene = await initScene({
   initConfig: input,
@@ -44,45 +44,6 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
-// let onelight= new PointLight(
-//   {
-//     position: [0.0, 0.0, 8.0],
-//     intensity: 2.0,
-//   }
-// );
-//方向光1
-let onelight = new DirectionalLight({
-  color: [1, 1, 1],
-  direction: [1, 1, -1],
-  intensity: 1,
-  shadow: true,
-  update: (light) => {
-    const now = Date.now() / 1000;
-    light.Direction = [Math.sin(now), 1, Math.cos(now)];
-  }
-});
-await scene.add(onelight);
-
-let onePointLight = new PointLight(
-  {
-    position: [2, 0, 2],
-    // position: [1, 1, 1],
-    intensity: 19,
-    // intensity: 20,//没有进行tone mapping 之前
-    shadow: true,
-
-  }
-);
-// await scene.addChild(onePointLight);
-
-//环境光
-let ambientLight = new AmbientLight(
-  {
-    color: [1, 1, 1],
-    intensity: 0.1
-  }
-)
-await scene.add(ambientLight);
 
 
 //实体球
@@ -108,7 +69,9 @@ let inputMesh: IV_MeshEntity = {
   material: pbrMaterial,
 }
 let mesh = new Mesh(inputMesh);
-await scene.add({ entity: mesh, name: "iron" });
+window.mesh = mesh;
+await scene.add({ entity: mesh, name: "iron" ,position:[-1,0,0]});
+await scene.add({ entity: mesh, name: "iron 2" ,position:[1,0,0]});
 
 //实体地板
 let planeGeometry = new PlaneGeometry({
@@ -135,8 +98,9 @@ let groundMesh = new Mesh({
   position: [5, -1, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
-// await scene.add(groundMesh);
+await scene.add(groundMesh);
 
+//实体地板 2
 let groundMaterialPBROption2: IV_PBRMaterial = {
 
   textures: {
@@ -158,9 +122,89 @@ let groundMesh2 = new Mesh({
   // position: [-5, -1, 0],
   // rotate: [1, 0, 0, -Math.PI / 2]
 });
+
 await scene.add({
   name: "wood",
   entity: groundMesh2,
   position: [-5, -1, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
+// let phongMaterial = new PhongMaterial({
+//   color: [0, 0.9, 1, 1],
+//   roughness: 1,
+//   metalness: 0.1,
+//   shininess: 32
+// });
+// let geometry = new SphereGeometry({
+//   widthSegments: 128,
+//   heightSegments: 128,
+// });
+// let inputMesh: IV_MeshEntity = {
+//   attributes: {
+//     geometry: geometry,
+//   },
+//   material: phongMaterial,
+//   // wireFrame: {
+//   //   color: [1, 1, 1, 1],
+//   //   enable: true,
+//   //   // wireFrameOnly: true,
+//   // }
+// }
+// let mesh = new Mesh(inputMesh);
+// console.log(mesh);
+// await scene.add(mesh);
+
+// let planeGeometry = new PlaneGeometry({
+//   width: 10,
+//   height: 10
+// });
+// let groundMaterial = new PhongMaterial({
+//   color: [1,1,1, 1],
+//   roughness: 1,
+//   metalness: 0.1,
+//   shininess: 32
+// });
+// let groundMesh = new Mesh({
+//   attributes: {
+//     geometry: planeGeometry,
+//   },
+//   material: groundMaterial,
+//   position: [0, -1, 0],
+//   rotate: [1, 0, 0, -Math.PI / 2]
+// });
+// await scene.add(groundMesh);
+
+////////////////////////////////////////////////////////////////////////
+
+//方向光1
+let onelight = new DirectionalLight({
+  color: [1, 1, 1],
+  direction: [1, 1, -1],
+  intensity: 1,
+  shadow: true,
+  update: (light) => {
+    const now = Date.now() / 1000;
+    light.Direction = [Math.sin(now), 1, Math.cos(now)];
+  }
+});
+await scene.add(onelight);
+
+let onePointLight = new PointLight(
+  {
+    position: [2, 0, 2],
+    // position: [1, 1, 1],
+    intensity: 19,
+    // intensity: 20,//没有进行tone mapping 之前
+    shadow: true,
+  }
+);
+// await scene.addChild(onePointLight);
+
+//环境光
+let ambientLight = new AmbientLight(
+  {
+    color: [1, 1, 1],
+    intensity: 0.1
+  }
+)
+// await scene.add(ambientLight);

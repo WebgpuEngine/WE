@@ -13,14 +13,14 @@ export abstract class ECSManager<T extends I_UUID> {
     }
     // abstract add(entity: T): void;
     // abstract remove(entity: T): void;
-    add(entity: T, node?: NodeObject) {
+    add(entity: T, scendValue?: any) {
         let index = this.list.indexOf(entity);
         if (index != -1) {
             return;
         }
         this.list.push(entity);
     }
-    remove(entity: T, node?: NodeObject) {
+    remove(entity: T, scendValue?: any) {
         let index = this.list.indexOf(entity);
         if (index != -1) {
             this.list.splice(index, 1);

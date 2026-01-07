@@ -665,7 +665,7 @@ export class Scene {
 
     /**每帧循环 onBeforeUpdate */
     async onBeforeUpdate() {
-        this.Box3s = [];//清空包围盒
+        this.Box3s = [];//清空包围盒，但不影响上一级计算的boundingBox
         if (this.flags.reSize.status === true) {
             // console.log("reseize event at onBeforeRender");
             this.reSize(this.flags.reSize.width, this.flags.reSize.height);
@@ -714,7 +714,7 @@ export class Scene {
         //todo，20250912，缺少camera与BVH的判断
         this.entityManager.update(this.clock);
         //particle manager and update DCCC        
-        //
+        //更新包围盒数据，下一帧使用
         this.generateBox();
         this.generateSphere();
         this.updateBVH();

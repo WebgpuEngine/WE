@@ -22,13 +22,13 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
-  reversedZ:true,
+  reversedZ: true,
   // AA: {
   //   MSAA: {
   //     enable: true
   //   }
   // },      
-    deferRender: "color",
+  deferRender: "color",
 };
 let scene = await initScene({
   initConfig: input,
@@ -68,7 +68,7 @@ await scene.add(ambientLight);
 
 let geometry = new SphereGeometry({
   widthSegments: 128,
-  heightSegments:128,
+  heightSegments: 128,
 });
 
 console.log(geometry)
@@ -78,34 +78,29 @@ console.log(geometry)
 // });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_basecolor.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" } },
     // albedo:  [1.0, 0.71, 0.29],
 
-    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" }},
-    metallic: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_metallic.png" }},
+    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
+    metallic: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" } },
     // metallic: 0.91,
 
-    roughness: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_roughness.png" }},
+    roughness: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" } },
     // roughness: 0.31,
-    
+
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
-
+////////////////////////////////////////////////////////////////////////
 let inputMesh: IV_MeshEntity = {
   attributes: {
     geometry: geometry,
   },
   material: pbrMaterial,
-  // wireFrame: {
-  //   color: [1, 1, 1, 1],
-  //   enable: true,
-  //   // wireFrameOnly: true,
-  // }
 }
 let mesh = new Mesh(inputMesh);
 await scene.add(mesh);
-
+////////////////////////////////////////////////////////////////////////
 let ballGeometry = new SphereGeometry({
   radius: 0.01,
   widthSegments: 8,
@@ -115,34 +110,33 @@ let lightMaterial = new ColorMaterial(
   {
     color: [1, 1, 1, 1]
   });
-
-let lightRadius = 1.65;
-let lightRadiusFlag = true;
-let lightZ = 0;
-let light1Entity1 = new Mesh(
+let meshPointBall = new Mesh(
   {
     attributes: {
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [1, 1, 1],
+  });
+
+////////////////////////////////////////////////////////////////////////
+let lightRadius = 1.65;
+let lightZ = 0;
+let nodeLight1 = await scene.add(
+  {
+    entity: meshPointBall,
     update: (scope: any) => {
       const now = Date.now() / 500;
       let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
       scope.Position = pos;
     }
-  });
-await scene.add(light1Entity1);
-
-
-
-
+  }
+);
 
 let onelight = new PointLight(
   {
-    position: [0,0,0],
+    position: [0, 0, 0],
     // position: [1, 1, 1],
     intensity: 2.0,
   }
 );
-await light1Entity1.addChild(onelight);
+await nodeLight1.addChild(onelight);

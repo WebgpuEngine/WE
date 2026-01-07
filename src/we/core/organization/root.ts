@@ -847,13 +847,10 @@ export abstract class NodeObject extends NodeSpace {
             let box = this.Entity.boundingBox;
             const min = vec3.transformMat4(box.min, this.matrixWorld);
             const max = vec3.transformMat4(box.max, this.matrixWorld);
-            box.max[0] = max[0];
-            box.max[1] = max[1];
-            box.max[2] = max[2];
-            box.min[0] = min[0];
-            box.min[1] = min[1];
-            box.min[2] = min[2];
-            this.scene.Box3s.push(box);//更新scene的包围盒数组
+            this.scene.Box3s.push({
+                min: [min[0], min[1], min[2]],
+                max: [max[0], max[1], max[2]]
+            });//更新scene的包围盒数组
         }
     }
     /**

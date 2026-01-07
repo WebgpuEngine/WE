@@ -23,8 +23,8 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
-  reversedZ:true,
-    deferRender: "color",
+  reversedZ: true,
+  deferRender: "color",
 };
 let scene = await initScene({
   initConfig: input,
@@ -60,7 +60,7 @@ let light1Entity1 = new Mesh(
       geometry: ballGeometry,
     },
     material: lightMaterial,
-   position: [-2, 1, -1],
+    position: [-2, 1, -1],
     shadow: {
       generate: false,
       accept: false,
@@ -99,14 +99,14 @@ await scene.add(ambientLight);
 //实体球
 let geometry = new SphereGeometry({
   widthSegments: 128,
-  heightSegments:128,
+  heightSegments: 128,
 });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" }},
-    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" }},
-    metallic: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" }},
-    roughness: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
+    metallic: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" } },
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
@@ -140,11 +140,11 @@ let planeGeometry = new PlaneGeometry({
 
 let groundMaterialPBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" }},
-    normal: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" }},
-    metallic: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" }},
-    roughness: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" }},
-    ao: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" } },
+    metallic: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" } },
+    ao: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" } },
   }
 }
 let groundMaterial = new PBRMaterial(groundMaterialPBROption);
