@@ -15,7 +15,6 @@ import { AnimationGroup } from "../animation/animationGroup";
 
 
 export interface I_UUID {
-    // update(clock: Clock): unknown;
     UUID: string,
     _isDestroy: boolean,
 
@@ -102,8 +101,6 @@ export abstract class RootGPU implements I_UUID {
         await this.setRootENV(scene);
         await this.readyForGPU();
     }
-
-
     /**由init()调用 */
     async setRootENV(scene: Scene) {
         this.device = scene.device;
@@ -111,9 +108,6 @@ export abstract class RootGPU implements I_UUID {
         this.resourcesGPU = scene.resourcesGPU;
         this._readyForGPU = true;
     }
-
-
-
     /**
      * 三段式初始化的第三步：readyForGPU
      * 当前对象的GPU已经可以用时，执行此调用。
@@ -134,14 +128,6 @@ export abstract class RootGPU implements I_UUID {
         this._isDestroy = true;
     }
     abstract _destroy(): void;
-
-    // update(clock: Clock, updateSelftFN: boolean = true): boolean {
-    //     if (this._readyForGPU === false)
-    //         return false;
-    //     else
-    //         return super.update(clock, updateSelftFN);
-    // }
-
     /**
      * 正常更新
      * 1、更新I_Update的自定义function
@@ -153,20 +139,18 @@ export abstract class RootGPU implements I_UUID {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        if (this.lastUpdaeTime === clock.now) //更新检查
-            return false;
+        // if (this.lastUpdaeTime === clock.now) //更新检查
+        //     return false;
         if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
-            this.inputValues.update(clock);
+            this.inputValues.update(this);
         }
-        if (updateSelftFN)
+        if (updateSelftFN) {
             this.updateSelf(clock);                         //更新自身
-        this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
+            this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
+        }
         return true;
     }
     abstract updateSelf(clock: Clock): void;
-
-
-
 }
 
 export interface IV_NodeSpace extends I_Update {
@@ -389,9 +373,14 @@ export abstract class NodeSpace extends RootGPU {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
+        super.update(clock, false);//更新I_Update，不更新updateSelf()
         this.updateMatrixWorld();//更新 world matrix
         this.updateWorldPosition(); //更新 world position
-        super.update(clock, updateSelftFN);
+        //更新updateSelf()。只更新一次,在所有自身更新之后
+        if (updateSelftFN) {
+            this.updateSelf(clock);
+            this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
+        }
         return true;
     }
 }
@@ -496,11 +485,11 @@ export abstract class NodeObject extends NodeSpace {
     set Animation(animation: BaseAnimation[]) {
         this._animation = animation;
     }
-    _animationGroup: AnimationGroup | undefined;
-    get AnimationGroup(): AnimationGroup | undefined {
+    _animationGroup: AnimationGroup[] | undefined;
+    get AnimationGroup(): AnimationGroup[] | undefined {
         return this._animationGroup;
     }
-    set AnimationGroup(animationGroup: AnimationGroup) {
+    set AnimationGroup(animationGroup: AnimationGroup[]) {
         this._animationGroup = animationGroup;
     }
     /**
@@ -834,11 +823,16 @@ export abstract class NodeObject extends NodeSpace {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        if (this.lastUpdaeTime === clock.now) //更新检查
-            return false;
+        // if (this.lastUpdaeTime === clock.now) //更新检查
+        //     return false;
+        super.update(clock, false);                             //不更新updateSelf()
         this.updateSelfAttribute(clock);
-        super.update(clock, updateSelftFN)
-        if (this.children.length > 0)                   //更新子节点
+        //更新updateSelf()。只更新一次,在所有自身更新之后
+        if (updateSelftFN) {
+            this.updateSelf(clock);
+            this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
+        }
+        if (this.children.length > 0)                           //更新子节点
             for (let i of this.children)
                 i.update(clock);
         return true;

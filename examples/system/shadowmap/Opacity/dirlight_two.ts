@@ -52,7 +52,7 @@ await scene.add(camera);
 let onelight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [1, 1,-1],
-  intensity: 0.3,
+  intensity: 0.053,
   shadow: true,
   update: (light) => {
     const now = Date.now() / 400; 
@@ -78,10 +78,10 @@ await scene.add(twolight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.1
+    intensity: 0.0001
   }
 )
-await scene.add(ambientLight);
+// await scene.add(ambientLight);
 
 
 //实体球

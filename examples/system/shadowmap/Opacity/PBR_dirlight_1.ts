@@ -53,17 +53,27 @@ await scene.add(camera);
 //方向光1
 let onelight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1,-1],
+  direction: [1, 1, -1],
   intensity: 1,
   shadow: true,
   update: (light) => {
-    const now = Date.now() / 1000; 
-    light.Direction=[Math.sin(now), 1,Math.cos(now)];
+    const now = Date.now() / 1000;
+    light.Direction = [Math.sin(now), 1, Math.cos(now)];
   }
 });
 await scene.add(onelight);
 
+let onePointLight = new PointLight(
+  {
+    position: [2, 0, 2],
+    // position: [1, 1, 1],
+    intensity: 19,
+    // intensity: 20,//没有进行tone mapping 之前
+    shadow: true,
 
+  }
+);
+// await scene.addChild(onePointLight);
 
 //环境光
 let ambientLight = new AmbientLight(
@@ -72,53 +82,48 @@ let ambientLight = new AmbientLight(
     intensity: 0.1
   }
 )
-// await scene.add(ambientLight);
+await scene.add(ambientLight);
 
 
 //实体球
 let geometry = new SphereGeometry({
   widthSegments: 128,
-  heightSegments:128,
+  heightSegments: 128,
 });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_basecolor.png" }},
-    normal: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_normal.png" }},
-    metallic: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_metallic.png" }},
-    roughness: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_roughness.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
+    metallic: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" } },
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
 
 let inputMesh: IV_MeshEntity = {
+  name: "iron mesh",
   attributes: {
     geometry: geometry,
   },
   material: pbrMaterial,
 }
 let mesh = new Mesh(inputMesh);
-await scene.add(mesh);
+await scene.add({ entity: mesh, name: "iron" });
 
 //实体地板
 let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
 });
-// let groundMaterial = new PhongMaterial({
-//   color: [1,1,1, 1],
-//   roughness: 1,
-//   metalness: 0.1,
-//   shininess: 32
-// });
 
 let groundMaterialPBROption: IV_PBRMaterial = {
-    textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" }},
-    normal: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" }},
+  textures: {
+    albedo: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" } },
     metallic:// 0.95,
-    {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" }},
-    roughness: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" }},
-    ao: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" }},
+      { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" } },
+    ao: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" } },
   }
 }
 let groundMaterial = new PBRMaterial(groundMaterialPBROption);
@@ -130,25 +135,32 @@ let groundMesh = new Mesh({
   position: [5, -1, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
-await scene.add(groundMesh);
+// await scene.add(groundMesh);
+
 let groundMaterialPBROption2: IV_PBRMaterial = {
 
   textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_albedo.png" }},
-    normal: {textureUrl:{ source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_normal-ogl.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_albedo.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_normal-ogl.png" } },
     metallic:// 0.95,
-    {textureUrl:{ source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_metallic.png" }},
-    roughness: {textureUrl:{ source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_roughness.png" }},
-    ao: {textureUrl:{ source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_ao.png" }},
+      { textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_roughness.png" } },
+    ao: { textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_ao.png" } },
   }
 }
 let groundMaterial2 = new PBRMaterial(groundMaterialPBROption2);
 let groundMesh2 = new Mesh({
+  name: "wood mesh",
   attributes: {
     geometry: planeGeometry,
   },
   material: groundMaterial2,
+  // position: [-5, -1, 0],
+  // rotate: [1, 0, 0, -Math.PI / 2]
+});
+await scene.add({
+  name: "wood",
+  entity: groundMesh2,
   position: [-5, -1, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
-await scene.add(groundMesh2);

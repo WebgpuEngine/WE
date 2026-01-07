@@ -59,18 +59,21 @@ let light1Entity1 = new Mesh(
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [1, -0.50, -2.5],
     shadow: {
       generate: false,
       accept: false,
     },
-    update: (scope: any) => {
-      const now = Date.now() / 1000;
-      let pos = [Math.sin(now) * lightRadius, lightY, Math.cos(now) * lightRadius];
-      scope.Position = pos;
-    }
+
   });
-await scene.add(light1Entity1);
+let light1Entity1Node = await scene.add({
+  entity: light1Entity1,
+  position: [1, -0.50, -2.5],
+  update: (scope: any) => {
+    const now = Date.now() / 1000;
+    let pos = [Math.sin(now) * lightRadius, lightY, Math.cos(now) * lightRadius];
+    scope.Position = pos;
+  }
+});
 
 let onelight = new PointLight(
   {
@@ -82,7 +85,7 @@ let onelight = new PointLight(
 
   }
 );
-await light1Entity1.addChild(onelight);
+await light1Entity1Node.addChild(onelight);
 
 let ambientLight = new AmbientLight(
   {
@@ -91,6 +94,19 @@ let ambientLight = new AmbientLight(
   }
 )
 await scene.add(ambientLight);
+
+//方向光1
+// let oneDirlight = new DirectionalLight({
+//   color: [1, 1, 1],
+//   direction: [1, 1, 1],
+//   intensity: 1,
+//   shadow: true,
+//   // update: (light) => {
+//   //   const now = Date.now() / 1000;
+//   //   light.Direction = [Math.sin(now), 1, Math.cos(now)];
+//   // }
+// });
+// await scene.add(oneDirlight);
 
 ///////////////////////////////////////////////////////////////////////
 let sphere = new SphereGeometry({
@@ -115,14 +131,14 @@ let phongMaterial = new PhongMaterial({
 //实体球
 let geometry = new SphereGeometry({
   widthSegments: 128,
-  heightSegments:128,
+  heightSegments: 128,
 });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_basecolor.png" }},
-    normal: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_normal.png" }},
-    metallic: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_metallic.png" }},
-    roughness: {textureUrl:{ source: "/resource/PBR/rustediron/rustediron2_roughness.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
+    metallic: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" } },
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
@@ -161,12 +177,12 @@ let planeGeometry = new PlaneGeometry({
 
 let groundMaterialPBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" }},
-    normal: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" } },
     metallic:// 0.95,
-    {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" }},
-    roughness: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" }},
-    ao: {textureUrl:{ source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" }},
+      { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" } },
+    ao: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" } },
   }
 }
 let groundMaterial = new PBRMaterial(groundMaterialPBROption);

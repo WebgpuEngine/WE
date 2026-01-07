@@ -48,7 +48,7 @@ await scene.add(camera);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.02  ,
+    intensity: 0.02,
     // intensity: 0.1  //没有进行tone mapping 之前
   }
 )
@@ -83,18 +83,21 @@ let light1Entity1 = new Mesh(
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [3, 3, 3],
     shadow: {
       generate: false,
       accept: false,
     },
+
+  });
+let light1Entity1Node = await scene.add({
+  entity: light1Entity1,
+  position: [3, 3, 3],
     // update: (scope: any) => {
     //   const now = Date.now() / 1000;
     //   let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
     //   scope.Position = pos;
     // }
-  });
-await scene.add(light1Entity1);
+});
 
 let onelight = new SpotLight({
   direction: [-1, -1, -1],
@@ -112,7 +115,7 @@ let onelight = new SpotLight({
   shadow: true,
 });
 
-await light1Entity1.addChild(onelight);
+await light1Entity1Node.addChild(onelight);
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -133,10 +136,10 @@ let sphere = new SphereGeometry({
 // });
 let ballPBROption: IV_PBRMaterial = {
   textures: {
-    albedo: {textureUrl:{ source: "/resource/PBR/marble-speckled-bl/marble-speckled-albedo.png" }},
-    normal: {textureUrl:{ source: "/resource/PBR/marble-speckled-bl/marble-speckled-normal.png" }},
-    metallic: {textureUrl:{ source: "/resource/PBR/marble-speckled-bl/marble-speckled-metalness.png" }},
-    roughness: {textureUrl:{ source: "/resource/PBR/marble-speckled-bl/marble-speckled-roughness.png" }},
+    albedo: { textureUrl: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-albedo.png" } },
+    normal: { textureUrl: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-normal.png" } },
+    metallic: { textureUrl: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-metalness.png" } },
+    roughness: { textureUrl: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-roughness.png" } },
   }
 }
 let ballpbrMaterial = new PBRMaterial(ballPBROption);
@@ -175,7 +178,7 @@ let PBROption: IV_PBRMaterial = {
   textures: {
     albedo: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_albedo.png" },
     // normal: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_normal-ogl.png" },
-    metallic:    { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_metallic.png" },
+    metallic: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_metallic.png" },
     roughness: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_roughness.png" },
     ao: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_ao.png" },
   }

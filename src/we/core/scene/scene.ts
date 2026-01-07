@@ -857,6 +857,7 @@ export class Scene {
     async addChild(child: NodeObject | BaseEntity | IV_Node) {
         if (child instanceof AmbientLight) {
             this.lightsManager.ambientLight = child;
+            return child;
         }
         else
             return await this.root.addChild(child);

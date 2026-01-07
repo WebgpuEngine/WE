@@ -50,26 +50,26 @@ let ballGeometry = new SphereGeometry({
   heightSegments: 64
 });
 let lightMaterial = new ColorMaterial({ color: [1, 1, 1, 1] });
-let lightRadius = 3.5;
-let lightZ = 2.;
+
+//light mesh
 let light1Entity1 = new Mesh(
   {
     attributes: {
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [1, 1, -1],
     shadow: {
       generate: false,
       accept: false,
     },
-    // update: (scope: any) => {
-    //   const now = Date.now() / 1000;
-    //   let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
-    //   scope.Position = pos;
-    // }
   });
-await scene.add(light1Entity1);
+
+let lightRadius = 3.5;
+let lightZ = 2.;
+let lightNode1 = await scene.add({
+  entity: light1Entity1,
+  position: [1, 1, -1],
+});//node
 
 let onelight = new PointLight(
   {
@@ -77,15 +77,9 @@ let onelight = new PointLight(
     // position: [1, 1, 1],
     intensity: .5,
     shadow: true,
-    // update(scope) {
-    //   const now = Date.now() / 1000;
-    //   let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
-    //   scope.Position = pos;
-    //   // console.log("light position", pos,"worldPosition",[scope.worldPosition[0],scope.worldPosition[1],scope.worldPosition[2]]);
-    // },
   }
 );
-await light1Entity1.addChild(onelight);
+await lightNode1.addChild(onelight);
 
 let ambientLight = new AmbientLight(
   {
@@ -96,37 +90,47 @@ let ambientLight = new AmbientLight(
 await scene.add(ambientLight);
 
 ///////////////////////////////////////////////////////////////////////
+//geometry
 let sphere = new SphereGeometry({
   widthSegments: 128,
   heightSegments: 128,
 });
 
+let box = new BoxGeometry();
 
-// let colorMaterial = new ColorMaterial({
-//   color: [0, 0.5, 0.5, 1]
-// });
+let planeGeometry = new PlaneGeometry({
+  width: 20,
+  height: 20
+});
+///////////////////////////////////////////////////////////////////////////////////
+//material
 let phongMaterial = new PhongMaterial({
   color: [0, 0.9, 1, 1],
   roughness: 1,
   metalness: 0.1,
   shininess: 32
 });
+let groundMaterial = new PhongMaterial({
+  color: [1, 1, 1, 1],
+  roughness: 1,
+  metalness: 0.1,
+  shininess: 32
+});
+///////////////////////////////////////////////////////////////////////////////////
+//entity
 
+//sphere
 let inputMeshsphere: IV_MeshEntity = {
   attributes: {
     geometry: sphere,
   },
   material: phongMaterial,
-  // wireFrame: {
-  //   color: [1, 1, 1, 1],
-  //   enable: true,
-  //   // wireFrameOnly: true,
-  // }
 }
+
 let meshSphere = new Mesh(inputMeshsphere);
 await scene.add(meshSphere);
 
-let box = new BoxGeometry();
+//box
 let inputMeshbox: IV_MeshEntity = {
   attributes: {
     geometry: box,
@@ -137,18 +141,7 @@ let inputMeshbox: IV_MeshEntity = {
 let meshBox = new Mesh(inputMeshbox);
 await scene.add(meshBox);
 
-
-///ground
-let planeGeometry = new PlaneGeometry({
-  width: 20,
-  height: 20
-});
-let groundMaterial = new PhongMaterial({
-  color: [1, 1, 1, 1],
-  roughness: 1,
-  metalness: 0.1,
-  shininess: 32
-});
+//ground
 let groundMesh = new Mesh({
   attributes: {
     geometry: planeGeometry,

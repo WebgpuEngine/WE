@@ -124,6 +124,8 @@ export abstract class BaseEntity extends NodeSpace {
      * 外部实例化数组
      */
     outSideInstance: NodeObject[] = [];
+    /** inside实例化矩阵数组，每个内部实例一个矩阵 */
+    _insideInstanceMatrix: Mat4[] = [];
     ///////////////////////////////////////////////////////////////////
     //bind group
     bindGroup!: GPUBindGroup;
@@ -303,10 +305,11 @@ export abstract class BaseEntity extends NodeSpace {
         //     this.updatePerFrame = false;
         // }
 
-        // if (input.instance) {
-        //     this.instance = input.instance;
-        //     this.checkInstance();
-        // }
+        if (input.instance) {
+            this.instance = input.instance;
+            this.checkInstance();
+        }
+
         if (input.cullmode) {
             this._cullMode = input.cullmode;
         }
@@ -334,39 +337,86 @@ export abstract class BaseEntity extends NodeSpace {
     // /**
     //  * 检查内部instance是否合法
     //  */
-    // checkInstance() {
-    //     if (this.instance.index) {
-    //         if (this.instance.index.length < this.instance.numInstances) {
-    //             throw new Error("instance.index 长度必须大于等于 instance.numInstances");
-    //         }
-    //     }
-    //     else if (this.instance.position) {
-    //         if (this.instance.numInstances > this.instance.position.length) {
-    //             throw new Error("instance.position 长度必须大于等于 instance.numInstances");
-    //         }
-    //         this.instance.numInstances = this.instance.position.length / 3;
-    //     }
-    //     let posLen = 0, rotLen = 0, scaleLen = 0;
-    //     if (this.instance.position) {
-    //         posLen = this.instance.position.length;
-    //     }
-    //     else {
-    //         throw new Error("instance.position 必须有");
-    //     }
-    //     if (this.instance.rotate) {
-    //         rotLen = this.instance.rotate.length;
-    //     }
-    //     if (this.instance.scale) {
-    //         scaleLen = this.instance.scale.length;
-    //     }
+    checkInstance() {
+        if (this.instance.index) {
+            if (this.instance.index.length < this.instance.numInstances) {
+                throw new Error("instance.index 长度必须大于等于 instance.numInstances");
+            }
+        }
+        else if (this.instance.position) {
+            if (this.instance.numInstances > this.instance.position.length) {
+                throw new Error("instance.position 长度必须大于等于 instance.numInstances");
+            }
+            this.instance.numInstances = this.instance.position.length / 3;
+        }
+        let posLen = 0, rotLen = 0, scaleLen = 0;
+        if (this.instance.position) {
+            posLen = this.instance.position.length;
+        }
+        else {
+            throw new Error("instance.position 必须有");
+        }
+        if (this.instance.rotate) {
+            rotLen = this.instance.rotate.length;
+        }
+        if (this.instance.scale) {
+            scaleLen = this.instance.scale.length;
+        }
 
-    //     if (rotLen != 0 && rotLen / 4 != posLen / 3) {
-    //         throw new Error("position rotate 长度必须相同");
-    //     }
-    //     if (scaleLen != 0 && scaleLen != posLen) {
-    //         throw new Error("position scale 长度必须相同");
-    //     }
-    // }
+        if (rotLen != 0 && rotLen / 4 != posLen / 3) {
+            throw new Error("position rotate 长度必须相同");
+        }
+        if (scaleLen != 0 && scaleLen != posLen) {
+            throw new Error("position scale 长度必须相同");
+        }
+    }
+
+    generateInsideInstanceMatrix(): Mat4[] {
+        let positionEnable: boolean = false;
+        let rotateEnable: boolean = false;
+        let scaleEnable: boolean = false;
+        if (this.instance.position && this.instance.position.length > 0) {
+            positionEnable = true;
+        }
+        if (this.instance.rotate && this.instance.rotate.length > 0) {
+            rotateEnable = true;
+        }
+        if (this.instance.scale && this.instance.scale.length > 0) {
+            scaleEnable = true;
+        }
+        if (this.instance.index && this.instance.numInstances != this.instance.index.length) {
+            this.instance.numInstances = this.instance.index.length;
+        }
+        else if (this.instance.position && this.instance.numInstances != this.instance.position.length / 3) {
+            this.instance.numInstances = this.instance.position.length / 3;
+        }
+        let insideMatrix: Mat4[] = [];
+        for (let j = 0; j < this.instance.numInstances; j++) {
+            let index: number = j;
+            if (this.instance.index) {
+                index = this.instance.index[j];
+            }
+            let perMatrix = mat4.identity();
+            if (scaleEnable) {
+                let perScale = vec3.fromValues(this.instance.scale![index * 3 + 0], this.instance.scale![index * 3 + 1], this.instance.scale![index * 3 + 2]);
+                mat4.scale(perMatrix, perScale, perMatrix);
+            }
+            if (rotateEnable) {
+                let perAxis = vec3.fromValues(this.instance.rotate![index * 3] + 0, this.instance.rotate![index * 3] + 1, this.instance.rotate![index * 3] + 2);
+                let perAngle = this.instance.rotate![index * 3 + 3];
+                if (perAngle != 0 && (this.instance.rotate![index * 3 + 0] != 0 || this.instance.rotate![index * 3 + 1] != 0 || this.instance.rotate![index * 3 + 2] != 0)) {
+                    mat4.axisRotate(perMatrix, perAxis, perAngle, perMatrix);
+                }
+            }
+            if (positionEnable) {
+                let perPosition = vec3.fromValues(this.instance.position![index * 3 + 0], this.instance.position![index * 3 + 1], this.instance.position![index * 3 + 2]);
+                mat4.setTranslation(perMatrix, perPosition, perMatrix);
+            }
+            mat4.multiply(this.matrixWorld, perMatrix, perMatrix);     // 先缩放，再旋转，最后平移，然后乘以world matrix ，得到instance的world matrix，在shader中的VS是再次的局部坐标*这个world matrix，得到顶点的world position
+            insideMatrix.push(perMatrix);
+        }
+        return insideMatrix;
+    }
     /**
      * 三段式初始化的第二步：init
      * @param values
@@ -526,9 +576,20 @@ export abstract class BaseEntity extends NodeSpace {
         return false;
     }
 
+    /** 更新entity的自定义属性
+     * 1、更新entity的uniform 通用
+     * 2、更新entity的instance buffer
+     * 3、更新entity的world matrix buffer
+     * 4、更新entity的morphtarget buffer
+     * 5、更新entity的joint matrix buffer
+     * 6、检查是否有新摄像机，有进行更新
+     * 7、检查是否有新光源，有进行更新
+     * 8、DCG的uniform更新
+     * @param clock 时钟
+     */
     updateSelf(clock: Clock) {
         //uniform @group(1) @binding(0)
-        this.updateMatrix();
+        // this.updateMatrix();
         this.updateUniformCommonEntity(clock);
         this.updateInstanceBuffer();
         this.updateWorldMatrixBuffer(clock);
@@ -708,9 +769,7 @@ export abstract class BaseEntity extends NodeSpace {
         if (outsideInstanceCount === 0) outsideInstanceCount = 1;
         return this.instance.numInstances * outsideInstanceCount
     }
-    checkInstanceEQ() {
 
-    }
     /**
      * 检查相关storage buffer的状态，根据instance数量已经动画进行创建、更新或保持
      * @param name buffer name
@@ -821,17 +880,21 @@ export abstract class BaseEntity extends NodeSpace {
         this.checkStorageBuffer("instances");//instance 不考虑返回值
         //update：cpu and gpu
         if (this.bufferGPU.instances && this.bufferCPU.instances) {
+            //外部instance
             for (let i in this.outSideInstance) {
                 let perNode = this.outSideInstance[i];
-                let instanceIndex = parseInt(i) * this._instanceInfoSizeForWGSL;
-                const st_instance_infoViews = {
-                    node_id: new Uint32Array(this.bufferCPU.instances, instanceIndex, 1),
-                    stage_id: new Uint32Array(this.bufferCPU.instances, instanceIndex + 4, 1),
-                    uv: new Float32Array(this.bufferCPU.instances, instanceIndex + 8, 2),
-                };
-                st_instance_infoViews.node_id[0] = perNode.ID;
-                st_instance_infoViews.stage_id[0] = perNode.stageID;
-                st_instance_infoViews.uv.set(this._uv);
+                //内部instance
+                for (let j = 0; j < this.instance.numInstances; j++) {
+                    let instanceIndex = Number(i) * Number(j) * this._instanceInfoSizeForWGSL;
+                    const st_instance_infoViews = {
+                        node_id: new Uint32Array(this.bufferCPU.instances, instanceIndex, 1),
+                        stage_id: new Uint32Array(this.bufferCPU.instances, instanceIndex + 4, 1),
+                        uv: new Float32Array(this.bufferCPU.instances, instanceIndex + 8, 2),
+                    };
+                    st_instance_infoViews.node_id[0] = perNode.ID;
+                    st_instance_infoViews.stage_id[0] = perNode.stageID;
+                    st_instance_infoViews.uv.set(this._uv);
+                }
             }
             this.device.queue.writeBuffer(this.bufferGPU.instances, 0, this.bufferCPU.instances);
         }
@@ -839,17 +902,30 @@ export abstract class BaseEntity extends NodeSpace {
             throw new Error("更新实例化数组与GPU实例化数组失败");
         }
     }
-    /** 更新|初始化 world matrix 数组（cpu and gpu） */
+    getInsideInstanceMatrix(i: number): Mat4 {
+        //由于子类constructor中的inside判断或晚于super，所有在第一次使用时再生成。
+        if (this._insideInstanceMatrix.length == 0) {
+            this._insideInstanceMatrix = this.generateInsideInstanceMatrix();
+        }
+        return this._insideInstanceMatrix[i];
+    }
+    /** 更新|初始化 world matrix 数组（cpu and gpu） 
+     * 1、生成所有的instance 的矩阵，连续的，不考虑可见性与可用性；后期增加判断，避免重复计算
+    */
     updateWorldMatrixBuffer(_clock?: Clock) {
         this.checkStorageBuffer("wolrdMatrix");//world matrix 不考虑返回值
         //update：cpu and gpu
         if (this.bufferGPU.wolrdMatrix && this.bufferCPU.wolrdMatrix) {
+            //外部instance
             for (let i in this.outSideInstance) {
                 let perNode = this.outSideInstance[i];
-                let instanceIndex = parseInt(i) * this._instanceWorldMatrixForWGSL;
-                const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);//array buffer view 
-                let matrixWorld = this.getMatrixWorldOfInstance(perNode);
-                worldMatrix.set(matrixWorld)
+                //内部instance
+                for (let j = 0; j < this.instance.numInstances; j++) {
+                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceWorldMatrixForWGSL;
+                    const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);//array buffer view 
+                    let matrixWorld = mat4.multiply(this.getMatrixWorldOfInstance(perNode), this.getInsideInstanceMatrix(j));
+                    worldMatrix.set(matrixWorld)
+                }
             }
             this.device.queue.writeBuffer(this.bufferGPU.wolrdMatrix, 0, this.bufferCPU.wolrdMatrix);
         }

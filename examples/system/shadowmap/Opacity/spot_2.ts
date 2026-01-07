@@ -46,54 +46,64 @@ await scene.add(camera);
 //方向光1
 let onelightDirectional_1 = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1,-1],
+  direction: [1, 1, -1],
   intensity: 0.13,
   shadow: true,
   update: (light) => {
-    const now = Date.now() / 200; 
-    light.Direction=[Math.sin(now), 1,Math.cos(now)];
+    const now = Date.now() / 200;
+    light.Direction = [Math.sin(now), 1, Math.cos(now)];
   }
 });
 //方向光2
 let onelightDirectional_2 = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1,-1],
+  direction: [1, 1, -1],
   intensity: 0.3,
   shadow: true,
   update: (light) => {
-    const now = Date.now() / 1000; 
-    light.Direction=[Math.sin(now), 1,Math.cos(now)];
+    const now = Date.now() / 1000;
+    light.Direction = [Math.sin(now), 1, Math.cos(now)];
   }
 });
 
+//////////////////////
+//spot light
 let ballGeometry = new SphereGeometry({
   radius: 0.1,
   widthSegments: 64,
   heightSegments: 64
 });
 let lightMaterial = new ColorMaterial({ color: [1, 1, 1, 1] });
-let lightRadius = 3.5;
-let lightZ = 3.;
+
+//mesh of  light 
 let light1Entity1 = new Mesh(
   {
-    name:"ballLightMesh",
+    name: "ballLightMesh",
     attributes: {
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [3, 3, 3],
+    // position: [3, 3, 3],
     shadow: {
       generate: false,
       accept: false,
     },
-    update: (scope: any) => {
-      const now = Date.now() / 1000;
-      let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
-      scope.Position = pos;
-    }
   });
-await scene.add(light1Entity1);
 
+//node object  of point light
+let lightRadius = 3.5;
+let lightZ = 3.;
+let lightNode1 = await scene.add({
+  entity: light1Entity1,
+  position: [3, 3, 3],
+  update: (scope: any) => {
+    const now = Date.now() / 1000;
+    let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
+    scope.Position = pos;
+  }
+});
+
+// add spot to node child
 let onelight = new SpotLight({
   // direction: [-1, -1, -1],
   // direction: [-1.0, 1.0, -1.0],
@@ -109,28 +119,27 @@ let onelight = new SpotLight({
   shadow: true,
 });
 
-
+// ambient light
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.001
+    intensity: 0.01
   }
 )
+/////////////////////////////////////////////
+//add all light
 await scene.add(ambientLight);
-await scene.add(onelightDirectional_1);
-await scene.add(onelightDirectional_2);
-await light1Entity1.addChild(onelight);
+// await scene.add(onelightDirectional_1);
+// await scene.add(onelightDirectional_2);
+await lightNode1.addChild(onelight);
 
 ///////////////////////////////////////////////////////////////////////
+//sphere
 let sphere = new SphereGeometry({
   widthSegments: 128,
   heightSegments: 128,
 });
 
-
-// let colorMaterial = new ColorMaterial({
-//   color: [0, 0.5, 0.5, 1]
-// });
 let phongMaterial = new PhongMaterial({
   color: [0, 0.9, 1, 1],
   roughness: 1,
@@ -147,6 +156,7 @@ let inputMeshsphere: IV_MeshEntity = {
 let meshSphere = new Mesh(inputMeshsphere);
 await scene.add(meshSphere);
 
+//box
 let box = new BoxGeometry();
 let inputMeshbox: IV_MeshEntity = {
   attributes: {
@@ -160,7 +170,7 @@ await scene.add(meshBox);
 
 
 /////////////////////////////////////////////////////////
-// 6个plane
+// plane
 let planeGeometry = new PlaneGeometry({
   width: 30,
   height: 30
@@ -183,53 +193,3 @@ let bottomPlane = new Mesh({
 });
 await scene.add(bottomPlane);
 
-// let topPlane = new Mesh({
-//   attributes: {
-//     geometry: planeGeometry
-//   },
-//   material: groundMaterial,
-//   position: [0, 15, 0],
-//   rotate: [1, 0, 0, Math.PI / 2],
-// });
-// await scene.add(topPlane);
-
-// let backPlane = new Mesh({
-//   attributes: {
-//     geometry: planeGeometry
-//   },
-//   material: groundMaterial,
-//   position: [0, 0, -15],
-// });
-// await scene.add(backPlane);
-
-// let frontPlane = new Mesh({
-//   attributes: {
-//     geometry: planeGeometry
-//   },
-//   material: groundMaterial,
-//   position: [0, 0, 15],
-
-//   rotate: [1, 0, 0, Math.PI],
-// });
-// await scene.add(frontPlane);
-
-// let leftPlane = new Mesh({
-//   attributes: {
-//     geometry: planeGeometry
-//   },
-//   material: groundMaterial,
-//   position: [-15, 0, 0],
-//   rotate: [0, 1, 0, Math.PI / 2],//正的,normal 相关
-// }
-// );
-// await scene.add(leftPlane);
-
-// let rightPlane = new Mesh({
-//   attributes: {
-//     geometry: planeGeometry
-//   },
-//   material: groundMaterial,
-//   position: [15, 0, 0],
-//   rotate: [0, 1, 0, -Math.PI / 2],//负的,normal 相关
-// });
-// await scene.add(rightPlane);

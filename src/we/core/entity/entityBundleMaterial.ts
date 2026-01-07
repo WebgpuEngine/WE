@@ -364,7 +364,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     visibleInBVH = light.getVisibleInBVH(perNode);
             }
             if (visibleInBVH && visibleOfNode && enableOfNode) {
-                visibleInstanceIDArray.push(Number(i));
+                for (let j = 0; j < this.instance.numInstances; j++) {
+                    visibleInstanceIDArray.push(Number(i)*this.instance.numInstances + j);
+                }
             }
         }
 

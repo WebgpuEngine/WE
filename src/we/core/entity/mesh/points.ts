@@ -96,21 +96,19 @@ export class Points extends EntityBundleMaterial {
             if (!input.attributes.data) {
                 throw new Error("Points must have attribute data");
             }
-            // 模拟存在
+            // 模拟存在index，作为实例化数据（部分实例化）使用。
             if (input.attributes.data.indexes) {
                 this.instance.numInstances = input.attributes.data.indexes.length;
                 this.instance.index = input.attributes.data.indexes;
-
             }
+            // 模拟不存在index，属性数据（全部实例化）作为实例化使用。
             else {
                 this.instance.numInstances = input.attributes.data.vertices.position.length / 3;
             }
-            // 实例化数据
+            // position等数据，作为实例化数据使用。
             this.instance.position = input.attributes.data.vertices.position;
             if (input.attributes.data.vertices.scale) {
-
                 this.instance.scale = input.attributes.data.vertices.scale;
-
             }
             if (input.attributes.data.vertices.rotate) {
                 this.instance.rotate = input.attributes.data.vertices.rotate;
@@ -120,8 +118,7 @@ export class Points extends EntityBundleMaterial {
             // this.attributes.vertexStepMode = "instance";
             this.checkInstance();
 
-            //设置每个instance的数据
-
+            //设置每个instance的数据，顶点数据使用预设的模拟数据
             this.attributes.vertices["position"] = this.emulateData[this.emulate].vertices;
             this.attributes.indexes = this.emulateData[this.emulate].indexes;
             if (input.size) {
@@ -143,9 +140,9 @@ export class Points extends EntityBundleMaterial {
                 if (attributes["position"] == undefined) {
                     throw new Error("Points must have position attribute");
                 }
-                //设置map数据
+                //设置position等数据，顶点数据 作为attribute属性数据
                 for (let key in attributes) {
-                    this.attributes.vertices[key]= attributes[key];
+                    this.attributes.vertices[key] = attributes[key];
                 }
                 //索引数据
                 if (input.attributes.data.indexes) {
@@ -185,89 +182,6 @@ export class Points extends EntityBundleMaterial {
         throw new Error("Method not implemented.");
     }
 
-    // /**
-    //  * 获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
-    //  * @param startBinding 
-    //  * @returns uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
-    //  */
-    // getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
-    //     //uniform 部分
-    //     let bindingNumber = startBinding;
-    //     let uniform1: T_uniformGroups = [];
-
-    //     let unifrom10: I_uniformArrayBufferEntry = {
-    //         label: this.Name + " uniform at group(1) binding(0)",
-    //         binding: bindingNumber,
-    //         size: this.getSizeOfUniformArrayBuffer(),
-    //         data: this.getUniformCommonEntityInfo()
-    //     };
-    //     let uniform10Layout: GPUBindGroupLayoutEntry = {
-    //         binding: bindingNumber,
-    //         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-    //         buffer: {
-    //             type: "uniform"
-    //         }
-    //     };
-    //     let uniform10GroupAndBindingString = " @group(1) @binding(0) var<uniform> entity : ST_entity; \n ";
-    //     this.scene.resourcesGPU.set(unifrom10, uniform10Layout);
-    //     bindingNumber++;
-    //     uniform1.push(unifrom10);
-
-    //     //scene 和 entity 的shader模板部分
-    //     let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-    //     // let SHT_VS: I_ShaderTemplate = SHT_PointVS;
-
-    //     if (this.emulate == "sprite") {
-    //         SHT_VS = SHT_PointEmuSpriteVS;
-    //     }
-    //     for (let i in SHT_VS) {
-    //         if (i == "scene") {
-    //             let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
-    //             shaderTemplateFinal.scene = shader.scene;
-    //         }
-    //         else if (i == "entity") {
-    //             shaderTemplateFinal.entity = {
-    //                 templateString: this.formatShaderCode(SHT_VS[i]), groupAndBindingString: uniform10GroupAndBindingString, owner: this,
-    //             };
-    //         }
-    //     }
-    //     // let uniformsMaterial = this._material.getOpacity_Forward(bindingNumber);
-
-    //     // if (uniformsMaterial) {
-    //     //     uniform1.push(...uniformsMaterial.uniformGroup);
-    //     //     shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-    //     // }
-    //     let uniformGroups: T_uniformGroups[] = [uniform1];
-
-    //     return { bindingNumber, uniformGroups, shaderTemplateFinal };
-    // }
-
-
-    // /**
-    //  * 格式化shader代码
-    //  * @param template 
-    //  * @returns string
-    //  */
-    // formatShaderCode(template: I_singleShaderTemplate): string {
-    //     let code: string = "";
-    //     for (let perOne of template.add as I_shaderTemplateAdd[]) {
-    //         code += perOne.code;
-    //     }
-    //     for (let perOne of template.replace as I_shaderTemplateReplace[]) {
-    //         if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-    //             if (perOne.name == "userCodeVS") {
-    //                 code = code.replace(perOne.replace, "");
-    //             }
-    //             else {
-    //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
-    //             }
-    //         }
-    //         else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-    //             code = code.replace(perOne.replace, this.instance.numInstances.toString());
-    //         }
-    //     }
-    //     return code;
-    // }
     generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope: Points): IV_DC {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
@@ -307,33 +221,7 @@ export class Points extends EntityBundleMaterial {
         }
         this.cameraDC[UUID][E_renderPassName.forward].push(dc);
     }
-    // createForwardDC(camera: BaseCamera): void {
-    //     let UUID = camera.UUID;
 
-    //     //mesh 前向渲染
-    //     let bundle;
-    //     if (this.emulate == "sprite") {
-    //         bundle = this.getVSUniformAndShaderTemplateFinal(SHT_PointEmuSpriteVS);
-    //     }
-    //     else {
-    //         bundle = this.getVSUniformAndShaderTemplateFinal(SHT_PointVS);
-    //     }
-    //     let uniformsMaterial = this._material.getOpacity_Forward(bundle.bindingNumber);
-    //     if (uniformsMaterial) {
-    //         bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
-    //         bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-    //     }
-    //     if (this.emulate == "none") {
-    //         let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, bundle);
-    //         let dc = this.DCG.generateDrawCommand(valueDC);
-    //         this.cameraDC[UUID].forward.push(dc);
-    //     }
-    //     else {
-    //         let valueDC = this.generateEmuInputValueOfDC(E_renderForDC.camera, UUID, bundle);
-    //         let dc = this.DCG.generateDrawCommand(valueDC);
-    //         this.cameraDC[UUID].forward.push(dc);
-    //     }
-    // }
     createDeferDepthDC(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
