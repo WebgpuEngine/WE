@@ -19,7 +19,6 @@ import { PostProcessManager } from "../postprocess/postProcessManager";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
-import { DefaultTexture } from "../texture/defaultTexture";
 import { Texture } from "../texture/texture";
 import { TextureManager } from "../texture/textureManager";
 import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
@@ -27,6 +26,7 @@ import { Clock } from "./clock";
 import { RenderManager } from "./renderManager";
 import { RootManager } from "./rootManager";
 import { BaseEntity } from "../entity/baseEntity";
+import { DefaultTexture } from "../texture/defaultTexture";
 
 
 

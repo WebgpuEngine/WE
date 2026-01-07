@@ -885,7 +885,9 @@ export abstract class BaseEntity extends NodeSpace {
                 let perNode = this.outSideInstance[i];
                 //内部instance
                 for (let j = 0; j < this.instance.numInstances; j++) {
-                    let instanceIndex = Number(i) * Number(j) * this._instanceInfoSizeForWGSL;
+                    // let instanceIndex = Number(i) * Number(j) * this._instanceInfoSizeForWGSL;
+                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceInfoSizeForWGSL;
+
                     const st_instance_infoViews = {
                         node_id: new Uint32Array(this.bufferCPU.instances, instanceIndex, 1),
                         stage_id: new Uint32Array(this.bufferCPU.instances, instanceIndex + 4, 1),

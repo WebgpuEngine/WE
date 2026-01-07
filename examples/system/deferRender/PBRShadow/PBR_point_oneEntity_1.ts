@@ -52,7 +52,7 @@ let ballGeometry = new SphereGeometry({
   heightSegments: 64
 });
 let lightMaterial = new ColorMaterial({ color: [1, 1, 1, 1] });
-let lightRadius = 1.5;
+let lightRadius = 3.0;
 let lightY = 2;
 let light1Entity1 = new Mesh(
   {
@@ -60,18 +60,21 @@ let light1Entity1 = new Mesh(
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [-2, 1, -1],
     shadow: {
       generate: false,
       accept: false,
     },
-    update: (scope: any) => {
-      const now = Date.now() / 1000;
-      let pos = [Math.sin(now) * lightRadius, lightY, Math.cos(now) * lightRadius];
-      scope.Position = pos;
-    }
+
   });
-await scene.add(light1Entity1);
+let light1Entity1Node = await scene.add({
+  entity: light1Entity1,
+  position: [1, -0.50, -2.5],
+  update: (scope: any) => {
+    const now = Date.now() / 1000;
+    let pos = [Math.sin(now) * lightRadius, lightY, Math.cos(now) * lightRadius];
+    scope.Position = pos;
+  }
+});
 
 let onelight = new PointLight(
   {
@@ -83,16 +86,8 @@ let onelight = new PointLight(
 
   }
 );
-// scene.add(onelight);
-await light1Entity1.addChild(onelight);
+await light1Entity1Node.addChild(onelight);
 
-let ambientLight = new AmbientLight(
-  {
-    color: [1, 1, 1],
-    intensity: 0.001
-  }
-)
-await scene.add(ambientLight);
 
 ///////////////////////////////////////////////////////////////////////
 

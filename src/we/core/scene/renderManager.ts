@@ -720,11 +720,11 @@ export class RenderManager {
         this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
         //defer render Of depth
         this.renderForwaredDC(this.RC[E_renderPassName.depth]);
-        //MSAA,未开启MS
+        //MSAA,未开启MSAA
         // this.doCommand(this.RC[E_renderPassName.MSAA]);
         this.renderForwaredDC(this.RC[E_renderPassName.MSAA], "MSAA");
         //不透明enity
-        if (this.scene.MSAA === true)
+        if (this.scene.MSAA === true)//开启MSAA，forward 绘制 MSAAinfo的数据
             this.renderForwaredDC(this.RC[E_renderPassName.forward], "MSAAinfo");
         else
             this.renderForwaredDC(this.RC[E_renderPassName.forward]);

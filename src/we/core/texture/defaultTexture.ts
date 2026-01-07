@@ -1,5 +1,4 @@
 import { I_BaseTexture } from "./base";
-import { BaseTexture } from "./baseTexture";
 import { Texture } from "./texture";
 
 export class DefaultTexture extends Texture {
@@ -11,7 +10,7 @@ export class DefaultTexture extends Texture {
         }
         super(input, device);
         this.texture = device.createTexture({
-            label: 'yellow F on red',
+            label: 'default one pixel texture',
             size: [1, 1],
             format: 'rgba8unorm',
             usage:
