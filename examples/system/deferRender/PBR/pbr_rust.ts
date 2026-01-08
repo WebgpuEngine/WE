@@ -119,11 +119,35 @@ let meshPointBall = new Mesh(
   });
 
 ////////////////////////////////////////////////////////////////////////
-// let lightRadius = 1.65;
-// let lightZ = 0;
-// let nodeLight1 = await scene.add(
+let lightRadius = 1.65;
+let lightZ = 0;
+
+let nodeLight1 = await scene.add(
+  {
+    entity: meshPointBall,
+    update: (scope: any) => {
+      const now = Date.now() / 500;
+      let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
+      scope.Position = pos;
+    }
+  }
+);
+
+let onelight = new PointLight(
+  {
+    position: [0, 0, 0],
+    // position: [1, 1, 1],
+    intensity: 2.0,
+  }
+);
+await nodeLight1.addChild(onelight);
+
+//20260107 测试正确，无entity可以正确，在merge instance后
+// let onelight = new PointLight(
 //   {
-//     entity: meshPointBall,
+//     position: [0, 0, 0],
+//     // position: [1, 1, 1],
+//     intensity: 2.0,
 //     update: (scope: any) => {
 //       const now = Date.now() / 500;
 //       let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
@@ -131,12 +155,4 @@ let meshPointBall = new Mesh(
 //     }
 //   }
 // );
-
-// let onelight = new PointLight(
-//   {
-//     position: [0, 0, 0],
-//     // position: [1, 1, 1],
-//     intensity: 2.0,
-//   }
-// );
-// await nodeLight1.addChild(onelight);
+// await scene.addChild(onelight);

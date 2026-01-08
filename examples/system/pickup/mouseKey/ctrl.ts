@@ -73,13 +73,16 @@ let light1Entity1 = new Mesh(
       generate: false,
       accept: false,
     },
-    update: (scope: any) => {
-      const now = Date.now() / 1000;
-      let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
-      scope.Position = pos;
-    }
+
   });
-await scene.add(light1Entity1);
+let light1Node = await scene.add({
+  entity: light1Entity1,
+  update: (scope: any) => {
+    const now = Date.now() / 1000;
+    let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
+    scope.Position = pos;
+  }
+});
 
 let onelight = new PointLight(
   {
@@ -95,7 +98,7 @@ let onelight = new PointLight(
     // },
   }
 );
-await light1Entity1.addChild(onelight);
+await light1Node.addChild(onelight);
 // await scene.add(onelight);
 
 ////////////////////////////////////////////////
@@ -276,17 +279,17 @@ await scene.add(rightPlane);
 let pickupManager = scene.pickupManager;
 let pickupValue: IV_Pickup = {
   name: "pickup sphere",
-  action:{
-    key:"ctrl",
-    button:0,
-    onEvent:"up",
+  action: {
+    key: "ctrl",
+    button: 0,
+    onEvent: "up",
   },
   target: {
     IDs: true,
     position: false,
   },
-  callback:(target: pickupTargetOfIDs | false)=>{
-    if(target){
+  callback: (target: pickupTargetOfIDs | false) => {
+    if (target) {
       console.log(target);
     }
   }

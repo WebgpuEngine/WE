@@ -138,12 +138,37 @@ window.mesh = new Lines(inputMesh);
 console.log(window.mesh);
 await scene.add(window.mesh);
 
+///click 
+// let pickupManager = scene.pickupManager;
+// let pickupValue: IV_Pickup = {
+//   name: "pickup sphere",
+//   action:{
+//     button:0,
+//     onEvent:"up",
+//   },
+//   target: {
+//     IDs: true,
+//     position: false,
+//   },
+//   callback:(target: pickupTargetOfIDs | false)=>{
+//     if(target){
+//       console.log(target);
+//     }
+//   }
+// }
+
+// let pickupOne=pickupManager.register(pickupValue);
+// window.pickupOne=pickupOne;
+// let result= await pickupOne.getTargetID(377,489);
+// console.log(result);
+
+////move
 let pickupManager = scene.pickupManager;
 let pickupValue: IV_Pickup = {
   name: "pickup sphere",
   action:{
-    button:0,
-    onEvent:"up",
+    // button:0,
+    onEvent:"move",
   },
   target: {
     IDs: true,
@@ -155,8 +180,4 @@ let pickupValue: IV_Pickup = {
     }
   }
 }
-
-let pickupOne=pickupManager.register(pickupValue);
-window.pickupOne=pickupOne;
-let result= await pickupOne.getTargetID(377,489);
-console.log(result);
+pickupManager.register(pickupValue);

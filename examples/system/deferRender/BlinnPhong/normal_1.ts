@@ -41,7 +41,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [0, 1, 3],
+  position: [0, 1, 9],
   lookAt: [0, 0, 0],
   controlType: "arcball",
 });
@@ -116,4 +116,15 @@ let inputMesh: IV_MeshEntity = {
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
+
 await scene.add(mesh);
+
+await scene.add({
+  entity: mesh,
+  position: [-2, 1, -2],
+});
+
+await scene.add({
+  entity: mesh,
+  position: [2, 1, -2],
+});

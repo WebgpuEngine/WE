@@ -103,7 +103,7 @@ let inputMeshsphere: IV_MeshEntity = {
   // }
 }
 let meshSphere = new Mesh(inputMeshsphere);
-await scene.add(meshSphere);
+// await scene.add(meshSphere);
 
 let box = new BoxGeometry();
 let inputMeshbox: IV_MeshEntity = {
@@ -136,4 +136,4 @@ let groundMesh = new Mesh({
   position: [0, -1, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
-await scene.add(groundMesh);
+// await scene.add(groundMesh);

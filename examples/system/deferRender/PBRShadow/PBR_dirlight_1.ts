@@ -77,6 +77,8 @@ let ambientLight = new AmbientLight(
 
 
 //实体球
+let box = new BoxGeometry();
+
 let geometry = new SphereGeometry({
   widthSegments: 128,
   heightSegments:128,
@@ -132,8 +134,9 @@ let groundMesh = new Mesh({
   rotate: [1, 0, 0, -Math.PI / 2]
 });
 await scene.add(groundMesh);
-let groundMaterialPBROption2: IV_PBRMaterial = {
 
+
+let groundMaterialPBROption2: IV_PBRMaterial = {
   textures: {
     albedo: {textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_albedo.png" }},
     normal: { textureUrl: { source: "/resource/PBR/laminate-flooring-brown/laminate-flooring-brown_normal-ogl.png" }},

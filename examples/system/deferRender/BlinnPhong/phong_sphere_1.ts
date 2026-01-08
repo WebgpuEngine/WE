@@ -107,3 +107,11 @@ let mesh = new Mesh(inputMesh);
 console.log(mesh);
 await scene.add(mesh);
 
+await scene.add({
+  entity: mesh,
+  position: [-2, 1, -2],
+});
+await scene.add({
+  entity: mesh,
+  position: [2, 1, -2],
+});

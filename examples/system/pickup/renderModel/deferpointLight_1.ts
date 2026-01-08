@@ -68,18 +68,22 @@ let light1Entity1 = new Mesh(
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [1, 1, 1],
     shadow: {
       generate: false,
       accept: false,
     },
-    update: (scope: any) => {
-      const now = Date.now() / 1000;
-      let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
-      scope.Position = pos;
-    }
+
   });
-await scene.add(light1Entity1);
+let nodeLight1 = await scene.add({
+  entity: light1Entity1,
+  position: [1, 1, 1],
+
+  update: (scope: any) => {
+    const now = Date.now() / 1000;
+    let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
+    scope.Position = pos;
+  }
+});
 
 let onelight = new PointLight(
   {
@@ -95,7 +99,7 @@ let onelight = new PointLight(
     // },
   }
 );
-await light1Entity1.addChild(onelight);
+await nodeLight1.addChild(onelight);
 // await scene.add(onelight);
 
 ////////////////////////////////////////////////
@@ -276,16 +280,16 @@ await scene.add(rightPlane);
 let pickupManager = scene.pickupManager;
 let pickupValue: IV_Pickup = {
   name: "pickup sphere",
-  action:{
-    button:0,
-    onEvent:"up",
+  action: {
+    button: 0,
+    onEvent: "up",
   },
   target: {
     IDs: true,
     position: false,
   },
-  callback:(target: pickupTargetOfIDs | false)=>{
-    if(target){
+  callback: (target: pickupTargetOfIDs | false) => {
+    if (target) {
       console.log(target);
     }
   }

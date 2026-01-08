@@ -99,6 +99,10 @@ let inputMesh: IV_MeshEntity = {
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
 await scene.add(mesh);
+await scene.add({
+  entity: mesh,
+  position: [0, 1, -2],
+});
 
 let planeGeometry = new PlaneGeometry({
   width: 10,

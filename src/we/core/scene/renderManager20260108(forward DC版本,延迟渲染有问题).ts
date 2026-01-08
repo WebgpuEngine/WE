@@ -653,56 +653,33 @@ export class RenderManager {
             let perOne = commands[UUID];
             let flagUUID = UUID;        //标记UUID，MSAA时UUID 会和forward的UUID在计数器中冲突
             if (MSAA != undefined) flagUUID = MSAA + UUID;
+            //pipeline passEncoder 部分
+            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
 
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //单组提交，defer，forward，msaa都没问题
             for (let perCommand of perOne) {
+
                 if (MSAA != undefined) {
                     if (MSAA == "MSAA")
                         this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
                     else {
                         this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                        // this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
                     }
                 }
                 else {
                     this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
                 }
+                let commandBuffer = await perCommand.update();
+                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
                 this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-                perCommand.submit();
             }
-            //MSAA  resolve part,并且过滤掉空数组
-            if (MSAA == "MSAA" && perOne.length > 0) {
-                this.scene.cameraManager.resolveMSAA(UUID);
+            //submit part
+            if (submitCommand.length > 0) {
+                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+                if (MSAA == "MSAA") {
+                    this.scene.cameraManager.resolveMSAA(UUID);
+                }
             }
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            // defer 合并提交有问题（待查），但forward 和msaa 都没问题，
-            // let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-            // for (let perCommand of perOne) {
-            //     if (MSAA != undefined) {
-            //         if (MSAA == "MSAA")
-            //             this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //         else {
-            //             this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //             // this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //         }
-            //     }
-            //     else {
-            //         this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //     }
-            //     let commandBuffer = await perCommand.update();
-            //     submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-            //     this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-            // }
-            // //submit part
-            // if (submitCommand.length > 0) {
-            //     this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-            //     if (MSAA == "MSAA") {
-            //         this.scene.cameraManager.resolveMSAA(UUID);
-            //     }
-            // }
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
         }
     }
     async renderDeferDC(list: I_renderDrawOfTimeline) {
@@ -747,7 +724,7 @@ export class RenderManager {
         // this.doCommand(this.RC[E_renderPassName.MSAA]);
         this.renderForwaredDC(this.RC[E_renderPassName.MSAA], "MSAA");
         //不透明enity
-        if (this.scene.MSAA === true)//开启MSAA，forward
+        if (this.scene.MSAA === true)//开启MSAA，forward 绘制 MSAAinfo的数据
             this.renderForwaredDC(this.RC[E_renderPassName.forward], "MSAAinfo");
         else
             this.renderForwaredDC(this.RC[E_renderPassName.forward]);
