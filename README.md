@@ -1,4 +1,4 @@
-[Chinese ](./README.MD)    [English](./README_english.md)
+[Chinese ](./README.md)  |    [English](./README_english.md)
 
 # WE 3D 渲染引擎 webGPU engine 3D
 
@@ -10,7 +10,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 4. 文档 todo [https://github.com/WebgpuEngine/WE3D_DOC](https://)
 5. WE3D后期还会有后端服务，以实现支持服务器端活链接、USD、Nerf工作流、三维重构等以及和期望实现的图形学大模型AI工作流等。
 
-# 引擎基础说明 
+# 引擎基础说明
 
 * WE 3D是使用typescript 和webGPU API 开发的web 端三维渲染引擎
 * 在引擎基础部分涵盖场景、实体、纹理、材质、摄像机、光源、阴影、后处理、ECS、GPU拾取、AA、颜色空间、tonemapping、延迟渲染、BVH等；
@@ -22,7 +22,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * 在底层机制以command集合（Draw Command、Compute Command、Copy Command）进行shader提交；
 * 在更新机制与事件机制上，有多途径的update机制和onEvent处理；
 
-# 更多功能说明 
+# 更多功能说明
 
 * 支持sRGB和display P3的颜色空间，WE3D内部以linear的线性空间进行工作，支持多种模式的色彩映射输出；
 * 光源支持环境光、方向光、点光源、聚光灯、面积光；
@@ -43,7 +43,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * ECS应用的比较多，比如实体、材质、光影、摄像机、输入管理、动画、纹理等都是采用的ECS的概念进行管理；
 * todo：粒子系统，动画系统、SSGI、SSR、SSAO、TAA、
 
-# 简单示例 
+# 简单示例
 
 
 | ReversedZ                                         | material alpha blend                             | pixel level alpha transparent material           |

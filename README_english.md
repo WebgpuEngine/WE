@@ -1,4 +1,4 @@
-[Chinese ](./README.MD)    [English](./README_english.md)
+[Chinese ](./README.md) |   [English](./README_english.md)
 
 # WE 3D ( webGPU engine 3D)
 

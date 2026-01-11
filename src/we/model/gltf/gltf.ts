@@ -100,7 +100,6 @@ export class GLTFModel extends BaseModel {
         else if (this.gltfType == "glb") {
             this.modelGltfBuffers = (this.modelData as GLB).binChunks;
         }
-        this.initDefaultMaterial();
         this.initBufferViews();
         // this.initAccessors();//改为，获取accessor数据并按需创建GPUBuffer
         this.initSamplers();
@@ -116,13 +115,11 @@ export class GLTFModel extends BaseModel {
     }
 
     //被parent的addChild调用
-    async init(scene: Scene, parent?: NodeObject, renderID?: number): Promise<number> {
+    async init(scene: Scene, parent?: NodeObject): Promise<number> {
         if (parent) {
             this.Parent = parent;
         }
-        if (renderID) {
-            this.renderID = renderID;
-        }
+
         else {
             this.renderID = 0;
         }
@@ -135,6 +132,12 @@ export class GLTFModel extends BaseModel {
     async readyForGPU(): Promise<any> {
         //已经在new时传入了GPUDevice，不需要再进行ready工作。
     }
+    /**
+     * 初始化场景，主入口。
+     * 1、根据场景索引，初始化场景中的节点
+     * 2、初始化节点是递归操作
+     * @param id 场景索引
+     */
     async initScene(id: number = 0) {
         let scene: GLTFScene = this.getSceneByIndex(id);
         if (scene == undefined) {
@@ -174,7 +177,6 @@ export class GLTFModel extends BaseModel {
             }
         }
     }
-
     /**
      * 初始化bufferViews,创建GPUBuffer
      * 1、accessor 中type为：SCALAR|VEC3,且componentType为：5120|5121|5122|5123 ,即（sint8|uint8|sint16|uint16）。需要将其转换为u32x3。
@@ -195,7 +197,22 @@ export class GLTFModel extends BaseModel {
             this.modelRes.GPUBuffers.set(Number(i), gpuBuffer);
         }
     }
-
+    /**
+     * 检查images是否在bufferView中。
+     * 1、检查images是否在bufferView中,返回包含image的bufferViewID数组
+     * 2、initBufferViews(),如果在,则不需要创建GPUBuffer
+     * @returns 包含image的bufferViewID数组
+     */
+    checkImagesInBufferview(): number[] {
+        let imagesInBufferView: number[] = [];
+        for (let i in this.modelData.json.images) {
+            let imageView = this.modelData.json.images[i];
+            if (typeof imageView.bufferView == "number") {
+                imagesInBufferView.push(imageView.bufferView);
+            }
+        }
+        return imagesInBufferView;
+    }
     /**
      * 获取GPUBuffer：获取对应的GPUBuffer.number id 、bufferViewID+"_webgpu"和 alias id（accessorID+"_xxx"）三种格式
      * 1、如果有,则返回对应的GPUBuffer；
@@ -236,24 +253,15 @@ export class GLTFModel extends BaseModel {
     setGPUBufferAliasToRES(bufferViewID: string, gpuBuffer: GPUBuffer) {
         this.modelRes.GPUBuffers.set(bufferViewID + "_webgpu", gpuBuffer);
     }
-    /**
-     * 检查images是否在bufferView中,如果在,则不需要创建GPUBuffer
-     */
-    checkImagesInBufferview(): number[] {
-        let imagesInBufferView: number[] = [];
-        for (let i in this.modelData.json.images) {
-            let imageView = this.modelData.json.images[i];
-            if (typeof imageView.bufferView == "number") {
-                imagesInBufferView.push(imageView.bufferView);
-            }
-        }
-        return imagesInBufferView;
-    }
+
     /**
      * 获取accessor数据
      * 1、 accessorID 为 accessor资源的ID。
      * 2、 fix 为可选参数，用于指定accessorBufferSource的属性 
      * 3、判断map中是否有，没有则调用generateAccessor()生成。
+     * @param accessorID accessor资源的ID
+     * @param useFor accessor 资源的使用模式
+     * @returns accessorBufferSource
      */
     async getAccessor(accessorID: number, useFor: E_accessorUseFor): Promise<T_accessorBufferSource> {
         let generate: boolean = false;
@@ -709,32 +717,39 @@ export class GLTFModel extends BaseModel {
         return false;
     }
 
-
+    /**
+     * 初始化entity 
+     */
     async initMeshes() {
         for (let i in this.modelData.json.meshes) {
             let meshSource = this.modelData.json.meshes[i];
             for (let j in meshSource.primitives) {
-                let primitive = meshSource.primitives[j];
-                let primitiveMode = primitive.mode;
-                if (primitiveMode == undefined) {
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                //base  part
+                let primitive = meshSource.primitives[j];       //mesh的primitive
+                let primitiveMode = primitive.mode;             //当前entity的primitive的绘制模式
+                if (primitiveMode == undefined) {               //设置primitiveMode为默认值4，GL_TRIANGLES
                     primitiveMode = 4;
                 }
                 let name = meshSource.name ?? i;
-                //enity 属性
-                let inputEntity: IV_MeshEntity | IV_PointsEntity | IV_LinesEntity;
-
-                let materialOfPerEntity;
-                if (primitive.material == undefined) {
+                let inputEntity: IV_MeshEntity | IV_PointsEntity | IV_LinesEntity;  //enity 属性
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                //material part
+                let materialOfPerEntity;                        //当前entity的primitive的材质
+                if (primitive.material == undefined) {          //如果primitive没有材质，默认使用default材质
                     materialOfPerEntity = this.getRes(T_ModelResKind.material, "default");
                     // materialOfPerEntity = <PBRMaterial> this.getRes(T_ModelResKind.material,"default");
                     // materialOfPerEntity = this.modelRes.material.get("default");
                 }
-                else {
+                else {                                          //如果primitive有材质，获取材质
                     materialOfPerEntity = this.modelRes.material.get(primitive.material);
                     if (materialOfPerEntity == undefined) {
                         throw new Error(`mesh ${name} primitive ${j} material ${primitive.material} not found`);
                     }
                 }
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                //attribute part 
+                //初始化mesh顶点数据为 we entity的顶点数据格式；
                 let verticesOfDataOfEntity: {
                     [name: string]: I_vsGPUBufferBundle
                 } = {};
@@ -758,13 +773,14 @@ export class GLTFModel extends BaseModel {
                     }
                     verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
                 }
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                //gpubuffer of index and draw mode   part
                 //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
                 let stripIndexFormat: GPUIndexFormat = "uint16";
-
                 //index accessor 转义we interface，可以为undefined(无index)
                 let indexesOfDataOfEntity: T_indexAttribute | undefined;
                 let drawMode: I_drawMode | I_drawModeIndexed;
-                if (meshSource.primitives[0].indices != undefined) {
+                if (meshSource.primitives[0].indices != undefined) {                //index 
                     let idOfaccessors = meshSource.primitives[0].indices;
                     let useFor: E_accessorUseFor
                     switch (primitive.mode) {
@@ -800,7 +816,7 @@ export class GLTFModel extends BaseModel {
                         indexCount: (indexAttribute as I_indexGPUBufferBundle).count,
                     }
                 }
-                else {
+                else {                                                          // draw mode
                     let count: number;
                     if (primitive.attributes.POSITION != undefined) {
                         let position = this.modelRes.accessor.get(primitive.attributes.POSITION);
@@ -823,7 +839,8 @@ export class GLTFModel extends BaseModel {
                         vertexCount: count,
                     }
                 }
-
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                // primitive of render
                 let primitiveOfDataOfRender: GPUPrimitiveState = {
                     topology: "triangle-strip",
                 };
@@ -874,6 +891,8 @@ export class GLTFModel extends BaseModel {
                     default:
                         throw new Error("primitiveMode not support");
                 }
+                /////////////////////////////////////////////////////////////////////////////////////////////////////
+                // input entity and new entity
                 // let { uniforms, unifromLayout } = this.getUniformBundleOfEntity(meshSource);
                 inputEntity = {
                     name: name,
@@ -903,35 +922,39 @@ export class GLTFModel extends BaseModel {
                     throw new Error("primitiveMode not support");
                 }
                 this.modelRes.entity.set(i, entity);
-                // this.scene.add(entity);
             }
         }
     }
 
+    /**
+     * 初始化采样器
+     * 1、初始化默认采样器：linear
+     * 2、按照gltf的sampler，初始化采样器
+     */
     initSamplers() {
 
     }
-
+    /**
+     * 初始化纹理
+     * 1、按照gltf的texture，初始化纹理
+     */
     initTextures() {
 
     }
 
+    /**
+     * 初始化默认材质
+     * 1、初始化默认材质
+     * 2、按照gltf的material，初始化材质
+     */
     initMaterials() {
-
+        this.initDefaultMaterial();
     }
 
-    initNodes() {
-
-    }
-    initSkins() {
-
-    }
-    initAnimations() {
-
-    }
-    initCameras() {
-
-    }
+    initNodes() { }
+    initSkins() { }
+    initAnimations() { }
+    initCameras() { }
     detectData(): void {
         throw new Error("Method not implemented.");
     }
