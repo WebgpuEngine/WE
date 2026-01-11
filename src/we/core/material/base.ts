@@ -246,7 +246,17 @@ export enum E_MaterialUniformKind {
      */
     vs = 2,
 }
-
+/**
+ * CPU端TS程序中，材质中使用的uniform参数的bundle。目前PBR使用（todo，其他也可以使用，其他未实现）。
+ * 1、kind：uniform的种类
+ * 2、value：uniform的值
+ * 3、textureName：uniform绑定的texture的名称
+ * 4、textureChannel：uniform绑定的texture的通道
+ * 5、extra：uniform的值的额外数据
+ * 6、texture：uniform绑定的texture
+ * 7、sampler：uniform绑定的sampler
+ * 8、samplerBindingType：uniform绑定的sampler的绑定类型
+ */
 export interface I_MaterialUniformTextureBundle {
     /**种类 */
     kind: E_MaterialUniformKind,

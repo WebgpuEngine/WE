@@ -1,15 +1,12 @@
-import { identity } from "muigui/dist/0.x/libs/utils";
 import { E_lifeState, weColor4, weVec3 } from "../../base/coreDefine";
-import { isWeColor3, isWeVec3 } from "../../base/coreFunction";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformEntries, T_uniformGroups, T_uniformOneGroup } from "../../command/base";
+import { T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialPBRFS_defer, SHT_materialPBRFS_defer_MSAA, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
-import { E_TextureChannel, I_BaseTexture, isI_BaseTexture, T_textureSourceType } from "../../texture/base";
-import { CubeTexture } from "../../texture/cubeTexxture";
+import { E_TextureChannel, I_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import { E_MaterialType, E_MaterialUniformKind, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_MaterialUniformTextureBundle, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
@@ -27,16 +24,31 @@ import { createUniformBuffer } from "../../command/baseFunction";
 //     perfilteredMap: I_BaseTexture | CubeTexture,
 //     brdfLUT: I_BaseTexture | Texture,
 // }
+
+
 /**
+ * PBR材质RGB形式纹理参数:normal ,color,albedo ...
  * url优先，value次之。channel按照具体情况。
  * 1、value:vec3，默认：RGB
  * 2、value:number，默认：R
+ * 
+ * todo:
+ *  1、目前纹理使用url string，后续需要支持texture对象：I_BaseTexture | Texture
  */
 interface I_TextureWithChanneAndVec3lForPBR {
     textureUrl?: I_BaseTexture,
     value?: weVec3,
     // channel?: E_TextureChannel,
 }
+/**
+ * PBR材质单通道数据形式纹理参数:metallic,roughness,ao ...
+ * url优先，value次之。channel按照具体情况。
+ * 1、value:number，
+ * 2、channel?: E_TextureChannel，默认：R
+ * 
+ * todo:
+ *  1、目前纹理使用url string，后续需要支持texture对象：I_BaseTexture | Texture
+ */
 interface I_TextureWithChanneAndNumberlForPBR {
     textureUrl?: I_BaseTexture,
     value?: number,
@@ -45,23 +57,34 @@ interface I_TextureWithChanneAndNumberlForPBR {
 // function I_TextureWithChannelForPBR(texture: any): texture is I_TextureWithChanneAndNumberlForPBR {
 //     return texture && (texture.textureUrl || texture.value);
 // }
-/**默认:0,其他alpha也是0，后期考虑为：0.5 */
+
+/**
+ * todo:未实现
+ * 
+ * 默认:0,其他alpha也是0，后期考虑为：0.5 */
 interface I_TextureAlphaTestForPBR extends I_TextureWithChanneAndNumberlForPBR {
     alphaTest?: number,
 }
 /**
+ * todo:未实现
+ * 
  * 自发光强度，默认：1.0
  */
 interface I_EmissiveForPBR extends I_TextureWithChanneAndNumberlForPBR {
     intensity?: number,
 }
 /**
+ * todo:未实现
+ * 
  * 深度缩放，默认：0.1
  */
 interface I_DepthMapForPBR extends I_TextureWithChanneAndNumberlForPBR {
     scale?: number,
 }
-
+/**
+ * PBR材质 init参数：
+ * todo：emssive,depthMap,alpha,envMap
+ */
 export interface IV_PBRMaterial extends IV_BaseMaterial {
     textures: {
         [E_TextureType.albedo]: I_TextureWithChanneAndVec3lForPBR,
@@ -77,37 +100,7 @@ export interface IV_PBRMaterial extends IV_BaseMaterial {
         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
     },
 }
-
-export interface IV_PBRMaterial_old extends IV_BaseMaterial {
-    textures: {
-        [E_TextureType.albedo]: I_BaseTexture | Texture | weVec3,
-        [E_TextureType.metallic]: I_BaseTexture | Texture | number,
-        [E_TextureType.roughness]: I_BaseTexture | Texture | number,
-        [E_TextureType.ao]?: I_BaseTexture | Texture | number,
-        [E_TextureType.normal]?: I_BaseTexture | Texture,
-        [E_TextureType.color]?: I_BaseTexture | Texture | weVec3,
-        [E_TextureType.emissive]?: I_BaseTexture | Texture | weVec3,
-        [E_TextureType.depthMap]?: I_BaseTexture | Texture,
-        [E_TextureType.alpha]?: I_BaseTexture | Texture | number,
-        /** 是否使用环境贴图 */
-        [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
-    },
-}
-
-type validPBRTextureTypeString =
-    | E_TextureType.albedo
-    | E_TextureType.metallic
-    | E_TextureType.roughness
-    | E_TextureType.ao
-    | E_TextureType.normal
-    | E_TextureType.color
-    | E_TextureType.emissive
-    | E_TextureType.depthMap
-    | E_TextureType.alpha
-    | E_TextureType.envMap;
-
-type vialidPBRTextureType = keyof IV_PBRMaterial["textures"];
-
+//作废，保留的意义，在纹理上参考，参见I_TextureWithChanneAndVec3lForPBR todo：后续需要支持texture对象：I_BaseTexture | Texture
 // export interface IV_PBRMaterial_old extends IV_BaseMaterial {
 //     textures: {
 //         [E_TextureType.albedo]: I_BaseTexture | Texture | weVec3,
@@ -119,16 +112,28 @@ type vialidPBRTextureType = keyof IV_PBRMaterial["textures"];
 //         [E_TextureType.emissive]?: I_BaseTexture | Texture | weVec3,
 //         [E_TextureType.depthMap]?: I_BaseTexture | Texture,
 //         [E_TextureType.alpha]?: I_BaseTexture | Texture | number,
-//         /**
-//          * string ： url配置文件(url.json)
-//          *  1、irradianceMap：文件url数组
-//          *  2、perfilteredMap：文件url数组
-//          *  3、brdfLUT:文件url
-//          *  4、cubeMap：       名称+   '_px.jpg', '_nx.jpg','_py.jpg', '_ny.jpg','_pz.jpg','_nz.jpg',
-//          */
-//         // [E_TextureType.EnvMap]?: string | I_EnvMap,
+//         /** 是否使用环境贴图 */
+//         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
 //     },
 // }
+
+//保留：定义vialidPBRTextureType的两种方式，这里是手写字符串
+// type validPBRTextureTypeString =
+//     | E_TextureType.albedo
+//     | E_TextureType.metallic
+//     | E_TextureType.roughness
+//     | E_TextureType.ao
+//     | E_TextureType.normal
+//     | E_TextureType.color
+//     | E_TextureType.emissive
+//     | E_TextureType.depthMap
+//     | E_TextureType.alpha
+//     | E_TextureType.envMap;
+
+/** PBR材质支持的纹理类型，用于for中对于textures的遍历的index 类型定义（TS的keyof问题，JS不需要） */
+type vialidPBRTextureType = keyof IV_PBRMaterial["textures"];
+
+
 
 enum E_ThisTexturesType {
     "texture" = "texture",
@@ -144,8 +149,26 @@ export class PBRMaterial extends BaseMaterial {
     declare textures: {
         [name: string]: Texture
     };
+    /** 材质的uniform GPUBuffer，用于shader */
     uniformGPUBuffer!: GPUBuffer;
+    /** 材质的uniform数据，ArrayBuffer 
+     * size: 320,取决WGSL 结构体大小
+    */
     uniformArrayBuffer = new ArrayBuffer(320);
+    /** 
+     * 材质的uniform数据，ArrayBuffer 视图,完整对应WGSL结构体：struct PBRUniformInput
+     * 1、每个属性使用相同的结构体布局
+     * 2、kind决定数据类型
+     *      kind: i32, //uniform 种类,-1=notUse,0=texture,1=value,2=vs
+     * 3、textureChannel: 纹理通道，
+     *     texture_channel: i32,//E_TextureChannel 纹理通道:-1=user define,0=R,1=G,2=B,3=A,4=RG,5=RB,6=RA,7=GB,8=BA,9=RGB,10=RGBA
+     * 4、data1: 用于存储额外数据，如：alphaTest,emissiveIntensity
+     *      data1: f32, //额外数据1
+     * 5、data2:f32, 用于存储额外数据，目前未使用
+     * 6、value: 用于存储值，如：albedo,metallic,roughness,ao,emissive
+     *       value: vec4f,//uniform value,按需匹配textureChannel适用
+     * 
+     */
     uniformArrayBufferViews = {
         albedo: {
             kind: new Int32Array(this.uniformArrayBuffer, 0, 1),
@@ -218,6 +241,15 @@ export class PBRMaterial extends BaseMaterial {
             value: new Float32Array(this.uniformArrayBuffer, 304, 4),
         },
     };
+    /**
+     * CPU端保存uniform对应数据的Bundle载体。
+     * 1、kind同WGSL结构体中kind（也直接对应 arraybuffer）
+     * 2、value：对应WGSL结构体中value（也直接对应 arraybuffer）
+     * 3、extra：对应WGSL结构体中data1,data2（也直接对应 arraybuffer）
+     * 4、textureName：对应@group(2) @binding(x) 中的textureName,使用enum对应
+     * 5、sampler：隐性（使用默认或自定义）。对应WGSL结构体中sampler（也直接对应 arraybuffer）
+     * 6、samplerBindingType：隐性，同sampler
+     */
     insideUniformBundle: I_MaterialUniformTextureBundle[] = [
         {
             kind: E_MaterialUniformKind.value,
@@ -317,6 +349,7 @@ export class PBRMaterial extends BaseMaterial {
     // }
     async readyForGPU(): Promise<any> {
         // this.defaultSampler = this.checkSampler(this.inputValues);
+        //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
             let textureSource = this.inputValues.textures[key as vialidPBRTextureType];
             if (key == E_TextureType.envMap) {
@@ -411,10 +444,12 @@ export class PBRMaterial extends BaseMaterial {
                     this.insideUniformBundle[index].kind = E_MaterialUniformKind.notUse;
                 }
                 else {
+                    //如果参数是纹理
                     if (perOne.textureUrl) {
                         this.textures[key] = await this.createTexture(perOne.textureUrl!);
                         this.insideUniformBundle[index].kind = E_MaterialUniformKind.texture;
                         this.insideUniformBundle[index].texture = this.textures[key];
+                        //如果texture有sampler，就使用texture的sampler，否则使用默认sampler
                         if (this.textures[key].sampler) {
                             this.insideUniformBundle[index].sampler = this.textures[key].sampler;
                             this.insideUniformBundle[index].samplerBindingType = this.textures[key]._samplerBindingType;
@@ -425,6 +460,7 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         //vec3 channel 固定，不需要channel参数
                     }
+                    //如果参数是值
                     else if (perOne.value) {
                         this.insideUniformBundle[index].kind = E_MaterialUniformKind.value;
                         if (isVec3) {
@@ -444,6 +480,7 @@ export class PBRMaterial extends BaseMaterial {
                         this.insideUniformBundle[index].samplerBindingType = this.defaultSamplerBindingType;
                         this.insideUniformBundle[index].texture = this.defaultTexture2D;
                     }
+                    //如果有扩展数据
                     if (this.insideUniformBundle[index].extra) {
                         this.insideUniformBundle[index].extra = [...extra];
                     }
@@ -456,6 +493,16 @@ export class PBRMaterial extends BaseMaterial {
         this._state = E_lifeState.finished;
         console.log("PBRMaterial readyForGPU");
     }
+    /**
+     * 检查insideUniformBundle是否符合要求
+     * 1、如果是纹理，必须有texture
+     * 2、如果是值，必须有value
+     * 
+     * todo：
+     *  1、envMap
+     *      A、envMap需要在system中实现；
+     *      B、使用IBL，system和shader目前都未实现；
+     */
     checkInsideUniformBundle() {
         for (let i in this.insideUniformBundle) {
             let uniform = this.insideUniformBundle[i];
@@ -478,6 +525,11 @@ export class PBRMaterial extends BaseMaterial {
             }
         }
     }
+    /**
+     * 将this.insideUniformBundle数据写入uniform buffer
+     * 1、遍历insideUniformBundle，写入uniform buffer（ArrayBuffer）
+     * 2、创建uniformGPUBuffer，并写入
+     */
     writeUniformBuffer() {
         let bufferViews = this.uniformArrayBufferViews;
         for (let i in this.insideUniformBundle) {
@@ -654,20 +706,20 @@ export class PBRMaterial extends BaseMaterial {
         let replaceList = new Map<string, string | (() => string)>();
         return this.formatSHT(template, replaceList, startBinding);
     }
-    getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
+    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialPBRFS, startBinding);
     }
-    getOpacity_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_defer_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColor(startBinding: number=0): I_materialBundleOutput {
+    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_materialPBRFS_defer, startBinding);
     }
 
@@ -696,7 +748,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding 
      * @return I_materialBundleOutput
      */
-    getFS_TO_DeferColor(startBinding: number=0): I_materialBundleOutput {
+    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     /**
@@ -704,7 +756,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding number 
      * @return I_BundleOfMaterialForMSAA
      */
-    getFS_TO_MSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
     /**
@@ -712,7 +764,7 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding number 
      * @return I_BundleOfMaterialForMSAA
      */
-    getFS_TO_DeferColorOfMSAA(startBinding: number=0): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
 

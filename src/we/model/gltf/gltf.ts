@@ -102,7 +102,8 @@ export class GLTFModel extends BaseModel {
         }
         this.initDefaultMaterial();
         this.initBufferViews();
-        // this.initAccessors();//改为，获取accessor数据并按需创建
+        // this.initAccessors();//改为，获取accessor数据并按需创建GPUBuffer
+        this.initSamplers();
         this.initTextures();
         this.initMaterials();
         await this.initMeshes();
@@ -838,16 +839,19 @@ export class GLTFModel extends BaseModel {
                         primitiveOfDataOfRender = {
                             topology: "line-list",
                         }
+                        materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
                         break;
                     case 2: //line loop
                         primitiveOfDataOfRender = {
                             topology: "line-list",
                         }
+                        materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
                         break;
                     case 3: //line strip
                         primitiveOfDataOfRender = {
                             topology: "line-strip",
                         }
+                        materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
                         break;
                     case 4: //triangle
                         primitiveOfDataOfRender = {
@@ -902,6 +906,10 @@ export class GLTFModel extends BaseModel {
                 // this.scene.add(entity);
             }
         }
+    }
+
+    initSamplers() {
+
     }
 
     initTextures() {
@@ -1026,183 +1034,3 @@ async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject)
     }
 }
 
-
-//20260110 初始化accessor，作废，代码参考
-//    async initAccessors() {
-//         for (let i in this.modelData.json.accessors) {
-//             let accessor = this.modelData.json.accessors[i];
-//             let bufferView = this.modelData.json.bufferViews[accessor.bufferView];
-//             let accessorBufferSource: T_accessorBufferSource;
-//             let buffer = this.modelRes.GPUBuffers.get(accessor.bufferView.toString());
-//             if (!buffer) {
-//                 throw new Error(`GLTFModel: accessor ${i} bufferView ${accessor.bufferView} not found`);
-//             }
-//             // if (bufferView.target) {
-//             if (bufferView.target && bufferView.target == 34963) {
-//                 accessorBufferSource = {
-//                     buffer: buffer,
-//                     format: BaseFunction.getAccessorTypeForGPUIndexFormat(accessor),
-//                     name: accessor.name || i,
-//                     // arrayStride: g;tfGetAccessorByteStride(accessor),
-//                     count: accessor.count,
-//                     /**
-//                      * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-//                      *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-//                      * default: 0
-//                      */
-//                     offset: accessor.byteOffset,
-//                     /**
-//                      * 读取数据的大小，默认=count*arrayStride
-//                      * default: count*arrayStride
-//                      */
-//                     size: BaseFunction.getAccessorSize(accessor, bufferView).size,
-//                 } as I_indexGPUBufferBundle;
-//             }
-//             else if (bufferView.target == 34962) {
-//                 let size = BaseFunction.getAccessorSize(accessor, bufferView).size;
-//                 let arrayStride = BaseFunction.getAccessorByteStride(accessor, bufferView);
-
-//                 //获取对应的wgsl的format
-//                 const { format, wgslFormat } = BaseFunction.getAccessorTypeForGPUVertexFormat(accessor);
-//                 // let buffer = this.modelGPUBuffers[accessor.bufferView]
-//                 let reBuildBuffer = BaseFunction.checkRebulidBufferForVec3(accessor);
-//                 // 检查是否需要新构建buffer
-//                 if (reBuildBuffer) {
-//                     const oldBuffer = this.getBufferSourceForAccessor(accessor);
-//                     // 新构建buffer
-//                     let countsOfVec3 = oldBuffer.byteLength * 4;
-//                     if (accessor.componentType == 5122 || accessor.componentType == 5123) {
-//                         countsOfVec3 = oldBuffer.byteLength * 2;
-//                     }
-//                     let newBuffer = new ArrayBuffer(countsOfVec3);
-//                     let newBufferView = new Uint32Array(newBuffer);
-//                     for (let j = 0; j < countsOfVec3 / 4; j++) {
-//                         newBufferView[j] = oldBuffer[j];
-//                     }
-//                     buffer = createCommonGPUBuffer(this.device, bufferView.name || i, newBuffer, 0, countsOfVec3);
-//                     size = countsOfVec3 * arrayStride;
-//                 }
-//                 accessorBufferSource = {
-//                     buffer: buffer,
-//                     format: format,
-//                     wgslFormat: wgslFormat,
-//                     name: accessor.name || i,
-//                     arrayStride: arrayStride,
-//                     count: accessor.count,
-//                     /**
-//                      * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-//                      *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-//                      * default: 0
-//                      */
-//                     offset: accessor.byteOffset,
-//                     /**
-//                      * 读取数据的大小，默认=count*arrayStride
-//                      * default: count*arrayStride
-//                      */
-//                     size: size,
-//                     min: accessor.min,
-//                     max: accessor.max,
-//                 } as I_vsGPUBufferBundle;
-//             }
-//             else if (accessor.sparse) {
-//                 //sparse
-//                 let bufferAttribute: ArrayBuffer;
-
-//                 // webGPU的属性格式和wgsl中的格式
-//                 const { format, wgslFormat } = BaseFunction.getAccessorTypeForGPUVertexFormat(accessor);
-//                 // 访问器的字节步长，每个元素占用的字节数
-//                 let arrayStride = BaseFunction.getAccessorByteStride(accessor, bufferView);
-//                 // 访问器的元素数量：数量*组件构成数量
-//                 let size = BaseFunction.getAccessorSize(accessor, bufferView).size;
-//                 // let buffer = this.modelGPUBuffers[accessor.bufferView]
-//                 let reBuildBuffer = BaseFunction.checkRebulidBufferForVec3(accessor);
-//                 // 检查是否需要新构建buffer
-//                 if (reBuildBuffer) {
-//                     const oldBuffer = this.getBufferSourceForAccessor(accessor);
-//                     // 新构建buffer
-//                     let countsOfVec3 = oldBuffer.byteLength * 4;
-//                     if (accessor.componentType == 5122 || accessor.componentType == 5123) {
-//                         countsOfVec3 = oldBuffer.byteLength * 2;
-//                     }
-//                     let newBuffer = new ArrayBuffer(countsOfVec3);
-//                     let newBufferView = new Uint32Array(newBuffer);
-//                     for (let j = 0; j < countsOfVec3 / 4; j++) {
-//                         newBufferView[j] = oldBuffer[j];
-//                     }
-//                     //适配到sparse的bufferAttribute，之后使用sparse index和sparse value填充需要改变的
-//                     bufferAttribute = newBuffer;
-//                     size = countsOfVec3 * arrayStride;
-//                 }
-//                 // 没有bufferView的情况，构建一个sparse count大小的bufferAttribute
-//                 else if (accessor.bufferView == undefined) {
-//                     bufferAttribute = new ArrayBuffer(accessor.sparse.count * BaseFunction.getAccessorByteStride(accessor, bufferView));
-//                 }
-//                 // 有bufferView的情况且不需要重构的，直接从bufferView中读取数据
-//                 else {
-//                     let fromBuffer = this.getArrayViewForBufferView(accessor.bufferView, accessor.componentType, accessor.count, accessor.type, accessor.byteOffset);
-//                     bufferAttribute = cloneBufferSource(fromBuffer, fromBuffer.byteOffset, fromBuffer.byteLength);
-//                 }
-//                 let countOfSparse = accessor.sparse.count;
-//                 // sparse index
-//                 let indexBufferSparse = this.getArrayViewForBufferView(accessor.sparse.indices.bufferView,
-//                     accessor.sparse.indices.componentType,
-//                     countOfSparse,
-//                     "SCALAR",
-//                     accessor.sparse.indices.byteOffset);
-//                 // sparse value
-//                 let valueBufferSparse = this.getArrayViewForBufferView(accessor.sparse.values.bufferView,
-//                     accessor.componentType,
-//                     countOfSparse,
-//                     accessor.type,
-//                     accessor.sparse.values.byteOffset);
-//                 // 写入sparse数据到bufferAttribute
-//                 for (let i_sparse = 0; i_sparse < countOfSparse; i_sparse++) {
-//                     let index = indexBufferSparse[i_sparse];
-//                     BaseFunction.writeArayBufferViewForSparse(bufferAttribute, accessor.type, accessor.componentType, index, valueBufferSparse, i_sparse);
-//                 }
-//                 // 构建对应的GPUBuffer
-//                 let byteOffset = 0;//sparse数据对应的Arraybuffer是新建的，从0开始
-//                 let gpuBufferAttribute = createCommonGPUBuffer(this.device, bufferView.name || i, bufferAttribute, byteOffset, bufferAttribute.byteLength);
-//                 // 构建对应的GPUBufferBundle
-
-//                 accessorBufferSource = {
-//                     buffer: gpuBufferAttribute,
-//                     format: format,
-//                     wgslFormat: wgslFormat,
-//                     name: accessor.name || i,
-//                     arrayStride: arrayStride,
-//                     count: accessor.count,
-//                     /**
-//                      * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-//                      *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-//                      * default: 0
-//                      */
-//                     offset: accessor.byteOffset,
-//                     /**
-//                      * 读取数据的大小，默认=count*arrayStride
-//                      * default: count*arrayStride
-//                      */
-//                     size: size,
-//                     min: accessor.min,
-//                     max: accessor.max,
-//                 } as I_vsGPUBufferBundle;
-
-//             }
-//             else {
-//                 throw new Error(`GLTFModel: accessor ${i} bufferView ${accessor.bufferView} target ${bufferView.target} not support`);
-//             }
-//             // }
-//             // else {
-//             //     const { format, wgslFormat } = getAccessorTypeForGPUVertexFormat(accessor);
-//             //     accessorBufferSource = {
-//             //         buffer: buffer,
-//             //         offset: accessor.byteOffset,
-//             //         size: accessor.byteLength,
-//             //         format: format,
-//             //     } as GPUBufferBinding;
-//             // }
-//             // this.modelAccessors.push(accessorBufferSource);
-//             this.modelRes.accessor.set(i, accessorBufferSource);
-
-//         }
-//     }
