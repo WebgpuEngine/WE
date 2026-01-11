@@ -984,3 +984,8 @@ export class NodeInstance extends NodeObject {
 }
 
 
+export async function  newNode(  scene: Scene, parent: NodeInstance) {
+    let node = new NodeInstance();
+    await node.init(scene, parent);
+    return node;
+}

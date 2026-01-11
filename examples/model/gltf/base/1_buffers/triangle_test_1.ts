@@ -30,12 +30,12 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 5],
   lookAt: [0, 0, 0],
-  update: (scope: any) => {
-    const now = Date.now() / 1000;
-    // console.log(scope.lookAt);
-    scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
-    // console.log(scope.position);
-  },
+//   update: (scope: any) => {
+//     const now = Date.now() / 1000;
+//     // console.log(scope.lookAt);
+//     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
+//     // console.log(scope.position);
+//   },
 });
 await scene.add(camera);
 

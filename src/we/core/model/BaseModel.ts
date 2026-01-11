@@ -1,9 +1,6 @@
-import { BaseAnimation } from "../animation/BaseAnimation";
 import { I_Update } from "../base/coreDefine";
-import { BaseCamera } from "../camera/baseCamera";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseEntity } from "../entity/baseEntity";
-import { NodeEntity } from "../entity/nodeEntity";
 import { BaseMaterial } from "../material/baseMaterial";
 import { NodeObject } from "../organization/root";
 import { Clock } from "../scene/clock";
@@ -80,7 +77,6 @@ export abstract class BaseModel extends NodeObject {
             "material": new Map<any, BaseMaterial>(),
             "entity": new Map<any, BaseEntity>(),
             "animation": new Map<any, any>(),
-
         };
 
     constructor(input: I_Model) {

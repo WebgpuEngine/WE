@@ -1,3 +1,5 @@
+[Chinese ](./README.MD)    [English](./README_english.md)
+
 # WE 3D 渲染引擎 webGPU engine 3D
 
 WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发阶段，功能、模块与结构会频繁调整。）
@@ -8,15 +10,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 4. 文档 todo [https://github.com/WebgpuEngine/WE3D_DOC](https://)
 5. WE3D后期还会有后端服务，以实现支持服务器端活链接、USD、Nerf工作流、三维重构等以及和期望实现的图形学大模型AI工作流等。
 
-WE3D includes two parts: the base engine and the editor. (WE3D is currently in the early development stage, and the functions, modules and structure will be frequently adjusted.) ）
-
-1. The basic engine part includes five modules: core functions, graphics functions, model functions, physics engine integration, and animation management. This item: [https://github.com/WebgpuEngine/WE3D](https:)
-2. The editor part includes: material editor, animation editor, scene editor, and build manager to achieve visualization work. (In [the https://github.com/WebgpuEngine/editor](https:) section, todo)
-3. Demo todo  [https://github.com/WebgpuEngine/WE3D\_Demo](https:)
-4. document todo [https://github.com/WebgpuEngine/WE3D\_DOC](https:)
-5. In the later stage of WE3D, there will also be back-end services to support server-side live links, USD, Nerf workflows, 3D reconstruction, etc., as well as the expected graphics large model AI workflows.
-
-# 引擎基础说明 Engine Basics Description
+# 引擎基础说明 
 
 * WE 3D是使用typescript 和webGPU API 开发的web 端三维渲染引擎
 * 在引擎基础部分涵盖场景、实体、纹理、材质、摄像机、光源、阴影、后处理、ECS、GPU拾取、AA、颜色空间、tonemapping、延迟渲染、BVH等；
@@ -27,17 +21,8 @@ WE3D includes two parts: the base engine and the editor. (WE3D is currently in t
 * 在渲染引擎的架构上是从底层独立设计与实现的，参考了Babylon、three、cesium、ue等；
 * 在底层机制以command集合（Draw Command、Compute Command、Copy Command）进行shader提交；
 * 在更新机制与事件机制上，有多途径的update机制和onEvent处理；
-* WE 3D is a web-side 3D rendering engine developed using typescript and webGPU APIs
-* The basic part of the engine covers scenes, solids, textures, materials, cameras, light sources, shadows, post-processing, ECS, GPU pickup, AA, color space, tonemapping, deferred rendering, BVH, etc.
-* The functions in graphics include: IBL, SSGI, SSR, SSAO, etc
-* Use Rapier on the Physics Engine for physics engine work;
-* In the model part: involving gltf, obj, fbx and other models;
-* The animation management section covers: keyframes, skeletal animations, deformation templates, VAT, particle systems, etc.;
-* The architecture of the rendering engine is independently designed and implemented from the bottom up, referring to Babylon, three, cesium, ue, etc.
-* Shader submission is carried out with the command collection (Draw Command, Compute Command, Copy Command) in the underlying mechanism.
-* In terms of update mechanism and event mechanism, there are multiple ways to handle update mechanism and onEvent.
 
-# 更多功能说明 More feature descriptions
+# 更多功能说明 
 
 * 支持sRGB和display P3的颜色空间，WE3D内部以linear的线性空间进行工作，支持多种模式的色彩映射输出；
 * 光源支持环境光、方向光、点光源、聚光灯、面积光；
@@ -57,26 +42,8 @@ WE3D includes two parts: the base engine and the editor. (WE3D is currently in t
 * stage有四个：默认的world，ui、stage1(导航等)，stage2（地图等）；
 * ECS应用的比较多，比如实体、材质、光影、摄像机、输入管理、动画、纹理等都是采用的ECS的概念进行管理；
 * todo：粒子系统，动画系统、SSGI、SSR、SSAO、TAA、
-* Support sRGB and display P3 color space, WE3D works in linear linear space internally, and supports color mapping output in multiple modes;
-* The light source supports ambient light, directional light, point light source, spotlight, and area light;
-* The shadow implementation is based on shadow map and supports PCSS.
-* Forward Z and reveredZ are supported in depth, and reversedZ is enabled by default.
-* MSAA and FXAA are supported, and TAA is expected to be implemented. Currently, MSAA and deferred rendering cannot be used at the same time (edge detection may be improved later, and can be used at the same time);
-* Rendering modes support forward rendering and delayed rendering, and transparent object rendering supports alpha transparency and physical transparency.
-* GBuffer one pixel  use 56bit ，include color、depth、position、normal、albedo、roughness、metallic、ao、emissive、material、id；
-* It supports mesh, lines, points, and sprite on the entity, and supports instantiation, in the form of arrays and arrayBuffer data in the form of multiple forms of attributes of data attributes.
-* It supports GLTF, OBJ, FBX, etc. on the model (in progress). It also supports simulation data, volume rendering data, and is expected to support geospatial data (TODO).
-* The material supports simple material, blinn-phong, and PBR material;
-* The camera supports orthogonal and perspective, and supports viewpot mode, multi-camera, multi-view, etc.;
-* Pickup supports two modes, GPU and CPU, using the GPU pickup function by default, and the CPU ray function is implemented with BVH and physics engine.
-* Physics engine integration is mainly Rapier (in progress);
-* The render manager supports multiple channels, including: calculation, texture, material, render target, opaque shadow, transparent shadow, depth, MSAA, forward rendering, delayed rendering, transparent rendering, sprite, sprite transparency, toneMapping, post-processing, UI, stage, and many other channels. Each channel will include two working modes: content line and timeline.
-* Post-processing is composed of manager and post-processing functions, currently there are FXAA, blue, colordemo, etc.;
-* There are four stages: default world, ui, stage1 (navigation, etc.), stage2 (maps, etc.);
-* ECS is used in many applications, such as entities, materials, light and shadow, cameras, input management, animation, textures, etc. are all managed by the concept of ECS;
-* todo: Particle System, Animation System, SSGI, SSR, SSAO, TAA,
 
-# 简单示例 Simple example
+# 简单示例 
 
 
 | ReversedZ                                         | material alpha blend                             | pixel level alpha transparent material           |
@@ -98,7 +65,7 @@ WE3D includes two parts: the base engine and the editor. (WE3D is currently in t
 | ![1763631817758](images/README/1763631817758.png) | ![1763631965740](images/README/1763631965740.png) | ![1763631975198](images/README/1763631975198.png) |
 |                                                   |                                                   |                                                   |
 
-# 资料参考与推荐 Information reference and recommendation
+# 资料参考与推荐
 
 * webGPU标准：https://www.w3.org/TR/webgpu/
 * WGSL的标准：https://www.w3.org/TR/wgsl/

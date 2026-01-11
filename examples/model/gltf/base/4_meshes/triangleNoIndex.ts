@@ -64,7 +64,8 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/triangle/triangleRotate.gltf"
+    url: "/models/gltf/base/triangle/TriangleWithoutIndices/TriangleWithoutIndices.gltf"
+   
 }
 );
 window.gltf = gltf;
@@ -102,6 +103,6 @@ let inputMesh: IV_MeshEntity = {
     // wireFrameOnly: true,
   }
 }
-// let mesh = new Mesh(inputMesh);
-// console.log(mesh);
-// await scene.add(mesh);
+let mesh = new Mesh(inputMesh);
+console.log(mesh);
+await scene.add(mesh);

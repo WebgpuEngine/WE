@@ -12,31 +12,34 @@
     <h2>基础</h2>
     <span>buffer
         <ul>
-            <li><a href="base/1_buffers/triangle_test_1.html">triangle buffers& view test</a></li>
+            <li><a href="base/1_buffers/triangle_test_1.html">triangle buffers:console output gltf JSON</a></li>
+            <li><a href="base/1_buffers/sparse.html">sparse test</a></li>
+            <br>
             <li><a href="base/1_buffers/images_insideUri.html">image insideUri test</a></li>
             <li><a href="base/1_buffers/images_BufferView.html">image BufferView test</a></li>
-            <li><a href="base/1_buffers/sparse.html">sparse test</a></li>
-
-            <li><a href="base/1_buffers/skin.html">skin test</a></li>
+            <li><a href="">texture &sampler & images output</a></li>
+            <li><a href="">material & pbr data output </a></li>
+            <li><a href="">camera</a></li>
+            <br>
             <li><a href="base/1_buffers/animation_data_test1.html">animation data test1<br>
-                1、关键帧以uniform的matrix传输；<br>
-                2、TRS数据量可能会同时出现，还可能有多个时间数据，如果使用storage，复杂度高，数据源的动态数组可能会超出webGPU的storage perShaderStage的限制；<br>
-                3、在CPU端计算为一个 matrix，传输、处理都简单；
-                <br>
-            </a></li>
+                    1、关键帧以uniform的matrix传输；<br>
+                    2、TRS数据量可能会同时出现，还可能有多个时间数据，如果使用storage，复杂度高，数据源的动态数组可能会超出webGPU的storage perShaderStage的限制；<br>
+                    3、在CPU端计算为一个 matrix，传输、处理都简单；
+                    <br>
+                </a></li>
+            <br>
             <li><a href="base/1_buffers/morphTarget_data_1.html">morph target data test1
                     morph target :mesh targets data <br>
                     1、target数据是所有顶点; target以顶点属性(固定不能大于16，dawn可以到30)，此方法简单<br>
                     2、插值后的权重通过uniform传输，标准化即可，每个uniform都保持相同<br>
                     3、shader model 简单变种问题；目前来看应用的是细节，不会多，可以接受<br>
                 </a></li>
+            <br>
             <li><a href="./base/1_buffers/skin.html">skin uniform data test.<br>
                     1、动画数据:骨骼节点与权重(初步顶点属性,数据量可以接受),逆绑定矩阵(使用storage,gltfRender中使用texture处理矩阵 )<br>
                     2、shader model 简单变种问题: 顶点属性方式会产生,storage方式可以使用通用的bind适配<br>
                 </a></li>
-            <li><a href="">texture &sampler & images output</a></li>
-            <li><a href="">material & pbr data output </a></li>
-            <li><a href="">camera</a></li>
+
         </ul>
     </span>
     <span>glb
@@ -65,8 +68,13 @@
             <li><a href="./base/4_meshes/triangle_1_scale.html">triangle 1,缩放</a></li>
             <li><a href="./base/4_meshes/triangle_1_translate.html">triangle 1,平移</a></li>
             <li><a href="./base/4_meshes/triangle_1_matrix.html">triangle 1,矩阵变换</a></li>
-            <li><a href=""></a></li>
-            <li><a href=""></a></li>
+            <li><a href="./base/4_meshes/twoTriangles.html">two triangles</a></li>
+            <li><a href="./base/4_meshes/triangleNoIndex.html">triangle with out index</a></li>
+            <li><a href="./base/4_meshes/triangleStrip.html">triangle strip</a></li>
+            <li><a href="./base/4_meshes/triangleFan.html">triangle fan</a></li>
+            <br>
+            <li><a href="./base/4_meshes/points_1.html">points 1</a></li>
+            
         </ul>
     </span>
     <span>images

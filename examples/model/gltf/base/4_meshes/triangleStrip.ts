@@ -64,11 +64,13 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/triangle.gltf"
+    url: "/models/gltf/base/triangle/TriangleStrip/TriangleStrip.gltf"
+   
 }
 );
 window.gltf = gltf;
 console.log(gltf);
+scene.add(gltf);
 
 
 let geometry = new SphereGeometry(

@@ -140,8 +140,13 @@ export abstract class BaseDrawCommand {
 
         // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
         if (typeof this.drawMode === "function") {
-            let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode();
-            this.drawInstacnceArray(passEncoder, drawModeTemp);
+            if (this.system !== undefined) {
+                let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.system.UUID, this.system.type);
+                this.drawInstacnceArray(passEncoder, drawModeTemp);
+            }
+            else {
+                 throw new Error("drawMode is  function and  must be have system input value ");
+            }
         }
         // 绘制实例 :多个instance数组。测试模拟merge
         else if (Array.isArray(this.drawMode)) {
@@ -209,9 +214,15 @@ export abstract class BaseDrawCommand {
     submit() {
         // 检查动态drawMode的数组长度是否为空
         if (typeof this.drawMode === "function") {
-            let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode();
-            if (drawModeTemp.length === 0) {
-                return;
+            let drawModeTemp: I_drawMode[] | I_drawModeIndexed[];// = this.drawMode();
+            if (this.system !== undefined) {
+                drawModeTemp = this.drawMode(this.system.UUID, this.system.type);
+                if (drawModeTemp.length === 0) {
+                    return;
+                }
+            }
+            else {
+                 throw new Error("drawMode is  function and  must be have system input value ");
             }
         }
         let commandBuffer = this.update()

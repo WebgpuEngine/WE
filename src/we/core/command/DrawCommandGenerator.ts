@@ -22,6 +22,9 @@ export interface IV_DrawCommandGenerator {
 }
 
 //==================================================================================================================
+/**
+ * 顶点属性的bundle（有更加详细的数据说明），用于绑定到DC的vertex buffer
+ */
 export interface vsAttribute {
     // shaderLocation: 0,//这个在function，自动增加计算
     /**
@@ -688,7 +691,8 @@ export class DrawCommandGenerator {
                 let lowKey = key.toLocaleLowerCase();
                 let _GPUVertexBufferLayout: GPUVertexBufferLayout;//当前顶点属性的GBufferLayout，就是vertex.buffers[]之中的内容
                 let vertexBuffer: GPUBuffer | undefined;
-                if (Array.isArray(value)) {//标准的数组格式，默认为position等
+                //标准的数组格式，默认为position等
+                if (Array.isArray(value)) {
                     if (value.length == 0) {
                         console.warn("顶点属性" + key + "数据为空");
                     }
@@ -741,6 +745,7 @@ export class DrawCommandGenerator {
                         }],
                     }
                 }
+                //有更多详细的数据说明，来约定顶点数据，例如format,arrayStride,offset等
                 else if ("format" in value && "data" in value) {
                     let format: GPUVertexFormat = value.format;
                     let data;//默认:float32
@@ -819,6 +824,7 @@ export class DrawCommandGenerator {
                         }],
                     }
                 }
+                //合并属性，例如position和normal合并到一个顶点属性中
                 else if (isVsAttributeMerge(value)) {
                     let mergeAttribute = value.mergeAttribute
                     let arrayStride = value.arrayStride;
@@ -847,6 +853,7 @@ export class DrawCommandGenerator {
                         attributes,
                     }
                 }
+                //顶点数据是GPUBuffer数据的
                 else if ("format" in value && value.buffer instanceof GPUBuffer) {
                     let format = value.format;
                     let arrayStride = value.arrayStride;

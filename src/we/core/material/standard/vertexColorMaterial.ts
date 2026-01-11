@@ -16,13 +16,13 @@ export class VertexColorMaterial extends BaseMaterial {
 
 
     declare inputValues: IV_BaseMaterial;
-    constructor(input?: IV_VertexColorMaterial) {
-        super(input);
+    constructor() {
+        super(     {}  );
         this.kind = E_MaterialType.vertex;
-        if (!input) {
-            input = {};
-        }
-        this.inputValues = input;
+        // if (!input) {
+        //     input = {};
+        // }
+        // this.inputValues = {};
     }
     _destroy(): void {
         throw new Error("Method not implemented.");
