@@ -4,8 +4,7 @@ import { load } from '@loaders.gl/core';
 import { DracoLoader } from "@loaders.gl/draco";
 import { GLB, GLTF, GLTFAccessor, GLTFBufferView, GLTFLoader, GLTFNode, GLTFScene, GLTFWithBuffers } from '@loaders.gl/gltf';
 import { GLBLoader } from '@loaders.gl/gltf';
-import { Scene } from "../../core/scene/scene";
-import { newNode, NodeInstance, NodeObject, RootGPU } from "../../core/organization/root";
+import {  IV_Node, IV_NodeSpace, newNode, NodeInstance, NodeInstanceModel, NodeObject, RootGPU } from "../../core/organization/root";
 import { cloneBufferSource, createCommonGPUBuffer, createIndexBuffer, createUniformBuffer, createVerticesBuffer } from "../../core/command/baseFunction";
 import { I_indexGPUBufferBundle, I_vsGPUBufferBundle, T_indexAttribute } from "../../core/command/DrawCommandGenerator";
 import { IV_MeshEntity, Mesh } from "../../core/entity/mesh/mesh";
@@ -107,38 +106,53 @@ export class GLTFModel extends BaseModel {
         this.initMaterials();
         await this.initMeshes();
         this.initCameras();
-        this.initNodes();
+        // this.initNodes();
         this.initAnimations();
         // this.initScene();
     }
     _destroy(): void {
     }
-
-    //被parent的addChild调用
-    async init(scene: Scene, parent?: NodeObject): Promise<number> {
-        if (parent) {
-            this.Parent = parent;
-        }
-
-        else {
-            this.renderID = 0;
-        }
-        await this.initScene();
-        await this.setRootENV(scene);
-        // await this.readyForGPU();
-        return this.renderID + 1;
+    /**
+     * 释放模型原始资源
+     */
+    detectData(): void {
+        throw new Error("Method not implemented.");
     }
 
+    updateSelf(clock: Clock): void {
+        //1、更新mesh的update，按照node tree
+    }
+    /**
+     * 初始化模型节点
+     * 1、被parent的addChild调用
+     * 2、调用initScene初始化场景
+     * @param parent 父节点
+     * @param attachValue 节点空间属性
+     * @returns 场景节点实例
+     */
+    async initInstance( parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
+        let nodeOfScene: NodeInstanceModel = await this.initScene(parent, this.currentScene, attachValue);
+        return nodeOfScene;
+    }
     async readyForGPU(): Promise<any> {
         //已经在new时传入了GPUDevice，不需要再进行ready工作。
     }
     /**
      * 初始化场景，主入口。
-     * 1、根据场景索引，初始化场景中的节点
-     * 2、初始化节点是递归操作
+     * 1、gltf会新建一个node object作为场景节点，并返回
+     * 2、根据场景索引，初始化场景中的节点
+     * 3、初始化节点是递归操作（包括camera）
+     * 4、如果有animation，则在新的Node Object上初始化animation，并注册到animationManager
+     * 5、如果有animation，则在新的Node Object上初始化animation group，并注册到animationGroupManager
      * @param id 场景索引
+     * @param attachValue 节点空间属性
+     * @returns 场景节点实例
      */
-    async initScene(id: number = 0) {
+    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_Node): Promise<NodeInstanceModel> {
+        let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
+        await nodeOfScene.init(this.scene, parent);         // 初始化node object
+        nodeOfScene._modelOrigin = this;
+
         let scene: GLTFScene = this.getSceneByIndex(id);
         if (scene == undefined) {
             throw new Error(`scene ${id} not found`);
@@ -148,16 +162,16 @@ export class GLTFModel extends BaseModel {
             nodes = scene.nodes as number[];
         }
         else {
-            console.warn(`scene ${id} not found nodes`);
-            return;
+            throw new Error(`scene ${id} not found nodes`);
         }
         this.currentScene = id;
         /**
          *  push mesh to children
          */
         for (let nodeID of nodes) {
-            await addChildMesh(this, nodeID, this);
+            await addChildMesh(this, nodeID, nodeOfScene);
         }
+        return nodeOfScene;
     }
     getSceneByIndex(index: number = 0): GLTFScene {
         return this.modelData.json.scenes[index];
@@ -955,13 +969,7 @@ export class GLTFModel extends BaseModel {
     initSkins() { }
     initAnimations() { }
     initCameras() { }
-    detectData(): void {
-        throw new Error("Method not implemented.");
-    }
 
-    updateSelf(clock: Clock): void {
-        //1、更新mesh的update，按照node tree
-    }
     saveJSON() {
         throw new Error("Method not implemented.");
     }

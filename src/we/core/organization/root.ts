@@ -12,6 +12,7 @@ import { E_renderPassName } from "../scene/renderManager";
 import { BaseAnimation } from "../animation/BaseAnimation";
 import { BaseParticle } from "../particle/baseParticle";
 import { AnimationGroup } from "../animation/animationGroup";
+import { BaseModel } from "../model/BaseModel";
 
 
 export interface I_UUID {
@@ -153,6 +154,10 @@ export abstract class RootGPU implements I_UUID {
     abstract updateSelf(clock: Clock): void;
 }
 
+/**
+ * 空间节点初始化参数interface
+ * node space interface
+ */
 export interface IV_NodeSpace extends I_Update {
     position?: weVec3,
     scale?: weVec3,
@@ -404,7 +409,17 @@ export interface NodeObjectJSON {
     matrixWorld: number[],
     parent: number,
     children: number[],
-
+}
+/**
+ * model 空间属性附加参数
+ * 
+ */
+export interface IV_AttachSpaceAttributeToNodeModel {
+    position?: weVec3,
+    scale?: weVec3,
+    rotate?: weVec4,
+    quaternion?: weVec4,
+    matrix?: weMat4,
 }
 
 export interface IV_Node extends IV_NodeSpace {
@@ -573,14 +588,14 @@ export abstract class NodeObject extends NodeSpace {
      * @param renderID 
      * @returns 
      */
-    async init(scene: Scene, parent?: NodeObject, renderID?: number): Promise<number> {
+    async init(scene: Scene, parent?: NodeObject, renderID?: number): Promise<any> {
         super.init(scene);
         if (parent) {
             this.Parent = parent;
         }
-        //获取最新的ID
-        this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
-        return this.renderID + 1;
+        // //获取最新的ID
+        // this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
+        // return this.renderID + 1;
     }
     destroy(): void {
         if (this.children.length > 0) {
@@ -638,25 +653,36 @@ export abstract class NodeObject extends NodeSpace {
      *      C、将entity和node添加到entityManager中
      * 3、如果不存在entity，将node添加到children中
      * 
+     * 4、如果是Model，根据modelAttachValue创建对应的Node Instance
+     * 
      * @param child  NodeObject | BaseEntity | IV_Node 
      * @returns  Promise<NodeObject> 
      */
-    async addChild(child: NodeObject | BaseEntity | IV_Node): Promise<NodeObject> {
+    async addChild(child: NodeObject | BaseEntity | IV_Node, modelAttachValue?: IV_NodeSpace): Promise<NodeObject> {
         let childNode: NodeObject;
         if (child instanceof NodeObject) {
-            await child.init(this.scene, this);
             // child.parent = this;
-            if (child instanceof NodeObject) {
-                await child.setRootENV(this.scene);
+            if (child.type == "Model" && child instanceof NodeObject) {
+                await (child as BaseModel).init(this.scene, this);                                  //init
+                childNode = await (child as BaseModel).initInstance(this, modelAttachValue);        //initInstance,返回NodeInstanceModel
+            }
+            else if (child instanceof NodeObject) {
+                await child.init(this.scene, this);
+                childNode = child;
+            }
+            else {
+                throw new Error("child type not support");
             }
             if (child.type == "Camera") {
                 this.scene.cameraManager.add(child as unknown as BaseCamera);
+                childNode = child;
             }
             else if (child.type == "Light") {//这里不能使用 instanceof BaseLight，会遇到 “暂时性死区 Uncaught ReferenceError: Cannot access 'NodeOrigin' before initialization” 问题，应该是BaseLight的在NodeObject解析完成之前进行了初始化
                 this.scene.lightsManager.add(child as BaseLight);
                 this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
                 if ((child as BaseLight).Shadow)
                     this.scene.renderManager.RC[E_renderPassName.transparent][child.UUID] = [];
+                childNode = child;
             }
             else if (child.type == "ParticleSystem") {
                 // this.scene.particleManager.addParticleSystem(child as ParticleSystem);
@@ -668,7 +694,6 @@ export abstract class NodeObject extends NodeSpace {
             else {
                 console.log("未找到对应的ECS manager", child);
             }
-            childNode = child;
         }
         //节点，根据参数创建
         else {
@@ -980,11 +1005,37 @@ export class NodeInstance extends NodeObject {
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");
     }
+}
+/**
+ * 节点实例
+ * 用于实例化节点对象
+ */
+export class NodeInstanceModel extends NodeObject {
+    /**
+     *  模型来源 : 指向原始模型
+     * 1、animation的数据来源使用modelOrigin
+    */
+    _modelOrigin!: BaseModel;
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+    async readyForGPU(): Promise<any> {
+        // throw new Error("Method not implemented.");
 
+    }
+    _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
+    updateSelf(clock: Clock): void {
+        // throw new Error("Method not implemented.");
+    }
 }
 
 
-export async function  newNode(  scene: Scene, parent: NodeInstance) {
+export async function newNode(scene: Scene, parent: NodeInstance) {
     let node = new NodeInstance();
     await node.init(scene, parent);
     return node;

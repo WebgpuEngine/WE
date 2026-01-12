@@ -2,7 +2,7 @@ import { I_Update } from "../base/coreDefine";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseMaterial } from "../material/baseMaterial";
-import { NodeObject } from "../organization/root";
+import { IV_NodeSpace, NodeInstanceModel, NodeObject } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
@@ -83,16 +83,26 @@ export abstract class BaseModel extends NodeObject {
         super(input);
         this.type = "Model";
     }
+    /**
+     * 初始化模型节点
+     * 1、被parent的addChild调用
+     * 2、调用initScene初始化场景
+     * @param parent 父节点
+     * @param attachValue 节点空间属性
+     * @returns 场景节点实例
+     */
+    abstract initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel>
 
-
-
+    /**
+     * 释放模型原始资源
+     */
     abstract detectData(): void;
 
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
-
         for (let perOne of this.children) {
             (perOne as NodeObject).update(clock);
         }
+        return true;
     }
 
 }
