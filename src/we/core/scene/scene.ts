@@ -1,4 +1,4 @@
-import { IV_Node, NodeObject } from "../organization/root";
+import { IV_Node, IV_NodeSpace, NodeObject } from "../organization/root";
 import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
@@ -854,13 +854,13 @@ export class Scene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //add 
-    async addChild(child: NodeObject | BaseEntity | IV_Node) {
+    async addChild(child: NodeObject | BaseEntity | IV_Node, modelAttachValue?: IV_NodeSpace) {
         if (child instanceof AmbientLight) {
             this.lightsManager.ambientLight = child;
             return child;
         }
         else
-            return await this.root.addChild(child);
+            return await this.root.addChild(child, modelAttachValue);
     }
     add = this.addChild;
     remove(child: NodeObject) {

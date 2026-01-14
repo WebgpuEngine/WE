@@ -19,6 +19,18 @@ export interface IV_BaseDrawCommand extends IV_BaseCommand {
     parent?: BaseEntity,
 }
 
+/**
+ * 顶点缓冲区入口
+ * 用于setVertexBuffer方法
+ * 1、buffer：顶点缓冲区
+ * 2、offset：顶点缓冲区中的偏移量
+ * 3、size：顶点缓冲区中的数据大小
+ */
+export interface I_VertexBufferEntry {
+    buffer: GPUBuffer,
+    offset?: number,
+    size?: number,
+}
 
 export abstract class BaseDrawCommand {
     _isDestroy: boolean = false;
@@ -35,7 +47,7 @@ export abstract class BaseDrawCommand {
     // rawUniform!: boolean;
     device!: GPUDevice;
     renderPassDescriptor!: GPURenderPassDescriptor | (() => GPURenderPassDescriptor);
-    vertexBuffers: GPUBuffer[] = [];
+    vertexBuffers: I_VertexBufferEntry[] = [];
     indexBuffer!: GPUBuffer;
     indexFormat: GPUIndexFormat = "uint32";
     bindGroups: T_BindGroupType[] = [];//GPUBindGroup[] = [];
@@ -106,7 +118,10 @@ export abstract class BaseDrawCommand {
     doEncoder(passEncoder: GPURenderPassEncoder) {
         for (let i in this.vertexBuffers) {
             const verticesBuffer = this.vertexBuffers[i];
-            passEncoder.setVertexBuffer(parseInt(i), verticesBuffer);
+            if (verticesBuffer.offset !== undefined && verticesBuffer.size !== undefined)
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.size);//四个参数： slot, buffer, offset, size
+            else
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
         }
         if (this.inputValues.viewport) {
             let minDepth = this.inputValues.viewport.minDepth == undefined ? 0 : this.inputValues.viewport.minDepth;
@@ -145,7 +160,7 @@ export abstract class BaseDrawCommand {
                 this.drawInstacnceArray(passEncoder, drawModeTemp);
             }
             else {
-                 throw new Error("drawMode is  function and  must be have system input value ");
+                throw new Error("drawMode is  function and  must be have system input value ");
             }
         }
         // 绘制实例 :多个instance数组。测试模拟merge
@@ -222,7 +237,7 @@ export abstract class BaseDrawCommand {
                 }
             }
             else {
-                 throw new Error("drawMode is  function and  must be have system input value ");
+                throw new Error("drawMode is  function and  must be have system input value ");
             }
         }
         let commandBuffer = this.update()

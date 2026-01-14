@@ -34,9 +34,13 @@ export abstract class BaseTexture extends RootGPU {
      */
     sampler: GPUSampler | undefined;
     /**
+     * 使用材质的默认采样器。
+     * 1、如果有指定的sampler，就使用指定的sampler。
+     * 2、如果没有指定的sampler，就使用材质的默认采样器。
      * 材质的sampler是否存在，不存在就创建一个。
+     * 
     */
-    _samplerBindingType: GPUSamplerBindingType | undefined;
+    _samplerBindingType: GPUSamplerBindingType = 'filtering';
 
     /**纹理是否完成，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
      * constructor中设置为false。 
@@ -78,10 +82,18 @@ export abstract class BaseTexture extends RootGPU {
      * @param input I_BaseTexture 纹理的输入参数
      */
     checkSampler(input: I_BaseTexture) {
-        if (input.samplerDescriptor == undefined || input.samplerFilter == undefined) {
-            let { sampler, bindingType } = getSampler(input, this.scene);
-            this._samplerBindingType = bindingType;
-            this.sampler = sampler;
+        if (input.sampler != undefined) {
+            if (input.sampler instanceof GPUSampler) {
+                this.sampler = input.sampler;
+            }
+            else if (input.sampler.samplerDescriptor == undefined || input.sampler.samplerFilter == undefined) {
+                let { sampler, bindingType } = getSampler(input, this.scene);
+                this.sampler = sampler;
+                this._samplerBindingType = bindingType;
+            }
+        }
+        if (input.samplerBindingType != undefined) {
+            this._samplerBindingType = input.samplerBindingType;
         }
     }
     registerToManager() {
@@ -116,15 +128,15 @@ export abstract class BaseTexture extends RootGPU {
     getReady() {
         return this._state;
     }
-    /**
-     * 计算mipmap的层级
-     * @param sizes 纹理的大小,[width,height]
-     * @returns mipmap的层级
-     */
-    numMipLevels(sizes: number[]): number {
-        const maxSize = Math.max(...sizes);
-        return 1 + Math.log2(maxSize) | 0;
-    };
+    // /**
+    //  * 计算mipmap的层级
+    //  * @param sizes 纹理的大小,[width,height]
+    //  * @returns mipmap的层级
+    //  */
+    // numMipLevels(sizes: number[]): number {
+    //     const maxSize = Math.max(...sizes);
+    //     return 1 + Math.log2(maxSize) | 0;
+    // };
 
 
     generateMips(texture: GPUTexture) {

@@ -135,10 +135,10 @@ let geometry = new SphereGeometry({
 });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" } },
-    normal: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
-    metallic: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" } },
-    roughness: { textureUrl: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" } },
+    albedo: { texture: { source: "/resource/PBR/rustediron/rustediron2_basecolor.png" } },
+    normal: { texture: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
+    metallic: { texture: { source: "/resource/PBR/rustediron/rustediron2_metallic.png" } },
+    roughness: { texture: { source: "/resource/PBR/rustediron/rustediron2_roughness.png" } },
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
@@ -177,12 +177,12 @@ let planeGeometry = new PlaneGeometry({
 
 let groundMaterialPBROption: IV_PBRMaterial = {
   textures: {
-    albedo: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" } },
-    normal: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" } },
+    albedo: { texture: { source: "/resource/PBR/grainy-concrete/grainy-concrete_albedo.png" } },
+    normal: { texture: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" } },
     metallic:// 0.95,
-      { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" } },
-    roughness: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" } },
-    ao: { textureUrl: { source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" } },
+      { texture: { source: "/resource/PBR/grainy-concrete/grainy-concrete_metallic.png" } },
+    roughness: { texture: { source: "/resource/PBR/grainy-concrete/grainy-concrete_roughness.png" } },
+    ao: { texture: { source: "/resource/PBR/grainy-concrete/grainy-concrete_ao.png" } },
   }
 }
 let groundMaterial = new PBRMaterial(groundMaterialPBROption);

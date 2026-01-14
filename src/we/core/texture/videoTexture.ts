@@ -3,7 +3,7 @@ import { I_VideoOption, weGetVidoeByUrl } from "../base/coreFunction";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
-import { I_BaseTexture, T_textureSourceType } from "./base";
+import { I_BaseSampler, I_BaseTexture, numMipLevels, T_textureSourceType } from "./base";
 import { BaseTexture } from "./baseTexture";
 
 export type T_VIdeoSourceType = HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | VideoFrame | string;
@@ -92,8 +92,8 @@ export class VideoTexture extends BaseTexture {
                     await this.getVidoeTexture(source);
                     this.scene.resourcesGPU.set(source, this.texture, E_resourceKind.textureOfString);
                     this.mapList.push({
-                       key: source,
-                       type: E_resourceKind.textureOfString,
+                        key: source,
+                        type: E_resourceKind.textureOfString,
                     });
                 }
             }
@@ -166,13 +166,21 @@ export class VideoTexture extends BaseTexture {
             premultipliedAlpha = true;
         }
         this.premultipliedAlpha = premultipliedAlpha;
+        let mipmap = false;
+        let mipLevels = 1;
+        if (this.inputValues.sampler &&
+            (this.inputValues.sampler as I_BaseSampler).mipmap != undefined &&
+            (this.inputValues.sampler as I_BaseSampler).mipmap?.enable) {
+            mipmap = true;
+            mipLevels = (this.inputValues.sampler as I_BaseSampler).mipmap?.level || 1;
+        }
         if (this.model == "copy" || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas) {
             this.texture = this.device.createTexture({
                 label: this.Name,
                 size: [width, height, 1],
                 format: this.inputValues.format!,
                 // format: 'rgba8unorm',//bgra8unorm
-                mipLevelCount: this.inputValues.mipmap ? this.numMipLevels([width, height]) : 1,
+                mipLevelCount: mipmap ? numMipLevels([width, height]) : mipLevels,
                 // sampleCount: 1,
                 // dimension: '2d',
                 usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT

@@ -2,7 +2,7 @@ import { E_lifeState } from "../base/coreDefine";
 import { weGetImageByUrl } from "../base/coreFunction";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
-import { I_BaseTexture } from "./base";
+import { I_BaseSampler, I_BaseTexture, numMipLevels } from "./base";
 import { BaseTexture } from "./baseTexture";
 
 
@@ -13,6 +13,9 @@ import { BaseTexture } from "./baseTexture";
 // }
 
 export class Texture extends BaseTexture {
+    _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
 
     saveJSON() {
         throw new Error("Method not implemented.");
@@ -100,11 +103,19 @@ export class Texture extends BaseTexture {
         else {
             premultipliedAlpha = true;
         }
+        let mipmap = false;
+        let mipLevels = 1;
+        if (this.inputValues.sampler &&
+            (this.inputValues.sampler as I_BaseSampler).mipmap != undefined &&
+            (this.inputValues.sampler as I_BaseSampler).mipmap?.enable) {
+            mipmap = true;
+            mipLevels = (this.inputValues.sampler as I_BaseSampler).mipmap?.level || 1;
+        }
         this.texture = this.device.createTexture({
             label: this.Name,
             size: [width, height, 1],
             format: this.inputValues.format!,
-            mipLevelCount: this.inputValues.mipmap ? this.numMipLevels([width, height]) : 1,
+            mipLevelCount: mipmap ? numMipLevels([width, height]) : mipLevels,
             // sampleCount: 1,
             // dimension: '2d',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT

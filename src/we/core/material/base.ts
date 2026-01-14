@@ -239,7 +239,11 @@ export interface I_UniformBundleOfMaterial {
      */
 export enum E_MaterialUniformKind {
     notUse = -1,
-    value = 0,
+    value = 0,//只使用value
+    /**
+     * 1、使用texture，最终值=纹理值*value。注释时间：20260114，在此之前是二选一
+     * 2、特定类型不使用乘法，只有二选一。exp：normal
+     */
     texture = 1,
     /**
      * vs 只适用从vertex shader中传递过来的uniform参数,exp:normal
@@ -270,10 +274,17 @@ export interface I_MaterialUniformTextureBundle {
      *  vec4 使用 array[0],array[1],array[2],array[3]
      * 3、金属度、粗糙度、AO等只有一个数值的，使用array[0]
      * 4、albedo 颜色贴图，使用array[0],array[1],array[2]
+     * 
+     * 5、备注：
+     *      A、未使用的数据位置，可以复用，自定义（需要shader同步更改）
      */
     value: [number, number, number, number],
     textureName: E_TextureType,
     textureChannel: E_TextureChannel,
+    /**
+     * data1:f32,//自定义:alphaTest,intensity,scale,
+     * data2:i32,//自定义:
+     */
     extra?: [number, number],
     texture?: BaseTexture,
     sampler?: GPUSampler,

@@ -8,20 +8,21 @@ import { IV_BaseMaterial } from "../material/base";
  * @param input IV_BaseMaterial 材质的输入参数
  * @returns GPUSampler 材质的sampler
  */
-export function getSampler(input: { samplerFilter?: GPUFilterMode, samplerBindingType?: GPUSamplerBindingType, samplerDescriptor?: GPUSamplerDescriptor }, scene: Scene): {
-    sampler: GPUSampler,
-    bindingType: GPUSamplerBindingType,
-} {
+export function getSampler(
+    input: {
+        samplerFilter?: GPUFilterMode,
+        samplerBindingType?: GPUSamplerBindingType,
+        samplerDescriptor?: GPUSamplerDescriptor
+    },
+    scene: Scene): {
+        sampler: GPUSampler,
+        bindingType: GPUSamplerBindingType,
+    } {
     let sampler: GPUSampler;
     let samplerBindingType: GPUSamplerBindingType;
     let owner = false;
 
-    if (input.samplerFilter == undefined) {
-
-        sampler = scene.resourcesGPU.getSampler("linear") as GPUSampler;
-        samplerBindingType = "filtering";
-    }
-    else if (input.samplerDescriptor) {
+    if (input.samplerDescriptor) {
         if (scene.resourcesGPU.has(input.samplerDescriptor, E_resourceKind.samplerOfString)) {
             sampler = scene.resourcesGPU.get(input.samplerDescriptor.label!, E_resourceKind.samplerOfString) as GPUSampler;
         }
@@ -30,12 +31,20 @@ export function getSampler(input: { samplerFilter?: GPUFilterMode, samplerBindin
         }
         samplerBindingType = input.samplerBindingType!;
     }
-    else {
-        sampler = scene.resourcesGPU.getSampler("nearest") as GPUSampler;//nearest ,这里只用到了简单的linear和nearest
-        samplerBindingType = "non-filtering";
+    else if (input.samplerFilter != undefined) {
+        sampler = scene.resourcesGPU.getSampler(input.samplerFilter) as GPUSampler;
+        samplerBindingType = (input.samplerFilter as string) == "filtering" ? "filtering" : "non-filtering";
     }
+    else {
+        sampler = scene.resourcesGPU.getSampler("linear") as GPUSampler;
+        samplerBindingType = "filtering";
+    }
+    // else {
+    //     sampler = scene.resourcesGPU.getSampler("nearest") as GPUSampler;//nearest ,这里只用到了简单的linear和nearest
+    //     samplerBindingType = "non-filtering";
+    // }
     if (input.samplerBindingType)
-        samplerBindingType = input.samplerBindingType!;
+        samplerBindingType = input.samplerBindingType;
     return {
         sampler,
         bindingType: samplerBindingType,

@@ -27,7 +27,7 @@ var materialKind:u32 = 2;
 var defer_4xU8InF16:u32 = 0;
 //displace map
 var depthmap:f32 = 0;
-//alpha
+//alpha ,20260114:未使用。用途：透明度测试
 var alphamap:f32 = 1;
 //envmap
 var envmap_enable:bool = false;

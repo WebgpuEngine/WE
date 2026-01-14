@@ -3,7 +3,7 @@ import { E_TransparentType } from "../material/base";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
 import { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformArrayBufferEntry, I_viewport, IV_BaseCommand, T_uniformGroups } from "./base";
-import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
+import { BaseDrawCommand, I_VertexBufferEntry, IV_BaseDrawCommand } from "./BaseDrawCommand";
 import { createUniformBuffer } from "./baseFunction";
 
 
@@ -37,7 +37,7 @@ export interface IV_DrawCommand extends IV_BaseDrawCommand {
     // label: string,
     // device: GPUDevice,
     pipeline: GPURenderPipeline,
-    vertexBuffers?: GPUBuffer[],
+    vertexBuffers?: I_VertexBufferEntry[],//20260114 修改GPUBuffer[]为interface[]
     indexBuffer?: GPUBuffer,
     indexFormat?: GPUIndexFormat,
     uniform?: GPUBindGroup[],
@@ -191,7 +191,7 @@ export class DrawCommand extends BaseDrawCommand {
             //BindGroupLayout，重点2
             let bindGroupLayout: GPUBindGroupLayout = bindGroupLayouts![layoutNumber];
 
-            if (perGroup !== undefined && perGroup.length > 0)
+            if (perGroup !== undefined && Array.isArray(perGroup) && perGroup.length > 0)
                 //创建BindGroup entry
                 for (let perEntry of perGroup) {
 

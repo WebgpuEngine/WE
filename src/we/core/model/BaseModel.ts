@@ -17,9 +17,14 @@ export interface I_Model extends I_Update {
 export interface I_ModelResMap {
 
 }
-
+/**
+ * 模型资源类型,getRes()使用
+ * 1、与modelRes的key保持一致
+ */
 export enum T_ModelResKind {
     GPUBuffers = "GPUBuffers",
+    sampler = "sampler",
+    GPUSamplerBindingType = "GPUSamplerBindingType",
     GPUTexture = "GPUTexture",
     accessor = "accessor",
     texture = "texture",
@@ -66,11 +71,16 @@ export abstract class BaseModel extends NodeObject {
      * 2、pickup使用一个RenderID
      */
     asWhole: boolean = true;
+    /**模型原始数据*/
     modelData: any;
+    /**模型资源*/
     modelRes: {
         [key: string]: Map<any, any>;
     } = {
             "GPUBuffers": new Map<any, GPUBuffer>(),
+            "sampler": new Map<any, GPUSampler>(),
+            /**key 必须与sampler的key保持一致 */
+            "GPUSamplerBindingType": new Map<any, GPUSamplerBindingType>(),
             "GPUTexture": new Map<any, GPUTexture>(),
             "accessor": new Map<any, any>(),
             "texture": new Map<any, BaseTexture>(),

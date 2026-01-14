@@ -22,8 +22,8 @@ struct PBRUniformTexture{
     kind: i32, //uniform 种类,-1=notUse,0=texture,1=value,2=vs
     texture_channel: i32,//E_TextureChannel 纹理通道:-1=user define,0=R,1=G,2=B,3=A,4=RG,5=RB,6=RA,7=GB,8=BA,9=RGB,10=RGBA
     data1:f32,//自定义:alphaTest,intensity,scale,
-    data2:f32,//自定义:
-    value: vec4f,//uniform value,按需匹配textureChannel适用
+    data2:i32,//自定义:
+    value: vec4f,//factor uniform value,按需匹配textureChannel适用
 }
 struct PBRUniformInput{
     albedo:PBRUniformTexture,   //u_texture_albedo, u_sampler_albedo
@@ -56,54 +56,77 @@ struct PBRUniformInput{
     var normal_uniform : vec4f = textureSample(u_texture_normal,u_sampler_normal,uv);
     var color_uniform : vec4f = textureSample(u_texture_color,u_sampler_color,uv);
     var emissive_uniform : vec4f = textureSample(u_texture_emissive,u_sampler_emissive,uv);
-    var emissive_intensity_uniform : f32 = u_pbr_uniform.emissive.data1;
+    var emissive_intensity_uniform : f32 = u_pbr_uniform.emissive.value.a;
     var depthmap_uniform : vec4f = textureSample(u_texture_depthmap,u_sampler_depthmap,uv);
     var alpha_uniform : vec4f = textureSample(u_texture_alpha,u_sampler_alpha,uv);
     // var lightmap_uniform : vec4f = textureSample(u_texture_lightmap,u_sampler_lightmap,uv);//lightmap,目前未定义
     
+    ///RGB通道的直接在赋值时使用；
+    ///单通道的使用get_one_channel_value()函数进行获取；
+    ///其他情况：设计未使用。TS：E_TextureChannel
+    
     //albedo
-    if(u_pbr_uniform.albedo.kind == 0){
+    if(u_pbr_uniform.albedo.kind == 0){//use uniform albedo
         albedo_uniform = u_pbr_uniform.albedo.value;
     }
+    else if(u_pbr_uniform.albedo.kind == 1){//use texture albedo * (uniform albedo as factor)
+        albedo_uniform *= u_pbr_uniform.albedo.value;
+    }    
     albedo=albedo_uniform.rgb;
+
     //metallic
     if(u_pbr_uniform.metallic.kind == 0){
         metallic_uniform = u_pbr_uniform.metallic.value;
     }
+    else if(u_pbr_uniform.metallic.kind == 1){//use texture metallic * (uniform metallic as factor)
+        metallic_uniform *= u_pbr_uniform.metallic.value;
+    }
     metallic=get_one_channel_value(metallic_uniform,u_pbr_uniform.metallic.texture_channel);
+
     //roughness
     if(u_pbr_uniform.roughness.kind == 0){
         roughness_uniform = u_pbr_uniform.roughness.value;
     }
+    else if(u_pbr_uniform.roughness.kind == 1){//use texture roughness * (uniform roughness as factor)
+        roughness_uniform *= u_pbr_uniform.roughness.value;
+    }
     roughness=get_one_channel_value(roughness_uniform,u_pbr_uniform.roughness.texture_channel);    
+
     //ao    
     if(u_pbr_uniform.ao.kind == 0){
         ao_uniform = u_pbr_uniform.ao.value;
     }
-    else if(u_pbr_uniform.ao.kind == -1){
+    else if(u_pbr_uniform.ao.kind == 1){//use texture ao * (uniform ao as factor)
+        ao_uniform *= u_pbr_uniform.ao.value;
+    }
+    else if(u_pbr_uniform.ao.kind == -1){//unuse
         ao_uniform = vec4f(1);
     }
-    ao=get_one_channel_value(ao_uniform,u_pbr_uniform.ao.texture_channel);    
+    ao=get_one_channel_value(ao_uniform,u_pbr_uniform.ao.texture_channel);   
+
     //normal
-    if(u_pbr_uniform.normal.kind == 0){
-        normal_uniform = u_pbr_uniform.normal.value;
-    }
-    if(u_pbr_uniform.normal.kind !=-1 && u_pbr_uniform.normal.kind != 2){
+    if(u_pbr_uniform.normal.kind ==1 ){//use texture normal 
         normal= getNormalFromMap( normal ,normal_uniform.xyz, worldPosition, uv);
     }
-    else if(u_pbr_uniform.normal.kind == 2){
+    else if(u_pbr_uniform.normal.kind == 2){//use vs normal
         normal = normalize(normal);
     }
     //color
     if(u_pbr_uniform.color.kind == 0){
         color_uniform = u_pbr_uniform.color.value;
     }
-    if(u_pbr_uniform.color.kind !=-1){
+    else if(u_pbr_uniform.color.kind == 1){//use texture color * (uniform color as factor)
+        color_uniform *= u_pbr_uniform.color.value;
+    }
+    else{ //} if(u_pbr_uniform.color.kind !=-1){
         materialColor = color_uniform;
     }
     //emissive
     if(u_pbr_uniform.emissive.kind == 0){
         emissive_uniform = u_pbr_uniform.emissive.value;
+    }
+    else if(u_pbr_uniform.emissive.kind == 1){//use texture emissive * (uniform emissive as factor)
+        emissive_uniform *= u_pbr_uniform.emissive.value;
     }
     if(u_pbr_uniform.emissive.kind !=-1){
         emissiveRGB = emissive_uniform.rgb;
@@ -113,17 +136,25 @@ struct PBRUniformInput{
     if(u_pbr_uniform.depthmap.kind == 0){
         depthmap_uniform = u_pbr_uniform.depthmap.value;
     }
+    else if(u_pbr_uniform.depthmap.kind == 1){//use texture depthmap * (uniform depthmap as factor)
+        depthmap_uniform *= u_pbr_uniform.depthmap.value;
+    }
     if(u_pbr_uniform.depthmap.kind !=-1){
         depthmap = get_one_channel_value(depthmap_uniform,u_pbr_uniform.depthmap.texture_channel);
     }
     //alpha
-    if(u_pbr_uniform.alpha.kind == 0){
+    if(u_pbr_uniform.alpha.kind == 0){//alpha test ,use uniform alpha
         alpha_uniform = u_pbr_uniform.alpha.value;
     }
-    if(u_pbr_uniform.alpha.kind !=-1){
-        alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);
+    else if(u_pbr_uniform.alpha.kind == 1){//use texture alpha * (uniform alpha as factor) 
+        alpha_uniform *= u_pbr_uniform.alpha.value;
     }
-    //envmap
+    else if(u_pbr_uniform.alpha.kind == -1){//opaque:unuse alpha
+        alphamap = 1;
+    }
+    alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
+
+    //envmap,todo
     if( u_pbr_uniform.envmap.kind == 1){
         envmap_enable = true;
     }
@@ -151,7 +182,7 @@ struct PBRUniformInput{
     // output.color = vec4f( depthTest,depthTest,depthTest,1);
     return output;
 }
-
+//按通道值，获取分量值
 fn get_one_channel_value(value:vec4f,channel:i32) -> f32{
     var result:f32 = value.r;
     if(channel == 0){

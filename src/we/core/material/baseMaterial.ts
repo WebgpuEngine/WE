@@ -4,7 +4,7 @@ import { RootGPU } from "../organization/root";
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
-import { commmandType, I_dynamicTextureEntryForView, T_uniformOneGroup } from "../command/base";
+import { commmandType, I_dynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final, T_SHTReplaceList } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
@@ -428,7 +428,7 @@ export abstract class BaseMaterial extends RootGPU {
             //更新groupAndBindingString
             output.shaderTemplateFinal.material.groupAndBindingString += partBundleOfUniform_TT.groupAndBindingString;
             //合并 TTP的uniform 到 output
-            output.uniformGroup.push(...partBundleOfUniform_TT.uniformGroup);
+            (output.uniformGroup as T_uniformEntries[]).push(...(partBundleOfUniform_TT.uniformGroup as T_uniformEntries[]));
             //由于使用camera的gbuffer，所以bindgroup 需要动态获取（resize 会重建gbuffer）
             output.shaderTemplateFinal.material.dynamic = true;
             return output;

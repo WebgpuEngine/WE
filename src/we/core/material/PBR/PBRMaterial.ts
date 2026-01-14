@@ -1,4 +1,15 @@
-import { E_lifeState, weColor4, weVec3 } from "../../base/coreDefine";
+/**
+ * @version 20260114
+ * @description PBR材质参数
+ * @author bythesword
+ * @todo 
+ *  1、透明度测试
+ * @description
+ *   20260114(bythesword):
+ *          1、更改PBR中textures的各类 texture?: Texture | I_BaseTexture；
+ *          2、更改shader【struct PBRUniformTexture】和TS中insideUniformBundle数组中value作为factor使用，而不是二选一；
+ */
+import { E_lifeState, weColor4, weVec3, weVec4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
@@ -6,7 +17,7 @@ import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialPBRFS_defer, SHT_materialPBRFS_defer_MSAA, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
-import { E_TextureChannel, I_BaseTexture } from "../../texture/base";
+import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import { E_MaterialType, E_MaterialUniformKind, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_MaterialUniformTextureBundle, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
@@ -28,34 +39,44 @@ import { createUniformBuffer } from "../../command/baseFunction";
 
 /**
  * PBR材质RGB形式纹理参数:normal ,color,albedo ...
- * url优先，value次之。channel按照具体情况。
- * 1、value:vec3，默认：RGB
- * 2、value:number，默认：R
- * 
- * todo:
- *  1、目前纹理使用url string，后续需要支持texture对象：I_BaseTexture | Texture
+ * 1、value是factor因子，无texture时是基础值。
+ *      A、value:vec3，默认：RGB
+ *      B、在shader处理中是必须的，没有使用默认值（在TS中实现）
+ * 2、texture：
+ *      A、是Texture，直接使用。但Texture，必须有GPUSamplerBindingType（手动布局使用，尤其是comparison，在Texture中默认是filtering），否则在报错
+ *      B、是I_BaseTexture，就是Texture的创建参数，至少需要 source: T_textureSourceType,
+ *          a、string
+ *          b、GPUTexture 
+ *          c、GPUCopyExternalImageSource;
+ * 3、无channel, 默认：RGB
  */
-interface I_TextureWithChanneAndVec3lForPBR {
-    textureUrl?: I_BaseTexture,
-    value?: weVec3,
+export interface I_TextureWithChanneAndVec3lForPBR {
+    // texture?: I_BaseTexture,
+    texture?: Texture | I_BaseTexture,
+    value?: weVec4,
     // channel?: E_TextureChannel,
 }
 /**
  * PBR材质单通道数据形式纹理参数:metallic,roughness,ao ...
- * url优先，value次之。channel按照具体情况。
- * 1、value:number，
- * 2、channel?: E_TextureChannel，默认：R
- * 
- * todo:
- *  1、目前纹理使用url string，后续需要支持texture对象：I_BaseTexture | Texture
+ * 1、value是factor因子，无texture时是基础值。
+ *      A、value:vec3，默认：RGB
+ *      B、在shader处理中是必须的，没有使用默认值（在TS中实现）
+ * 2、texture：
+ *      A、是Texture，直接使用。但Texture，必须有GPUSamplerBindingType（手动布局使用，尤其是comparison，在Texture中默认是filtering），否则在报错
+ *      B、是I_BaseTexture，就是Texture的创建参数，至少需要 source: T_textureSourceType,
+ *          a、string
+ *          b、GPUTexture 
+ *          c、GPUCopyExternalImageSource;
+ * 3、channel?: E_TextureChannel，默认：R
  */
-interface I_TextureWithChanneAndNumberlForPBR {
-    textureUrl?: I_BaseTexture,
+export interface I_TextureWithChanneAndNumberlForPBR {
+    // texture?: I_BaseTexture,
+    texture?: Texture | I_BaseTexture,
     value?: number,
     channel?: E_TextureChannel,
 }
 // function I_TextureWithChannelForPBR(texture: any): texture is I_TextureWithChanneAndNumberlForPBR {
-//     return texture && (texture.textureUrl || texture.value);
+//     return texture && (texture.texture || texture.value);
 // }
 
 /**
@@ -249,6 +270,7 @@ export class PBRMaterial extends BaseMaterial {
      * 4、textureName：对应@group(2) @binding(x) 中的textureName,使用enum对应
      * 5、sampler：隐性（使用默认或自定义）。对应WGSL结构体中sampler（也直接对应 arraybuffer）
      * 6、samplerBindingType：隐性，同sampler
+     * 7、texture: ,     
      */
     insideUniformBundle: I_MaterialUniformTextureBundle[] = [
         {
@@ -283,16 +305,16 @@ export class PBRMaterial extends BaseMaterial {
         },
         {
             kind: E_MaterialUniformKind.notUse,
-            value: [1, 1, 1, 0],
+            value: [1, 1, 1, 1],
             textureName: E_TextureType.color,
             textureChannel: E_TextureChannel.RGBA,
         },
         {
             kind: E_MaterialUniformKind.notUse,
-            value: [1, 1, 1, 0],
+            value: [1, 1, 1, 1],//第四位复用，默认强度=1
             textureName: E_TextureType.emissive,
             textureChannel: E_TextureChannel.RGB,
-            extra: [1, 0],
+            extra: [0, 0],
         },
         //延迟，暂时不考虑depthMap
         {
@@ -304,7 +326,7 @@ export class PBRMaterial extends BaseMaterial {
         },
         {
             kind: E_MaterialUniformKind.notUse,
-            value: [1, 1, 1, 0],
+            value: [1, 1, 1, 1],//opaque:use alpha
             textureName: E_TextureType.alpha,
             textureChannel: E_TextureChannel.A,
             extra: [0., 0],
@@ -352,6 +374,7 @@ export class PBRMaterial extends BaseMaterial {
         //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
             let textureSource = this.inputValues.textures[key as vialidPBRTextureType];
+            //envMap 单独处理，IBL，使用system envMap
             if (key == E_TextureType.envMap) {
                 let index: number = 9;
                 if (textureSource as boolean === true) {
@@ -363,64 +386,71 @@ export class PBRMaterial extends BaseMaterial {
             }
             else {
                 let perOne: I_TextureWithChanneAndVec3lForPBR | I_TextureWithChanneAndNumberlForPBR;
-                if (typeof textureSource != "boolean" && textureSource != undefined) {
+                if (typeof textureSource != "boolean" && textureSource != undefined) {//不是未定义
                     perOne = textureSource;
                 }
                 else {
                     throw new Error(`${key} texture error`);
                 }
-                let index: number = 0;
-                let isVec3: boolean = true;
-                let extra: [number, number] = [0, 0];
+                let index: number = 0;//this.insideUniformBundle数组的下标索引
+                let isVec3: boolean = true;//是否是vec3类型数组，RGB或R,G,B,A
+                let extra: [number, number] = [0, 0];//默认扩展数据
+                // let texture: Texture | undefined = perOne.texture;
                 switch (key) {
                     case E_TextureType.albedo:
                         perOne = (textureSource as I_TextureWithChanneAndVec3lForPBR)
                         index = 0;
                         isVec3 = true;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm-srgb";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm-srgb";
+                        }
                         break;
                     case E_TextureType.metallic:
                         perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
                         index = 1;
                         isVec3 = false;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
                         break;
                     case E_TextureType.roughness:
                         perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
                         index = 2;
                         isVec3 = false;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
                         break;
                     case E_TextureType.ao:
                         perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
                         index = 3;
                         isVec3 = false;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
                         break;
                     case E_TextureType.normal:
                         perOne = (textureSource as I_TextureWithChanneAndVec3lForPBR)
                         index = 4;
                         isVec3 = true;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
                         break;
                     case E_TextureType.color:
                         perOne = (textureSource as I_TextureWithChanneAndVec3lForPBR)
                         index = 5;
                         isVec3 = true;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm-srgb";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm-srgb";
+                        }
                         break;
                     case E_TextureType.emissive:
                         perOne = (textureSource as I_EmissiveForPBR);
                         index = 6;
                         isVec3 = true;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined) {
-                            perOne.textureUrl.format = "rgba8unorm-srgb";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm-srgb";
                         }
                         if ((perOne as I_EmissiveForPBR).intensity)
                             extra[0] = (perOne as I_EmissiveForPBR).intensity as number;
@@ -429,30 +459,44 @@ export class PBRMaterial extends BaseMaterial {
                         perOne = (textureSource as I_DepthMapForPBR);
                         index = 7;
                         isVec3 = false;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
                         break;
                     case E_TextureType.alpha:
                         perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
                         index = 8;
                         isVec3 = false;
-                        if (perOne.textureUrl && perOne.textureUrl.format == undefined)
-                            perOne.textureUrl.format = "rgba8unorm";
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
                         break;
                 }
-                if (perOne.textureUrl == undefined && perOne.value == undefined) {
+                //如果value和texture都没有，就不使用这个uniform
+                if (perOne.value == undefined && perOne.texture == undefined) {
                     this.insideUniformBundle[index].kind = E_MaterialUniformKind.notUse;
                 }
                 else {
-                    //如果参数是纹理
-                    if (perOne.textureUrl) {
-                        this.textures[key] = await this.createTexture(perOne.textureUrl!);
+                    //纹理
+                    if (perOne.texture) {
+                        // if(key == E_TextureType.albedo){
+                        //     let abc=1;
+                        // }
+                        if (perOne.texture instanceof Texture) {//如果是纹理
+                            this.textures[key] = perOne.texture;
+                        }
+                        else {//如果是纹理参数
+                            this.textures[key] = await this.createTexture(perOne.texture);
+                        }
                         this.insideUniformBundle[index].kind = E_MaterialUniformKind.texture;
                         this.insideUniformBundle[index].texture = this.textures[key];
                         //如果texture有sampler，就使用texture的sampler，否则使用默认sampler
                         if (this.textures[key].sampler) {
                             this.insideUniformBundle[index].sampler = this.textures[key].sampler;
-                            this.insideUniformBundle[index].samplerBindingType = this.textures[key]._samplerBindingType;
+                            if (this.textures[key]._samplerBindingType)
+                                this.insideUniformBundle[index].samplerBindingType = this.textures[key]._samplerBindingType;
+                            else
+                                throw new Error(`texture ${key} must have samplerBindingType`);
                         }
                         else {
                             this.insideUniformBundle[index].sampler = this.defaultSampler;
@@ -464,9 +508,9 @@ export class PBRMaterial extends BaseMaterial {
                     else if (perOne.value) {
                         this.insideUniformBundle[index].kind = E_MaterialUniformKind.value;
                         if (isVec3) {
-                            this.insideUniformBundle[index].value[0] = (perOne.value as weVec3)[0];
-                            this.insideUniformBundle[index].value[1] = (perOne.value as weVec3)[1];
-                            this.insideUniformBundle[index].value[2] = (perOne.value as weVec3)[2];
+                            this.insideUniformBundle[index].value[0] = (perOne.value as weVec4)[0];
+                            this.insideUniformBundle[index].value[1] = (perOne.value as weVec4)[1];
+                            this.insideUniformBundle[index].value[2] = (perOne.value as weVec4)[2];
                         }
                         else {
                             this.insideUniformBundle[index].value[0] = perOne.value as number;

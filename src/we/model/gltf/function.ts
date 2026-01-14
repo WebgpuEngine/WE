@@ -78,7 +78,15 @@ export function getTypeSize(type: string): number {
  * 
  *  componentTypeSize: number, 组件类型byte(int8,uint8,sint16,uint16,uint32,float32)大小
  */
-export function getAccessorSize(accessor: GLTFAccessor, bufferView: GLTFBufferView): { size: number, unitByteSize: number, byteStride: number, componentSize: number, componentTypeSize: number } {
+export function getAccessorSize(accessor: GLTFAccessor, bufferView: GLTFBufferView): {
+    count: number,
+    componentSize: number,//组件内数量（SCALAR|VEC2|VEC3|VEC4|MAT2|MAT3|MAT4）
+    componentTypeSize: number,//组件类型byte(int8,uint8,sint16,uint16,uint32,float32)大小
+    unitByteSize: number,//单位组件byte大小=组件内数量（SCALAR|VEC2|VEC3|VEC4|MAT2|MAT3|MAT4）*组件类型byte(int8,uint8,sint16,uint16,uint32,float32)大小
+    byteStride: number,//字节跨度，单位byte.存在紧凑模式与非紧凑模式；max(unitByteSize,byteStride)
+    bytesize: number,//字节大小=数量*byteStride（单位组件byte大小）
+    // size: number,//数量*组件内数量（SCALAR|VEC2|VEC3|VEC4|MAT2|MAT3|MAT4），但不乘以组件类型byte
+} {
     let type = accessor.type;
     let count = accessor.count;
     let componentSize = getTypeSize(type);
@@ -100,7 +108,15 @@ export function getAccessorSize(accessor: GLTFAccessor, bufferView: GLTFBufferVi
     if (byteStride > componentTypeSize * componentSize)
         size = byteStride * count;
 
-    return { size: size, unitByteSize: componentTypeSize * componentSize, byteStride: byteStride, componentSize: componentSize, componentTypeSize };
+    return {
+        count: count,
+        componentSize: componentSize,
+        componentTypeSize: componentTypeSize,
+        unitByteSize: componentTypeSize * componentSize,
+        byteStride: byteStride,
+        bytesize: byteStride * count,
+        // size: size,
+    };
 }
 /**
  * 获取accessor的byte stride，用于计算accessor中引用bufferView的byte offset
@@ -286,7 +302,7 @@ export function getAccessorTypeForGPUVertexFormat(accessor: GLTFAccessor): { for
 
 /**
  * 检查bufferView是否包含VEC3类型的accessor，
- * 如果包含，且componentType为5120、5121、5122、5123中的一种，
+ * 如果包含，且componentType为5120(u8)、5121(u16)、5122(u16)、5123(i16)中的一种，
  * 则需要新构建buffer
  * @param bufferView 要检查的bufferView
  * @param accessors 所有accessor
@@ -307,29 +323,29 @@ export function checkRebulidBufferForVec3(accessor: GLTFAccessor): boolean {
  * @param data 原始数据
  * @param componentType 组件类型
  * @param byteOffset 偏移量
- * @param size 大小
+ * @param countOfComponent 组件数量
  * @returns 
  */
-export function getBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType: number, byteOffset: number, size: number):
+export function getBufferSourceOfArrayBuffer(data: ArrayBuffer, componentType: number, byteOffset: number, countOfComponent: number):
     Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
     let buffer;
     if (componentType == 5120) {
-        buffer = new Int8Array(data, byteOffset, size);
+        buffer = new Int8Array(data, byteOffset, countOfComponent);
     }
     else if (componentType == 5121) {
-        buffer = new Uint8Array(data, byteOffset, size);
+        buffer = new Uint8Array(data, byteOffset, countOfComponent);
     }
     else if (componentType == 5122) {
-        buffer = new Int16Array(data, byteOffset, size);
+        buffer = new Int16Array(data, byteOffset, countOfComponent);
     }
     else if (componentType == 5123) {
-        buffer = new Uint16Array(data, byteOffset, size);
+        buffer = new Uint16Array(data, byteOffset, countOfComponent);
     }
     else if (componentType == 5125) {
-        buffer = new Uint32Array(data, byteOffset, size);
+        buffer = new Uint32Array(data, byteOffset, countOfComponent);
     }
     else if (componentType == 5126) {
-        buffer = new Float32Array(data, byteOffset, size);
+        buffer = new Float32Array(data, byteOffset, countOfComponent);
     }
     else {
         throw new Error(`GLTFModel:  component type ${componentType} not support`);
@@ -463,4 +479,42 @@ export function convertLineIndexLoopToList(indexFan: Uint32Array | Uint16Array, 
     listArray.push(indexFan[count - 1], zero);
     let indexList = new Uint32Array(listArray);
     return indexList;
+}
+
+
+/**
+ * 获取accessor的数据来源,BufferSource
+ * 1、为webgpu不支持的类型，获取原始数据，重构GPUBuffer使用。
+ *      A、紧密结构的直接返回对应的 ArrayBufferView
+ *      B、非紧密机构的，需要根据byteStride和unitByteSize进行重构，转换为新的 ArrayBuffer对应的 ArrayBufferView，数据类型与原始的一致。
+ * 2、为print数据使用，进行分析和debug
+ * @param accessor 
+ * @returns Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array
+ */
+export function getBufferSourceForAccessor(accessor: GLTFAccessor): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
+    if (!this.gltfJson.bufferViews) {
+        throw new Error("GLTFModel: accessor bufferView not found");
+    }
+    let bufferView = this.gltfJson.bufferViews[accessor.bufferView!];
+
+    let componentType = accessor.componentType;     //componentType(int8,uint8,sint16,uint16,uint32,float32)
+
+    let byteOffset = accessor.byteOffset || 0;//) + (bufferView.byteOffset || 0);
+
+    let sizes = BaseFunction.getAccessorSize(accessor, bufferView);
+    // this.modelGltfBuffers[bufferView.buffer].arrayBuffer
+    let buffer = this.getBufferByBufferViewID(accessor.bufferView!);
+
+    //数据元素是紧密排列的
+    //或
+    //元素跨度=组件（SCALAR|VEC2|VEC3|VEC4|MAT2|MAT3|MAT4）*组件类型byte(int8,uint8,sint16,uint16,uint32,float32)大小
+    if (sizes.byteStride === 0 || sizes.byteStride === sizes.unitByteSize) {
+        return BaseFunction.getBufferSourceOfArrayBuffer(buffer.arrayBuffer, componentType, buffer.byteOffset + byteOffset, sizes.count * sizes.componentSize);
+    }
+    //数据元素是有跨度排序的，多个原始||有填充
+    //simpleSkin.gltf 中joints_0 accessor的byteStride=16,unitByteSize=VEC4*uint16=4*2=8,这里就不相等了（后面的8byte是占位）
+    else {
+        // throw new Error("/数据元素是有跨度排序的，多个原始||有填充,未实现");
+        return BaseFunction.getArrayBufferViewByStrideAndCount(buffer.arrayBuffer, buffer.byteOffset + byteOffset, accessor.type, componentType, sizes.byteStride, accessor.count);
+    }
 }
