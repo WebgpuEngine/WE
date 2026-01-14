@@ -14,6 +14,12 @@ export class RootManager extends NodeObject {
         super();
         this.device = scene.device;
         this.scene = scene;
+        /**
+        * NodeObject 通过parent.type 判断是否为root节点
+        * 1、NodeObject.updateMatrixWorld()
+        * 2. NodeObject.getVisibleAndParents()
+        * 3. NodeObject.getEnableAndParents()
+        */
         this.type = "root";
         this.Name = "weRoot";
         this.renderID = 0;

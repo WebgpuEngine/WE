@@ -533,6 +533,7 @@ export abstract class NodeObject extends NodeSpace {
     }
     /**
      * 向上递归，判断是否可见
+     * 1、通过parent.type 判断是否为root节点
      */
     getVisibleAndParents(): boolean {
         if (this.visible == false) {
