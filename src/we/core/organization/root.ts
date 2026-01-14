@@ -541,7 +541,7 @@ export abstract class NodeObject extends NodeSpace {
         if (this.Parent == undefined) {
             return false;
         }
-        else if (this.Parent.Name == "root") {
+        else if (this.Parent.type == "root") {
             return true;
         }
         else {
@@ -572,7 +572,7 @@ export abstract class NodeObject extends NodeSpace {
         if (this.Parent == undefined) {
             return false;
         }
-        else if (this.Parent.Name == "root") {
+        else if (this.Parent.type == "root") {
             return true;
         }
         else {
