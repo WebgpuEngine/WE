@@ -6,6 +6,8 @@
  *      1、gltf accessor中的vertex数据和vertex spares中的类型u8,i8,u16,i16的VEC3数据的重构未验证
  *      2、vertex 数据中stride中存在offset的实现，即数据为一个stride中包括： position+uv+noraml，每个属性有不同的stride中的offset
  *      3、normal的重建计算。
+ *              A、non-indexed的normal重建计算：每个三角形一个normal，顶点使用面法线。
+ *              B、indexed的normal重建计算：1、计算每个三角形，顶点使用三角形法线；2，将所有顶点的相同normal合并，取平均。
  */
 import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
@@ -187,7 +189,7 @@ export class GLTFModel extends BaseModel {
      * @param attachValue 节点空间属性
      * @returns 场景节点实例
      */
-    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_Node): Promise<NodeInstanceModel> {
+    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
         let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
         await nodeOfScene.init(this.scene, parent);         // 初始化node object
         nodeOfScene._modelOrigin = this;
@@ -1276,11 +1278,14 @@ export class GLTFModel extends BaseModel {
                     else if (k == "TEXCOORD_1") {
                         nameOfAttribute = "uv1";
                     }
-                    // if (k == "NORMAL_0") {
-                    //     nameOfAttribute = "normal";
-                    // }
+                    if (k == "NORMAL") {
+                        nameOfAttribute = "normal";
+                    }
                     verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
                 }
+                // if("normal" in verticesOfDataOfEntity == false){
+                //     verticesOfDataOfEntity["normal"] = computeNormalsFromPositions(verticesOfDataOfEntity["position"].data, primitive.indices);
+                // }
                 /////////////////////////////////////////////////////////////////////////////////////////////////////
                 //gpubuffer of index and draw mode   part
                 //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
@@ -1457,7 +1462,7 @@ async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject)
     // await oneNode.init(gltf.scene, parent);
     let oneNode: NodeInstance = await newNode(gltf.scene, parent);
     oneNode.Name = node.name || "gltf_" + nodeID;
-    console.log(oneNode.ID, oneNode.Name);
+    // console.log(oneNode.ID, oneNode.Name);
     {
         ////////////////////////////////////////////////
         //如果当前节点有mesh，就添加到parent中

@@ -15,7 +15,7 @@ export class RootManager extends NodeObject {
         this.device = scene.device;
         this.scene = scene;
         this.type = "root";
-        this.Name = "root";
+        this.Name = "weRoot";
         this.renderID = 0;
         this._readyForGPU = true;
         this.ID = 0;

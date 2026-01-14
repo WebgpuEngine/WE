@@ -483,38 +483,90 @@ export function convertLineIndexLoopToList(indexFan: Uint32Array | Uint16Array, 
 
 
 /**
- * 获取accessor的数据来源,BufferSource
- * 1、为webgpu不支持的类型，获取原始数据，重构GPUBuffer使用。
- *      A、紧密结构的直接返回对应的 ArrayBufferView
- *      B、非紧密机构的，需要根据byteStride和unitByteSize进行重构，转换为新的 ArrayBuffer对应的 ArrayBufferView，数据类型与原始的一致。
- * 2、为print数据使用，进行分析和debug
- * @param accessor 
- * @returns Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array
+ * 从顶点位置和索引计算法线
+ * @param {Float32Array} positions - 顶点位置数组（格式：[x0,y0,z0, x1,y1,z1, ...]）
+ * @param {Uint16Array|Uint32Array} indices - 三角面索引数组（格式：[i0,i1,i2, i3,i4,i5, ...]）
+ * @returns {Float32Array} 顶点法线数组（格式与 positions 一致）
  */
-export function getBufferSourceForAccessor(accessor: GLTFAccessor): Int8Array | Uint8Array | Int16Array | Uint16Array | Uint32Array | Float32Array {
-    if (!this.gltfJson.bufferViews) {
-        throw new Error("GLTFModel: accessor bufferView not found");
+export function computeNormalsFromPositions(positions: Float32Array, indices: Uint16Array | Uint32Array): Float32Array {
+    // 1. 初始化法线数组为 0
+    const normals = new Float32Array(positions.length);
+    const stride = 3; // 每个顶点 3 个分量（x,y,z）
+
+    // 2. 遍历所有三角面，计算面法线并累加到顶点
+    for (let i = 0; i < indices.length; i += 3) {
+        // 获取三角面的三个顶点索引
+        const i0 = indices[i];
+        const i1 = indices[i + 1];
+        const i2 = indices[i + 2];
+
+        // 获取三个顶点的位置
+        const p0 = [
+            positions[i0 * stride],
+            positions[i0 * stride + 1],
+            positions[i0 * stride + 2]
+        ];
+        const p1 = [
+            positions[i1 * stride],
+            positions[i1 * stride + 1],
+            positions[i1 * stride + 2]
+        ];
+        const p2 = [
+            positions[i2 * stride],
+            positions[i2 * stride + 1],
+            positions[i2 * stride + 2]
+        ];
+
+        // 计算边向量
+        const v1 = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+        const v2 = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+
+        // 叉乘计算面法线（右手系）
+        const faceNormal = [
+            v1[1] * v2[2] - v1[2] * v2[1],
+            v1[2] * v2[0] - v1[0] * v2[2],
+            v1[0] * v2[1] - v1[1] * v2[0]
+        ];
+
+        // 归一化面法线（避免长度异常）
+        const len = Math.sqrt(faceNormal[0] ** 2 + faceNormal[1] ** 2 + faceNormal[2] ** 2);
+        if (len < 1e-6) continue; // 跳过退化的三角面
+        const n = [
+            faceNormal[0] / len,
+            faceNormal[1] / len,
+            faceNormal[2] / len
+        ];
+
+        // 将面法线累加到三个顶点的法线中
+        normals[i0 * stride] += n[0];
+        normals[i0 * stride + 1] += n[1];
+        normals[i0 * stride + 2] += n[2];
+
+        normals[i1 * stride] += n[0];
+        normals[i1 * stride + 1] += n[1];
+        normals[i1 * stride + 2] += n[2];
+
+        normals[i2 * stride] += n[0];
+        normals[i2 * stride + 1] += n[1];
+        normals[i2 * stride + 2] += n[2];
     }
-    let bufferView = this.gltfJson.bufferViews[accessor.bufferView!];
 
-    let componentType = accessor.componentType;     //componentType(int8,uint8,sint16,uint16,uint32,float32)
-
-    let byteOffset = accessor.byteOffset || 0;//) + (bufferView.byteOffset || 0);
-
-    let sizes = BaseFunction.getAccessorSize(accessor, bufferView);
-    // this.modelGltfBuffers[bufferView.buffer].arrayBuffer
-    let buffer = this.getBufferByBufferViewID(accessor.bufferView!);
-
-    //数据元素是紧密排列的
-    //或
-    //元素跨度=组件（SCALAR|VEC2|VEC3|VEC4|MAT2|MAT3|MAT4）*组件类型byte(int8,uint8,sint16,uint16,uint32,float32)大小
-    if (sizes.byteStride === 0 || sizes.byteStride === sizes.unitByteSize) {
-        return BaseFunction.getBufferSourceOfArrayBuffer(buffer.arrayBuffer, componentType, buffer.byteOffset + byteOffset, sizes.count * sizes.componentSize);
+    // 3. 归一化所有顶点法线
+    for (let i = 0; i < normals.length; i += stride) {
+        const x = normals[i];
+        const y = normals[i + 1];
+        const z = normals[i + 2];
+        const len = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+        if (len < 1e-6) {
+            normals[i] = 0;
+            normals[i + 1] = 1; // 无有效法线时默认向上
+            normals[i + 2] = 0;
+        } else {
+            normals[i] = x / len;
+            normals[i + 1] = y / len;
+            normals[i + 2] = z / len;
+        }
     }
-    //数据元素是有跨度排序的，多个原始||有填充
-    //simpleSkin.gltf 中joints_0 accessor的byteStride=16,unitByteSize=VEC4*uint16=4*2=8,这里就不相等了（后面的8byte是占位）
-    else {
-        // throw new Error("/数据元素是有跨度排序的，多个原始||有填充,未实现");
-        return BaseFunction.getArrayBufferViewByStrideAndCount(buffer.arrayBuffer, buffer.byteOffset + byteOffset, accessor.type, componentType, sizes.byteStride, accessor.count);
-    }
+
+    return normals;
 }

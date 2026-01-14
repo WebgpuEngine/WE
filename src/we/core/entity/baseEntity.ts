@@ -371,6 +371,10 @@ export abstract class BaseEntity extends NodeSpace {
         }
     }
 
+    /**
+     * 生成内部instance的矩阵，涵括内部instance的position,rotate,scale等
+     * @returns Mat4[] 内部instance的矩阵
+     */
     generateInsideInstanceMatrix(): Mat4[] {
         let positionEnable: boolean = false;
         let rotateEnable: boolean = false;
@@ -864,7 +868,7 @@ export abstract class BaseEntity extends NodeSpace {
             }
             let sizeOfInstances = this.getInstancesCount() * size;
             //创建ArrayBuffer，旧的ArrayBuffer由GC回收
-            this.bufferCPU[nameCPU] = new ArrayBuffer(sizeOfInstances);
+            this.bufferCPU[nameCPU] = new ArrayBuffer(sizeOfInstances);     //创建新的ArrayBuffer，空的，不是N个单位矩阵
             //销毁旧的GPUBuffer，句柄由webGPU GC回收
             if (this.bufferGPU[nameCPU]) {
                 this.bufferGPU[nameCPU].destroy();
@@ -904,6 +908,11 @@ export abstract class BaseEntity extends NodeSpace {
             throw new Error("更新实例化数组与GPU实例化数组失败");
         }
     }
+    /**
+     * 获取内部instance的矩阵
+     * @param i 内部instance的索引
+     * @returns 内部instance的矩阵
+     */
     getInsideInstanceMatrix(i: number): Mat4 {
         //由于子类constructor中的inside判断或晚于super，所有在第一次使用时再生成。
         if (this._insideInstanceMatrix.length == 0) {
@@ -924,8 +933,8 @@ export abstract class BaseEntity extends NodeSpace {
                 //内部instance
                 for (let j = 0; j < this.instance.numInstances; j++) {
                     let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceWorldMatrixForWGSL;
-                    const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);//array buffer view 
-                    let matrixWorld = mat4.multiply(this.getMatrixWorldOfInstance(perNode), this.getInsideInstanceMatrix(j));
+                    const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);//array buffer view ，全部为0的arraybuffer，参见checkStorageBuffer
+                    let matrixWorld = mat4.multiply(this.getMatrixWorldOfInstance(perNode), this.getInsideInstanceMatrix(j));//内部矩阵乘以外部矩阵，得到世界矩阵
                     worldMatrix.set(matrixWorld)
                 }
             }

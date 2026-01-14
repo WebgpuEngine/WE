@@ -1,7 +1,7 @@
 import { I_EntityBundleOutput } from "../entity/base";
 import { isUniformBufferPart } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_uniformArrayBufferEntry, T_uniformGroups } from "./base";
+import { I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "./base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
 import { createUniformBuffer, createVerticesBuffer } from "./baseFunction";
 
@@ -82,7 +82,7 @@ export class SimpleDrawCommand extends BaseDrawCommand {
         if (this.indexBuffer)
             this.indexBuffer.destroy();
         for (let i = 0; i < this.vertexBuffers.length; i++) {
-            this.vertexBuffers[i].destroy();
+            this.vertexBuffers[i].buffer.destroy();
         }
         for (let i = 0; i < this.uniformGPUBuffers.length; i++) {
             this.uniformGPUBuffers[i].destroy();
@@ -148,7 +148,7 @@ export class SimpleDrawCommand extends BaseDrawCommand {
                             }],
                         }
                     }
-                    this.vertexBuffers.push(gpuBuffer);
+                    this.vertexBuffers.push({ buffer: gpuBuffer });
                     DC_verticesBufferLayout.push(_GPUVertexBufferLayout!);      //顺序push顶点Buffer的layout
                 }
             }
@@ -219,8 +219,8 @@ export class SimpleDrawCommand extends BaseDrawCommand {
                 };
             }
         }
-        let uniformGroups: T_uniformGroups[] = [];//参见deferRender.fs.wgsl
-        return { bindingNumber, uniformGroups, shaderTemplateFinal };
+        let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
+        return { bindingNumber, uniformGroup, shaderTemplateFinal };
     }
     /**
      * replace模板只处理 replaceCode类型

@@ -63,7 +63,13 @@ let gltf = await createGLTFModel({
 );
 window.gltf = gltf;
 console.log(gltf.modelData.json.images, typeof gltf.modelData.json.images[0].bufferView);
-let box = await scene.add(gltf);
+let box =scene.add(gltf, {
+  position: [0, 0, 0],
+  scale: [1, 1, 1],
+  rotate: [0, 1, 0, Math.PI/4],
+});
+
+
 console.log("add gltf instance", box);
 
 // gltf.printAccessorContent(0)

@@ -20,7 +20,7 @@ export interface I_UUID {
     _isDestroy: boolean,
 
 }
-
+////////////////////////////////////////////////////////////RootGPU//////////////////////////////////////////////////////////////////////////////////////////
 
 
 export abstract class RootGPU implements I_UUID {
@@ -153,7 +153,7 @@ export abstract class RootGPU implements I_UUID {
     }
     abstract updateSelf(clock: Clock): void;
 }
-
+////////////////////////////////////////////////////////////NodeSpace//////////////////////////////////////////////////////////////////////////////////////////
 /**
  * 空间节点初始化参数interface
  * node space interface
@@ -329,6 +329,9 @@ export abstract class NodeSpace extends RootGPU {
             mat4.copy(this._matrix, this.matrix);
         }
 
+        if(this._scale[0] !== 1 || this._scale[1] !== 1 || this._scale[2] !== 1){
+            let abc=1
+        }
         if (this._scale)
             this.scale(this._scale);
 
@@ -390,6 +393,10 @@ export abstract class NodeSpace extends RootGPU {
     }
 }
 
+////////////////////////////////////////////////////////////
+// some JSON
+///////////////////////////////////////////////////////////
+
 export interface NodeObjectJSON {
     type: string,
     name: string,
@@ -421,7 +428,7 @@ export interface IV_AttachSpaceAttributeToNodeModel {
     quaternion?: weVec4,
     matrix?: weMat4,
 }
-
+//////////////////////////////////////////////////////////////NodeObject////////////////////////////////////////////////////////////////////////////////////////
 export interface IV_Node extends IV_NodeSpace {
     entity?: BaseEntity,
     /** 实例化的节点对象 */
@@ -691,9 +698,7 @@ export abstract class NodeObject extends NodeSpace {
             // else if (child.type == "Model") {
             //     // this.scene.modelManager.addModel(child as Model);
             // }
-            else {
-                console.log("未找到对应的ECS manager", child);
-            }
+           
         }
         //节点，根据参数创建
         else {
@@ -900,7 +905,7 @@ export abstract class NodeObject extends NodeSpace {
      *          递归乘以父节点的矩阵
      */
     updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
-        if (this.Parent !== undefined && this.Parent.Name !== "root") {
+        if (this.Parent !== undefined && this.Parent.type !== "root") {
             this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
         }
         else {
@@ -984,6 +989,8 @@ export abstract class NodeObject extends NodeSpace {
     // }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// NodeInstance and NodeInstanceModel
 /**
  * 节点实例
  * 用于实例化节点对象
