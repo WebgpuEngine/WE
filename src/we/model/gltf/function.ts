@@ -488,7 +488,7 @@ export function convertLineIndexLoopToList(indexFan: Uint32Array | Uint16Array, 
  * @param {Uint16Array|Uint32Array} indices - 三角面索引数组（格式：[i0,i1,i2, i3,i4,i5, ...]）
  * @returns {Float32Array} 顶点法线数组（格式与 positions 一致）
  */
-export function computeNormalsFromPositions(positions: Float32Array, indices: Uint16Array | Uint32Array): Float32Array {
+export function computeNormalsFromPositionsAndIndices(positions: Float32Array, indices: Uint16Array | Uint32Array): Float32Array {
     // 1. 初始化法线数组为 0
     const normals = new Float32Array(positions.length);
     const stride = 3; // 每个顶点 3 个分量（x,y,z）
@@ -567,6 +567,71 @@ export function computeNormalsFromPositions(positions: Float32Array, indices: Ui
             normals[i + 2] = z / len;
         }
     }
+    // console.log("normal:", normals);
+    return normals;
+}
+export function computeNormalsFromPositionsNoIndex(positions: Float32Array): Float32Array {
+    // 1. 初始化法线数组为 0
+    const normals = new Float32Array(positions.length);
+    const stride = 3; // 每个顶点 3 个分量（x,y,z）
 
+    // 2. 遍历所有三角面，计算面法线并累加到顶点
+    for (let i = 0; i < positions.length; i += 3 * 3) {
+        // 获取三个顶点的位置,逆时针顺序(0,1,2,一定，否则法线指向内部)，计算法线时需要注意，法线指向外部
+        const p0 = [
+            positions[i  + 0],
+            positions[i  + 1],
+            positions[i  + 2]
+        ];
+        const p1 = [
+            positions[i + 3],
+            positions[i + 4],
+            positions[i + 5]
+        ];
+        const p2 = [
+            positions[i + 6],
+            positions[i + 7],
+            positions[i + 8]
+        ];
+
+        // 计算边向量
+        const v1 = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+        const v2 = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+
+        // 叉乘计算面法线（右手系）
+        const faceNormal = [
+            v1[1] * v2[2] - v1[2] * v2[1],
+            v1[2] * v2[0] - v1[0] * v2[2],
+            v1[0] * v2[1] - v1[1] * v2[0]
+        ];
+
+        // 归一化面法线（避免长度异常）
+        const len = Math.sqrt(faceNormal[0] ** 2 + faceNormal[1] ** 2 + faceNormal[2] ** 2);
+        let n = [0, 1, 0];
+        if (len < 1e-6) { // 跳过退化的三角面
+
+        }
+        else 
+        {
+            n = [
+                faceNormal[0] / len,
+                faceNormal[1] / len,
+                faceNormal[2] / len
+            ];
+        }
+
+        // 将面法线累加到三个顶点的法线中
+        normals[i + 0] = n[0];
+        normals[i + 1] = n[1];
+        normals[i + 2] = n[2];
+
+        normals[i + 3] = n[0];
+        normals[i + 4] = n[1];
+        normals[i + 5] = n[2];
+
+        normals[i + 6] = n[0];
+        normals[i + 7] = n[1];
+        normals[i + 8] = n[2];
+    }
     return normals;
 }

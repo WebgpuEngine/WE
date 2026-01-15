@@ -26,7 +26,7 @@ let scene = await initScene({
 window.scene = scene;
 
 let oneDirlight = new DirectionalLight({
-  color: [0, 0, 1],
+  color: [1, 1, 1],
   direction: [1, 1, 1],
   intensity: 3,
 
@@ -36,7 +36,7 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.36
+    intensity: 0.036
   }
 )
 await scene.add(ambientLight);
@@ -70,43 +70,47 @@ let gltf = await createGLTFModel({
 );
 window.gltf = gltf;
 console.log(gltf);
-scene.add(gltf, {
+scene.add(gltf,
+   {
   position: [0, 0, 0],
   scale: [0.1, 0.1, 0.1],
-  rotate: [0, 1, 0, Math.PI/4],
-});
-
-
-let geometry = new SphereGeometry(
-
-  {
-    // radius:1.1,
-    // phiStart:0,
-    // phiLength:Math.PI/2 ,
-    // // thetaStart:0,
-    // // thetaLength:Math.PI,
-    // heightSegments:15,
-    // widthSegments:1,
-  }
-);
-
-let colorMaterial = new ColorMaterial({
-  color: [0, 0.1, 0.2, 1]
-});
-
-let inputMesh: IV_MeshEntity = {
-  attributes: {
-    geometry: geometry,
-  },
-  // scale: [0.15, 0.15, 0.15],
-  position: [0, 0, -1],
-  material: colorMaterial,
-  wireFrame: {
-    color: [1, 1, 1, 1],
-    enable: true,
-    // wireFrameOnly: true,
-  }
+  rotate: [0, 1, 0, Math.PI/2],
 }
-let mesh = new Mesh(inputMesh);
-console.log(mesh);
-await scene.add(mesh);
+);
+// gltf.printAccessorContent(0)
+// gltf.printAccessorContent(1)
+// gltf.printAccessorContent(2)
+
+// let geometry = new SphereGeometry(
+
+//   {
+//     // radius:1.1,
+//     // phiStart:0,
+//     // phiLength:Math.PI/2 ,
+//     // // thetaStart:0,
+//     // // thetaLength:Math.PI,
+//     // heightSegments:15,
+//     // widthSegments:1,
+//   }
+// );
+
+// let colorMaterial = new ColorMaterial({
+//   color: [0, 0.1, 0.2, 1]
+// });
+
+// let inputMesh: IV_MeshEntity = {
+//   attributes: {
+//     geometry: geometry,
+//   },
+//   // scale: [0.15, 0.15, 0.15],
+//   position: [0, 0, -1],
+//   material: colorMaterial,
+//   wireFrame: {
+//     color: [1, 1, 1, 1],
+//     enable: true,
+//     // wireFrameOnly: true,
+//   }
+// }
+// let mesh = new Mesh(inputMesh);
+// console.log(mesh);
+// await scene.add(mesh);

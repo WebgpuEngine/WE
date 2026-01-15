@@ -1215,6 +1215,7 @@ export class GLTFModel extends BaseModel {
                 this.modelRes.material.set(Number(i), perMaterial);
             }
     }
+
     /**
      * 初始化entity 
      */
@@ -1283,9 +1284,59 @@ export class GLTFModel extends BaseModel {
                     }
                     verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
                 }
-                // if("normal" in verticesOfDataOfEntity == false){
-                //     verticesOfDataOfEntity["normal"] = computeNormalsFromPositions(verticesOfDataOfEntity["position"].data, primitive.indices);
-                // }
+                if ("normal" in verticesOfDataOfEntity == false) {//如果没有法线，计算法线
+                    let positionAccessorID = primitive.attributes["POSITION"];
+                    let positionAccessor = this.modelData.json.accessors[positionAccessorID];
+                    let normalAccessorID = positionAccessorID + "_normal";
+                    let alreadyNormal = this.modelRes.accessor.has(normalAccessorID);
+                    if (alreadyNormal) {
+                        verticesOfDataOfEntity["normal"] = this.modelRes.accessor.get(normalAccessorID) as I_vsGPUBufferBundle;
+                    }
+                    else {
+                        let positions = this.getBufferSourceForAccessor(positionAccessor) as Float32Array;
+                        let normalAccessorBufferSource: I_vsGPUBufferBundle;
+                        let gpuBuffer: GPUBuffer;
+                        if ("indices" in primitive) {//如果有索引，根据索引计算法线
+                            let indicesAccessorID: number = primitive["indices"]!;
+                            let indicesAccessor = this.modelData.json.accessors[indicesAccessorID];
+                            let indices = this.getBufferSourceForAccessor(indicesAccessor) as Uint16Array | Uint32Array;
+                            let normals: Float32Array = BaseFunction.computeNormalsFromPositionsAndIndices(positions, indices);
+                            gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
+                            normalAccessorBufferSource = {
+                                buffer: gpuBuffer,
+                                format: "float32x3",
+                                wgslFormat: "vec3f",
+                                name: normalAccessorID,
+                                arrayStride: 3 * 4,
+                                count: verticesOfDataOfEntity["position"].count,
+                                offset: 0,
+                                byteSize: verticesOfDataOfEntity["position"].byteSize,
+                                min: [-1, -1, -1],
+                                max: [1, 1, 1],
+                            };
+                            verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
+                        }
+                        else {//如果没有索引，根据顶点顺序计算法线
+                            let normals: Float32Array = BaseFunction.computeNormalsFromPositionsNoIndex(positions);
+                            gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
+                            normalAccessorBufferSource = {
+                                buffer: gpuBuffer,
+                                format: "float32x3",
+                                wgslFormat: "vec3f",
+                                name: normalAccessorID,
+                                arrayStride: 3 * 4,
+                                count: verticesOfDataOfEntity["position"].count,
+                                offset: 0,
+                                byteSize: verticesOfDataOfEntity["position"].byteSize,
+                                min: [-1, -1, -1],
+                                max: [1, 1, 1],
+                            };
+                            verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
+                        }
+                        this.modelRes.accessor.set(normalAccessorID, normalAccessorBufferSource);
+                        this.modelRes.GPUBuffers.set(normalAccessorID, gpuBuffer);
+                    }
+                }
                 /////////////////////////////////////////////////////////////////////////////////////////////////////
                 //gpubuffer of index and draw mode   part
                 //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
