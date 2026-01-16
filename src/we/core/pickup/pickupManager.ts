@@ -27,19 +27,25 @@ export class pickupManager extends ECSManager<Pickup> {
         this.inputManager.remove(one);
     }
     //
-    register(pickupIV: IV_Pickup): Pickup {
-        let initValue: IV_PickupInitValue = {
-            scene: this.scene,
-            manager: this.inputManager,
-            pickup: pickupIV,
-            parent: this,
-        };
-        let pickup = new Pickup(initValue);
+    register(pickupIV: IV_Pickup | Pickup): Pickup {
+        let pickup: Pickup
+        if (pickupIV instanceof Pickup) {
+            pickup = pickupIV;
+        }
+        else {
+            let initValue: IV_PickupInitValue = {
+                scene: this.scene,
+                manager: this.inputManager,
+                pickup: pickupIV,
+                parent: this,
+            };
+            pickup = new Pickup(initValue);
+        }
         this.add(pickup);
         return pickup;
     }
     onResize() {
-        for(let perOne of this.list){
+        for (let perOne of this.list) {
             perOne.onResize();
         }
     }
