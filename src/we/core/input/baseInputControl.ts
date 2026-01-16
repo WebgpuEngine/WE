@@ -74,7 +74,7 @@ export abstract class BaseInputControl {
         else {
             throw new Error("InputManager is required");
         }
-        this.manager.add(this);
+        this.manager.add(this);//添加到inputManager的list中,注册事件本身到ECS的list中
     }
     abstract __destroy(): any;
     destroy(): void {
@@ -82,6 +82,13 @@ export abstract class BaseInputControl {
         this.__destroy();
         this._isDestroy=true;
     }
+    /**
+     * 注册控制器使用的input事件到ECS对应事件队列
+     * @param event 事件类型
+     * @param priority 优先级
+     * @param control 控制器
+     * @returns 是否注册成功
+     */
     registerEvent(event: E_InputEvent, priority: E_InputPriority, control: BaseInputControl): boolean {
         return this.manager.registerEvent(event, priority, control);
     }
@@ -89,16 +96,19 @@ export abstract class BaseInputControl {
         return this.manager.removeRegisterEvent(event, priority, entity);
     }
     /**
-     * 接收输入事件
+     * 接收输入事件，处理事件相关数据，并返回是否后续继续处理了该事件（仅独占intercept优先级）
      *      1、接受输入event，并按需写入eventValues
      *      2、或者控制器自定义的数据结构
      * @param event 事件对象
      * @param type 事件类型
-     * @returns 是否处理了该事件
-     *  true,InputManager 将终止处理该事件（继续广播）
-     *  false，继续广播该事件（其他注册的控制类也会收到）。
-     *  返回true/false，取决于具体的实现。
-     *      比如：
+     * @returns  返回true/false，取决于对应的优先级别。
+     *  true,
+     *      A、broadcastStart|broadcastEnd优先级，返回不影响后续处理。
+     *      B、InputManager 将终止处理（仅独占intercept优先级）该事件（继续广播）
+     *  false
+     *      A、broadcastStart|broadcastEnd无影响
+     *      B、如果是intercept优先级，返回false，InputManager 将继续处理该事件（继续广播）
+     * 例如：
      *          1、pickup 事件，只是获取点击和xy坐标，不影响其他控制器,返回false。pickup是举例，不在这里实现。
      *          2、camera control，也是具有兼容性，在最后处理。如果有控制器截获并终止，camera control 就不会收到处理
      *          3、object control，就会截获并终止，其他object control 就不会收到处理

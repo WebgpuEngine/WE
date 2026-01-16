@@ -36,7 +36,7 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.036
+    intensity: 0.16
   }
 )
 await scene.add(ambientLight);

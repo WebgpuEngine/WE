@@ -1437,7 +1437,8 @@ export class GLTFModel extends BaseModel {
                     case 4: //triangle
                         primitiveOfDataOfRender = {
                             topology: "triangle-list",
-                            cullMode: "none",//todo,临时方案，后续根据模型数据动态设置
+                            cullMode: "back",
+                            // cullMode: "none",//todo,临时方案，后续根据模型数据动态设置
                         }
                         break;
                     case 5: //triangle strip

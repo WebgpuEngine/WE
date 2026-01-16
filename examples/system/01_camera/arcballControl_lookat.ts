@@ -164,7 +164,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [0, 0, 1.5],
+  position: [0, 0, 5],
   lookAt: [1, 1, 1],
   // update: (scope: any) => {
   //   const now = Date.now() / 1000;

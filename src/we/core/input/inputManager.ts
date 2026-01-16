@@ -13,9 +13,9 @@ export class InputManager extends ECSManager<BaseInputControl> {
 
     /**
      * 事件注册列表
-     * 每个事件，都有三个优先级层，分别是broadcastStart, intercept, broadcastEnd
-     * 事件的发送顺序是：broadcastStart -> intercept -> broadcastEnd
-     *  event由DOM的EventTarget.addEventListener()触发，多个触发需要在控制器中组合
+     * 1、每个事件，都有三个优先级层，分别是broadcastStart, intercept, broadcastEnd
+     * 2、事件的发送顺序是：broadcastStart -> intercept -> broadcastEnd
+     * 3、event由DOM的EventTarget.addEventListener()触发，多个触发需要在控制器中组合
      */
     registerEventList: {
         [E_InputEvent.keydown]: I_InputRegisterPriorityLayer,
@@ -113,11 +113,26 @@ export class InputManager extends ECSManager<BaseInputControl> {
             perOne.clean();
         }
     }
+    /**
+     * 初始化事件注册
+     * 1、keydown事件注册
+     * 2、keyup事件注册
+     * 3、pointerdown事件注册
+     * 4、pointerup事件注册
+     * 5、pointermove事件注册
+     * 6、wheel事件注册
+     * //下面的未实现，基本够用了，延迟到需要的时候再实现
+     * 7、touchstart事件注册
+     * 8、touchend事件注册
+     * 9、touchmove事件注册
+     * 10、click事件注册
+     * 11、dblclick事件注册
+     */
     init() {
         let scope = this;
-        let keyDown = (event: KeyboardEvent) => { scope.keyDown(scope, event); }
-        window.addEventListener('keydown', keyDown);
-        this.event.push({ target: window, type: "keyDown", callback: keyDown, option: undefined });
+        let keyDown = (event: KeyboardEvent) => { scope.keyDown(scope, event); }                    //keydown事件
+        window.addEventListener('keydown', keyDown);                                                //keydown事件注册
+        this.event.push({ target: window, type: "keyDown", callback: keyDown, option: undefined }); //keydown事件注册
 
         let keyUp = (event: KeyboardEvent) => { scope.keyUp(scope, event); }
         window.addEventListener('keyup', keyUp);
@@ -146,7 +161,17 @@ export class InputManager extends ECSManager<BaseInputControl> {
         // this.canvas.addEventListener('click', this.click);
         // this.canvas.addEventListener('dblclick', this.dblclick);
     }
+    /**
+     * 注册input事件到ECS对应事件队列
+     * @param event 事件类型
+     * @param priority 优先级
+     * @param control 控制器
+     * @returns 是否注册成功
+     */
     registerEvent(event: E_InputEvent, priority: E_InputPriority, control: BaseInputControl): boolean {
+        if(event==(E_InputEvent.touchstart||E_InputEvent.touchend||E_InputEvent.touchmove||E_InputEvent.click||E_InputEvent.dblclick)){
+            throw new Error("目前未实现事件"+event);
+        }
         if (this.registerEventList[event as E_InputEvent][priority]) {
             this.registerEventList[event as E_InputEvent][priority].push(control);
             return true;
@@ -156,9 +181,18 @@ export class InputManager extends ECSManager<BaseInputControl> {
             return false;
         }
     }
+    /**
+     * 注销input事件到ECS对应事件队列
+     * @param event 事件类型
+     * @param priority 优先级
+     * @param entity 控制器
+     */
     removeRegisterEvent(event: E_InputEvent, priority: E_InputPriority, entity: BaseInputControl): void {
         this.registerEventList[event as E_InputEvent][priority].splice(this.registerEventList[event as E_InputEvent][priority].indexOf(entity), 1);
     }
+    /**
+     * 清理所有控制器的event注册
+     */
     cleanRegisterEvent() {
         this.registerEventList = {
             [E_InputEvent.keydown]: {
@@ -220,19 +254,31 @@ export class InputManager extends ECSManager<BaseInputControl> {
     }
     pickupClick() { }
     pickupMove() { }
+    /**
+     * 
+     * @param clock 
+     */
     update(clock: Clock): void {
         this.checkDestroy();
         //最前面
         // this.pickupClick();cleanRegisterEvent() 
 
     }
+    /**
+     * 处理键盘事件keyDown
+     * 1、由init()注册到window对象
+     * 2、调用由window对象触发的事件
+     * 3、调用所有注册的键盘事件控制器的keyDown方法
+     * @param scope input manager 实例
+     * @param event 键盘事件
+     */
     keyDown(scope: InputManager, event: KeyboardEvent) {
-        for (let i in scope.registerEventList[E_InputEvent.keydown]) {
-            for (let j in scope.registerEventList[E_InputEvent.keydown][i as E_InputPriority]) {
-                const item = scope.registerEventList[E_InputEvent.keydown][i as E_InputPriority][j];
-                let flagStop = item.receiveInput(event, E_InputEvent.keydown);
-                if (j == E_InputPriority.intercept)
-                    if (flagStop) {
+        for (let i in scope.registerEventList[E_InputEvent.keydown]) {  //遍历keydown的"优先级"层,三层：优先广播，独占，最后广播
+            for (let j in scope.registerEventList[E_InputEvent.keydown][i as E_InputPriority]) {//遍历当前优先级内的所有注册的"控制器"。例如：arcball，wasd
+                const item = scope.registerEventList[E_InputEvent.keydown][i as E_InputPriority][j];//input 控制器
+                let flagStop = item.receiveInput(event, E_InputEvent.keydown);  //调用控制器的keyDown方法，返回是否停止后续处理
+                if (j == E_InputPriority.intercept) //独占优先级
+                    if (flagStop) { //如果独占优先级的控制器返回true，停止后续处理
                         break;
                     }
             }
