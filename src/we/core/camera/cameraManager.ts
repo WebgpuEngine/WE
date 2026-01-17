@@ -327,7 +327,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             if (camera instanceof PerspectiveCamera) {
                 camera.aspect = this.scene.aspect;
                 camera.updateProjectionMatrix();
-                camera.updateByPositionDirection(camera.worldPosition, camera.lookAt, false);
+                camera.updateByPositionDirection(camera.worldPosition, camera.LookAt, false);
             }
             else if (camera instanceof OrthographicCamera) {
                 camera.updateProjectionMatrix();

@@ -334,9 +334,10 @@ export abstract class CamreaControl extends BaseInputControl {
                         this.eventValues.mouseValue.shiftKey = (event as PointerEvent).shiftKey;
                         this.eventValues.mouseValue.move = true;
                         this._pointer = event as MouseEvent;
-                        if (((event as MouseEvent).buttons & 1) !== 0) {//左键
+                        if ((event as MouseEvent).buttons  !== 0) {//左键
                             this._analog.x += (event as MouseEvent).movementX;
                             this._analog.y += (event as MouseEvent).movementY;
+                            // console.log("mouse movement", (event as MouseEvent).movementX, (event as MouseEvent).movementY);
                         }
                         break;
                     case "touch":

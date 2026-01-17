@@ -149,16 +149,46 @@ export abstract class BaseCamera extends NodeObject {
   get positionOfModelMatrix() { return this.position_; }
   set positionOfModelMatrix(vec: Vec3) { vec3.copy(vec, this.position_); } // Assigns `vec` to the first 3 elements of column vector 3 of the camera matrix
   /**///////////////////////////////////////////////////////// lookAt ///////////////////////////////////////////// */
-  lookAt: Vec3 = vec3.create();
+  _lookAt: Vec3 = vec3.create();
   set LookAt(value: Vec3 | weVec3) {
     if (isWeVec3(value)) {
       this.LookAt = vec3.fromValues(...value);
     }
     else {
-      vec3.copy(this.lookAt, value);
+      vec3.copy(value, this._lookAt);
     }
   }
-  get LookAt() { return this.lookAt; }
+  get LookAt(): Vec3 { return this._lookAt; }
+
+  /**
+   * 设置lookAt，从本地坐标转换到世界坐标
+   * @param localLookat 本地坐标的lookAt
+   */
+  setLookAtFromLocalVec3(localLookat: Vec3) {
+    if (this.isLookAtGlobal === true) {
+      this.LookAt = vec3.transformMat4(localLookat, this.Parent!.matrixWorld);//position 乘以 matrixWorld，得到position的世界坐标
+    }
+    else {
+      vec3.copy(localLookat, this.LookAt);
+    }
+  }
+  /**
+   * 获取本地坐标下的lookAt
+   * @returns 
+   */
+  getLocalLookAtVec3(): Vec3 {
+    let localLookat = vec3.create();
+    if (this.isLookAtGlobal === true) {
+      // vec3.subtract(this.worldPosition, this.LookAt, localLookat);
+      localLookat = vec3.transformMat4(this.LookAt, mat4.invert(this.Parent!.matrixWorld));//lookAt 乘以 modelMatrix的逆矩阵，得到lookAt的本地坐标
+    }
+    else {
+      vec3.copy(this.LookAt, localLookat);
+    }
+    return localLookat;
+  }
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   /** 上方向 */
   _upDirection = vec3.create(0, 1, 0);
   get UpDirection() { return this._upDirection; }  // Returns column vector 1 of the camera matrix
@@ -254,10 +284,10 @@ export abstract class BaseCamera extends NodeObject {
       else {//20260116,更新lookAt后，需要重新计算right和up
         this.setViewMatrixByPosition(this.back)
       }
-      this.lookAt = vec3.fromValues(option.lookAt[0], option.lookAt[1], option.lookAt[2]);
+      this.LookAt = vec3.fromValues(option.lookAt[0], option.lookAt[1], option.lookAt[2]);
     }
     else {
-      this.lookAt = vec3.create(0, 0, 0);
+      this.LookAt = vec3.create(0, 0, 0);
     }
     if (option.isLookAtGlobal != undefined) {
       this.isLookAtGlobal = option.isLookAtGlobal;
@@ -266,7 +296,7 @@ export abstract class BaseCamera extends NodeObject {
   async readyForGPU(): Promise<any> {
     this.aspect = this.scene.aspect;
     this.updateProjectionMatrix();
-    this.updateByPositionDirection(this.Position, this.lookAt, false);//这里需要是world position
+    this.updateByPositionDirection(this.Position, this.LookAt, false);//这里需要是world position
 
     if (this.inpuValues.backGroundColor) {
       this.backGroundColor = this.inpuValues.backGroundColor;
@@ -402,7 +432,7 @@ export abstract class BaseCamera extends NodeObject {
       let result = this._control.update(this.scene.clock.deltaTime);
     }
     else {
-      let lookat = this.lookAt;
+      let lookat = this.LookAt;
       if (this.isLookAtGlobal === false) {//lookat 是camera local 坐标系
         vec3.transformMat4(lookat, this.matrixWorld, lookat);//lookat 乘以 matrixWorld，得到lookat的世界坐标
       }
@@ -439,14 +469,14 @@ export abstract class BaseCamera extends NodeObject {
    * @returns  MVP的Mat4[]
    */
   updateByPositionDirection(position: Vec3, direction: Vec3, normalize = false, isControlMode?: boolean): Mat4[] {
-    let lookAt=vec3.create();
+    let lookAt = vec3.create();
     //lookat是camera local 坐标系
-    if(this.isLookAtGlobal ===false ){
-      lookAt= vec3.transformMat4(this.lookAt, this.Parent!.matrixWorld);//position 乘以 matrixWorld，得到position的世界坐标
+    if (this.isLookAtGlobal === false) {
+      lookAt = vec3.transformMat4(this.LookAt, this.Parent!.matrixWorld);//position 乘以 matrixWorld，得到position的世界坐标
     }
     //lookat是世界坐标系
     else {
-      vec3.copy(this.lookAt,lookAt);
+      vec3.copy(this.LookAt, lookAt);
     }
     //控制器模式，非世界坐标系
     if (isControlMode) {
