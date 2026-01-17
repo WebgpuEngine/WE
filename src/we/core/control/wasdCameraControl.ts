@@ -1,6 +1,6 @@
 import { Vec3, vec3 } from 'wgpu-matrix';
 
-import { CamreaControl, optionCamreaControl } from "./cameracCntrol"
+import { CamreaControl, optionCamreaControl } from "./cameracControl"
 
 import * as MathFun from "../math/baseFunction"
 import { InputManager } from '../input/inputManager';

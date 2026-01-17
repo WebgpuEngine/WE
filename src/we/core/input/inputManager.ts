@@ -130,6 +130,16 @@ export class InputManager extends ECSManager<BaseInputControl> {
      */
     init() {
         let scope = this;
+
+        // this.canvas.addEventListener('contextmenu', (e) => {
+        //     // 1. 阻止默认右键菜单（核心）
+        //     e.preventDefault();
+        //     // 2. 可选：阻止事件冒泡（避免影响父元素）
+        //     e.stopPropagation();
+        //     // console.log('Canvas 右键被点击');
+        // });
+
+
         let keyDown = (event: KeyboardEvent) => { scope.keyDown(scope, event); }                    //keydown事件
         window.addEventListener('keydown', keyDown);                                                //keydown事件注册
         this.event.push({ target: window, type: "keyDown", callback: keyDown, option: undefined }); //keydown事件注册
@@ -141,6 +151,7 @@ export class InputManager extends ECSManager<BaseInputControl> {
         let pointerDown = (event: PointerEvent) => { scope.pointerDown(scope, event); }
         this.canvas.addEventListener('pointerdown', (event) => this.pointerDown(this, event));
         this.event.push({ target: this.canvas, type: "pointerDown", callback: pointerDown, option: undefined });
+
 
         let pointerUp = (event: PointerEvent) => { scope.pointerUp(scope, event); }
         this.canvas.addEventListener('pointerup', pointerUp);
@@ -160,6 +171,14 @@ export class InputManager extends ECSManager<BaseInputControl> {
         // this.canvas.addEventListener('touchmove', this.touchMove);
         // this.canvas.addEventListener('click', this.click);
         // this.canvas.addEventListener('dblclick', this.dblclick);
+
+        if (this.scene.disableCanvasContext === true) {
+            let stop = (event: Event) => {
+                event.preventDefault();
+            };
+            this.canvas.addEventListener('contextmenu', stop);
+            this.event.push({ target: this.canvas, type: "contextmenu", callback: pointerDown, option: undefined });
+        }
     }
     /**
      * 注册input事件到ECS对应事件队列
@@ -169,8 +188,8 @@ export class InputManager extends ECSManager<BaseInputControl> {
      * @returns 是否注册成功
      */
     registerEvent(event: E_InputEvent, priority: E_InputPriority, control: BaseInputControl): boolean {
-        if(event==(E_InputEvent.touchstart||E_InputEvent.touchend||E_InputEvent.touchmove||E_InputEvent.click||E_InputEvent.dblclick)){
-            throw new Error("目前未实现事件"+event);
+        if (event == (E_InputEvent.touchstart || E_InputEvent.touchend || E_InputEvent.touchmove || E_InputEvent.click || E_InputEvent.dblclick)) {
+            throw new Error("目前未实现事件" + event);
         }
         if (this.registerEventList[event as E_InputEvent][priority]) {
             this.registerEventList[event as E_InputEvent][priority].push(control);

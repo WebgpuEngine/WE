@@ -5,7 +5,7 @@ import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "../command/base";
 import { createEmptyGPUBuffer } from "../command/baseFunction";
-import { CamreaControl } from "../control/cameracCntrol";
+import { CamreaControl } from "../control/cameracControl";
 import { EntityManager } from "../entity/entityManager";
 import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
@@ -76,6 +76,8 @@ export class Scene {
     adapter!: GPUAdapter;
     device!: GPUDevice;
     canvas!: HTMLCanvasElement;
+    /**是否禁用canvas的context, 默认=true */
+    disableCanvasContext: boolean = true;
     /** 渲染对象: 默认的渲染对象输出：GPUCanvasContext;    */
     context!: GPUCanvasContext | GPUTexture;
     /**颜色通道输出的纹理格式     *  presentationFormat*/
@@ -294,6 +296,7 @@ export class Scene {
             this.finalTarget.NDC = true;
         this.clock = new Clock();
         this.inputValue = value;
+        if (value.disableCanvasContext) this.disableCanvasContext = value.disableCanvasContext;
         // this.deferRenderDepth = false;//为了测试方便,后期更改为:true,20241128
         // this.deferRenderColor = false;//为了测试方便,后期更改为:true,20241128
         this._maxlightNumber = V_lightNumber;
@@ -431,7 +434,7 @@ export class Scene {
         this.resourcesGPU.weTextureOfString.set("defaultCube", cubeTextureDefault);
         let baseInputPBR: IV_PBRMaterial = {
             textures: {
-                albedo: { value: [1, 1, 1] },
+                albedo: { value: [1, 1, 1, 1] },
                 metallic: { value: 1 },
                 roughness: { value: 1 },
             }

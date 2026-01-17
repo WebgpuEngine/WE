@@ -1,6 +1,6 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
 import { IV_NodeSpace, NodeObject, } from '../organization/root';
-import { CamreaControl, optionCamreaControl } from '../control/cameracCntrol';
+import { CamreaControl, optionCamreaControl } from '../control/cameracControl';
 import { I_Update, weVec3, weVec4 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
 import { ArcballCameraControl } from '../control/arcballCameraControl';

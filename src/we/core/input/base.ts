@@ -15,6 +15,10 @@ export enum E_InputEvent {
     touchmove = "touchmove",
     click = "click",
     dblclick = "dblclick",
+    // mousedown = "mousedown",
+    // mouseup = "mouseup",
+    // mousemove = "mousemove",
+    // mousewheel = "mousewheel",
 }
 /**
  * input control 事件优先级

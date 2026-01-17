@@ -22,10 +22,11 @@ export abstract class BaseInputControl {
             downOrUP: "down" | "up" | undefined,
         },
         mouseValue: {
-            x: number,
-            y: number,
-            buttons: number,
+            x: number | undefined,
+            y: number | undefined,
+            buttons: number ,//-1表示无按键
             downOrUP: "down" | "up" | undefined,
+            alreadyUp: boolean,
             move: boolean,
             ctrlKey: boolean,
             altKey: boolean,
@@ -56,8 +57,9 @@ export abstract class BaseInputControl {
             mouseValue: {
                 x: 0,
                 y: 0,
-                buttons: 0,
+                buttons: -1,
                 downOrUP: undefined,
+                alreadyUp: false,
                 move: false,
                 ctrlKey: false,
                 altKey: false,

@@ -131,7 +131,7 @@ export abstract class CamreaControl extends BaseInputControl {
                 x: scope._analog.x,
                 y: scope._analog.y,
                 zoom: scope._analog.zoom,
-                touching: scope.eventValues.mouseValue.downOrUP === "down",
+                touching: scope.eventValues.mouseValue.downOrUP === "down",//是否正在拖动
             },
             pointer: scope._pointer,
             key: scope._key,
@@ -143,7 +143,7 @@ export abstract class CamreaControl extends BaseInputControl {
         scope._analog.x = 0;
         scope._analog.y = 0;
         scope._analog.zoom = 0;
-        // scope._pointer = undefined;
+        // scope._pointer = this._pointer;
         // scope._key = undefined;
         return out;
     }
@@ -165,6 +165,30 @@ export abstract class CamreaControl extends BaseInputControl {
         };
         this._pointer = undefined;
         this._key = undefined;
+
+        let downOrUP = this.eventValues.mouseValue.downOrUP;        //鼠标按键状态，down 或 up;down 需要有保持状态
+        let buttons = this.eventValues.mouseValue.buttons;          //鼠标按键状态，down 或 up;down 需要有保持状态
+        let alreadyUp = this.eventValues.mouseValue.alreadyUp;      //mouse up key，是否已释放
+
+        if (downOrUP === "down") {
+            buttons = this.eventValues.mouseValue.buttons;
+        }
+        // 鼠标键释放，且未触发alreadyUp ，则将buttons 保持，alreadyUp 设为true
+        else if (this.eventValues.mouseValue.downOrUP === "up" && alreadyUp === false) {
+            alreadyUp = true;//下一帧使用
+        }
+        //没有鼠标按键事件，buttons 设为-1
+        else if (this.eventValues.mouseValue.downOrUP === undefined) {
+            buttons = -1;
+        }
+
+        // 鼠标键释放，且触发alreadyUp（上一帧） ，则将buttons 设为undefined
+        if (alreadyUp === true) {
+            buttons = -1;
+            alreadyUp = false;
+            downOrUP = undefined;
+        }
+
         this.eventValues = {
             pointer: undefined,
             key: undefined,
@@ -181,10 +205,11 @@ export abstract class CamreaControl extends BaseInputControl {
                 downOrUP: undefined,
             },
             mouseValue: {
-                x: 0,
-                y: 0,
-                buttons: 0,
-                downOrUP: undefined,
+                x: undefined,
+                y: undefined,
+                buttons,//鼠标按键是在down 下设置并保持，在up状态重置，并保持。
+                downOrUP,
+                alreadyUp,
                 move: false,
                 ctrlKey: false,
                 altKey: false,
@@ -274,6 +299,7 @@ export abstract class CamreaControl extends BaseInputControl {
                         this.eventValues.mouseValue.altKey = (event as PointerEvent).altKey;
                         this.eventValues.mouseValue.shiftKey = (event as PointerEvent).shiftKey;
                         this._pointer = event as MouseEvent;
+                        // console.log("cameraControal", this.eventValues.mouseValue.buttons)
                         break;
                     case "touch":
                         this.eventValues.mouseValue.buttons = 0;

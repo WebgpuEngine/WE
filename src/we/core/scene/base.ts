@@ -5,6 +5,8 @@ import { Scene } from "./scene"
 export declare interface IV_Scene {
     /**canvas id */
     canvas: string,
+    /**是否禁用canvas的context, 默认=true */
+    disableCanvasContext?: boolean,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
 

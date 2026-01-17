@@ -37,7 +37,17 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
-
+// const canvas = document.getElementById('render');
+// // 监听右键事件（contextmenu）
+// canvas.addEventListener('contextmenu', (e) => {
+//   // 1. 阻止默认右键菜单（核心）
+//   e.preventDefault();
+  
+//   // 2. 可选：阻止事件冒泡（避免影响父元素）
+//   e.stopPropagation();
+  
+//   console.log('Canvas 右键被点击');
+// });
 
 
 let geometry = new SphereGeometry(
