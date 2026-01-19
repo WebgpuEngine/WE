@@ -33,6 +33,8 @@ export class OrbitCameraControl extends ArcballCameraControl {
                 this.upAxisAngle.bottom = this.inputValues.upAxisAngle.bottom;
             }
         }
+        // this.rotationSpeed = 0.5;
+
     }
     init() {
     }
@@ -68,7 +70,9 @@ export class OrbitCameraControl extends ArcballCameraControl {
             if (this.eventValues.mouseValue.downOrUP == "down") {
                 //三、鼠标左键（主键）
                 if (this.eventValues.mouseValue.buttons == 1) {
-                    let pointOfPlaneXZ = vec3.normalize(position);
+
+                    let pointOfPlaneZ = vec3.normalize(position);//将position向量归一化，得到相机Z轴的单位向量。
+
                     let radianX = -input.analog.x * this.rotationSpeed / 180 * Math.PI;
                     let radianY = -input.analog.y * this.rotationSpeed / 180 * Math.PI;
                     if (Math.abs(radianX) < epsilon && Math.abs(radianY) < epsilon) {
@@ -76,10 +80,11 @@ export class OrbitCameraControl extends ArcballCameraControl {
                     }
                     // console.log("radianX", radianX, "radianY", radianY);
 
-                    //判断camera的Z轴是否与upY轴平行
-                    let upDotCameraZ = vec3.dot(this.camera.UpDirection, pointOfPlaneXZ);
+                    let upDotCameraZ = vec3.dot(this.camera.UpDirection, pointOfPlaneZ);//两个向量的点积，判断相机的上方向是否与Z轴平行，cos值，范围[-1,1]。
                     // console.log("upDotCameraZ", upDotCameraZ, "radianY", radianY, "radianX", radianX);
-                    if (Math.abs((this.upAxisAngle.top - Math.PI / 2)) < this.epsilon && upDotCameraZ > 0.999999) {
+
+                    //判断北极：camera的Z轴是否与upY轴平行
+                    if (Math.abs((this.upAxisAngle.top - Math.PI / 2)) < this.epsilon && upDotCameraZ > 0.9999) {
                         if (radianY > 0) {
                             let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
                             position = MathFun.rotate(position, x, radianY);
@@ -96,8 +101,8 @@ export class OrbitCameraControl extends ArcballCameraControl {
                         this.camera.updateByPositionDirection(positionOfLookat, positionOfLookat, true, true);//第二、三个参数，在控制器情况下，不使用，无意义。具体参见camera.updateByPositionDirection
                         return true;
                     }
-                    //判断camera的Z轴是否与upY轴平行
-                    else if (Math.abs((this.upAxisAngle.bottom - (-Math.PI / 2))) < this.epsilon && upDotCameraZ < -0.999999) {
+                    //判断南极：camera的Z轴是否与upY轴平行
+                    else if (Math.abs((this.upAxisAngle.bottom - (-Math.PI / 2))) < this.epsilon && upDotCameraZ < -0.9999) {
                         if (radianY < 0) {
                             let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);
                             position = MathFun.rotate(position, x, radianY);
@@ -117,83 +122,116 @@ export class OrbitCameraControl extends ArcballCameraControl {
                         let sinCosCameraZ = this.computeSinAndCosOfUpDirectionAndX0z(position);//sin  cos 
 
 
-                        if (upDotCameraZ < 0.999 &&sinCosCameraZ.sin > 0) {
-                            ////绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
-                            let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
-                            position = MathFun.rotate(position, rotateAxisX, radianY);
-                            ////绕Y轴（为lookat Y轴）旋转
-                            position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                        // 判断当前角度+增量是否超出范围
+                        let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneZ));       //camera Z轴对应的X轴，非lookat的X轴【原始相等】
+                        let positionOutOfRange = MathFun.rotate(position, rotateAxisX, radianY);                    //旋转后的临时camera位置
+                        let axixYTemp = vec3.create(0, 1, 0);
+                        let leftOrRight = this.computeSinOfUpDirectionAndPosition(axixYTemp, positionOutOfRange);   //判断camera是否在upY轴的左侧或右侧。
+                        if (leftOrRight > 0) {                                                                      //camera在upY轴的左侧，已经过头了
+                            if (sinCosCameraZ.sin >= 0) {                                                           //上半球
+                                position = vec3.create(0, this.distance, 0);                                        //北极点
+                                position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);                 //可以旋转Y轴
+                            }
+                            else {                                                                                  //下半球
+                                position = vec3.create(0, -this.distance, 0);                                       //南极点
+                                position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);                 //可以旋转Y轴
+                            }
                         }
-                        else if (upDotCameraZ > 0.999) {
-                            if (sinCosCameraZ.sin > 0)//上半球
+                        
+
+                        //判断当前角度+增量是否超出范围。注释掉，因为反三角函数影响速度。取代方案，调小this.rotationSpeed = 0.5;
+                        // let currentRadianY = Math.asin(sinCosCameraZ.sin);//计算当前相机Z轴与upY轴的夹角，范围[-π/2,π/2]。
+                        // let newRadianY = currentRadianY + radianY;
+                        // let useNewRadianY = false;
+                        // if (newRadianY < this.upAxisAngle.bottom) {
+                        //     newRadianY = this.upAxisAngle.bottom + Math.PI / 180;
+                        //     useNewRadianY = true;
+                        // }
+                        // else if (newRadianY > this.upAxisAngle.top) {
+                        //     newRadianY = this.upAxisAngle.top - Math.PI / 180;
+                        //     useNewRadianY = true;
+                        // }
+                        // if (useNewRadianY) {
+                        //     ////绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
+                        //     let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneZ));
+                        //     position = MathFun.rotate(position, rotateAxisX, newRadianY);
+                        //     // position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                        // }
+                        else
+                        {
+                            let limit = 0.991;
+                            //sin角度小于极限，上半球，继续进行x 和y 轴旋转。
+                            if (upDotCameraZ < limit && sinCosCameraZ.sin > 0) {
+                                ////绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
+                                // let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneZ));
+                                position = MathFun.rotate(position, rotateAxisX, radianY);
+                                ////绕Y轴（为lookat Y轴）旋转
+                                position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                            }
+                            //sin角度大于极限（上半球）时。
+                            else if (upDotCameraZ > limit && sinCosCameraZ.sin > 0) {
+                                //鼠标向下移动，radianY增量为负值。
                                 if (radianY > 0) {
                                     let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
                                     position = MathFun.rotate(position, x, radianY);                    //绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
                                 }
+                                //否则，只能旋转Y轴（为lookat Y轴）
                                 else {
                                     position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转
                                 }
-                            // else {
-                            //     if (radianY < 0) {
-                            //         let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);
-                            //         position = MathFun.rotate(position, x, radianY);
-                            //     }
-                            //     else {
-                            //         position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
-                            //     }
-                            // }
-                        }
-                        else if (upDotCameraZ > -0.999) {
-                            let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
-                            position = MathFun.rotate(position, rotateAxisX, radianY);
-                            ////绕Y轴（为lookat Y轴）旋转
-                            position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
-                        }
-                        else if (upDotCameraZ < -0.999) {
-                            if (sinCosCameraZ.sin < 0)//下半球
+                            }
+                            //sin角度大于底部极限(都是负值),下半球，继续进行 x 和 y 轴旋转。
+                            else if (upDotCameraZ > -limit && sinCosCameraZ.sin < 0) {
+                                // let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneZ));
+                                position = MathFun.rotate(position, rotateAxisX, radianY);
+                                ////绕Y轴（为lookat Y轴）旋转
+                                position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                            }
+                            //sin角度小于底部极限(都是负值),下半球时。
+                            else if (upDotCameraZ < -limit && sinCosCameraZ.sin < 0) {
+                                //鼠标向上移动，radianY增量为正值。
                                 if (radianY < 0) {
-                                    let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
+                                    // let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneZ));
                                     position = MathFun.rotate(position, rotateAxisX, radianY);
                                 }
+                                //鼠标向下移动，radianY增量为负值。
                                 else {
                                     position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
                                 }
-                        }
-
-
-
-                        // console.log("cameraZ", sinCosCameraZ);
-                        let sinOfTop = Math.sin(this.upAxisAngle.top);
-                        let sinOfBottom = Math.sin(this.upAxisAngle.bottom);
-
-                        //有角度
-                        if (sinCosCameraZ.sin > sinOfTop) {//摄像机视角在+Y方向,且已经超过top角度
-                            let vectorOfPlaneXZ = vec3.normalize(vec3.create(position[0], 0, position[2]));//XZ平面的单位向量
-                            let axisOfRotationZ = vec3.cross(vectorOfPlaneXZ, vec3.create(0, 1, 0,));//旋转轴Z, X cross Y = Z;反过来，当中X轴也可以；
-                            let pointOfPlaneXZ = vec3.scale(vectorOfPlaneXZ, this.distance);//XZ平面的单位向量，长度为distance
-                            position = MathFun.rotate(pointOfPlaneXZ, axisOfRotationZ, this.upAxisAngle.top);//作为Z轴，角度不变
-                        }
-                        else if (sinCosCameraZ.sin < sinOfBottom) {//摄像机视角在+Y方向,且已经超过top角度
-                            console.log("position", position);
-
-                            let vectorOfPlaneXZ = vec3.normalize(vec3.create(position[0], 0, position[2]));//XZ平面的单位向量
-                            let axisOfRotationZ = vec3.cross(vectorOfPlaneXZ, vec3.create(0, 1, 0,));//旋转轴Z, X cross Y = Z;反过来，当中X轴也可以；
-                            let pointOfPlaneXZ = vec3.scale(vectorOfPlaneXZ, this.distance);//XZ平面的单位向量，长度为distance
-
-                            if (this.upAxisAngle.bottom != 0) {
-                                position = MathFun.rotate(pointOfPlaneXZ, axisOfRotationZ, this.upAxisAngle.bottom);//作为Z轴，角度不变
                             }
-                            else {
-                                position = pointOfPlaneXZ;
+                            // console.log("cameraZ", sinCosCameraZ);
+                            let sinOfTop = Math.sin(this.upAxisAngle.top);
+                            let sinOfBottom = Math.sin(this.upAxisAngle.bottom);
+
+                            //有角度
+                            if (sinCosCameraZ.sin > sinOfTop) {//摄像机视角在+Y方向,且已经超过top角度
+                                let vectorOfPlaneXZ = vec3.normalize(vec3.create(position[0], 0, position[2]));//XZ平面的单位向量
+                                let axisOfRotationZ = vec3.cross(vectorOfPlaneXZ, vec3.create(0, 1, 0,));//旋转轴Z, X cross Y = Z;反过来，当中X轴也可以；
+                                let pointOfPlaneXZ = vec3.scale(vectorOfPlaneXZ, this.distance);//XZ平面的单位向量，长度为distance
+                                position = MathFun.rotate(pointOfPlaneXZ, axisOfRotationZ, this.upAxisAngle.top);//作为Z轴，角度不变
+                            }
+                            else if (sinCosCameraZ.sin < sinOfBottom) {//摄像机视角在+Y方向,且已经超过top角度
+                                console.log("position", position);
+
+                                let vectorOfPlaneXZ = vec3.normalize(vec3.create(position[0], 0, position[2]));//XZ平面的单位向量
+                                let axisOfRotationZ = vec3.cross(vectorOfPlaneXZ, vec3.create(0, 1, 0,));//旋转轴Z, X cross Y = Z;反过来，当中X轴也可以；
+                                let pointOfPlaneXZ = vec3.scale(vectorOfPlaneXZ, this.distance);//XZ平面的单位向量，长度为distance
+
+                                if (this.upAxisAngle.bottom != 0) {
+                                    position = MathFun.rotate(pointOfPlaneXZ, axisOfRotationZ, this.upAxisAngle.bottom);//作为Z轴，角度不变
+                                }
+                                else {
+                                    position = pointOfPlaneXZ;
+                                }
                             }
                         }
-
                         let dir = vec3.normalize(position);
                         let positionOfLookat = vec3.add(position, this.camera.LookAt);//在现有位置上增加lookat位的增量。camera和lookat的坐标系在xyz的三个向量上保持一致，只有position不同（no zoom情况下）。
 
                         //3.4 更新摄像机的position和lookAt
                         this.camera.updateByPositionDirection(positionOfLookat, dir, true, true);//第二、三个参数，在控制器情况下，不使用，无意义。具体参见camera.updateByPositionDirection
                         return true;
+
                     }
 
                 }
