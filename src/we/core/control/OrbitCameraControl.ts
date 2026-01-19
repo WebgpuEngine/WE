@@ -78,7 +78,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
 
                     //判断camera的Z轴是否与upY轴平行
                     let upDotCameraZ = vec3.dot(this.camera.UpDirection, pointOfPlaneXZ);
-                    console.log("upDotCameraZ", upDotCameraZ, "radianY", radianY, "radianX", radianX);
+                    // console.log("upDotCameraZ", upDotCameraZ, "radianY", radianY, "radianX", radianX);
                     if (Math.abs((this.upAxisAngle.top - Math.PI / 2)) < this.epsilon && upDotCameraZ > 0.999999) {
                         if (radianY > 0) {
                             let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
@@ -114,15 +114,54 @@ export class OrbitCameraControl extends ArcballCameraControl {
                         return true;
                     }
                     else {
-                        ////绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
-                        let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
-                        position = MathFun.rotate(position, rotateAxisX, radianY);
-                        ////绕Y轴（为lookat Y轴）旋转
-                        position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
-
-
-
                         let sinCosCameraZ = this.computeSinAndCosOfUpDirectionAndX0z(position);//sin  cos 
+
+
+                        if (upDotCameraZ < 0.999 &&sinCosCameraZ.sin > 0) {
+                            ////绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
+                            let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
+                            position = MathFun.rotate(position, rotateAxisX, radianY);
+                            ////绕Y轴（为lookat Y轴）旋转
+                            position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                        }
+                        else if (upDotCameraZ > 0.999) {
+                            if (sinCosCameraZ.sin > 0)//上半球
+                                if (radianY > 0) {
+                                    let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
+                                    position = MathFun.rotate(position, x, radianY);                    //绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
+                                }
+                                else {
+                                    position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转
+                                }
+                            // else {
+                            //     if (radianY < 0) {
+                            //         let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);
+                            //         position = MathFun.rotate(position, x, radianY);
+                            //     }
+                            //     else {
+                            //         position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                            //     }
+                            // }
+                        }
+                        else if (upDotCameraZ > -0.999) {
+                            let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
+                            position = MathFun.rotate(position, rotateAxisX, radianY);
+                            ////绕Y轴（为lookat Y轴）旋转
+                            position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                        }
+                        else if (upDotCameraZ < -0.999) {
+                            if (sinCosCameraZ.sin < 0)//下半球
+                                if (radianY < 0) {
+                                    let rotateAxisX = vec3.normalize(vec3.cross(this.camera.UpDirection, pointOfPlaneXZ));
+                                    position = MathFun.rotate(position, rotateAxisX, radianY);
+                                }
+                                else {
+                                    position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
+                                }
+                        }
+
+
+
                         // console.log("cameraZ", sinCosCameraZ);
                         let sinOfTop = Math.sin(this.upAxisAngle.top);
                         let sinOfBottom = Math.sin(this.upAxisAngle.bottom);
