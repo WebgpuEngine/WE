@@ -94,8 +94,9 @@ export abstract class BaseEntity extends NodeSpace {
     _instanceMorphTargetSizeForWGSL = 16 * 4;
     ///////////////////////////////////////////////////////////////////
     //uniform
-    /** */
+    /** 实例化数组最后重新的时间 */
     flagInstanceArrayBufferReNewTime: number = 0;
+    /**Buffer(uniform and storage )在CPU端的ArrayBuffer */
     bufferCPU: {
         /** 最终输出@group(1) @binding(0)的uniform buffer*/
         uniformCommonEntity?: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
@@ -108,6 +109,7 @@ export abstract class BaseEntity extends NodeSpace {
         /** 骨骼矩阵数组@group(1) @binding(4)*/
         jointMatrix?: ArrayBuffer;
     } = {};
+    /**Buffer(uniform and storage )在GPU端的 GPUBuffer */
     bufferGPU: {
         /** 最终输出@group(1) @binding(0)的uniform buffer*/
         uniformCommonEntity?: GPUBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
@@ -849,7 +851,7 @@ export abstract class BaseEntity extends NodeSpace {
         }
         //new or renew :cpu and gpu
         if (reNew) {
-            this.flagInstanceArrayBufferReNewTime = this.scene.clock.now;
+            this.flagInstanceArrayBufferReNewTime = this.scene.clock.now;//更新需要reNew的时间
             let size = 16;
             if (name == "instances") {
                 size = this._instanceInfoSizeForWGSL;

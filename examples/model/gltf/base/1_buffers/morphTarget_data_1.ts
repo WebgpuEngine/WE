@@ -32,9 +32,9 @@ let camera = new PerspectiveCamera({
     lookAt: [0, 0, 0],
     //   update: (scope: any) => {
     //     const now = Date.now() / 1000;
-    //     // console.log(scope.lookAt);
+    //     // console.warn(scope.lookAt);
     //     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
-    //     // console.log(scope.position);
+    //     // console.warn(scope.position);
     //   },
     controlType: "arcball",
 
@@ -49,13 +49,16 @@ let gltf = await createGLTFModel({
 );
 window.gltf = gltf;
 
-console.log("Time")
+console.warn("accessor 4: samplers input ,time(5个时间点)")
 gltf.printAccessorContent(4)
-console.log("weight")
+console.warn("accessor 5: samplers output ,weight(2个/组*5组)")
 gltf.printAccessorContent(5)
-console.log("========================================position 2,3 ========================================");
+console.log("========================================position 2,3。只有第三个点有数据，其他点为0（weight*0=0,所以等于没有权重） ========================================");
+console.warn("原始position1： 1,2,3")
 gltf.printAccessorContent(1)
+console.warn("position2： 1,2,3")
 gltf.printAccessorContent(2)
+console.warn("position3： 1,2,3")
 gltf.printAccessorContent(3)
 
 
@@ -64,4 +67,4 @@ await scene.add(gltf);
 
 
 // const q = quat.fromEuler(0,0, Math.PI/8,  'xyz'); // 角度（弧度）、旋转顺序
-// console.log(q)
+// console.warn(q)

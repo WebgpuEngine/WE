@@ -4,7 +4,9 @@ import { BaseAnimation } from "./BaseAnimation";
 
 export class AnimationManager extends ECSManager<BaseAnimation> {
     update(clock: Clock): void {
-        throw new Error("Method not implemented.");
+        for (let perOne of this.list) {
+            perOne.update(clock);
+        }
     }
 
 }

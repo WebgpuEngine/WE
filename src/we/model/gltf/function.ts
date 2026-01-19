@@ -398,7 +398,28 @@ export function getArrayBufferViewByStrideAndCount(data: ArrayBuffer, byteOffset
     for (let i = 0; i < count; i++) {
         for (let j = 0; j < componentUnitCount; j++) {
             let offset = i * stride + j * componentTypeByteSize;
-            let value = dataView.getFloat32(offset);
+            let value;
+            if (componentType == 5120) {
+                value = dataView.getInt8(offset);
+            }
+            else if (componentType == 5121) {
+                value = dataView.getUint8(offset);
+            }
+            else if (componentType == 5122) {
+                value = dataView.getInt16(offset, true);//小端序，默认大端序。原因：ArrayBuffer如果是TypeArray写入的，默认是小端序。所以这里需要指定小端序，才能正确读取到数据
+            }
+            else if (componentType == 5123) {
+                value = dataView.getUint16(offset,true);
+            }
+            else if (componentType == 5125) {
+                value = dataView.getUint32(offset,true);
+            }
+            else if (componentType == 5126) {
+                value = dataView.getFloat32(offset,true);
+            }
+            else {
+                throw new Error(`GLTFModel:  component type ${componentType} not support`);
+            }
             arrayView[i * componentUnitCount + j] = value;
         }
     }
@@ -579,9 +600,9 @@ export function computeNormalsFromPositionsNoIndex(positions: Float32Array): Flo
     for (let i = 0; i < positions.length; i += 3 * 3) {
         // 获取三个顶点的位置,逆时针顺序(0,1,2,一定，否则法线指向内部)，计算法线时需要注意，法线指向外部
         const p0 = [
-            positions[i  + 0],
-            positions[i  + 1],
-            positions[i  + 2]
+            positions[i + 0],
+            positions[i + 1],
+            positions[i + 2]
         ];
         const p1 = [
             positions[i + 3],
@@ -611,8 +632,7 @@ export function computeNormalsFromPositionsNoIndex(positions: Float32Array): Flo
         if (len < 1e-6) { // 跳过退化的三角面
 
         }
-        else 
-        {
+        else {
             n = [
                 faceNormal[0] / len,
                 faceNormal[1] / len,

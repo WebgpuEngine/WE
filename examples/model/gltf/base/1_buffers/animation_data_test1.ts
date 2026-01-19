@@ -24,19 +24,19 @@ window.scene = scene;
 let radius = 5;
 let Y = 0;
 let camera = new PerspectiveCamera({
-  fov: (2 * Math.PI) / 5,
-  aspect: scene.aspect,
-  near: 0.01,
-  far: 100,
-  position: [0, 0, 5],
-  lookAt: [0, 0, 0],
-//   update: (scope: any) => {
-//     const now = Date.now() / 1000;
-//     // console.log(scope.lookAt);
-//     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
-//     // console.log(scope.position);
-//   },
-  controlType: "arcball",
+    fov: (2 * Math.PI) / 5,
+    aspect: scene.aspect,
+    near: 0.01,
+    far: 100,
+    position: [0, 0, 5],
+    lookAt: [0, 0, 0],
+    //   update: (scope: any) => {
+    //     const now = Date.now() / 1000;
+    //     // console.log(scope.lookAt);
+    //     scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
+    //     // console.log(scope.position);
+    //   },
+    controlType: "arcball",
 
 });
 await scene.add(camera);
@@ -48,8 +48,10 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
- gltf.printAccessorContent(2)
- gltf.printAccessorContent(3)
+console.log("accessor 2: samplers input ")
+gltf.printAccessorContent(2)
+console.log("accessor 3: samplers output ")
+gltf.printAccessorContent(3)
 
 
 await scene.add(gltf);

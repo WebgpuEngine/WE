@@ -296,6 +296,11 @@ export class GLTFModel extends BaseModel {
             for (let i in this.gltfJson.bufferViews) {
                 if (imagesInBufferView.indexOf(Number(i)) != -1) continue;
                 let bufferView: GLTFBufferView = this.gltfJson.bufferViews[i];
+                console.log(i, bufferView);
+                if (i == "5") {
+                    let abc = 1
+                }
+
                 let buffer = this.getBufferByID(bufferView.buffer);     //获取buffer
                 let gpuBuffer = createCommonGPUBuffer(this.device, bufferView.name || i, buffer.arrayBuffer, (bufferView.byteOffset || 0) + buffer.byteOffset, bufferView.byteLength);
                 this.modelRes.GPUBuffers.set(Number(i), gpuBuffer);
@@ -722,13 +727,15 @@ export class GLTFModel extends BaseModel {
        gltf.printAccessorContent(1)
      * @param accessor  index 访问器索引
      */
-    printAccessorContent(accessorIndex: number) {
+    printAccessorContent(accessorIndex: number, print: boolean = true) {
         if (this.gltfJson.accessors == undefined) {
             throw new Error(`gltf not found accessors`);
         }
         let accessor = this.gltfJson.accessors[accessorIndex];
         let buffer = this.getBufferSourceForAccessor(accessor);
-        console.log(buffer);
+        if (print) {
+            console.log(buffer);
+        }
         return buffer;
     }
     /**
