@@ -9,6 +9,8 @@ import { InputManager } from "./inputManager";
  * 可扩展多种子类，以扩展CameraControl，预计扩展多控制器（多路输入，双人游戏类的那种）
  */
 export abstract class BaseInputControl {
+    inputValues: any;
+    type:string="";
     kind: E_InputControlType;
     UUID: string;
     _isDestroy: boolean = false;

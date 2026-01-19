@@ -51,7 +51,7 @@ export interface InputForCamera {
 }
 export type InputHandlerForCamera = (scope: any) => InputForCamera;
 
-export interface optionCamreaControl {
+export interface IV_CamreaControl {
     // window: Window,
     canvas: HTMLCanvasElement,//const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     camera: BaseCamera,
@@ -62,7 +62,7 @@ export abstract class CamreaControl extends BaseInputControl {
     _camera: BaseCamera;
     _canvas: HTMLCanvasElement;
     _isDestroy: boolean = false;
-    inputValues: optionCamreaControl;
+    inputValues: IV_CamreaControl;
     _digital: digital = {
         forward: false,
         backward: false,
@@ -86,7 +86,7 @@ export abstract class CamreaControl extends BaseInputControl {
 
     // inputHandler: InputHandlerForCamera;
 
-    constructor(option: optionCamreaControl, manager: InputManager) {
+    constructor(option: IV_CamreaControl, manager: InputManager) {
         super(E_InputControlType.Camera, manager)
         this.inputValues = option;
         this._canvas = option.canvas;

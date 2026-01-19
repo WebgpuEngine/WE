@@ -57,7 +57,7 @@ let camera = new PerspectiveCamera({
   //   scope.Position = vec3.fromValues(Math.sin(now) * radius,Y, Math.cos(now) * radius);
   //   // console.log(scope.position);
   // },
-  controlType: "arcball",
+  controlType: "orbit",
 });
 await scene.add(camera);
 

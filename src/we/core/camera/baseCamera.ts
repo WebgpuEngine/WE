@@ -1,6 +1,6 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
 import { IV_NodeSpace, NodeObject, } from '../organization/root';
-import { CamreaControl, optionCamreaControl } from '../control/cameracControl';
+import { CamreaControl, IV_CamreaControl } from '../control/cameracControl';
 import { I_Update, weVec3, weVec4 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
 import { ArcballCameraControl } from '../control/arcballCameraControl';
@@ -11,6 +11,7 @@ import { boundingSphere } from '../math/sphere';
 import { CameraManager } from './cameraManager';
 import { I_viewport } from '../command/base';
 import { isWeVec3 } from '../base/coreFunction';
+import { IV_OrbitCameraControl, OrbitCameraControl } from '../control/OrbitCameraControl';
 
 
 
@@ -190,7 +191,7 @@ export abstract class BaseCamera extends NodeObject {
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   /** 上方向 */
-  _upDirection = vec3.create(0, 1, 0);
+  _upDirection = vec3.create(0, 1, 0);//默认的上方向，Y轴
   get UpDirection() { return this._upDirection; }  // Returns column vector 1 of the camera matrix
   set UpDirection(vec: Vec3) { vec3.copy(vec, this._upDirection); }// Assigns `vec` to the first 3 elements of column vector 1 of the camera matrix
 
@@ -265,7 +266,10 @@ export abstract class BaseCamera extends NodeObject {
     ///////////////////////////////////////////////////////////////////
     //空间属性
     // if (option.upDirection) vec3.copy(option.upDirection, this.UpDirection);//20260116,更新单独的上方向，不再使用this.up做为上方向
-    if (option.upDirection) vec3.copy(option.upDirection, this.up);//参见：setViewMatrixByPosition（）
+    if (option.upDirection) {
+      vec3.copy(option.upDirection, this.UpDirection);//定义的上方向
+      vec3.copy(option.upDirection, this.up);//参见：setViewMatrixByPosition（）
+    }
     //modelMatrix 第四行,位置
     if (option.position) {
       this.positionOfModelMatrix = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
@@ -325,9 +329,15 @@ export abstract class BaseCamera extends NodeObject {
     *    | /
     *    |/______X
     */
-    if (this.back[0] == 0 && this.back[1] == -1 && this.back[2] == 0) {
-      vec3.copy(vec3.create(1, 0, 0), this.right);
-      vec3.copy(vec3.create(0, 0, 1), this.up);
+    let dotBackUp = vec3.dot(back, this.UpDirection);
+    // if (this.back[0] == 0 && this.back[1] == -1 && this.back[2] == 0) {
+    if (dotBackUp > 0.999999) {
+      // vec3.copy(vec3.create(1, 0, 0), this.right);
+      // vec3.copy(vec3.create(0, 0, 1), this.up);
+      /**
+       * orbitCameraControl中，根据旋转更新了right
+       */
+      vec3.cross(back, this.right,this.up);
     }
     /**方向在世界坐标系的+Y轴，特殊判断条件，防止up向量和back向量平行
      *    ______X
@@ -335,13 +345,35 @@ export abstract class BaseCamera extends NodeObject {
      * Y/ |Z
      * 
      */
-    else if (this.back[0] == 0 && this.back[1] == 1 && this.back[2] == 0) {
-      vec3.copy(vec3.create(1, 0, 0), this.right);
-      vec3.copy(vec3.create(0, 0, -1), this.up);
+    // else if (this.back[0] == 0 && this.back[1] == 1 && this.back[2] == 0) {
+    else if (dotBackUp < -0.999999) {
+      vec3.cross(back, this.right,this.up);
     }
     else {
-      // this.right = vec3.normalize(vec3.cross(this.UpDirection, back));//会产生突然的翻转，使用this.up,没问题
-      this.right = vec3.normalize(vec3.cross(this.up, back));
+      /** ///////////////////////////////////////////////////////////////////////////////////////////
+       *  //特别备注：
+       *  //1、这里使用的是this.up,而不是this.UpDirection。因为会产生突然的翻转，使用this.up,没问题
+       *  //2、没有找出为什么。
+       *      A、可能是轴在特定情况，Z在Y的方向，导致。上方的判断是等于，没有使用float判断，在float精度下，会导致判断错误。
+       *         在JS中，number其实是64位浮点数，如果使用===判断，可能会导致判断错误。
+       *      B、目前没有问题，延迟有问题再说。20260117
+       *      C、单独保存upDirection，避免使用this.up,导致判断错误。比如在orbitCameraControl中，需要判断upDirection的角度范围，点积判断是否在范围内。
+       *  //3、使用固定上方的： this.right = vec3.normalize(vec3.cross(this.UpDirection, back));//会产生突然的翻转，使用this.up,没问题
+       */
+      if (this._control) {
+        if (this._control.type == "orbit") {
+          this.right = vec3.normalize(vec3.cross(this.UpDirection, back));
+        }
+        else if (this._control.type == "arcball") {
+          this.right = vec3.normalize(vec3.cross(this.up, back));
+        }
+        else {
+          this.right = vec3.normalize(vec3.cross(this.UpDirection, back));
+        }
+      }
+      else {
+        this.right = vec3.normalize(vec3.cross(this.UpDirection, back));
+      }
       this.up = vec3.normalize(vec3.cross(this.back, this.right));
     }
   }
@@ -354,7 +386,7 @@ export abstract class BaseCamera extends NodeObject {
     if (this._control) {
       this._control.destroy();
     }
-    let controlOption: optionCamreaControl = {
+    let controlOption: IV_CamreaControl = {
       canvas: this.scene.canvas,
       camera: this,
     }
@@ -364,6 +396,9 @@ export abstract class BaseCamera extends NodeObject {
         break;
       case "wasd":
         this._control = new WASDCameraControl(controlOption, this.scene.inputManager);
+        break;
+      case "orbit":
+        this._control = new OrbitCameraControl(controlOption, this.scene.inputManager);
         break;
     }
   }
@@ -615,5 +650,8 @@ export abstract class BaseCamera extends NodeObject {
   getVisibleInBVH(node: NodeObject): boolean {
     return true;
   }
+
+
+
 
 }

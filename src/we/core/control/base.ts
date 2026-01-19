@@ -1,1 +1,1 @@
-export type cameracCntrolType = "arcball" | "wasd";
+export type cameracCntrolType = "arcball" | "wasd" | "orbit";

@@ -50,7 +50,7 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 5],
   lookAt: [0, 0, 0],
-  controlType: "arcball",
+  controlType: "orbit",
 
 });
 await scene.add(camera);
