@@ -208,13 +208,13 @@ export class VideoTexture extends BaseTexture {
 
     /**
      * 动态纹理，this范围会变化
-     * @param scopy 包含video的对象
+     * @param scope 包含video的对象
      * @returns 
      */
-    getExternalTexture(scopy: any): GPUExternalTexture {
-        let source: HTMLVideoElement | VideoFrame = scopy.video as HTMLVideoElement | VideoFrame;
+    getExternalTexture(scope: any): GPUExternalTexture {
+        let source: HTMLVideoElement | VideoFrame = scope.video as HTMLVideoElement | VideoFrame;
         // if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
-        return scopy.device.importExternalTexture({ source: source })
+        return scope.device.importExternalTexture({ source: source })
 
     }
 

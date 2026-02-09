@@ -129,7 +129,7 @@ export class VideoMaterial extends BaseMaterial {
                 binding: binding,
                 // resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video])
                 label: "videoTexture External模式",
-                scopy: this.textures[E_TextureType.video],
+                scope: this.textures[E_TextureType.video],
                 getResource: this.textures[E_TextureType.video].getExternalTexture,
             });
 

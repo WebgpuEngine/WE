@@ -131,8 +131,8 @@ export interface I_dynamicTextureEntryForExternal {
     label: string,
     binding: number,
     /**动态获取importExternalTexture的箭头函数 */
-    getResource: (scopy: any) => GPUBindingResource,
-    scopy: any,
+    getResource: (scope: any) => GPUBindingResource,
+    scope: any,
 }
 /**定义一个动态纹理的view 接口 */
 export interface I_dynamicTextureEntryForView {

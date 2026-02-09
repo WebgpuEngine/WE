@@ -224,7 +224,7 @@ export class DrawCommand extends BaseDrawCommand {
                     else if (isDynamicTextureEntryForExternal(perEntry)) {
                         bindGroupEntry.push({
                             binding: perEntry.binding,
-                            resource: perEntry.getResource(perEntry.scopy),
+                            resource: perEntry.getResource(perEntry.scope),
                         });
                     }
                     else if (isDynamicTextureEntryForView(perEntry)) {

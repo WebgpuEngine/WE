@@ -73,43 +73,43 @@ let meshEntity = await scene.add({
   entity: mesh,
   position: [0.5, 0, 0],
   scale: [2, 2, 2],
-  updateAtEnd: (scopy: NodeObject) => {
-    scopy.matrixWorld = mat4.multiply(scopy.matrixWorld, posMat);
+  updateAtEnd: (scope: NodeObject) => {
+    scope.matrixWorld = mat4.multiply(scope.matrixWorld, posMat);
     const now = Date.now() / 1000;
     let rotate: weVec4 = [0, 0, 1, (Math.sin(now) + 1)  * Math.PI ];
-    mat4.axisRotate(scopy.matrixWorld, vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3], scopy.matrixWorld);
-    scopy.matrixWorld = mat4.multiply(scopy.matrixWorld, posMatInv);
+    mat4.axisRotate(scope.matrixWorld, vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3], scope.matrixWorld);
+    scope.matrixWorld = mat4.multiply(scope.matrixWorld, posMatInv);
   }
-  // updateAtEnd: (scopy: NodeObject) => {
+  // updateAtEnd: (scope: NodeObject) => {
   //   if (i < 2) {
-  //     console.log(i, scopy.matrixWorld);
+  //     console.log(i, scope.matrixWorld);
   //     i += 0.05;
-  //     scopy.matrixWorld = mat4.multiply(scopy.matrixWorld, posMat);
+  //     scope.matrixWorld = mat4.multiply(scope.matrixWorld, posMat);
   //     const now = Date.now() / 1000;
   //     let rotate: weVec4 = [0, 0, 1, i * Math.PI];
-  //     // scopy.Rotate=rotate;
+  //     // scope.Rotate=rotate;
       
   //     // let rodriguesMat= mat4.axisRotation(vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3]);
-  //     // scopy.matrixWorld = mat4.multiply( rodriguesMat,scopy.matrixWorld);
-  //     // scopy.matrixWorld = mat4.multiply(rodriguesMat, posMatInv);
-  //     console.log(scopy.matrixWorld);
+  //     // scope.matrixWorld = mat4.multiply( rodriguesMat,scope.matrixWorld);
+  //     // scope.matrixWorld = mat4.multiply(rodriguesMat, posMatInv);
+  //     console.log(scope.matrixWorld);
 
-  //     mat4.axisRotate(scopy.matrixWorld, vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3], scopy.matrixWorld);
-  //     console.log(scopy.matrixWorld);
-  //     scopy.matrixWorld = mat4.multiply(scopy.matrixWorld, posMatInv);
-  //     console.log(scopy.matrixWorld);
+  //     mat4.axisRotate(scope.matrixWorld, vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3], scope.matrixWorld);
+  //     console.log(scope.matrixWorld);
+  //     scope.matrixWorld = mat4.multiply(scope.matrixWorld, posMatInv);
+  //     console.log(scope.matrixWorld);
   //   }
   // }
-  // update: (scopy: NodeObject) => {
+  // update: (scope: NodeObject) => {
   //   if (i < 2) {
   //     // console.log(i);
   //     i+=0.0051;
-  //     // scopy.matrixWorld = mat4.multiply(scopy.matrixWorld, posMat);
+  //     // scope.matrixWorld = mat4.multiply(scope.matrixWorld, posMat);
   //     const now = Date.now() / 500;
   //     let rotate: weVec4 = [0, 0, 1, i * Math.PI];
-  //     scopy.Rotate=rotate;
-  //     // mat4.axisRotate(scopy.matrixWorld, vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3], scopy.matrixWorld);
-  //     // scopy.matrixWorld = mat4.multiply(scopy.matrixWorld, posMatInv);
+  //     scope.Rotate=rotate;
+  //     // mat4.axisRotate(scope.matrixWorld, vec3.fromValues(rotate[0], rotate[1], rotate[2]), rotate[3], scope.matrixWorld);
+  //     // scope.matrixWorld = mat4.multiply(scope.matrixWorld, posMatInv);
   //   }
   // }
 });

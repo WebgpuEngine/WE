@@ -471,7 +471,7 @@ export function isDynamicTextureEntryForExternal(obj: unknown): obj is I_dynamic
         typeof obj === 'object' &&
         obj !== null &&
         'binding' in obj &&
-        'scopy' in obj &&
+        'scope' in obj &&
         typeof (obj as I_dynamicTextureEntryForExternal).binding === 'number' &&
         'getResource' in obj &&
         typeof (obj as I_dynamicTextureEntryForExternal).getResource === 'function'

@@ -200,7 +200,7 @@ export class ComputeCommand {
                 else if (isDynamicTextureEntryForExternal(perEntry)) {
                     bindGroupEntry.push({
                         binding: perEntry.binding,
-                        resource: perEntry.getResource(perEntry.scopy),
+                        resource: perEntry.getResource(perEntry.scope),
                     });
                 }
                 //动态 view texture,不做map
