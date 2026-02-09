@@ -27,6 +27,9 @@ import { RenderManager } from "./renderManager";
 import { RootManager } from "./rootManager";
 import { BaseEntity } from "../entity/baseEntity";
 import { DefaultTexture } from "../texture/defaultTexture";
+import { AnimationManager } from "../animation/animationManager";
+import { AnimationGroupManager } from "../animation/animationGroupManager";
+import { SkinsManager } from "../animation/skinsManager";
 
 
 
@@ -282,6 +285,10 @@ export class Scene {
     pickupManager!: pickupManager;
 
     postProcessManager!: PostProcessManager;
+
+    animationManager!: AnimationManager;
+    skinsManager!: SkinsManager;
+    animationGroupManager!: AnimationGroupManager;
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -454,6 +461,9 @@ export class Scene {
         this.cameraManager = new CameraManager({ scene: this });
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
+        this.animationManager = new AnimationManager(this);
+        this.skinsManager = new SkinsManager(this);
+        this.animationGroupManager = new AnimationGroupManager(this);
     }
     getResourceDefaultPBR(): PBRMaterial {
         let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");
@@ -702,7 +712,11 @@ export class Scene {
 
         //render target manager
         //physices engine manager
-        //animation manager
+
+        //animation manager update, 动画更新需要在entity更新之前
+        this.animationGroupManager.update(this.clock); //动画组更新,需要在动画更新之前
+        this.animationManager.update(this.clock); //动画更新
+
 
         //root update :entiy ,light,camera 共性基础
         this.root.update(this.clock);
@@ -713,10 +727,15 @@ export class Scene {
         //push DC of MSAA,ToneMapping,Defer to render manager
         this.cameraManager.update(this.clock);
 
-        //entiy push DC to render manager,
+
         //todo，20250912，缺少camera与BVH的判断
         this.entityManager.update(this.clock);
+
+        //skins manager update,更新全局的逆绑定矩阵
+        this.skinsManager.update(this.clock);
+
         //particle manager and update DCCC        
+
         //更新包围盒数据，下一帧使用
         this.generateBox();
         this.generateSphere();

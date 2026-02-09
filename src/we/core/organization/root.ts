@@ -13,6 +13,7 @@ import { BaseAnimation } from "../animation/BaseAnimation";
 import { BaseParticle } from "../particle/baseParticle";
 import { AnimationGroup } from "../animation/animationGroup";
 import { BaseModel } from "../model/BaseModel";
+import { WeightMixAnimation } from "../animation/weightMixAnimation";
 
 
 export interface I_UUID {
@@ -139,7 +140,7 @@ export abstract class RootGPU implements I_UUID {
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
      * @returns 
      */
-    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+    update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
         // if (this.lastUpdaeTime === clock.now) //更新检查
         //     return false;
         if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
@@ -149,6 +150,11 @@ export abstract class RootGPU implements I_UUID {
             this.updateSelf(clock);                         //更新自身
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }
+        //在最后执行调用
+        if (updateAtEndFN)
+            if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function") {
+                this.inputValues.updateAtEnd(this);
+            }
         return true;
     }
     abstract updateSelf(clock: Clock): void;
@@ -203,12 +209,88 @@ export abstract class NodeSpace extends RootGPU {
         return this._scale;
     }
 
+    /**旋转：自身原点为中心( 不，考虑_position位置)
+     */
     _rotate: weVec4 | undefined = undefined;
+
     set Rotate(rotate: weVec4) {
         this._rotate = rotate;
     }
     get Rotate(): weVec4 | undefined {
         return this._rotate;
+    }
+    /** 任意点的任意轴的罗德里格斯旋转(考虑_position位置)
+     * 1、数组第一个元素为旋转点，第二个元素为旋转轴
+     * 2、数组第三个元素为旋转角度
+     * 3、数组第四个元素为是否在世界坐标下旋转
+    */
+    _rodriguesRotation: [Vec3, Vec3, number, boolean] | undefined = undefined;
+    /** 任意点的任意轴的罗德里格斯旋转
+     * 1、数组第一个元素为旋转点，第二个元素为旋转轴
+     * 2、数组第三个元素为旋转角度
+    */
+    set RodriguesAnyPoint(rodriguesRotation: [Vec3, Vec3, number, boolean] | [weVec3, weVec3, number, boolean]) {
+        if (isWeVec3(rodriguesRotation[0])) {
+            this._rodriguesRotation = [vec3.fromValues(...rodriguesRotation[0]), vec3.fromValues(...rodriguesRotation[1]), rodriguesRotation[2], rodriguesRotation[3]];
+        }
+        else {
+            this._rodriguesRotation = [vec3.create(), vec3.create(), 0, false];
+            vec3.copy(rodriguesRotation[0], this._rodriguesRotation[0]);
+            vec3.copy(rodriguesRotation[1], this._rodriguesRotation[1]);
+            this._rodriguesRotation[2] = rodriguesRotation[2];
+        }
+    }
+    get RodriguesAnyPoint(): [Vec3, Vec3, number, boolean] | undefined {
+        return this._rodriguesRotation;
+    }
+    /**旋转：以point(0,0,0)为原点为中心，考虑_position位置 
+     * 1、数组第一个元素为旋转轴+旋转角度
+     * 2、数组第二个元素为是否在世界坐标下旋转
+    */
+    set RodriguesZeroPoint([rotate, angle, isWorldSpace]: [Vec3 | weVec3, number, boolean]) {
+        if (isWeVec3(rotate)) {
+            this.RodriguesAnyPoint = [[0, 0, 0] as weVec3, [...rotate], angle, isWorldSpace];
+        }
+        else {
+            this.RodriguesAnyPoint = [vec3.create(), rotate, angle, isWorldSpace];
+        }
+    }
+    rodriguesRotation(worldSpace: boolean) {
+
+        if (this._rodriguesRotation == undefined) return;
+        if (worldSpace !== this._rodriguesRotation[3]) {
+            return;
+        }
+        let matOrigin = mat4.create();
+        let matTraget = mat4.create();
+        if (this._rodriguesRotation[3]) {
+            mat4.copy(this.matrixWorld, matOrigin);
+        }
+        else {
+            mat4.copy(this.matrix, matOrigin);
+        }
+        let zeroPoint = vec3.fromValues(this._rodriguesRotation[0][0], this._rodriguesRotation[0][1], this._rodriguesRotation[0][2]);
+        let zeroMat = mat4.translation(zeroPoint);
+        let zeroMatInv = mat4.invert(zeroMat);
+        mat4.multiply(zeroMat, matOrigin, matTraget);//将零点旋转到原点
+
+        let pos: Vec3 = mat4.getTranslation(matOrigin);
+        // console.log(pos[0], pos[1], pos[2]);
+        let posMat = mat4.translation(vec3.fromValues(-pos[0], -pos[1], -pos[2]));
+        let posMatInv = mat4.invert(posMat);
+        mat4.multiply(posMat, matTraget, matTraget);//将位置旋转到原点
+
+        mat4.axisRotate(matTraget, this._rodriguesRotation[1], this._rodriguesRotation[2], matTraget);//旋转
+
+        mat4.multiply(matTraget, posMatInv, matTraget);//将位置旋转回原位置
+        mat4.multiply(matTraget, zeroMatInv, matTraget);//将零点旋转回原位置
+
+        if (this._rodriguesRotation[3]) {
+            mat4.copy(matTraget, this.matrixWorld);
+        }
+        else {
+            mat4.copy(matTraget, this.matrix);
+        }
     }
 
     _quaternion: Quat | undefined = undefined;
@@ -264,10 +346,6 @@ export abstract class NodeSpace extends RootGPU {
     /** 绕任意轴旋转 */
     rotate = this.rotateAxis;
     rotateAxis(axis: Vec3, angle: number) {
-        ////这里注销到的是因为，for操作的是instance的每个个体
-        // for (let i = 0; i < this.numInstances; i++) {
-        //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
-        // }
         mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
     }
     /**绕X轴(1,0,0)旋转 */
@@ -329,8 +407,8 @@ export abstract class NodeSpace extends RootGPU {
             mat4.copy(this._matrix, this.matrix);
         }
 
-        if(this._scale[0] !== 1 || this._scale[1] !== 1 || this._scale[2] !== 1){
-            let abc=1
+        if (this._scale[0] !== 1 || this._scale[1] !== 1 || this._scale[2] !== 1) {
+            let abc = 1
         }
         if (this._scale)
             this.scale(this._scale);
@@ -344,6 +422,8 @@ export abstract class NodeSpace extends RootGPU {
         if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
             // this.translate(this._position);
             this.setTranslation(this._position);
+        //根据是否使用罗德里格斯旋转，以及在local还是world空间，来更新旋转矩阵
+        this.rodriguesRotation(false);
 
         return this.matrix;
     }
@@ -380,8 +460,8 @@ export abstract class NodeSpace extends RootGPU {
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
      * @returns 
      */
-    update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        super.update(clock, false);//更新I_Update，不更新updateSelf()
+    update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
+        super.update(clock, false, false);//更新I_Update，不更新updateSelf()
         this.updateMatrixWorld();//更新 world matrix
         this.updateWorldPosition(); //更新 world position
         //更新updateSelf()。只更新一次,在所有自身更新之后
@@ -389,6 +469,11 @@ export abstract class NodeSpace extends RootGPU {
             this.updateSelf(clock);
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }
+        //在最后执行调用
+        if (updateAtEndFN)
+            if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function") {
+                this.inputValues.updateAtEnd(this);
+            }
         return true;
     }
 }
@@ -485,6 +570,7 @@ export abstract class NodeObject extends NodeSpace {
     get renderID() {
         return this._renderID;
     }
+    /** 实体对象 entity object     */
     _entity: BaseEntity | undefined;
     get Entity(): BaseEntity | undefined {
         return this._entity;
@@ -492,6 +578,44 @@ export abstract class NodeObject extends NodeSpace {
     set Entity(entity: BaseEntity) {
         this._entity = entity;
     }
+    /** 骨架皮肤数据  ArrayBuffer of  jointsMat 
+     *  1、有数据，则存在骨骼动画。
+     *  2、工作流
+     *      A、获得matrixWorld，
+     *      B、根据jointsMat，计算出每个joint的world matrix。
+    */
+    _jointsMat: ArrayBuffer | undefined;
+    get JointsMat(): ArrayBuffer | undefined {
+        return this._jointsMat;
+    }
+    set JointsMat(skeletonSkin: ArrayBuffer) {
+        this._jointsMat = skeletonSkin;
+    }
+    /**  morphTarget 目标值数据  ArrayBuffer of  morphTargetMat 
+     *  1、有数据，则存在morphTarget动画。
+    */
+    _morphTarget: ArrayBuffer | undefined;
+    get MorphTarget(): ArrayBuffer | undefined {
+        return this._morphTarget;
+    }
+    set MorphTarget(morphTarget: ArrayBuffer) {
+        this._morphTarget = morphTarget;
+    }
+    /**
+     * 权重动画 weight animation object
+     * 1、有数据，则存在权重动画。权重动画存在于_animation[]中,这里是指针的概念。
+     * 2、工作流
+     *      update()，根据是否有权重动画，选择matrixWorld的更新方式。
+     * 3、如果存在多个权重动画组，这个标志为当前使用的权重动画组。
+     */
+    _weightMixAnimation: WeightMixAnimation | undefined;
+    get WeightMixAnimation(): WeightMixAnimation | undefined {
+        return this._weightMixAnimation;
+    }
+    set WeightMixAnimation(weightMix: WeightMixAnimation) {
+        this._weightMixAnimation = weightMix;
+    }
+
     _particle: BaseParticle | undefined;
     get Particle(): BaseParticle | undefined {
         return this._particle;
@@ -499,7 +623,10 @@ export abstract class NodeObject extends NodeSpace {
     set Particle(particle: BaseParticle) {
         this._particle = particle;
     }
-
+    /** 动画对象 animation object     
+     * 1、有数据，则存在动画。
+     * 2、每个元素为一个动画对象。
+    */
     _animation: BaseAnimation[] | undefined;
     get Animation(): BaseAnimation[] | undefined {
         return this._animation;
@@ -507,6 +634,10 @@ export abstract class NodeObject extends NodeSpace {
     set Animation(animation: BaseAnimation[]) {
         this._animation = animation;
     }
+
+    /** 动画组对象 animation group object     
+     * 1、gltf等模型使用
+    */
     _animationGroup: AnimationGroup[] | undefined;
     get AnimationGroup(): AnimationGroup[] | undefined {
         return this._animationGroup;
@@ -699,7 +830,7 @@ export abstract class NodeObject extends NodeSpace {
             // else if (child.type == "Model") {
             //     // this.scene.modelManager.addModel(child as Model);
             // }
-           
+
         }
         //节点，根据参数创建
         else {
@@ -853,10 +984,10 @@ export abstract class NodeObject extends NodeSpace {
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
      * @returns 
      */
-    update(clock: Clock, updateSelftFN: boolean = true): boolean {
+    update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
         // if (this.lastUpdaeTime === clock.now) //更新检查
         //     return false;
-        super.update(clock, false);                             //不更新updateSelf()
+        super.update(clock, false, false);                             //不更新updateSelf(),不更新updateAtEnd();都只执行一次
         this.updateSelfAttribute(clock);
         //更新updateSelf()。只更新一次,在所有自身更新之后
         if (updateSelftFN) {
@@ -866,6 +997,20 @@ export abstract class NodeObject extends NodeSpace {
         if (this.children.length > 0)                           //更新子节点
             for (let i of this.children)
                 i.update(clock);
+
+        //根据是否使用罗德里格斯旋转，以及在local还是world空间，来更新旋转矩阵
+        this.rodriguesRotation(true);
+
+        //测试：更新inputValues，比如更改matrixWorld,在更新完成位置和matrix之后
+        // if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
+        //     this.inputValues.update(this);
+        // }
+        //在最后执行调用
+        if (updateAtEndFN)
+            if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function") {
+                this.inputValues.updateAtEnd(this);
+            }
+
         return true;
 
     }
@@ -912,6 +1057,7 @@ export abstract class NodeObject extends NodeSpace {
         else {
             this.matrixWorld = this.updateMatrix();
         }
+        // console.log("root:", this.matrixWorld);
         return this.matrixWorld;
     }
 

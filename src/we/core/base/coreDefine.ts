@@ -22,6 +22,8 @@ export type SimpleFunction = () => void;
 export interface I_Update {
     /**自定义更新functon() */
     update?: (scope: any) => any,
+    /**在最后执行调用 */
+    updateAtEnd?: (scope: any) => any,
     name?: string,
     // /**是否为模型的子节点 */
     // belongModel?: BaseModel,

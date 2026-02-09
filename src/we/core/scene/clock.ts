@@ -43,6 +43,6 @@ export class Clock {
         // this.updateNow();
         this.timeLast = this.timeNow;
         this.timeNow = Date.now();
-        this._deltaTime = (this.timeNow - this.timeLast) / 1000
+        this._deltaTime = (this.timeNow - this.timeLast)/1000;
     }
 }

@@ -10,12 +10,15 @@ struct st_entity {
   morpht_target_count:u32,      //0:no morph,other:morph traget count
   vertex_count:u32,             //顶点数量，morph target使用
   joint_matrix_count:u32,       //0:no skin,other:joint matrix count
+  //joint_matrix_group_count:u32,       //todo，skin joint matrix group count 可能有多个
+  //joint_matrix_group_size:u32,       //todo，skin joint matrix 每组内的joint matrix count可能不同
 }
 
 struct st_instance_info {
   node_id:u32,
   stage_id:u32,
   uv:vec2f,
+  //joint_matrix_group_id:u32,       //todo，当前使用的 skin joint matrix group id
 }
 
 @group(1) @binding(0) var<uniform> u_entity_base:st_entity;

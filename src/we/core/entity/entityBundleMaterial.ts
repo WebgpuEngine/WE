@@ -38,6 +38,17 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         vertexStepMode: "vertex",
         indexes: [],
     };
+    checkMorphTargetCount(count: number): boolean {
+        // throw new Error("EntityBundleMaterial: checkMorphTargetCount not implemented");
+        let countFromAttribute = -1;//因为如果是morphTarget，主position也会被计算在内
+        for (let key in this.attributes.vertices) {
+            if (key.indexOf("position") == 0) {
+                countFromAttribute++;
+            }
+        }
+        this._morphTargetWeightsCount = countFromAttribute;
+        return countFromAttribute == count;
+    }
 
     detachData(): void {
         this.inputValues.attributes.geometry = undefined;
@@ -365,7 +376,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
             if (visibleInBVH && visibleOfNode && enableOfNode) {
                 for (let j = 0; j < this.instance.numInstances; j++) {
-                    visibleInstanceIDArray.push(Number(i)*this.instance.numInstances + j);
+                    visibleInstanceIDArray.push(Number(i) * this.instance.numInstances + j);
                 }
             }
         }

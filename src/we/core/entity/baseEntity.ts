@@ -25,10 +25,11 @@ import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { E_renderPassName } from "../scene/renderManager";
 import { mergeLightUUID } from "../light/lightsManager";
 import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFunction";
-import { BaseAnimation, E_AnimationType } from "../animation/BaseAnimation";
+import { BaseAnimation } from "../animation/BaseAnimation";
 import { MorphTargetAnimation } from "../animation/morphTarget";
-import { SkinSkeletonAnimation } from "../animation/skinSkeleton";
+import { SkinAnimation } from "../animation/skin";
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
+import { E_AnimationType } from "../animation/base";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -142,31 +143,39 @@ export abstract class BaseEntity extends NodeSpace {
     boundingSphere!: boundingSphere | undefined;
     //////////////////////////////////////////////////////////////////
     //动画相关
-    _animation: BaseAnimation | undefined;
-    get Animation() {
-        return this._animation;
+    _animationType: number = E_AnimationType.none;
+    get AnimationType() {
+        return this._animationType;
     }
-    set Animation(animation: BaseAnimation | undefined) {
-        this._animation = animation;
+    set AnimationType(animationType: number) {
+        this._animationType = animationType;
     }
     /** 获取动画类型 */
     getAnimationKind(): E_AnimationType {
-        if (this.Animation) {
-            return this.Animation.kind;
+        if (this.AnimationType) {
+            return this.AnimationType;
         }
         return E_AnimationType.none;
     }
+    /** 变形目标数量 
+     * 1、由checkMorphTargetCount() 检查并设置
+     * 2、checkMorphTargetCount()由class MorphTargetAnimation 调用
+    */
+    _morphTargetWeightsCount: number = 0;
     /** 获取变形目标数量 */
     getMorphtTargetCount(): number {
-        if (this.Animation?.kind === E_AnimationType.morphTarget && this.Animation instanceof MorphTargetAnimation) {
-            return this.Animation.Count;
+        if (this._morphTargetWeightsCount > 0) {
+            return this._morphTargetWeightsCount;
         }
         return 0;
     }
+    /** 检查变形目标数量是否匹配,检查attribute中position*的数量 ,并设置_morphTargetWeightsCount*/
+    abstract checkMorphTargetCount(count: number): boolean;
+    _jointsMattrices: Mat4[] = [];
     /** 获取骨骼动画数量 */
     getSkeletonCount(): number {
-        if (this.Animation?.kind === E_AnimationType.skeleton && this.Animation instanceof SkinSkeletonAnimation) {
-            return this.Animation.Count;
+        if (this._jointsMattrices.length > 0) {
+            return this._jointsMattrices.length;
         }
         return 0;
     }
