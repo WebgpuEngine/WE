@@ -119,30 +119,31 @@ let lightMaterial = new ColorMaterial(
 let lightRadius = 1.65;
 let lightRadiusFlag = true;
 let lightZ = 0;
-let light1Entity1 = new Mesh(
+let meshPointBall = new Mesh(
   {
     attributes: {
       geometry: ballGeometry,
     },
     material: lightMaterial,
-    position: [1, 1, 1],
+  });
+
+
+let nodeLight1 = await scene.add(
+  {
+    entity: meshPointBall,
     update: (scope: any) => {
       const now = Date.now() / 500;
       let pos = [Math.sin(now) * lightRadius, lightZ, Math.cos(now) * lightRadius];
       scope.Position = pos;
     }
-  });
-await scene.add(light1Entity1);
-
-
-
-
+  }
+);
 
 let onelight = new PointLight(
   {
-    position: [0,0,0],
+    position: [0, 0, 0],
     // position: [1, 1, 1],
     intensity: 2.0,
   }
 );
-await light1Entity1.addChild(onelight);
+await nodeLight1.addChild(onelight);
