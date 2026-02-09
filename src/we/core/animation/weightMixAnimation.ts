@@ -58,13 +58,13 @@ export class WeightMixAnimation extends BaseAnimation {
             return;
         }
 
-        let targetType = weightPlay.weight.length / weightPlay.timer.length;
+        let targetStride = weightPlay.weight.length / weightPlay.timer.length;
         let sampler: I_AnimationSampler = {
             interpolation: E_InterpolationModes.linear,
             times: weightPlay.timer,
             value: weightPlay.weight,
             target: E_AnimationTargetType.weight,
-            targetType: targetType,
+            targetStride: targetStride,
         };
         let iv: IV_AnimationValue = {
             parent: (weightPlay.animation[0] as BaseAnimation).parent,
@@ -101,20 +101,20 @@ export class WeightMixAnimation extends BaseAnimation {
         let group = weghtsGroup.animation;
 
         let weightList: number[][] = [];
-        let targetType: number = 0;
+        let targetStride: number = 0;
         let target: string = "";
         if (group.length == 0) {
             console.warn("AnimationManager: weightsUpdate: group is empty");
             return;
         }
         else {
-            targetType = group[0].interpolator.sampler.targetType;
+            targetStride = group[0].interpolator.sampler.targetStride;
             target = group[0].interpolator.sampler.target;
         }
         let output: number[] = [];
         for (let perOne of group) {
             let perOutput = perOne.interpolator.output;
-            for (let i = 0; i < targetType; i++) {
+            for (let i = 0; i < targetStride; i++) {
                 output[i] += perOutput[i] * weghtsGroup.weight;
             }
         }

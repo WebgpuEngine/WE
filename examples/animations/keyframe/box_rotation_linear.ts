@@ -70,7 +70,7 @@ let meshEntity = await scene.add({
 
 let sampler: I_AnimationSampler = {
   interpolation: E_InterpolationModes.linear,
-  times: [0, 1, 2, 3, 4],
+  frames: [0, 1, 2, 3, 4],
   values: [
     0, 0, 1, 0 / 180 * Math.PI,
     0, 0, 1, 90 / 180 * Math.PI,
@@ -81,7 +81,7 @@ let sampler: I_AnimationSampler = {
   ],
   target: E_AnimationTargetType.rotation,
 
-  targetType: 3
+  targetStride: 3
 }
 let aniValue: IV_AnimationValue = {
   parent: meshEntity,
@@ -90,3 +90,5 @@ let aniValue: IV_AnimationValue = {
 
 let keyFrame: KeyFrameAnimation = new KeyFrameAnimation(aniValue);
 window.keyFrame = keyFrame;
+
+keyFrame.play({speed:2,mode:{type:"count",count:1}})

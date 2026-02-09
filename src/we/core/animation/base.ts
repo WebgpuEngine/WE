@@ -117,7 +117,7 @@ export interface I_AnimationSampler {
     /** 插值模式 */
     interpolation: E_InterpolationModes,
     /** 时间轴 */
-    times: number[],
+    frames: number[],
     /** 关键帧值
      * 1、关键帧值的长度必须与时间轴长度相等
      * 2、如果目标属性为morphTarget，关键帧值的长度必须是时间轴长度的整数倍（数值为morphTarget数量）
@@ -139,9 +139,27 @@ export interface I_AnimationSampler {
      * 1、position:3,rotation:4,scale:3,quaternion:4。固定数量
      * 2、morphTarget:morphTarget数量(attribute 中position[N] 的数量)
      * 3、weight:按需
+     * 4、cubeSpline:stride 按需，但算上前后的数据共需要stride*3个数据
     */
-    targetType: number
+    targetStride: number
 }
+// export interface I_InterpolatoSampler {
+//     /** 插值模式 */
+//     interpolation: E_InterpolationModes,
+//     frame:I_AnimationPlayParams[]|I_InterpolatorScale
+// }
+// export interface I_InterpolatorBase {
+//     frame: number,
+// }
+// export interface I_InterpolatorPosition extends I_InterpolatorBase {
+//     values: weVec3,
+// }
+// export type I_InterpolatorScale = I_InterpolatorPosition
+// export interface I_InterpolatorRotation  extends I_InterpolatorBase {
+//     values: weVec4,
+// }
+// export type I_InterpolatorQuaternion =  I_InterpolatorRotation
+
 
 /** 动画运行时间 
  * 计算当前关键帧索引、当前时间、当前时间与关键帧时间差

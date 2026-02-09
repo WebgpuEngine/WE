@@ -99,11 +99,11 @@ export class Interpolator {
             console.warn("Animation: play: sampler is undefined");
             return false;
         }
-        if (this.sampler.times.length == 0) {
+        if (this.sampler.frames.length == 0) {
             console.warn("Animation: play: sampler times is empty");
             return false;
         }
-        if (this.sampler.times[this.sampler.times.length - 1] <= 0) {
+        if (this.sampler.frames[this.sampler.frames.length - 1] <= 0) {
             console.warn("Animation: play: sampler times last is less than or equal to 0");
             return false;
         }
@@ -122,13 +122,13 @@ export class Interpolator {
         }
         //morphTarget 目标值长度必须是关键帧时间长度的整数倍
         if (this.sampler.target == E_AnimationTargetType.morphTarget) {
-            if (this.sampler.values.length % this.sampler.times.length != 0) {
+            if (this.sampler.values.length % this.sampler.frames.length != 0) {
                 console.warn("morphTarget Animation: play: sampler value length is not a multiple of times length");
                 return false;
             }
         }
 
-        // if (this.sampler.values.length != this.sampler.times.length) {
+        // if (this.sampler.values.length != this.sampler.frames.length) {
         //     console.warn("KeyFrameAnimation: play: sampler value length is not equal times length");
         //     return false;
         // }
@@ -170,7 +170,7 @@ export class Interpolator {
         this.updateOutput();
     }
     updateOutput(): void {
-        let stride: number = this.sampler.targetType;
+        let stride: number = this.sampler.targetStride;
         switch (this.sampler.target) {
             case E_AnimationTargetType.position:
             case E_AnimationTargetType.rotation:
@@ -186,7 +186,7 @@ export class Interpolator {
                     this.linear(this.timer.currentKeyFrameIndex, this.timer.currentKeyFrameIndex + 1, this.timer.time, stride);
                 }
                 else if (this.sampler.interpolation == E_InterpolationModes.cubicSpline) {
-                    let deltaTime = this.sampler.times[this.timer.currentKeyFrameIndex + 1] - this.sampler.times[this.timer.currentKeyFrameIndex];
+                    let deltaTime = this.sampler.frames[this.timer.currentKeyFrameIndex + 1] - this.sampler.frames[this.timer.currentKeyFrameIndex];
                     this.cubicSpline(this.timer.currentKeyFrameIndex, this.timer.currentKeyFrameIndex + 1, deltaTime, this.timer.time, stride);
                 }
                 else {
@@ -214,7 +214,7 @@ export class Interpolator {
                     this.slerpQuat(q1, q2, this.timer.time);
                 }
                 else if (this.sampler.interpolation == E_InterpolationModes.cubicSpline) {
-                    let deltaTime = this.sampler.times[this.timer.currentKeyFrameIndex + 1] - this.sampler.times[this.timer.currentKeyFrameIndex];
+                    let deltaTime = this.sampler.frames[this.timer.currentKeyFrameIndex + 1] - this.sampler.frames[this.timer.currentKeyFrameIndex];
                     let quaternionArray: number[] = this.cubicSpline(this.timer.currentKeyFrameIndex, this.timer.currentKeyFrameIndex + 1, deltaTime, this.timer.time, stride);
                     let quatResult = quat.create(...quaternionArray);
                     quatResult = quat.normalize(quatResult);
@@ -241,10 +241,10 @@ export class Interpolator {
     setTimerToStart(): void {
         this.timer = {
             currentKeyFrameIndex: 0,
-            timerKeyFrame: this.sampler.times[0],
-            nextTimerKeyFrame: this.sampler.times[1],
-            timeCurrent: this.sampler.times[0],
-            timeDuration: this.sampler.times[1] - this.sampler.times[0],
+            timerKeyFrame: this.sampler.frames[0],
+            nextTimerKeyFrame: this.sampler.frames[1],
+            timeCurrent: this.sampler.frames[0],
+            timeDuration: this.sampler.frames[1] - this.sampler.frames[0],
             time: 0,
             totalTime: 0,
         };
@@ -275,15 +275,15 @@ export class Interpolator {
                 console.warn("weight Animation: play: not implemented");
                 break;
             default:
-                if (this.sampler.targetType) {
+                if (this.sampler.targetStride) {
                     let weight: number[] = [];
-                    for (let i = 0; i < this.sampler.targetType; i++) {
+                    for (let i = 0; i < this.sampler.targetStride; i++) {
                         weight[i] = this.sampler.values[keyFrameTime + i] as number;
                     }
                     this.output = weight;
                 }
                 else {
-                    throw new Error(` ${this.sampler.target}'s targetType is undefined, please check the sampler targetType`);
+                    throw new Error(` ${this.sampler.target}'s targetStride is undefined, please check the sampler targetStride`);
                 }
                 break;
         }
@@ -306,7 +306,7 @@ export class Interpolator {
         }
         this.timer.timeCurrent += clock.deltaTime * this.Speed;
         this.timer.totalTime += clock.deltaTime * this.Speed;
-        // this.timer.currentKeyFrameIndex = this.sampler.times.findIndex((time) => time >= this.timer.timeCurrent) //- 1;
+        // this.timer.currentKeyFrameIndex = this.sampler.frames.findIndex((time) => time >= this.timer.timeCurrent) //- 1;
         this.timer.currentKeyFrameIndex = this.findTimeIndex(this.timer.timeCurrent);
         // console.log("currentKeyFrameIndex", this.timer.currentKeyFrameIndex, this.timer.timeCurrent);
         if (this.timer.currentKeyFrameIndex < 0) {//如果当前时间大于等于最后一个关键帧时间
@@ -329,20 +329,20 @@ export class Interpolator {
             }
             if (rePlay) {
                 this.timer.currentKeyFrameIndex = 0;
-                this.timer.timeCurrent = this.sampler.times[0];
+                this.timer.timeCurrent = this.sampler.frames[0];
                 // console.log("reset", this.timer.currentKeyFrameIndex, this.timer.timeCurrent);
                 // console.log(this.parent.parent.Position);
             }
             else {
                 //step 的最后一个关键帧 ，不同于linear，需要特殊处理，使其在最后一个关键帧时间点保持
                 if (this.sampler.interpolation == E_InterpolationModes.step) {
-                    this.timer.currentKeyFrameIndex = this.sampler.times.length - 1;
+                    this.timer.currentKeyFrameIndex = this.sampler.frames.length - 1;
                     return;
                 }
             }
         }
-        this.timer.timerKeyFrame = this.sampler.times[this.timer.currentKeyFrameIndex];
-        this.timer.nextTimerKeyFrame = this.sampler.times[this.timer.currentKeyFrameIndex + 1];
+        this.timer.timerKeyFrame = this.sampler.frames[this.timer.currentKeyFrameIndex];
+        this.timer.nextTimerKeyFrame = this.sampler.frames[this.timer.currentKeyFrameIndex + 1];
         this.timer.timeDuration = this.timer.nextTimerKeyFrame - this.timer.timerKeyFrame;
         if (this.timer.timeDuration) {
             this.timer.time = (this.timer.timeCurrent - this.timer.timerKeyFrame) / this.timer.timeDuration;
@@ -363,9 +363,9 @@ export class Interpolator {
          *     A、time：0.1，times：[0,1,2]，返回1
          * 2、最后一个，返回-1
          */
-        let index = this.sampler.times.findIndex((t) => t >= currentTime);
+        let index = this.sampler.frames.findIndex((t) => t >= currentTime);
         // 处理当前时间大于等于最后一个关键帧时间的情况
-        if (index > 0 && this.sampler.times[index] > currentTime) {
+        if (index > 0 && this.sampler.frames[index] > currentTime) {
             index--;
         }
         return index;
@@ -397,10 +397,10 @@ export class Interpolator {
         let source = this.sampler.values;
         // 处理最后一个关键帧，直接返回最后一个关键帧数据
         // console.log("linear", prevKey, nextKey, t, stride);
-        if (prevKey == -1 || prevKey == this.sampler.times.length - 1) {
-            let endKey = this.sampler.times.length - 1;
+        if (prevKey == -1 || prevKey == this.sampler.frames.length - 1) {
+            let endKey = this.sampler.frames.length - 1;
             // }
-            // if (prevKey == this.sampler.times.length ) {
+            // if (prevKey == this.sampler.frames.length ) {
             for (let i = 0; i < stride; ++i) {
                 this.output[i] = source[endKey * stride + i];
             }
@@ -442,8 +442,8 @@ export class Interpolator {
      */
     cubicSpline(prevKey: number, nextKey: number, keyDelta: number, t: number, stride: number): number[] {
         this.output = [];
-        if (prevKey == -1 || prevKey == this.sampler.times.length - 1) {
-            let newPrevKey = this.sampler.times.length - 1;
+        if (prevKey == -1 || prevKey == this.sampler.frames.length - 1) {
+            let newPrevKey = this.sampler.frames.length - 1;
             for (let i = newPrevKey * stride * 3 + stride; i < newPrevKey * stride * 3 + stride*2; i++) {
                 this.output.push(this.sampler.values[i]);
             }
@@ -451,7 +451,7 @@ export class Interpolator {
             return this.output;
         }
         // 处理最后一个关键帧，直接返回最后一个关键帧数据
-        if (prevKey == this.sampler.times.length - 1) {
+        if (prevKey == this.sampler.frames.length - 1) {
             for (let i = 0; i < stride; ++i) {
                 this.output[i] = this.sampler.values[prevKey * stride + i];
             }

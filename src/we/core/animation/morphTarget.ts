@@ -11,13 +11,13 @@ export class MorphTargetAnimation extends BaseAnimation {
             throw new Error("MorphTargetAnimation: parent entity is undefined");
         }
 
-        if (values.parent._entity.checkMorphTargetCount(values.sampler.targetType) == false) {
+        if (values.parent._entity.checkMorphTargetCount(values.sampler.targetStride) == false) {
             throw new Error("MorphTargetAnimation: parent entity morphTargetCount not match");
         }
         if (values.parent._entity.getMorphtTargetCount() == 0) {
             throw new Error("MorphTargetAnimation: parent entity morphTargetCount is zero");
         }
         super(values);
-        this.Count = values.sampler.targetType;
+        this.Count = values.sampler.targetStride;
     }
 }

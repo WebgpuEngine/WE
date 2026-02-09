@@ -36,9 +36,10 @@ export abstract class BaseAnimation implements I_UUID {
     get Speed(): number {
         return this._speed;
     }
-
+    /** 类型 */
     type: string = "animation";
 
+    /** 动画类型 */
     kind!: E_AnimationType;
 
     parent!: NodeObject;
