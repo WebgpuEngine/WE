@@ -19,7 +19,7 @@
  * 1、material使用
  * 
 */
-export type T_SHTReplaceList = Map<string, string | ((scope?:any) => string)>;
+export type T_SHTReplaceList = Map<string, string | ((scope?: any) => string)>;
 
 /**
  * add 模拟部分内容
@@ -35,7 +35,7 @@ export interface I_shaderTemplateReplace {
     name: string,
     replace: string,                //替换的内容， "$lightNumber",
     replaceType: E_shaderTemplateReplaceType,            //替换的类型，value,replaceString,replaceCode,selectCode
-    check?: string,                 //检查的内容，根据check的内容进行替换（false，true）对应数组（0,1）
+    check?: string | string[],                 //检查的内容，根据check的内容进行替换（false，true）对应数组（0,1）
     selectCode?: string[],          //选择性替换代码，根据check的内容进行替换（false，true）对应数组（0,1）
     replaceCode?: string,                  //替换的代码
     description?: string,            //描述
@@ -380,6 +380,50 @@ export var SHT_refDCG: I_singleShaderTemplate = {
             selectCode: [
                 "",
                 " uv[2]= attributes.uv1[0]; \n uv[3]= attributes.uv1[1]; \n ",
+            ],
+        },
+        // 骨骼动画
+        {
+            name: "refName",
+            replace: "$skinSkeleton",
+            replaceType: E_shaderTemplateReplaceType.selectCode,                    //replaceType="selectCode",检查是否有属性,并根据check的检查属性进行替换
+            check: ["joints", "weights"],
+            selectCode: [
+                "",
+                ` 
+    if(u_entity_base.animation_kind == 4||u_entity_base.animation_kind == 5||u_entity_base.animation_kind == 6) {
+        var skin_mat: mat4x4f = mat4x4f(
+            vec4f(0.0, 0.0, 0.0, 0.0), // 第0列
+            vec4f(0.0, 0.0, 0.0, 0.0), // 第1列
+            vec4f(0.0, 0.0, 0.0, 0.0), // 第2列
+            vec4f(0.0, 0.0, 0.0, 0.0)  // 第3列（单位矩阵）
+        );
+
+        let count = u32(u_entity_base.joint_matrix_count);
+        for(var i=0 ;i < 4;i++) {
+            let per_joint = u32(attributes.joints[i]);
+            // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
+            skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
+        }
+        worldPosition = skin_mat * vec4f(position, 1.0);
+        // worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));
+        vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
+        vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
+    }
+        `,
+            ],
+        },
+        //  morphTarget动画
+        {
+            name: "refName",
+            replace: "$morphTarget",
+            replaceType: E_shaderTemplateReplaceType.selectCode,                    //replaceType="selectCode",检查是否有属性,并根据check的检查属性进行替换
+            //使用“position_*”是为了与position区分，position_*是morphTarget的position属性
+            check: ["position_1", "position_2"],                                      //检查是否有position_1和position_2属性,至少2个position;
+            selectCode: [
+                "",
+                ` 
+        `,
             ],
         },
     ]

@@ -60,6 +60,8 @@ console.warn("position2： 1,2,3")
 gltf.printAccessorContent(2)
 console.warn("position3： 1,2,3")
 gltf.printAccessorContent(3)
+console.log("========================================indices  ========================================");
+gltf.printAccessorContent(0)
 
 
 

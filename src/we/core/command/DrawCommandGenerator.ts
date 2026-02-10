@@ -568,11 +568,51 @@ export class DrawCommandGenerator {
                     }
                     //替换选择代码
                     else if (perReplace.replaceType == E_shaderTemplateReplaceType.selectCode) {
-                        if (refName.indexOf(perReplace.check!) != -1) {
-                            shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
+                        //替换目标是单个字符串
+                        if (typeof perReplace.check == "string") {
+                            if (refName.indexOf(perReplace.check!) != -1) {
+                                shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
+                            }
+                            else {
+                                shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
+                            }
                         }
-                        else {
-                            shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
+                        //替换目标是字符串数组
+                        else if (typeof perReplace.check == "object" && Array.isArray(perReplace.check) && (perReplace.check as string[]).length > 0) {
+                            let isReplace = false;
+                            for (let check of perReplace.check as string[]) {
+                                if (refName.indexOf(check) == -1) {
+                                    isReplace = false;
+                                    break;
+                                }
+                                else
+                                    isReplace = true;
+                            }
+                            if (isReplace) {
+                                //如果是morphTarget，需要特殊处理position数组，WGSL是静态语言，不能在运行时动态计算morphTarget的position数量
+                                if (perReplace.replace == "$morphTarget") {
+                                    // // 目标生成字符串：var positions :array<vec3f,N>=[attribute.position1,attribute.position2,attribute.position3,...] 
+                                    // let positions: string[] = [];
+                                    // /**
+                                    //  * 遍历refName，将所有position_*属性添加到positions数组中
+                                    //  * 虽然是对象，但position_*属性的后续字符是数组，是顺序排列的，所以可以直接添加到positions数组中
+                                    //  */
+                                    // for (let i = 0; i < refName.length; i++) {
+                                    //     if (refName[i].indexOf("position_") != -1) {
+                                    //         positions.push("attribute." + refName[i]);
+                                    //     }
+                                    // }
+                                    // let positionsString: string = positions.join(",");
+                                    // let preCode: string = `\n var positions :array<vec3f,${positions.length}>=[$positionsString]; \n`;
+                                    // shaderCode = shaderCode.replace(perReplace.replace, preCode + positionsString);
+                                }
+                                else {
+                                    shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
+                                }
+                            }
+                            else {
+                                shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
+                            }
                         }
                     }
                     //替换值值
