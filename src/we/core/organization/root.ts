@@ -14,6 +14,7 @@ import { BaseParticle } from "../particle/baseParticle";
 import { AnimationGroup } from "../animation/animationGroup";
 import { BaseModel } from "../model/BaseModel";
 import { WeightMixAnimation } from "../animation/weightMixAnimation";
+import { SkinAnimation } from "../animation/skin";
 
 
 export interface I_UUID {
@@ -570,6 +571,9 @@ export abstract class NodeObject extends NodeSpace {
     get renderID() {
         return this._renderID;
     }
+
+
+
     /** 实体对象 entity object     */
     _entity: BaseEntity | undefined;
     get Entity(): BaseEntity | undefined {
@@ -578,51 +582,18 @@ export abstract class NodeObject extends NodeSpace {
     set Entity(entity: BaseEntity) {
         this._entity = entity;
     }
-    /** 骨架皮肤数据  ArrayBuffer of  jointsMat 
-     *  1、有数据，则存在骨骼动画。
-     *  2、工作流
-     *      A、获得matrixWorld，
-     *      B、根据jointsMat，计算出每个joint的world matrix。
-    */
-    _jointsMat: ArrayBuffer | undefined;
-    get JointsMat(): ArrayBuffer | undefined {
-        return this._jointsMat;
-    }
-    set JointsMat(skeletonSkin: ArrayBuffer) {
-        this._jointsMat = skeletonSkin;
-    }
-    /**  morphTarget 目标值数据  ArrayBuffer of  morphTargetMat 
-     *  1、有数据，则存在morphTarget动画。
-    */
-    _morphTarget: ArrayBuffer | undefined;
-    get MorphTarget(): ArrayBuffer | undefined {
-        return this._morphTarget;
-    }
-    set MorphTarget(morphTarget: ArrayBuffer) {
-        this._morphTarget = morphTarget;
-    }
-    /**
-     * 权重动画 weight animation object
-     * 1、有数据，则存在权重动画。权重动画存在于_animation[]中,这里是指针的概念。
-     * 2、工作流
-     *      update()，根据是否有权重动画，选择matrixWorld的更新方式。
-     * 3、如果存在多个权重动画组，这个标志为当前使用的权重动画组。
-     */
-    _weightMixAnimation: WeightMixAnimation | undefined;
-    get WeightMixAnimation(): WeightMixAnimation | undefined {
-        return this._weightMixAnimation;
-    }
-    set WeightMixAnimation(weightMix: WeightMixAnimation) {
-        this._weightMixAnimation = weightMix;
-    }
 
-    _particle: BaseParticle | undefined;
-    get Particle(): BaseParticle | undefined {
+
+    /** 粒子对象 particle object     */
+    _particle: BaseParticle[] | undefined;
+    get Particle(): BaseParticle[] | undefined {
         return this._particle;
     }
-    set Particle(particle: BaseParticle) {
-        this._particle = particle;
-    }
+    // set Particle(particle: BaseParticle) {
+    //     this._particle = particle;
+    // }
+
+
     /** 动画对象 animation object     
      * 1、有数据，则存在动画。
      * 2、每个元素为一个动画对象。
@@ -645,6 +616,61 @@ export abstract class NodeObject extends NodeSpace {
     set AnimationGroup(animationGroup: AnimationGroup[]) {
         this._animationGroup = animationGroup;
     }
+
+    /** 骨架动画数据  SkinAnimation object 
+     * 目前只设计了一个蒙皮动画。同一节点上不存在多个蒙皮动画。
+     */
+    _skinAnimation: SkinAnimation | undefined;
+    get SkinAnimation(): SkinAnimation | undefined {
+        return this._skinAnimation;
+    }
+    set SkinAnimation(skinAnimation: SkinAnimation) {
+        this._skinAnimation = skinAnimation;
+    }
+
+    /** 骨架皮肤数据  ArrayBuffer of  jointsMat 
+    *  1、有数据，则存在骨骼动画。
+    *  2、工作流
+    *      A、获得matrixWorld，
+    *      B、根据jointsMat，计算出每个joint的world matrix。
+   */
+    _jointsMat: ArrayBuffer | undefined;
+    get JointsMat(): ArrayBuffer | undefined {
+        return this._jointsMat;
+    }
+    set JointsMat(skeletonSkin: ArrayBuffer) {
+        this._jointsMat = skeletonSkin;
+    }
+
+
+    /**  morphTarget 目标值数据  ArrayBuffer of  morphTargetMat 
+     *  1、有数据，则存在morphTarget动画。
+    */
+    _morphTarget: ArrayBuffer | undefined;
+    get MorphTarget(): ArrayBuffer | undefined {
+        return this._morphTarget;
+    }
+    set MorphTarget(morphTarget: ArrayBuffer) {
+        this._morphTarget = morphTarget;
+    }
+
+
+    /**
+     * 权重动画 weight animation object
+     * 1、有数据，则存在权重动画。权重动画存在于_animation[]中,这里是指针的概念。
+     * 2、工作流
+     *      update()，根据是否有权重动画，选择matrixWorld的更新方式。
+     * 3、如果存在多个权重动画组，这个标志为当前使用的权重动画组。
+     */
+    _weightMixAnimation: WeightMixAnimation | undefined;
+    get WeightMixAnimation(): WeightMixAnimation | undefined {
+        return this._weightMixAnimation;
+    }
+    set WeightMixAnimation(weightMix: WeightMixAnimation) {
+        this._weightMixAnimation = weightMix;
+    }
+
+
     /**
      * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
      * node visible
@@ -662,6 +688,8 @@ export abstract class NodeObject extends NodeSpace {
     get Visible(): boolean {
         return this.visible;
     }
+
+
     /**
      * 向上递归，判断是否可见
      * 1、通过parent.type 判断是否为root节点
@@ -736,14 +764,63 @@ export abstract class NodeObject extends NodeSpace {
         // this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
         // return this.renderID + 1;
     }
+    /**
+     * 销毁节点
+     * 1、递归销毁所有子节点
+     * 2、需要entityManager中移除entity;entity的updateSelf()会更新instance 相关
+     * 3、需要注销动画
+     * 4、需要注销骨骼动画
+     * 5、需要注销动画组
+     * 6、需要注销粒子系统
+     * 7、需要注销BVH和物理引擎中的相关数据
+     */
     destroy(): void {
+        //递归销毁所有子节点
         if (this.children.length > 0) {
             for (let child of this.children) {
                 if (child instanceof NodeObject) {
                     child.destroy();
                 }
             }
+            this._children = [];
         }
+        //从entityManager中移除entity
+        this.detachEntity();
+
+        //注销动画
+        if (this.Animation) {
+            this.Animation.forEach((animation) => {
+                animation.destroy();
+            });
+            this.Animation = [];
+        }
+        //注销骨骼动画
+        if (this._skinAnimation) {
+            this._skinAnimation.destroy();
+            this._skinAnimation = undefined;
+        }
+        //注销动画组
+        if (this.AnimationGroup) {
+            this.AnimationGroup.forEach((animationGroup) => {
+                animationGroup.destroy();
+            });
+            this.AnimationGroup = [];
+        }
+        //注销粒子系统
+        if (this.Particle) {
+            this.Particle.forEach((particle) => {
+                particle.destroy();
+            });
+            this._particle = undefined;
+        }
+        //注销BVH和物理引擎中的相关数据
+        // if (this.BVH) {
+        //     this.BVH.destroy();
+        // }
+        // if (this.PhysicsBody) {
+        //     this.PhysicsBody.destroy();
+        // }
+
         super.destroy();
     }
 
@@ -1188,8 +1265,14 @@ export class NodeInstanceModel extends NodeObject {
     }
 }
 
-
-export async function newNode(scene: Scene, parent: NodeInstance) {
+/**
+ * 创建一个新的空节点实例
+ * @param scene 场景
+ * @param parent 父节点
+ * @returns 新的节点实例
+ */
+export async function newNode(parent: NodeInstance) {
+    let scene: Scene = parent.scene;
     let node = new NodeInstance();
     await node.init(scene, parent);
     return node;

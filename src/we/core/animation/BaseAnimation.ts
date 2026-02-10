@@ -5,6 +5,7 @@ import { Scene } from "../scene/scene";
 import { AnimationManager } from "./animationManager";
 import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_PlayState, I_AnimationPlayParams, I_AnimationSampler } from "./base";
 import { Interpolator } from "./interpolator";
+import { SkinsManager } from "./skinsManager";
 import { WeightMixAnimation } from "./weightMixAnimation";
 
 export interface IV_AnimationValue {
@@ -46,7 +47,7 @@ export abstract class BaseAnimation implements I_UUID {
 
     scene!: Scene;
 
-    manager!: AnimationManager;
+    manager: AnimationManager ;
 
     interpolator: Interpolator;
 
@@ -100,7 +101,7 @@ export abstract class BaseAnimation implements I_UUID {
     }
     destroy(): void {
         this._isDestroy = true;
-        this.manager.remove(this);
+        this.manager.remove(this as any);
         if (this.interpolator != undefined) {
             this.interpolator.destroy();
         }
@@ -113,6 +114,11 @@ export abstract class BaseAnimation implements I_UUID {
             this.output = this.interpolator.output;
         }
     }
+    /** 更新属性
+     * 说明：
+     * 1、更新NodeObject的属性。
+     * 2、stopToFirst为true时，播放完成后，会停在第一帧（需要根据情况实现，以及在stop()中调用）
+     */
     abstract updateAttribute(): void;
     play(playAnimation?: I_AnimationPlayParams): void {
         this.stop();

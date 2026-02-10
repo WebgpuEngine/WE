@@ -801,13 +801,21 @@ export class DrawCommandGenerator {
                             arrayStride = 4 * 3;
                             format = "float32x3";
                             break;
+                        case "joints":
+                            arrayStride = 4 * 4;
+                            format = "float32x4";
+                            break;
+                        case "weights":
+                            arrayStride = 4 * 4;
+                            format = "float32x4";
+                            break;
                         default:
                             arrayStride = 4 * 3;
                             format = "float32x3";
                             break;
                     }
                     let wgsl_value_format = this.getWgslValueFormat(format);
-                    locationString += ` @location(${location_i}) ${key} : ${wgsl_value_format}  ,`;
+                    locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
 
 
                     //判断是否以及存在顶点GPUBuffer
@@ -894,7 +902,7 @@ export class DrawCommandGenerator {
                             break;
                     }
                     let wgsl_value_format = this.getWgslValueFormat(value.format);
-                    locationString += ` @location(${location_i}) ${key} : ${wgsl_value_format}  ,`;
+                    locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
                     //判断是否以及存在顶点GPUBuffer
                     if (!this.resources.has(value, "vertices")) {
                         vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
@@ -932,7 +940,7 @@ export class DrawCommandGenerator {
                             offset: item.offset,
                         });
                         let wgsl_value_format = this.getWgslValueFormat(item.format);
-                        locationString += ` @location(${location_i}) ${item.name} : ${wgsl_value_format}  ,`;
+                        locationString += ` @location(${location_i}) ${item.name.toLowerCase()} : ${wgsl_value_format}  ,`;
                         location_i++;//合并属性，每个属性都要增加一个location
                     }
                     if (!this.resources.has(value, "vertices")) {
@@ -957,7 +965,7 @@ export class DrawCommandGenerator {
                     let format = value.format;
                     let arrayStride = value.arrayStride;
                     let wgsl_value_format = this.getWgslValueFormat(format);
-                    locationString += ` @location(${location_i}) ${key} : ${wgsl_value_format}  ,`;
+                    locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
                     vertexBuffer = value.buffer;
                     vertexBufferEntry = {
                         buffer: vertexBuffer,//GPUBuffer

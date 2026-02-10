@@ -21,7 +21,7 @@ export class EntityManager extends ECSManager<BaseEntity> {
             this.instances.set(entity, instances);
         }
         instances.push(instance);
-        entity.outSideInstance = instances;
+        entity.outSideInstance = instances;//对象指向=指针
     }
     remove(entity: BaseEntity, instance: NodeObject) {
         let instances = this.instances.get(entity);

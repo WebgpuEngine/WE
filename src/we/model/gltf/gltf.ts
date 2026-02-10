@@ -1289,6 +1289,13 @@ export class GLTFModel extends BaseModel {
                     if (k == "NORMAL") {
                         nameOfAttribute = "normal";
                     }
+                    if(k == "JOINTS_0") {
+                        nameOfAttribute = "joints";
+                    }
+                    if(k == "WEIGHTS_0") {
+                        nameOfAttribute = "weight";
+                    }
+                    
                     verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
                 }
                 if ("normal" in verticesOfDataOfEntity == false) {//如果没有法线，计算法线
@@ -1519,7 +1526,7 @@ async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject)
     let node: GLTFNode = gltf.modelData.json.nodes[nodeID];
     // let oneNode: NodeInstance = new NodeInstance();
     // await oneNode.init(gltf.scene, parent);
-    let oneNode: NodeInstance = await newNode(gltf.scene, parent);
+    let oneNode: NodeInstance = await newNode(parent);
     oneNode.Name = node.name || "gltf_" + nodeID;
     // console.log(oneNode.ID, oneNode.Name);
     {

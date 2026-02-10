@@ -2,18 +2,24 @@
  * 动画组
  * 说明：
  * 1、动画组是一个集合，用于管理多个动画。
- * 2、动画组无状态，不存储播放状态，只负责管理动画。
+ * 2、动画组，只负责管理动画。
  *      A、更改动画组list中的状态
  *      B、后续的播放等操作，由AnimationGroupManager和BaseAnimation负责。
- * 3、动画组权重，由WeightMixAnimationGroup负责。
+ * 3、骨骼动画
+ * 
+ * 
+ * 动画组权重，由WeightMixAnimationGroup负责。
  *      A、会根据权重，生成WeightMixAnimation,并添加到animationManager中。
  *      B、之后的操作与状态，由WeightMixAnimation负责。
  */
 import { WeGenerateUUID } from "../math/baseFunction";
-import { I_UUID } from "../organization/root";
+import { I_UUID, NodeObject } from "../organization/root";
 import { Clock } from "../scene/clock";
+import { Scene } from "../scene/scene";
+import { AnimationGroupManager } from "./animationGroupManager";
 import { I_AnimationPlayParams } from "./base";
 import { BaseAnimation } from "./BaseAnimation";
+import { SkinAnimation } from "./skin";
 
 export class AnimationGroup implements I_UUID {
     UUID: string;
@@ -27,10 +33,18 @@ export class AnimationGroup implements I_UUID {
     set Name(value: string) {
         this._name = value;
     }
-
-    constructor() {
+    manager: AnimationGroupManager;
+    parent: NodeObject;
+    /** 当前动画组是否由骨骼蒙皮动画     */
+    _skinAnimation: SkinAnimation | undefined;
+    constructor(parent: NodeObject) {
         this.UUID = WeGenerateUUID();
-
+        this.parent = parent;
+        this.manager = parent.scene.animationGroupManager;
+    }
+    destroy(): void {
+        this._isDestroy = true;
+        this.manager.remove(this);
     }
     add(animation: BaseAnimation): void {
         this.list.push(animation);
@@ -49,6 +63,9 @@ export class AnimationGroup implements I_UUID {
                 console.warn("AnimationGroup play: 动画组中存在已销毁的动画，无法播放");
             }
         }
+        if (this._skinAnimation != undefined) {
+            this._skinAnimation.play(playAnimation);
+        }
     }
     stop(clock: Clock): void {
         for (let perOne of this.list) {
@@ -57,6 +74,9 @@ export class AnimationGroup implements I_UUID {
             else {
                 console.warn("AnimationGroup stop: 动画组中存在已销毁的动画，无法停止");
             }
+        }
+        if (this._skinAnimation != undefined) {
+            this._skinAnimation.stop(clock);
         }
     }
     pause(clock: Clock): void {
@@ -77,6 +97,7 @@ export class AnimationGroup implements I_UUID {
             }
         }
     }
+
     update(clock: Clock): void {
         // for (let perOne of this.list) {
         //     perOne.update(clock);
