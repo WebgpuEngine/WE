@@ -1,4 +1,4 @@
-import { Mat4 } from "wgpu-matrix";
+import { mat4, Mat4 } from "wgpu-matrix";
 import { NodeObject } from "../organization/root";
 
 export class Skeleton {
@@ -31,5 +31,11 @@ export class Skeleton {
     setJoints(joints: NodeObject[]) {
         this.count = joints.length;
         this.joints = joints;
+    }
+    /** 生成骨骼节点逆绑定矩阵 */
+    generateInverseBindMatrices() {
+        this.inverseBindMatrices = this.joints.map((joint) => {
+            return mat4.inverse(joint.matrixWorld);
+        });
     }
 }

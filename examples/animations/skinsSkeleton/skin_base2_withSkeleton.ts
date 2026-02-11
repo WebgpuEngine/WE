@@ -2,20 +2,20 @@
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
-import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
-import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
-import { NodeObject } from "../../../src/we/core/organization/root";
+import { NodeInstance, NodeObject } from "../../../src/we/core/organization/root";
 import { Mat4, mat4, vec3 } from "wgpu-matrix";
-import { weVec4 } from "../../../src/we/core/base/coreDefine";
 import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
 import { E_AnimationType } from "../../../src/we/core/animation/base";
 import { VertexColorMaterial } from "../../../src/we/core/material/standard/vertexColorMaterial";
+import { Skeleton } from "../../../src/we/core/animation/skeleton";
 
 declare global {
   interface Window {
-    scene: any
-    DC: any
+    scene: any,
+    DC: any,
+    start: boolean,
+    angle: () => number,
   }
 }
 let input: IV_Scene = {
@@ -44,10 +44,10 @@ await scene.add(camera);
 
 
 
-let colorMaterial = new VertexColorMaterial();
-// let colorMaterial = new ColorMaterial({
-//   color: [1, 1, 1, 1]
-// });
+// let colorMaterial = new VertexColorMaterial();
+let colorMaterial = new ColorMaterial({
+  color: [1, 1, 0, 1]
+});
 
 /////////////////////////////////////////////////////////////
 
@@ -123,64 +123,84 @@ let lines = new Lines(inputMesh);
 
 const numBones = 4;//只用到了前3个骨骼
 const boneArray = new ArrayBuffer(numBones * 16 * 4);      //世界矩阵*逆绑定矩阵
-let bonesJointsMatWorld: Mat4[] = [];      // 世界矩阵*逆绑定矩阵
-let bonesMatrixWorld: Mat4[] = [];         // 骨骼节点变换矩阵
-let originBboneJointsMat: Mat4[] = [];     // 原始逆绑定矩阵组
-// let originBoneMat: Mat4[] = [];     // 原始定矩阵组
+let bonesJointsMatWorld: Mat4[] = [];      // 世界矩阵*逆绑定矩阵,View of boneArray；joint_3 :更改每个骨骼时使用
 
 for (let i = 0; i < numBones; ++i) {
   bonesJointsMatWorld.push(new Float32Array(boneArray, i * 4 * 16, 16));
-  bonesMatrixWorld.push(mat4.identity());
-  // originBoneMat.push(mat4.identity());
+
 }
-function computeBoneMatrices(mats: Mat4[], angle: number) {
-  const m = mat4.identity();
-  const t = vec3.fromValues(4, 0, 0);
-  mat4.rotateZ(m, angle, mats[0]);
-  mat4.translate(mats[0], t, m);
 
-  mat4.rotateZ(m, angle, mats[1]);
-  mat4.translate(mats[1], t, m);
 
-  mat4.rotateZ(m, angle, mats[2]);
-  // bones[3] is not used
-}
-// 计算原始绑定矩阵,使用世界矩阵存储
-computeBoneMatrices(bonesMatrixWorld, 0);
-
-// 计算原始逆绑定矩阵=原始世界矩阵的逆
-originBboneJointsMat = bonesMatrixWorld.map(function (m) {
-  return mat4.inverse(m);
-});
-
-console.log("originBboneJointsMat:", originBboneJointsMat);
-
+//////////////////////基础参数///////////////////////////////
 lines.JointsMatCount = numBones;                        //骨骼数量
 lines.JointMatrixByteSize = 16 * 4 * numBones;          //每个骨骼矩阵大小
 // lines.AnimationType(E_AnimationType.skeleton);
 lines._animationType.add(E_AnimationType.skeleton);
+window.angle = () => Math.sin(scene.clock.now * 0.001) * 0.8;;
 
+//////////////////////创建骨骼///////////////////////////////
+let skeletons = new Skeleton();//joint_3 需要用到，所以提前创建
 
-let linesEntity = await scene.add(
+//第一个骨骼，根节点，同时有entity
+let joint_0 = await scene.add(
   {
     entity: lines,
     update: function (scope: NodeObject) {
-      let time = scope.scene.clock.now;
-      const t = time * 0.001;
-      const angle = Math.sin(t) * 0.8;
-      computeBoneMatrices(bonesMatrixWorld, angle);
-
-      for (let i = 0; i < numBones; ++i) {
-        mat4.multiply(bonesMatrixWorld[i], originBboneJointsMat[i], bonesJointsMatWorld[i]);
-        // mat4.copy(bonesMatrixWorld[i], bonesJointsMatWorld[i]);
-      }
-      let oneMat = new Float32Array(boneArray, 0, 16);
-      // console.log("oneMat:", oneMat);
-      // console.log("bonesJointsMatWorld[0]:", bonesJointsMatWorld[0]);
-    }
+      // if (!window.start == true) {
+      scope.Rotate = [0, 0, 1, window.angle()];
+      // }
+    },
   }
 );
-linesEntity.JointsMat = boneArray;
+joint_0.JointsMat = boneArray;
 
-window.mesh = linesEntity;
+//第二个骨骼
+let joint_1 = new NodeInstance({
+  position: [4, 0, 0],
+  update: function (scope: NodeObject) {
+    // if (!window.start == true) {
+    scope.Rotate = [0, 0, 1, window.angle()];
+    // }
+  },
+})
+//第三个骨骼
+let joint_2 = new NodeInstance({
+  position: [4, 0, 0],
+  update: function (scope: NodeObject) {
+    // if (!window.start == true) {
+    scope.Rotate = [0, 0, 1, window.angle()];
+    // }
+  },
+})
+
+//第四个骨骼,无动作，用于计算最终的世界逆绑定矩阵
+let joint_3 = new NodeInstance({
+  position: [4, 0, 0],
+  update: function (scope: NodeObject) {
+    for (let i in jointsNodeObject) {
+      let perJoint = jointsNodeObject[i];
+      mat4.multiply(perJoint.matrixWorld, skeletons.inverseBindMatrices[i], bonesJointsMatWorld[i]);
+    }
+  },
+})
+
+///////////////////////////////逐层添加骨骼
+joint_0.add(joint_1);
+joint_1.add(joint_2);
+joint_2.add(joint_3);
+
+
+///////////////////////////// 更新关节节点的世界矩阵////////////////
+let jointsNodeObject = [joint_0, joint_1, joint_2, joint_3];
+for (let i of jointsNodeObject) {
+  i.updateMatrixWorld();
+}
+///////////////////////////////skeleton 设置///////////////////
+
+skeletons.setJoints(jointsNodeObject);
+skeletons.generateInverseBindMatrices();
+console.log("skeletons:JointsMat =初始世界矩阵的逆", skeletons.inverseBindMatrices);
+
+
+window.mesh = joint_0;
 
