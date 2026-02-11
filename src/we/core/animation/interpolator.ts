@@ -4,6 +4,11 @@ import { E_AnimationPlayType, E_AnimationTargetType, E_InterpolationModes, E_Pla
 import { weVec3, weVec4 } from "../base/coreDefine";
 import { BaseAnimation } from "./BaseAnimation";
 
+export interface IV_Interpolator {
+    /** 动画采样器 ：数据*/
+    sampler: I_AnimationSampler;
+    parent?: BaseAnimation;
+}
 export class Interpolator {
 
     /** 动画采样器 ：数据*/
@@ -85,11 +90,11 @@ export class Interpolator {
     /** 插值器输出值 */
     output: number[] = []; //| weVec2 | weVec3 | weVec4 | number[] | undefined;
 
-    parent: BaseAnimation;
+    parent: BaseAnimation | undefined;
 
-    constructor(parent: BaseAnimation, sampler: I_AnimationSampler) {
-        this.parent = parent;
-        this.sampler = sampler;
+    constructor(values: IV_Interpolator) {
+        this.parent = values.parent;
+        this.sampler = values.sampler;
         this.check();
     }
     destroy(): void {
@@ -127,7 +132,12 @@ export class Interpolator {
                 return false;
             }
         }
-
+        if (this.sampler.target == E_AnimationTargetType.weight) {
+            if (this.sampler.frames.length != this.sampler.values.length / this.sampler.targetStride) {
+                console.warn("weight Animation: play: sampler value length is not equal times length * targetStride");
+                return false;
+            }
+        }
         // if (this.sampler.values.length != this.sampler.frames.length) {
         //     console.warn("KeyFrameAnimation: play: sampler value length is not equal times length");
         //     return false;
@@ -135,6 +145,7 @@ export class Interpolator {
         return true;
     }
     play(playParams: I_AnimationPlayParams) {
+        this.setTimerToStart();
         this.playMode = playParams.mode.type;
         if (this.playMode == E_AnimationPlayType.time) {
             this.playTime = playParams.mode.time!;
@@ -175,10 +186,15 @@ export class Interpolator {
             case E_AnimationTargetType.position:
             case E_AnimationTargetType.rotation:
             case E_AnimationTargetType.scale:
-                stride = 3;
-                if (this.sampler.target == E_AnimationTargetType.rotation) {
-                    stride = 4;
-                }
+            case E_AnimationTargetType.morphTarget:
+            case E_AnimationTargetType.weight:
+
+                // stride = 3;
+                // if (this.sampler.target == E_AnimationTargetType.rotation) {
+                //     stride = 4;
+                // }
+                stride = this.sampler.targetStride;
+
                 if (this.sampler.interpolation == E_InterpolationModes.step) {
                     this.step(this.timer.currentKeyFrameIndex, stride);
                 }
@@ -224,12 +240,12 @@ export class Interpolator {
                     console.warn(`Interpolator.update(): interpolation ${this.sampler.interpolation} is not supported`);
                 }
                 break;
-            case E_AnimationTargetType.morphTarget:
-                console.warn("morphTarget Animation: play: not implemented");
-                break;
-            case E_AnimationTargetType.weight:
-                console.warn("weight Animation: play: not implemented");
-                break;
+            // case E_AnimationTargetType.morphTarget:
+            //     // console.warn("morphTarget Animation: play: not implemented");
+            //     break;
+            // case E_AnimationTargetType.weight:
+            //     console.warn("weight Animation: play: not implemented");
+            //     break;
             default:
                 throw new Error(`Interpolator.update(): target ${this.sampler.target} is not supported`);
                 break;
@@ -354,7 +370,8 @@ export class Interpolator {
     }
     stop() {
         this.finished = true;
-        this.parent.playState = E_PlayState.stop;//设置为stop，非stoped，需要parent.update()处理
+        if (this.parent)
+            this.parent.playState = E_PlayState.stop;//设置为stop，非stoped，需要parent.update()处理
     }
     findTimeIndex(currentTime: number): number {
         /**
@@ -444,7 +461,7 @@ export class Interpolator {
         this.output = [];
         if (prevKey == -1 || prevKey == this.sampler.frames.length - 1) {
             let newPrevKey = this.sampler.frames.length - 1;
-            for (let i = newPrevKey * stride * 3 + stride; i < newPrevKey * stride * 3 + stride*2; i++) {
+            for (let i = newPrevKey * stride * 3 + stride; i < newPrevKey * stride * 3 + stride * 2; i++) {
                 this.output.push(this.sampler.values[i]);
             }
             // console.log(this.output);

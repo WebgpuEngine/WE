@@ -591,20 +591,20 @@ export class DrawCommandGenerator {
                             if (isReplace) {
                                 //如果是morphTarget，需要特殊处理position数组，WGSL是静态语言，不能在运行时动态计算morphTarget的position数量
                                 if (perReplace.replace == "$morphTarget") {
-                                    // // 目标生成字符串：var positions :array<vec3f,N>=[attribute.position1,attribute.position2,attribute.position3,...] 
-                                    // let positions: string[] = [];
-                                    // /**
-                                    //  * 遍历refName，将所有position_*属性添加到positions数组中
-                                    //  * 虽然是对象，但position_*属性的后续字符是数组，是顺序排列的，所以可以直接添加到positions数组中
-                                    //  */
-                                    // for (let i = 0; i < refName.length; i++) {
-                                    //     if (refName[i].indexOf("position_") != -1) {
-                                    //         positions.push("attribute." + refName[i]);
-                                    //     }
-                                    // }
-                                    // let positionsString: string = positions.join(",");
-                                    // let preCode: string = `\n var positions :array<vec3f,${positions.length}>=[$positionsString]; \n`;
-                                    // shaderCode = shaderCode.replace(perReplace.replace, preCode + positionsString);
+                                    // 目标生成字符串：var positions :array<vec3f,N>=array(attribute.position1,attribute.position2,attribute.position3,...) 
+                                    let positions: string[] = [];
+                                    /**
+                                     * 遍历refName，将所有position_*属性添加到positions数组中
+                                     * 虽然是对象，但position_*属性的后续字符是数组，是顺序排列的，所以可以直接添加到positions数组中
+                                     */
+                                    for (let i = 0; i < refName.length; i++) {
+                                        if (refName[i].indexOf("position_") != -1) {
+                                            positions.push("attributes." + refName[i]);
+                                        }
+                                    }
+                                    let positionsString: string = positions.join(",");
+                                    let preCode: string = `\n var positions :array<vec3f,${positions.length}>=array(${positionsString}); \n`;
+                                    shaderCode = shaderCode.replace(perReplace.replace, preCode + perReplace.selectCode![1]);
                                 }
                                 else {
                                     shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);

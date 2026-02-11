@@ -3,14 +3,12 @@
 // let tempWidth=1.0;
 // vsOutput.cubeVecUV = ((position + tempWidth/2.0)/(tempWidth))*2.0-1.0;
 
-
 let entity=u_entity_instances[attributes.instanceIndex];
 let node_id = entity.node_id << 14;//16位，65536
 let stage_id = entity.stage_id << 30;//2位，0-3
 //20260103 实体id和stageid都为0,临时代码
 // let node_id=0;
 // let stage_id=0;
-
 
 vsOutput.cubeVecUV = ((position + boundingBoxMaxSize/2.0)/(boundingBoxMaxSize))*2.0-1.0;
 var worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));

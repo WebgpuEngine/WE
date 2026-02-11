@@ -1,5 +1,4 @@
 //start : mesh/main.vs.wgsl
-
 override boundingBoxMaxSize : f32 = 1.0;
 
 @vertex fn vs(
@@ -17,6 +16,7 @@ attributes: st_location,
   $skinSkeleton
   $morphTarget
 
+  // 骨骼动画shader部分，目前有DCG注入（由于有动态绑定）。若动画模式改为全GPU的storage和插值，再重新启用（需要适配）
   // if(u_entity_base.animation_kind == 4||u_entity_base.animation_kind == 5||u_entity_base.animation_kind == 6) {
   //   var skin_mat: mat4x4f = mat4x4f(
   //       vec4f(0.0, 0.0, 0.0, 0.0), // 第0列
@@ -24,7 +24,6 @@ attributes: st_location,
   //       vec4f(0.0, 0.0, 0.0, 0.0), // 第2列
   //       vec4f(0.0, 0.0, 0.0, 0.0)  // 第3列（单位矩阵）
   //   );
-
   //   let count = u32(u_entity_base.joint_matrix_count);
   //   for(var i=0 ;i < 4;i++) {
   //       let per_joint = u32(attributes.joints[i]);
@@ -37,13 +36,19 @@ attributes: st_location,
   //   vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
   //  }
  
-    // if(u_entity_base.animation_kind == 4) {
-    //   vsOutput.color = vec3f(1,0,0);
-    // }
-  //  vsOutput.color = vec3f(f32(u_entity_base.instance_count),0,1);
-  //  vsOutput.color = vec3f(attributes.joints.xyz);
-  //  vsOutput.color = vec3f(attributes.weights.xyz);
-
+  // morph target动画shader部分，目前有DCG注入（由于有动态绑定）。若动画模式改为全GPU的storage和插值，再重新启用（需要适配）
+  // if(u_entity_base.animation_kind == 2||u_entity_base.animation_kind == 3||u_entity_base.animation_kind == 6||u_entity_base.animation_kind == 7) {
+  //   var positions :array<vec3f,2>=array (attributes.position_1,attributes.position_2);
+  //   let count = i32(u_entity_base.morpht_target_count);
+  //   var position_morph_target :vec3f = attributes.position;
+  //   for(var i=0 ;i < count;i++) {
+  //   // for(var i=0 ;i < 1;i++) {
+  //     position_morph_target += positions[i] * morph_matrix[attributes.instanceIndex * u_entity_base.morpht_target_count+ u32(i)];
+  //   }
+  //   worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position_morph_target, 1.0));
+  //   vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
+  //   vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
+  //  }
   return vsOutput;
 }
 //end : mesh/main.vs.wgsl

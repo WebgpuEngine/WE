@@ -106,7 +106,7 @@ export abstract class BaseEntity extends NodeSpace {
     ///////////////////////////////////////////////////////////////////
     //uniform
     /** 实例化数组最后重新的时间 */
-     flagInstanceArrayBufferReNew: boolean = false;
+    flagInstanceArrayBufferReNew: boolean = false;
     /**Buffer(uniform and storage )在CPU端的ArrayBuffer */
     bufferCPU: {
         /** 最终输出@group(1) @binding(0)的uniform buffer*/
@@ -923,7 +923,11 @@ export abstract class BaseEntity extends NodeSpace {
                 size = this._instanceJointMatrixByteSize;
             }
             else if (name == "morphMatrix") {
-                size = this._instanceMorphTargetByteSize;
+                this.MorphTargetByteSize = 4 * 4;//this.MorphTargetByteSize;
+                if (this.MorphtTargetCount > 4) {
+                    this.MorphTargetByteSize = this.MorphtTargetCount * 4;
+                }
+                size = this.MorphTargetByteSize;
             }
             else {
                 throw new Error("checkStorageBuffer: unknown name:" + name);

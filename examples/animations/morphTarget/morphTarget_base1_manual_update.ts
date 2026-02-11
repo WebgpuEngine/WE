@@ -9,8 +9,9 @@ import { NodeObject } from "../../../src/we/core/organization/root";
 import { Mat4, mat4, vec3 } from "wgpu-matrix";
 import { weVec4 } from "../../../src/we/core/base/coreDefine";
 import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
-import { E_AnimationType } from "../../../src/we/core/animation/base";
+import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
 import { VertexColorMaterial } from "../../../src/we/core/material/standard/vertexColorMaterial";
+import { Interpolator, IV_Interpolator } from "../../../src/we/core/animation/interpolator";
 
 declare global {
   interface Window {
@@ -35,8 +36,8 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [4, 0, 15],
-  lookAt: [4, 0, 0],
+  position: [0.5, 0, 4],
+  lookAt: [0.5, 0, 0],
   controlType: "arcball",
 });
 await scene.add(camera);
@@ -55,10 +56,16 @@ let position = [
   1, 0, 0,
   0.5, 0.5, 0,
 ];
-let position_1 = [0, 0, 0, 0, 0, 0, -1, 1, 0];
-let position_2 = [0, 0, 0, 0, 0, 0, 1, 1, 0];
+let position_1 = [
+  0, 0, 0,
+  0, 0, 0,
+  -1, 1, 0];
+let position_2 = [
+  0, 0, 0,
+  0, 0, 0,
+  1, 1, 0];
 
-let indices = [0, 1, 2];
+let indices = [0, 1, 1, 2, 2, 0];
 let timer = [0, 1, 2, 3, 4];
 let weights = [
   0, 0,
@@ -72,8 +79,8 @@ let inputMesh: IV_LinesEntity = {
     data: {
       vertices: {
         position,
-        weights,
-        joints,
+        position_1,
+        position_2,
       },
       indexes: indices,
       // vertexStepMode: "vertex"
@@ -84,65 +91,46 @@ let inputMesh: IV_LinesEntity = {
 }
 let lines = new Lines(inputMesh);
 
-const numBones = 4;//只用到了前3个骨骼
-const boneArray = new ArrayBuffer(numBones * 16 * 4);      //世界矩阵*逆绑定矩阵
-let bonesJointsMatWorld: Mat4[] = [];      // 世界矩阵*逆绑定矩阵
-let bonesMatrixWorld: Mat4[] = [];         // 骨骼节点变换矩阵
-let originBboneJointsMat: Mat4[] = [];     // 原始逆绑定矩阵组
-// let originBoneMat: Mat4[] = [];     // 原始定矩阵组
 
-for (let i = 0; i < numBones; ++i) {
-  bonesJointsMatWorld.push(new Float32Array(boneArray, i * 4 * 16, 16));
-  bonesMatrixWorld.push(mat4.identity());
-  // originBoneMat.push(mat4.identity());
+
+let MorphtTargetCount = 2;
+lines.MorphtTargetCount = MorphtTargetCount;
+lines._animationType.add(E_AnimationType.morphTarget);
+
+let morphTargetArray = new ArrayBuffer(4 * 4);          //4个f32 ，默认的morphTarget 数量=4
+let weightsFloat32Array = new Float32Array(morphTargetArray);
+
+let sampler: I_AnimationSampler = {
+  target: E_AnimationTargetType.weight,
+  interpolation: E_InterpolationModes.linear,
+  frames: timer,
+  values: weights,
+  targetStride: 2
 }
-function computeBoneMatrices(mats: Mat4[], angle: number) {
-  const m = mat4.identity();
-  const t = vec3.fromValues(4, 0, 0);
-  mat4.rotateZ(m, angle, mats[0]);
-  mat4.translate(mats[0], t, m);
-
-  mat4.rotateZ(m, angle, mats[1]);
-  mat4.translate(mats[1], t, m);
-
-  mat4.rotateZ(m, angle, mats[2]);
-  // bones[3] is not used
-}
-// 计算原始绑定矩阵,使用世界矩阵存储
-computeBoneMatrices(bonesMatrixWorld, 0);
-
-// 计算原始逆绑定矩阵=原始世界矩阵的逆
-originBboneJointsMat = bonesMatrixWorld.map(function (m) {
-  return mat4.inverse(m);
-});
-
-
-lines.JointsMatCount = numBones;                        //骨骼数量
-lines.JointMatrixByteSize = 16 * 4 * numBones;          //每个骨骼矩阵大小
-// lines.AnimationType(E_AnimationType.skeleton);
-lines._animationType.add(E_AnimationType.skeleton);
-
+let interpolationMorphTarget = new Interpolator({
+  sampler,
+})
 
 let linesEntity = await scene.add(
   {
     entity: lines,
     update: function (scope: NodeObject) {
-      let time = scope.scene.clock.now;
-      const t = time * 0.001;
-      const angle = Math.sin(t) * 0.8;
-      computeBoneMatrices(bonesMatrixWorld, angle);
-
-      for (let i = 0; i < numBones; ++i) {
-        mat4.multiply(bonesMatrixWorld[i], originBboneJointsMat[i], bonesJointsMatWorld[i]);
-        // mat4.copy(bonesMatrixWorld[i], bonesJointsMatWorld[i]);
-      }
-      let oneMat = new Float32Array(boneArray, 0, 16);
-      // console.log("oneMat:", oneMat);
-      // console.log("bonesJointsMatWorld[0]:", bonesJointsMatWorld[0]);
+      let clock = scene.clock;
+      interpolationMorphTarget.update(clock);
+      weightsFloat32Array.set(interpolationMorphTarget.output);
+      // console.log(interpolationMorphTarget.output);
     }
   }
 );
-linesEntity.JointsMat = boneArray;
+interpolationMorphTarget.play(
+  {
+    mode:
+    {
+      type: E_AnimationPlayType.loop
+    }
+  }
+);
+linesEntity.MorphTarget = morphTargetArray;
 
 window.mesh = linesEntity;
 

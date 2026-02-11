@@ -88,7 +88,7 @@ export abstract class BaseAnimation implements I_UUID {
 
     constructor(values: IV_AnimationValue, kind?: E_AnimationTargetType) {
         this.parent = values.parent;
-        this.interpolator = new Interpolator(this, values.sampler);
+        this.interpolator = new Interpolator({parent: this, sampler: values.sampler});
         this.UUID = WeGenerateUUID();
         this.scene = this.parent.scene;
         this.manager = this.scene.animationManager;

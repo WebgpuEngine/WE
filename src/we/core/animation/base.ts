@@ -61,10 +61,10 @@ export enum E_AnimationTargetType {
      * 1、权重:[w1,w2,w3,...]
      */
     weight = "weight",
-    /** 变形目标
-     * morphTarget:morphTarget数量(attribute 中position[N] 的数量)
-     */
-    morphTarget = "morphTarget",
+    // /** 变形目标,使用weights
+    //  * morphTarget:morphTarget数量(attribute 中position[N] 的数量)
+    //  */
+    // morphTarget = "morphTarget",
 }
 /** 播放状态 */
 export enum E_PlayState {

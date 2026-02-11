@@ -399,8 +399,8 @@ export var SHT_refDCG: I_singleShaderTemplate = {
             vec4f(0.0, 0.0, 0.0, 0.0)  // 第3列（单位矩阵）
         );
 
-        let count = u32(u_entity_base.joint_matrix_count);
-        for(var i=0 ;i < 4;i++) {
+        let count = i32(u_entity_base.joint_matrix_count);
+        for(var i=0 ;i < count;i++) {
             let per_joint = u32(attributes.joints[i]);
             // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
             skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
@@ -423,6 +423,19 @@ export var SHT_refDCG: I_singleShaderTemplate = {
             selectCode: [
                 "",
                 ` 
+  if(u_entity_base.animation_kind == 2||u_entity_base.animation_kind == 3||u_entity_base.animation_kind == 6||u_entity_base.animation_kind == 7) {
+    // var positions :array<vec3f,2>=array (attributes.position_1,attributes.position_2);
+
+    let count = i32(u_entity_base.morpht_target_count);
+    var position_morph_target :vec3f = attributes.position;
+    for(var i=0 ;i < count;i++) {
+    // for(var i=0 ;i < 1;i++) {
+      position_morph_target += positions[i] * morph_matrix[attributes.instanceIndex * u_entity_base.morpht_target_count+ u32(i)];
+    }
+    worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position_morph_target, 1.0));
+    vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
+    vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
+   }                
         `,
             ],
         },
