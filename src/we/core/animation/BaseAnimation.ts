@@ -47,7 +47,7 @@ export abstract class BaseAnimation implements I_UUID {
 
     scene!: Scene;
 
-    manager: AnimationManager ;
+    manager: AnimationManager;
 
     interpolator: Interpolator;
 
@@ -88,7 +88,7 @@ export abstract class BaseAnimation implements I_UUID {
 
     constructor(values: IV_AnimationValue, kind?: E_AnimationTargetType) {
         this.parent = values.parent;
-        this.interpolator = new Interpolator({parent: this, sampler: values.sampler});
+        this.interpolator = new Interpolator({ parent: this, sampler: values.sampler });
         this.UUID = WeGenerateUUID();
         this.scene = this.parent.scene;
         this.manager = this.scene.animationManager;
@@ -98,6 +98,7 @@ export abstract class BaseAnimation implements I_UUID {
         if (values.name) {
             this.name = values.name;
         }
+        this.parent.Animation.push(this);
     }
     destroy(): void {
         this._isDestroy = true;
@@ -109,10 +110,20 @@ export abstract class BaseAnimation implements I_UUID {
     }
 
     update(clock: Clock): void {
+        if (!this.check()) {
+            return;
+        }
         if (this.playState === E_PlayState.playing && this.parent != undefined) {
             this.interpolator.update(clock);
             this.output = this.interpolator.output;
         }
+    }
+    check(): boolean {
+        if (this._isDestroy) {
+            console.warn("BaseAnimation play: 动画已销毁，无法播放");
+            return false;
+        }
+        return true;
     }
     /** 更新属性
      * 说明：
@@ -121,6 +132,9 @@ export abstract class BaseAnimation implements I_UUID {
      */
     abstract updateAttribute(): void;
     play(playAnimation?: I_AnimationPlayParams): void {
+        if (!this.check()) {
+            return;
+        }
         this.stop();
         //1. 检查参数
         if (!this.interpolator.check()) {

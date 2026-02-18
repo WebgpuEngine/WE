@@ -3,11 +3,12 @@ import { Clock } from "../scene/clock";
 import { SkinAnimation } from "./skin";
 
 export class SkinsManager extends ECSManager<SkinAnimation> {
-    
+
     update(clock: Clock): void {
-        // throw new Error("Method not implemented.");
+        this.checkDestroy();
+        for (let skin of this.list) {
+            skin.update(clock);
+        }
     }
 
-    /** 皮肤数量 */
-    Count: number = 0;
 }

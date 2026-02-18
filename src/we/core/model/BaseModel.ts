@@ -1,3 +1,4 @@
+import { AnimationGroup } from "../animation/animationGroup";
 import { I_Update } from "../base/coreDefine";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseEntity } from "../entity/baseEntity";
@@ -36,6 +37,14 @@ export enum T_ModelResKind {
 
 export abstract class BaseModel extends NodeObject {
 
+    /** 动画组对象 animation group object      */
+    _animationGroup: AnimationGroup[] | undefined;
+    get AnimationGroup(): AnimationGroup[] | undefined {
+        return this._animationGroup;
+    }
+    set AnimationGroup(animationGroup: AnimationGroup[]) {
+        this._animationGroup = animationGroup;
+    }
 
     /**
      * cameraDC 队列 

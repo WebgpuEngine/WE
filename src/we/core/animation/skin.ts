@@ -21,28 +21,34 @@
  *          a、判断状态：playing执行，
  *             获取骨骼的matrixWorld，并合成世界逆绑定矩阵；
  *             更新ArrayBuffer； 
- *             调用parent._entity.updateJointsMatrices()更新storage buffer（部分写入）；
+ *             下一帧使用this.parent._jointsMat,会产生一帧的延迟（但简单）;//调用parent._entity.updateJointsMatrices()更新storage buffer（部分写入）；
  *          c、stop状态执行stop()，其他状态不执行。
+ * 
  * 根据skeleton中的joints[]，计算出jointsMatricesWorld
  * 2、骨骼蒙皮动画，只负责管理动画。
  *      A、更改动画组list中的状态
  *      B、后续的播放等操作，由AnimationGroupManager和BaseAnimation负责。
+ * 
+ * 3、触发
+ *  A、skinAnimation.play()由AnimationGroup.play()触发。
+ *      animationGroup.play()检查其下的_skinAnimation.
+ *  B、skinAnimation.stop()由AnimationGroup.stop()触发。
+ * 
  */
 import { Mat4 } from "wgpu-matrix";
 import { WeGenerateUUID } from "../math/baseFunction";
 import { I_UUID, NodeObject } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { I_AnimationPlayParams } from "./base";
+import { E_AnimationType, E_PlayState, I_AnimationPlayParams } from "./base";
 import { SkinsManager } from "./skinsManager";
 import { BaseEntity } from "../entity/baseEntity";
-import { Skeleton } from "./skeleton";
+import { IV_Skeleton, Skeleton } from "./skeleton";
 
 export interface IV_SkinAnimationValue {
     parent: NodeObject;
     name?: string;
-    joints: NodeObject[];
-    jointsMatrices: Mat4[];
+    skeleton: Skeleton | IV_Skeleton;
     entity: BaseEntity;
 }
 export class SkinAnimation implements I_UUID {
@@ -51,17 +57,12 @@ export class SkinAnimation implements I_UUID {
     parent: NodeObject;
     scene: Scene;
     manager: SkinsManager;
+    /** 播放状态 */
+    playState: E_PlayState = E_PlayState.stoped;
 
     skeleton: Skeleton | undefined;
 
-    _jointsMat: ArrayBuffer | undefined;
-    get JointsMat(): ArrayBuffer | undefined {
-        return this._jointsMat;
-    }
-    set JointsMat(skeletonSkin: ArrayBuffer) {
-        this._jointsMat = skeletonSkin;
-    }
-
+    playOnce: boolean = false;
 
     constructor(values: IV_SkinAnimationValue) {
         this.parent = values.parent;
@@ -70,23 +71,44 @@ export class SkinAnimation implements I_UUID {
         if (values.parent == undefined) {
             throw new Error("SkinAnimation: parent is undefined");
         }
-        if (this.parent._entity == undefined) {
+
+        if (this.parent.Entity == undefined) {
             throw new Error("SkinAnimation: parent entity is undefined");
         }
-        if (this.parent._entity.JointsMatCount === 0) {
-            //需要设置JointsMatCount
+
+
+        if (values.skeleton instanceof Skeleton) {
+            this.skeleton = values.skeleton;
+            if (this.parent.Entity.JointsMatCount === 0) {
+                //设置JointsMatCount
+                this.parent.Entity.JointsMatCount = this.skeleton.joints.length;
+            }
         }
-        else if (values.joints.length != this.parent._entity.JointsMatCount) {
-            //报错，joints长度与JointsMatCount不一致
-            throw new Error("SkinAnimation: joints length is not equal to JointsMatCount");
+        else if (values.skeleton.joints.length != this.parent.Entity.JointsMatCount) {
+            if (this.parent.Entity.JointsMatCount === 0) {
+                //设置JointsMatCount
+                this.parent.Entity.JointsMatCount = values.skeleton.joints.length;
+            }
+            this.skeleton = new Skeleton(values.skeleton);
         }
+        else {
+            throw new Error("SkinAnimation: skeleton joints length is not equal to parent entity JointsMatCount");
+        }
+        this.parent.Entity.JointsMatCount = this.skeleton.joints.length;
+        this.parent.Entity.JointMatrixByteSize = 16 * 4 * this.skeleton.joints.length;
+        // this.parent.Entity.AnimationType=E_AnimationType.skeleton;
+        this.parent.Entity._animationType.add(E_AnimationType.skeleton);
+        this.parent._skinAnimation.push(this);
+        this.parent._jointsMat = this.skeleton.output;
         this.manager = this.scene.skinsManager;
         this.manager.add(this);
     }
     destroy(): void {
         this.manager.remove(this);
+        if (this.skeleton != undefined) {
+            this.skeleton.destroy();
+        }
         this.skeleton = undefined;
-        this._jointsMat = undefined;
         this._isDestroy = true;
     }
     /** 播放蒙皮动画 
@@ -94,18 +116,44 @@ export class SkinAnimation implements I_UUID {
      *    A、只有playing和stop（更新，并设置stopped状态）、stoped（不更新）有意义，合成storage的世界矩阵*逆绑定矩阵
      *    B、暂停、reset状态下，等同playing处理或不处理（空置）
     */
-    play(playAnimation?: I_AnimationPlayParams): void { }
-
-    stop(clock: Clock): void {
-
+    play(): void {
+        if (this._isDestroy) {
+            console.warn("SkinAnimation play: 蒙皮动画已销毁，无法播放");
+            return;
+        }
+        this.playState = E_PlayState.playing;
     }
-    pause(clock: Clock): void {
 
+    stop(): void {
+        // if (this._isDestroy) {
+        //     console.warn("SkinAnimation stop: 蒙皮动画已销毁，无法停止");
+        //     return;
+        // }
+        this.playState = E_PlayState.stoped;
     }
-    reset(clock: Clock): void {
-
+    pause(): void {
+        this.playState = E_PlayState.stoped;
+    }
+    reset(): void {
+        this.playState = E_PlayState.playing;
     }
     update(clock: Clock): void {
+        if (this._isDestroy) {
+            console.warn("SkinAnimation stop: 蒙皮动画已销毁，无法停止");
+            return;
+        }
+        if (this.playOnce == false) {
+            this.skeleton.update(clock);
+            this.playOnce = true;
+        }
+        if (this.playState == E_PlayState.playing) {
+            if (this.skeleton == undefined) {
+                console.warn("SkinAnimation: skeleton is undefined");
+            }
+            else {
+                this.skeleton.update(clock);
+            }
+        }
 
     }
 }

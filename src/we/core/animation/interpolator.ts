@@ -186,7 +186,7 @@ export class Interpolator {
             case E_AnimationTargetType.position:
             case E_AnimationTargetType.rotation:
             case E_AnimationTargetType.scale:
-            case E_AnimationTargetType.morphTarget:
+            // case E_AnimationTargetType.morphTarget:
             case E_AnimationTargetType.weight:
 
                 // stride = 3;

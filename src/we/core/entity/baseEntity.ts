@@ -936,7 +936,7 @@ export abstract class BaseEntity extends NodeSpace {
             //创建ArrayBuffer，旧的ArrayBuffer由GC回收
             this.bufferCPU[nameCPU] = new ArrayBuffer(sizeOfInstances);     //创建新的ArrayBuffer，空的，不是N个单位矩阵
             //销毁旧的GPUBuffer，句柄由webGPU GC回收
-            if (this.bufferGPU[nameCPU]) {
+            if (this.bufferGPU[nameCPU] && this.bufferGPU[nameCPU] != this.scene.getResourceOneStorageMatrix()) {
                 this.bufferGPU[nameCPU].destroy();
             }
             //创建新的GPUBuffer

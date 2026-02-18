@@ -598,39 +598,39 @@ export abstract class NodeObject extends NodeSpace {
      * 1、有数据，则存在动画。
      * 2、每个元素为一个动画对象。
     */
-    _animation: BaseAnimation[] | undefined;
-    get Animation(): BaseAnimation[] | undefined {
+    _animation: BaseAnimation[] =[];//| undefined;
+    get Animation(): BaseAnimation[]  {
         return this._animation;
     }
     set Animation(animation: BaseAnimation[]) {
         this._animation = animation;
     }
 
-    /** 动画组对象 animation group object     
-     * 1、gltf等模型使用
-    */
-    _animationGroup: AnimationGroup[] | undefined;
-    get AnimationGroup(): AnimationGroup[] | undefined {
-        return this._animationGroup;
-    }
-    set AnimationGroup(animationGroup: AnimationGroup[]) {
-        this._animationGroup = animationGroup;
-    }
+    // /** 动画组对象 animation group object     
+    //  * 1、gltf等模型使用
+    // */
+    // _animationGroup: AnimationGroup[] | undefined;
+    // get AnimationGroup(): AnimationGroup[] | undefined {
+    //     return this._animationGroup;
+    // }
+    // set AnimationGroup(animationGroup: AnimationGroup[]) {
+    //     this._animationGroup = animationGroup;
+    // }
 
     /** 骨架动画数据  SkinAnimation object 
      * 目前只设计了一个蒙皮动画。同一节点上不存在多个蒙皮动画。
      */
-    _skinAnimation: SkinAnimation | undefined;
-    get SkinAnimation(): SkinAnimation | undefined {
+    _skinAnimation: SkinAnimation[]=[];
+    get SkinAnimation(): SkinAnimation[] {
         return this._skinAnimation;
     }
-    set SkinAnimation(skinAnimation: SkinAnimation) {
+    set SkinAnimation(skinAnimation: SkinAnimation[]) {
         this._skinAnimation = skinAnimation;
     }
 
     /** 骨架皮肤数据  ArrayBuffer of  jointsMat 
     *  1、有数据，则存在骨骼动画。
-    *  2、工作流
+    *  2、工作流(每个NodeObject的逆绑定矩阵（世界逆绑定矩阵）=NodeObject的matrixWorld*inverseBindMatrix)
     *      A、获得matrixWorld，
     *      B、根据jointsMat，计算出每个joint的world matrix。
    */
@@ -799,20 +799,20 @@ export abstract class NodeObject extends NodeSpace {
             this._skinAnimation.destroy();
             this._skinAnimation = undefined;
         }
-        //注销动画组
-        if (this.AnimationGroup) {
-            this.AnimationGroup.forEach((animationGroup) => {
-                animationGroup.destroy();
-            });
-            this.AnimationGroup = [];
-        }
+        // //注销动画组
+        // if (this.AnimationGroup) {
+        //     this.AnimationGroup.forEach((animationGroup) => {
+        //         animationGroup.destroy();
+        //     });
+        //     this.AnimationGroup = [];
+        // }
         //注销粒子系统
-        if (this.Particle) {
-            this.Particle.forEach((particle) => {
-                particle.destroy();
-            });
-            this._particle = undefined;
-        }
+        // if (this.Particle) {
+        //     this.Particle.forEach((particle) => {
+        //         particle.destroy();
+        //     });
+        //     this._particle = undefined;
+        // }
         //注销BVH和物理引擎中的相关数据
         // if (this.BVH) {
         //     this.BVH.destroy();

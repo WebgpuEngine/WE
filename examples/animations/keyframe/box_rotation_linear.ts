@@ -63,8 +63,8 @@ let mesh = new Mesh(inputMesh);
 console.log(mesh);
 let meshEntity = await scene.add({
   entity: mesh,
-  position: [0.5, 0, 0],
-  scale: [2, 2, 2],
+  // position: [0.5, 0, 0],
+  // scale: [2, 2, 2],
 });
 
 
@@ -81,7 +81,7 @@ let sampler: I_AnimationSampler = {
   ],
   target: E_AnimationTargetType.rotation,
 
-  targetStride: 3
+  targetStride: 4
 }
 let aniValue: IV_AnimationValue = {
   parent: meshEntity,
@@ -91,4 +91,4 @@ let aniValue: IV_AnimationValue = {
 let keyFrame: KeyFrameAnimation = new KeyFrameAnimation(aniValue);
 window.keyFrame = keyFrame;
 
-keyFrame.play({speed:2,mode:{type:"count",count:1}})
+// keyFrame.play({speed:2,mode:{type:"count",count:1}})
