@@ -1,0 +1,121 @@
+
+import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
+import { IV_Scene } from "../../../src/we/core/scene/base";
+import { initScene } from "../../../src/we/core/scene/fn";
+import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
+import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
+import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
+import { NodeObject } from "../../../src/we/core/organization/root";
+import { Mat4, mat4, vec3 } from "wgpu-matrix";
+import { weVec4 } from "../../../src/we/core/base/coreDefine";
+import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
+import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
+import { VertexColorMaterial } from "../../../src/we/core/material/standard/vertexColorMaterial";
+import { Interpolator, IV_Interpolator } from "../../../src/we/core/animation/interpolator";
+import { MorphTargetAnimation } from "../../../src/we/core/animation/morphTarget";
+
+declare global {
+  interface Window {
+    scene: any
+    DC: any
+  }
+}
+let input: IV_Scene = {
+  canvas: "render",
+  backgroudColor: [0.1, 0.1, 0.1, 1.],
+  // reversedZ:true,
+};
+let scene = await initScene({
+  initConfig: input,
+});
+window.scene = scene;
+
+let radius = 2;
+let Y = 0;
+let camera = new PerspectiveCamera({
+  fov: (2 * Math.PI) / 5,
+  aspect: scene.aspect,
+  near: 0.01,
+  far: 100,
+  position: [0.5, 0, 4],
+  lookAt: [0.5, 0, 0],
+  controlType: "arcball",
+});
+await scene.add(camera);
+
+
+
+
+let colorMaterial = new VertexColorMaterial();
+// let colorMaterial = new ColorMaterial({
+//   color: [1, 1, 1, 1]
+// });
+
+/////////////////////////////////////////////////////////////
+let position = [
+  0, 0, 0,
+  1, 0, 0,
+  0.5, 0.5, 0,
+];
+let position_1 = [
+  0, 0, 0,
+  0, 0, 0,
+  -1, 1, 0];
+let position_2 = [
+  0, 0, 0,
+  0, 0, 0,
+  1, 1, 0];
+
+let indices = [0, 1, 1, 2, 2, 0];
+let timer = [0, 1, 2, 3, 4];
+let weights = [
+  0, 0,
+  0, 1,
+  1, 1,
+  1, 0,
+  0, 0
+];
+let inputMesh: IV_LinesEntity = {
+  attributes: {
+    data: {
+      vertices: {
+        position,
+        position_1,
+        position_2,
+      },
+      indexes: indices,
+      // vertexStepMode: "vertex"
+    },
+  },
+  material: colorMaterial,
+
+}
+let lines = new Lines(inputMesh);
+let linesEntity = await scene.add(
+  {
+    entity: lines,
+  }
+);
+
+let sampler: I_AnimationSampler = {
+  target: E_AnimationTargetType.weight,
+  interpolation: E_InterpolationModes.linear,
+  frames: timer,
+  values: weights,
+  targetStride: 2
+}
+
+
+let morphAnimation = new MorphTargetAnimation(
+  {
+    parent: linesEntity,
+    sampler,
+  }
+);
+
+window.morphAnimation = morphAnimation;
+
+morphAnimation.play("loop");
+
+window.entity = linesEntity;
+

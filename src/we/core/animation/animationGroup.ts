@@ -88,7 +88,7 @@ export class AnimationGroup implements I_UUID {
             }
         }
     }
-    play(playAnimation?: I_AnimationPlayParams): void {
+    play(playAnimation?: I_AnimationPlayParams | "loop" | number): void {
         for (let perOne of this.list) {
             perOne.play(playAnimation);
         }

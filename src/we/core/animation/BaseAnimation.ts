@@ -3,7 +3,7 @@ import { I_UUID, NodeObject } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { AnimationManager } from "./animationManager";
-import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_PlayState, I_AnimationPlayParams, I_AnimationSampler } from "./base";
+import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_PlayState, I_AnimationPlayParams, I_AnimationSampler, isI_AnimationPlayParams } from "./base";
 import { Interpolator } from "./interpolator";
 import { SkinsManager } from "./skinsManager";
 import { WeightMixAnimation } from "./weightMixAnimation";
@@ -113,6 +113,7 @@ export abstract class BaseAnimation implements I_UUID {
         if (!this.check()) {
             return;
         }
+        //插值器更新，只有在playing状态下，才会更新。
         if (this.playState === E_PlayState.playing && this.parent != undefined) {
             this.interpolator.update(clock);
             this.output = this.interpolator.output;
@@ -126,12 +127,16 @@ export abstract class BaseAnimation implements I_UUID {
         return true;
     }
     /** 更新属性
+     * @param playAnimation 播放参数
+     * 1、如果为number，播放次数。
+     * 2、如果为"loop"，循环播放。
+     * 3、如果为I_AnimationPlayParams，播放参数。
      * 说明：
      * 1、更新NodeObject的属性。
      * 2、stopToFirst为true时，播放完成后，会停在第一帧（需要根据情况实现，以及在stop()中调用）
      */
     abstract updateAttribute(): void;
-    play(playAnimation?: I_AnimationPlayParams): void {
+    play(playAnimation?: I_AnimationPlayParams | "loop" | number): void {
         if (!this.check()) {
             return;
         }
@@ -142,31 +147,47 @@ export abstract class BaseAnimation implements I_UUID {
         }
         //2. 处理参数
         let count = 1;
+
         if (playAnimation != undefined) {
-            this.playParams = {
-                mode: playAnimation.mode ?? this.playParams.mode,
-                speed: playAnimation.speed ?? this.playParams.speed,
-                stopToFirst: playAnimation.stopToFirst ?? this.playParams.stopToFirst,
-            };
-            if (this.playParams.speed != undefined) {
-                this.interpolator.Speed = this.playParams.speed;
+
+            if (typeof playAnimation == "number") {
+                count = playAnimation;
+                this.playParams.mode = {
+                    type: E_AnimationPlayType.count,
+                    count: count,
+                }
             }
-            if (playAnimation.stopToFirst != undefined) {
-                this.playParams.stopToFirst = playAnimation.stopToFirst;
+            else if (playAnimation == "loop") {
+                this.playParams.mode = {
+                    type: E_AnimationPlayType.loop,
+                }
             }
-            if (this.playParams.mode.type == E_AnimationPlayType.loop) {
-                this.Loop = true
-            }
-            else if (this.playParams.mode.type == E_AnimationPlayType.count) {
-                count = this.playParams.mode.count ?? 1;
-            }
-            else if (this.playParams.mode.type == E_AnimationPlayType.time) {
-                if (this.playParams.mode.time == undefined) {
-                    console.warn("播放时长未设置，按照一次播放");
-                    //按照一次播放
-                    this.playParams.mode = {
-                        type: E_AnimationPlayType.count,
-                        count: 1,
+            else if (isI_AnimationPlayParams(playAnimation)) {
+                this.playParams = {
+                    mode: playAnimation.mode ?? this.playParams.mode,
+                    speed: playAnimation.speed ?? this.playParams.speed,
+                    stopToFirst: playAnimation.stopToFirst ?? this.playParams.stopToFirst,
+                };
+                if (this.playParams.speed != undefined) {
+                    this.interpolator.Speed = this.playParams.speed;
+                }
+                if (playAnimation.stopToFirst != undefined) {
+                    this.playParams.stopToFirst = playAnimation.stopToFirst;
+                }
+                if (this.playParams.mode.type == E_AnimationPlayType.loop) {
+                    this.Loop = true
+                }
+                else if (this.playParams.mode.type == E_AnimationPlayType.count) {
+                    count = this.playParams.mode.count ?? 1;
+                }
+                else if (this.playParams.mode.type == E_AnimationPlayType.time) {
+                    if (this.playParams.mode.time == undefined) {
+                        console.warn("播放时长未设置，按照一次播放");
+                        //按照一次播放
+                        this.playParams.mode = {
+                            type: E_AnimationPlayType.count,
+                            count: 1,
+                        }
                     }
                 }
             }

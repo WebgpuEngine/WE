@@ -125,13 +125,13 @@ export class Interpolator {
             console.warn("Animation: play: sampler value is empty");
             return false;
         }
-        //morphTarget 目标值长度必须是关键帧时间长度的整数倍
-        if (this.sampler.target == E_AnimationTargetType.morphTarget) {
-            if (this.sampler.values.length % this.sampler.frames.length != 0) {
-                console.warn("morphTarget Animation: play: sampler value length is not a multiple of times length");
-                return false;
-            }
-        }
+        // //morphTarget 目标值长度必须是关键帧时间长度的整数倍
+        // if (this.sampler.target == E_AnimationTargetType.morphTarget) {
+        //     if (this.sampler.values.length % this.sampler.frames.length != 0) {
+        //         console.warn("morphTarget Animation: play: sampler value length is not a multiple of times length");
+        //         return false;
+        //     }
+        // }
         if (this.sampler.target == E_AnimationTargetType.weight) {
             if (this.sampler.frames.length != this.sampler.values.length / this.sampler.targetStride) {
                 console.warn("weight Animation: play: sampler value length is not equal times length * targetStride");
@@ -284,9 +284,9 @@ export class Interpolator {
             case E_AnimationTargetType.quaternion:
                 this.output = [this.sampler.values[keyFrameTime + 0], this.sampler.values[keyFrameTime + 1], this.sampler.values[keyFrameTime + 2], this.sampler.values[keyFrameTime + 3]] as weVec4;
                 break;
-            case E_AnimationTargetType.morphTarget:
-                console.warn("morphTarget Animation: play: not implemented");
-                break;
+            // case E_AnimationTargetType.morphTarget:
+            //     console.warn("morphTarget Animation: play: not implemented");
+            //     break;
             case E_AnimationTargetType.weight:
                 console.warn("weight Animation: play: not implemented");
                 break;

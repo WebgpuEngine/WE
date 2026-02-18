@@ -111,6 +111,9 @@ export interface I_AnimationPlayParams {
     */
     stopToFirst?: boolean,
 }
+export function isI_AnimationPlayParams(type: any): type is I_AnimationPlayParams {
+    return type.mode.type == E_AnimationPlayType.loop || type.mode.type == E_AnimationPlayType.count || type.mode.type == E_AnimationPlayType.time;
+}
 
 /** 动画采样器 ：数据*/
 export interface I_AnimationSampler {

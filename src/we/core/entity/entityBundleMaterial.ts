@@ -40,9 +40,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     };
     checkMorphTargetCount(count: number): boolean {
         // throw new Error("EntityBundleMaterial: checkMorphTargetCount not implemented");
-        let countFromAttribute = -1;//因为如果是morphTarget，主position也会被计算在内
+        let countFromAttribute = 0;
         for (let key in this.attributes.vertices) {
-            if (key.indexOf("position") == 0) {
+            if (key.indexOf("position_") == 0) {
                 countFromAttribute++;
             }
         }
