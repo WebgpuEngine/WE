@@ -46,33 +46,33 @@ export abstract class BaseModel extends NodeObject {
         this._animationGroup = animationGroup;
     }
 
-    /**
-     * cameraDC 队列 
-     * 1、由enity生成(每个摄像机)
-     * 2、由entityManager调度给renderManager
-     */
-    cameraDC: {
-        [name: string]: {
-            [E_renderPassName.depth]: DrawCommand[],
-            [E_renderPassName.MSAA]: DrawCommand[],
-            [E_renderPassName.forward]: DrawCommand[],
-            [E_renderPassName.transparent]: DrawCommand[],
-        }
-    } = {};
+    // /**
+    //  * cameraDC 队列 
+    //  * 1、由enity生成(每个摄像机)
+    //  * 2、由entityManager调度给renderManager
+    //  */
+    // cameraDC: {
+    //     [name: string]: {
+    //         [E_renderPassName.depth]: DrawCommand[],
+    //         [E_renderPassName.MSAA]: DrawCommand[],
+    //         [E_renderPassName.forward]: DrawCommand[],
+    //         [E_renderPassName.transparent]: DrawCommand[],
+    //     }
+    // } = {};
 
-    /**
-     * light的shadow map DC 队列 
-     * 1、由enity生成(每个摄像机)
-     * 2、由entityManager调度给renderManager
-     */
-    shadowmapDC: {
-        [name: string]: {
-            // depth: DrawCommand[],
-            // transparent: DrawCommand[],
-            [E_renderPassName.shadowmapOpacity]: DrawCommand[],
-            [E_renderPassName.shadowmapTransparent]: DrawCommand[],
-        }
-    } = {}
+    // /**
+    //  * light的shadow map DC 队列 
+    //  * 1、由enity生成(每个摄像机)
+    //  * 2、由entityManager调度给renderManager
+    //  */
+    // shadowmapDC: {
+    //     [name: string]: {
+    //         // depth: DrawCommand[],
+    //         // transparent: DrawCommand[],
+    //         [E_renderPassName.shadowmapOpacity]: DrawCommand[],
+    //         [E_renderPassName.shadowmapTransparent]: DrawCommand[],
+    //     }
+    // } = {}
 
     /**
      * 是否作为一个整体渲染
@@ -83,20 +83,31 @@ export abstract class BaseModel extends NodeObject {
     /**模型原始数据*/
     modelData: any;
     /**模型资源*/
-    modelRes: {
+    modelRes!: {
         [key: string]: Map<any, any>;
-    } = {
-            "GPUBuffers": new Map<any, GPUBuffer>(),
-            "sampler": new Map<any, GPUSampler>(),
-            /**key 必须与sampler的key保持一致 */
-            "GPUSamplerBindingType": new Map<any, GPUSamplerBindingType>(),
-            "GPUTexture": new Map<any, GPUTexture>(),
-            "accessor": new Map<any, any>(),
-            "texture": new Map<any, BaseTexture>(),
-            "material": new Map<any, BaseMaterial>(),
-            "entity": new Map<any, BaseEntity>(),
-            "animation": new Map<any, any>(),
-        };
+    } 
+    // = {
+    //         "GPUBuffers": new Map<any, GPUBuffer>(),
+    //         /**
+    //          * 采样器
+    //          */
+    //         "sampler": new Map<any, GPUSampler>(),
+    //         /**
+    //          * 采样器绑定类型
+    //          * 1、key 必须与sampler的key保持一致 
+    //          * 2、GPUSamplerBindingType": new Map<any, GPUSamplerBindingType>(),
+    //         */
+    //         "GPUSamplerBindingType": new Map<any, GPUSamplerBindingType>(),
+    //         "GPUTexture": new Map<any, GPUTexture>(),
+    //         /**
+    //          * 访问器，gltf
+    //          */
+    //         // "accessor": new Map<any, any>(),
+    //         "texture": new Map<any, BaseTexture>(),
+    //         "material": new Map<any, BaseMaterial>(),
+    //         "entity": new Map<any, BaseEntity>(),
+    //         "animation": new Map<any, any>(),
+    //     }
 
     constructor(input: I_Model) {
         super(input);
@@ -115,7 +126,7 @@ export abstract class BaseModel extends NodeObject {
     /**
      * 释放模型原始资源
      */
-    abstract detectData(): void;
+    abstract detachData(): void;
 
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
         for (let perOne of this.children) {

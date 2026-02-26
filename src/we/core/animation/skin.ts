@@ -21,7 +21,8 @@
  *          a、判断状态：playing执行，
  *             获取骨骼的matrixWorld，并合成世界逆绑定矩阵；
  *             更新ArrayBuffer； 
- *             下一帧使用this.parent._jointsMat,会产生一帧的延迟（但简单）;//调用parent._entity.updateJointsMatrices()更新storage buffer（部分写入）；
+ *             在skinsManager的ECS 更新this.parent._jointsMat;
+ *               animationManger -> rootManger->skinManger->entityManager =  TRS->>matrixWorld->>InverseMat->>storage
  *          c、stop状态执行stop()，其他状态不执行。
  * 
  * 根据skeleton中的joints[]，计算出jointsMatricesWorld

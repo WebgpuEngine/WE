@@ -27,7 +27,7 @@ window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [1, 1, 1],
-  intensity: 3,
+  intensity: 2,
 
 });
 await scene.add(oneDirlight);

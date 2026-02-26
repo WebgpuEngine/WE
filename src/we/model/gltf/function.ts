@@ -1,5 +1,94 @@
-import { GLTFAccessor, GLTFBufferView } from "@loaders.gl/gltf";
+import { GLTFAccessor, GLTFBufferView, GLTFNode } from "@loaders.gl/gltf";
+import { weVec3, weVec4 } from "../../core/base/coreDefine";
+import { mat4 } from "wgpu-matrix";
+import { BaseEntity } from "../../core/entity/baseEntity";
+import { newNode, NodeInstance, NodeObject } from "../../core/organization/root";
+import { GLTFModel } from "./gltf";
+import { T_ModelResKind } from "../../core/model/BaseModel";
+export async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject): Promise<any> {
 
+    let node: GLTFNode = gltf.modelData.json.nodes[nodeID];
+    // let oneNode: NodeInstance = new NodeInstance();
+    // await oneNode.init(gltf.scene, parent);
+    let oneNode: NodeInstance = await newNode(parent);
+    oneNode.Name = node.name || "gltf_" + nodeID;
+    // console.log(oneNode.ID, oneNode.Name);
+    ////////////////////////////////////////////////
+    //如果当前节点有mesh，就添加到parent中
+    if (node.mesh !== undefined && typeof node.mesh == "number") {//有mesh，就添加到parent中
+        let mesh = <BaseEntity>gltf.getRes(T_ModelResKind.entity, node.mesh);
+        if (node.matrix !== undefined) {
+            // mesh.setMatrix(node.matrix);
+        }
+        else {
+            if (node.scale !== undefined) {
+                // mesh.setScale(node.scale);
+            }
+            else if (node.rotation !== undefined) {
+                // mesh.setRotation(node.rotation);
+            }
+            else if (node.translation !== undefined) {
+                // mesh.setPosition(node.translation);
+            }
+        }
+        if (node.name !== undefined) {
+            mesh.Name = node.name;
+        }
+        //morph target，设置权重与mesh的权重相同，会被override，node的权重会被忽略
+        if (node.weights !== undefined) {
+            // mesh.setWeights(node.weights);
+        }
+        oneNode.attachEntity(mesh);
+        // await parent.addChild(oneNode);
+    }
+    //////////////////////////////////////////////
+    //TRS ,matrix
+    if (node.scale !== undefined) {
+        oneNode.Scale = node.scale as weVec3;
+    }
+    if (node.rotation !== undefined) {
+        oneNode.Quaternion = node.rotation as weVec4;
+    }
+    if (node.translation !== undefined) {
+        oneNode.Position = node.translation as weVec3;
+    }
+    if (node.matrix !== undefined) {
+        oneNode.Matrix = mat4.create(...node.matrix);
+    }
+    await parent.addChild(oneNode);
+
+    ////////////////////////////////////////////////
+    //child node
+    //nodeID下如果有children，就递归添加
+    if (node.children) {
+        let children = node.children as number[];
+        for (let childID of children) {
+            await addChildMesh(gltf, childID, oneNode);
+        }
+    }
+    ////////////////////////////////////////////////
+    //如果当前节点有附件camera
+    if (node.camera !== undefined) {
+        // let camera = gltf.modelData.json.cameras[node.camera];
+        // let cameraEntity = new CameraEntity(camera);
+        // await mesh.addChild(cameraEntity);
+    }
+    ////////////////////////////////////////////////
+    //如果当前节点有附件skin
+    if ("skin" in node) {
+
+    }
+    ////////////////////////////////////////////////
+    //如果当前节点有附件extensions
+    if (node.extensions !== undefined) {
+        // if (node.extensions["KHR_morph_targets"] !== undefined) {
+        //     let morphTarget = node.extensions["KHR_morph_targets"];
+        //     if (morphTarget.weights !== undefined) {
+        //         // mesh.setWeights(morphTarget.weights);
+        //     }
+        // }
+    }
+}
 /**
  * 获取accessor的componentType(int8,uint8,sint16,uint16,uint32,float32)对应的byte size
  * @param componentType 
@@ -409,13 +498,13 @@ export function getArrayBufferViewByStrideAndCount(data: ArrayBuffer, byteOffset
                 value = dataView.getInt16(offset, true);//小端序，默认大端序。原因：ArrayBuffer如果是TypeArray写入的，默认是小端序。所以这里需要指定小端序，才能正确读取到数据
             }
             else if (componentType == 5123) {
-                value = dataView.getUint16(offset,true);
+                value = dataView.getUint16(offset, true);
             }
             else if (componentType == 5125) {
-                value = dataView.getUint32(offset,true);
+                value = dataView.getUint32(offset, true);
             }
             else if (componentType == 5126) {
-                value = dataView.getFloat32(offset,true);
+                value = dataView.getFloat32(offset, true);
             }
             else {
                 throw new Error(`GLTFModel:  component type ${componentType} not support`);

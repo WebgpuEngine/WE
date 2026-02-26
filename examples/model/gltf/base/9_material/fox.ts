@@ -19,24 +19,32 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
+  toneMapping:"linear",
 };
 let scene = await initScene({
   initConfig: input,
 });
 window.scene = scene;
 
-let oneDirlight = new DirectionalLight({
+let oneDirlight1 = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1, 1],
-  intensity: 3,
+  direction: [0, 0, 5],
+  intensity: 0.5,
 
 });
-await scene.add(oneDirlight);
+await scene.add(oneDirlight1);
+let oneDirlight2 = new DirectionalLight({
+  color: [1, 1, 1],
+  direction: [0, 2, -5],
+  intensity: 0.5,
+
+});
+await scene.add(oneDirlight2);
 
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.16
+    intensity: 0.7
   }
 )
 await scene.add(ambientLight);

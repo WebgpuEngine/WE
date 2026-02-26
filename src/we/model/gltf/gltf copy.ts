@@ -1,8 +1,19 @@
+/**
+ * @author bythesword
+ * @date 2026-01-15
+ * @description 
+ *  一、todo:
+ *      1、gltf accessor中的vertex数据和vertex spares中的类型u8,i8,u16,i16的VEC3数据的重构未验证
+ *      2、vertex 数据中stride中存在offset的实现，即数据为一个stride中包括： position+uv+noraml，每个属性有不同的stride中的offset
+ *      3、normal的重建计算。
+ *              A、non-indexed的normal重建计算：每个三角形一个normal，顶点使用面法线。
+ *              B、indexed的normal重建计算：1、计算每个三角形，顶点使用三角形法线；2，将所有顶点的相同normal合并，取平均。
+ */
 import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
 import { load } from '@loaders.gl/core';
 import { DracoLoader } from "@loaders.gl/draco";
-import { GLB, GLTF, GLTFAccessor, GLTFBufferView, GLTFImage, GLTFLoader, GLTFMaterial, GLTFNode, GLTFScene, GLTFTexture, GLTFWithBuffers } from '@loaders.gl/gltf';
+import { GLB, GLTF, GLTFAccessor, GLTFBufferView, GLTFImage, GLTFLoader, GLTFMaterial, GLTFNode, GLTFSampler, GLTFScene, GLTFTexture, GLTFWithBuffers } from '@loaders.gl/gltf';
 import { GLBLoader } from '@loaders.gl/gltf';
 import { IV_Node, IV_NodeSpace, newNode, NodeInstance, NodeInstanceModel, NodeObject, RootGPU } from "../../core/organization/root";
 import { cloneBufferSource, createCommonGPUBuffer, createIndexBuffer, createUniformBuffer, createVerticesBuffer } from "../../core/command/baseFunction";
@@ -21,6 +32,9 @@ import { VertexColorMaterial } from "../../core/material/standard/vertexColorMat
 import { Texture } from "../../core/texture/texture";
 import { E_TextureChannel } from "../../core/texture/base";
 import { TextureMaterial } from "../../core/material/standard/textureMaterial";
+import { E_accessorUseFor, T_accessorBufferSource } from "./base";
+import { BaseTexture } from "../../core/texture/baseTexture";
+import { BaseMaterial } from "../../core/material/baseMaterial";
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -34,15 +48,13 @@ type ImageDataType = {
     compressed?: boolean;
 };
 type ImageType = ImageBitmap | ImageDataType | HTMLImageElement;
-type GLTFExternalImage =
-    | ImageType
-    | {
-        compressed: true;
-        mipmaps: false;
-        width: number;
-        height: number;
-        data: Uint8Array;
-    };
+type GLTFExternalImage = ImageType | {
+    compressed: true;
+    mipmaps: false;
+    width: number;
+    height: number;
+    data: Uint8Array;
+};
 ////////////////////////////////////////////////////////////////////////////////////////
 
 export interface I_GLTFModel extends I_Model {
@@ -73,24 +85,10 @@ export async function createGLTFModel(input: I_Model): Promise<GLTFModel> {
     return gltf;
 }
 
-export enum E_accessorUseFor {
-    vertex,
-    indexTriangleList,
-    indexTriangleStrip,
-    indexTriangleFan,
-    indexLineStrip,
-    indexLineList,
-    indexLineLoop,
-    indexPointList,
-    samplerAnimation,//animation.samplers
-    inverseBindMatrices,//skins[].inverseBindMatrices
-}
-
-export type T_accessorBufferSource = GPUBufferBinding | I_vsGPUBufferBundle | I_indexGPUBufferBundle;
 
 export class GLTFModel extends BaseModel {
     modelData: GLTFWithBuffers | GLB;
-    filePath: string;
+    url: string;
     gltfType: "gltf" | "glb";
     // scenes: any[] = [];
     // nodes: any[] = [];
@@ -101,11 +99,35 @@ export class GLTFModel extends BaseModel {
     currentScene: number = 0;
     gltfJson!: GLTF;
 
+    modelRes: {
+        [key: string]: Map<any, any>;
+    } = {
+            "GPUBuffers": new Map<any, GPUBuffer>(),
+            /**
+             * 采样器
+             */
+            "sampler": new Map<any, GPUSampler>(),
+            /**
+             * 采样器绑定类型
+             * 1、key 必须与sampler的key保持一致 
+             * 2、GPUSamplerBindingType": new Map<any, GPUSamplerBindingType>(),
+            */
+            "GPUSamplerBindingType": new Map<any, GPUSamplerBindingType>(),
+            "GPUTexture": new Map<any, GPUTexture>(),
+            /**
+             * 访问器，gltf
+             */
+            "accessor": new Map<any, any>(),
+            "texture": new Map<any, BaseTexture>(),
+            "material": new Map<any, BaseMaterial>(),
+            "entity": new Map<any, BaseEntity>(),
+            "animation": new Map<any, any>(),
+        };
 
     constructor(input: I_GLTFModel) {
         super(input);
         this.gltfType = input.type;
-        this.filePath = input.url;
+        this.url = input.url;
         if (input.name) {
             this._name = input.name;
         }
@@ -113,7 +135,7 @@ export class GLTFModel extends BaseModel {
         this.scene = input.scene;
         this.device = input.scene.device;
     }
-    /**
+    /**detachData
      * 初始化模型数据,
      * 1. 解析模型数据,GPUBuffer(attributes),GPUTexture,image,
      * 2. 初始化模型数据,meshes,materials,animations,cameras
@@ -145,7 +167,7 @@ export class GLTFModel extends BaseModel {
     /**
      * 释放模型原始资源
      */
-    detectData(): void {
+    detachData(): void {
         throw new Error("Method not implemented.");
     }
 
@@ -178,7 +200,7 @@ export class GLTFModel extends BaseModel {
      * @param attachValue 节点空间属性
      * @returns 场景节点实例
      */
-    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_Node): Promise<NodeInstanceModel> {
+    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
         let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
         await nodeOfScene.init(this.scene, parent);         // 初始化node object
         nodeOfScene._modelOrigin = this;
@@ -200,7 +222,7 @@ export class GLTFModel extends BaseModel {
          *  push mesh to children
          */
         for (let nodeID of nodes) {
-            await addChildMesh(this, nodeID, nodeOfScene);
+            await BaseFunction.addChildMesh(this, nodeID, nodeOfScene);
         }
         return nodeOfScene;
     }
@@ -285,6 +307,11 @@ export class GLTFModel extends BaseModel {
             for (let i in this.gltfJson.bufferViews) {
                 if (imagesInBufferView.indexOf(Number(i)) != -1) continue;
                 let bufferView: GLTFBufferView = this.gltfJson.bufferViews[i];
+                console.log(i, bufferView);
+                if (i == "5") {
+                    let abc = 1
+                }
+
                 let buffer = this.getBufferByID(bufferView.buffer);     //获取buffer
                 let gpuBuffer = createCommonGPUBuffer(this.device, bufferView.name || i, buffer.arrayBuffer, (bufferView.byteOffset || 0) + buffer.byteOffset, bufferView.byteLength);
                 this.modelRes.GPUBuffers.set(Number(i), gpuBuffer);
@@ -351,24 +378,13 @@ export class GLTFModel extends BaseModel {
     /**
      * 获取accessor数据
      * 1、 accessorID 为 accessor资源的ID。
-     * 2、 fix 为可选参数，用于指定accessorBufferSource的属性 
-     * 3、判断map中是否有，没有则调用generateAccessor()生成。
+     * 2、判断map中是否有，没有则调用generateAccessor()生成。
      * @param accessorID accessor资源的ID
      * @param useFor accessor 资源的使用模式
      * @returns accessorBufferSource
      */
     async getAccessor(accessorID: number, useFor: E_accessorUseFor): Promise<T_accessorBufferSource> {
         let generate: boolean = false;
-        // if (fix != undefined) {
-        //     let accessor = this.modelRes.accessor.has(accessorID + "_" + fix);
-        //     if (accessor) {
-        //         generate = false;
-        //     }
-        //     else {
-        //         generate = true;
-        //     }
-        // }
-        // else {
         let accessor = this.modelRes.accessor.has(accessorID);
         if (accessor) {
             generate = false;
@@ -393,7 +409,7 @@ export class GLTFModel extends BaseModel {
      * 3、对应accessor的资源情况
      *      A、index、vertex、uniform数据是GPUBuffer
      *      B、目前插值等数据是CPU端的，为了先保障正确性。后期再考虑GPU端计算的问题（估计会比较远了）
-     *      C、GPUBuffer资源如果不适配webgpu，则新建别名资源。通过map.has()判断;
+     *      C、GPUBuffer资源如果不适配webgpu，则新建别名资源。通过map.has()判断;按照情况使用aliaseID或accessorID;
      *      D、CPU数据根据场景与定义的格式而定。
      * 4、最后，返回accessorBufferSource并写入accessors资源中。
      * 
@@ -433,10 +449,6 @@ export class GLTFModel extends BaseModel {
                  * default: 0
                  */
                 offset: accessor.byteOffset,
-                /**
-                 * 读取数据的大小，默认=count*arrayStride
-                 * default: count*arrayStride
-                 */
                 byteSize: BaseFunction.getAccessorSize(accessor, bufferView).bytesize,
             } as I_indexGPUBufferBundle;
         }
@@ -503,6 +515,10 @@ export class GLTFModel extends BaseModel {
             let reBuildBuffer = BaseFunction.checkRebulidBufferForVec3(accessor);
             // 检查是否需要新构建buffer
             if (reBuildBuffer) {
+                /**
+                 * todo:20260115,此部分代码修改了，未验证。下面的sparse中的未修改，参考验证
+                 * 目前未涉及需要vec3u类型的情况,并且是u8,i8,u16,i16的顶点数据
+                 */
                 const oldBuffer = this.getBufferSourceForAccessor(accessor);
                 // 新构建buffer
                 let countsOfVec3 = sizes.count;//count of vec3
@@ -512,7 +528,7 @@ export class GLTFModel extends BaseModel {
                 if (gpuBuffer === undefined) {
                     let newBuffer = new ArrayBuffer(byteSize);
                     let newBufferView = new Uint32Array(newBuffer);
-                    for (let j = 0; j < countsOfVec3*3 ; j++) {
+                    for (let j = 0; j < countsOfVec3 * 3; j++) {
                         newBufferView[j] = oldBuffer[j];
                     }
                     gpuBuffer = createCommonGPUBuffer(this.device, bufferView.name || accessorID.toString(), newBuffer, 0, newBuffer.byteLength);
@@ -528,15 +544,12 @@ export class GLTFModel extends BaseModel {
                 arrayStride: arrayStride,
                 count: accessor.count,
                 /**
-                 * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-                 *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
+                 * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，此顶点数据收从offset开始，每个元素占用arrayStride字节
                  * default: 0
                  */
                 offset: accessor.byteOffset,
-                /**
-                 * 读取数据的大小，默认=count*arrayStride
-                 * default: count*arrayStride
-                 */
+                // offsetInStride: accessor.byteOffset,
+                // offset:0,
                 byteSize: byteSize,
                 min: accessor.min,
                 max: accessor.max,
@@ -546,15 +559,15 @@ export class GLTFModel extends BaseModel {
         else if (accessor.sparse) {
             let aliaseID = accessorID + "_sparse";
             // 确认 map 中是否存在 accessor 别名，没有，则新建.
-            if (this.modelRes.accessor.has(accessorID)) {
-                accessorBufferSource = this.modelRes.accessor.get(accessorID);
+            if (this.modelRes.accessor.has(aliaseID)) {
+                accessorBufferSource = this.modelRes.accessor.get(aliaseID);
             }
             else {
                 // 确认 map 中是否存在 sparse 别名，没有，则新建一个GPUBuffer
                 let gpuBuffer = this.getGPUBufferFromRES(aliaseID);
                 const { format, wgslFormat } = BaseFunction.getAccessorTypeForGPUVertexFormat(accessor);// webGPU的属性格式和wgsl中的格式
                 let arrayStride = BaseFunction.getAccessorByteStride(accessor, bufferView);// 访问器的字节步长，每个元素占用的字节数
-                let size = BaseFunction.getAccessorSize(accessor, bufferView).byteStride;// 访问器的元素数量：数量*组件构成数量
+                let size = BaseFunction.getAccessorSize(accessor, bufferView).bytesize;// 访问器的元素数量：数量*组件构成数量
                 let reBuildBuffer = BaseFunction.checkRebulidBufferForVec3(accessor);// 检查是否需要新构建buffer
                 //sparse
                 let bufferAttribute: ArrayBuffer;
@@ -716,13 +729,15 @@ export class GLTFModel extends BaseModel {
        gltf.printAccessorContent(1)
      * @param accessor  index 访问器索引
      */
-    printAccessorContent(accessorIndex: number) {
+    printAccessorContent(accessorIndex: number, print: boolean = true) {
         if (this.gltfJson.accessors == undefined) {
             throw new Error(`gltf not found accessors`);
         }
         let accessor = this.gltfJson.accessors[accessorIndex];
         let buffer = this.getBufferSourceForAccessor(accessor);
-        console.log(buffer);
+        if (print) {
+            console.log(buffer);
+        }
         return buffer;
     }
     /**
@@ -875,101 +890,109 @@ export class GLTFModel extends BaseModel {
      * 1、初始化默认采样器：linear
      * 2、按照gltf的sampler，初始化采样器
      */
-    initSamplers() {
+    initSamplers(samplers: []) {
         let defaultSampler = this.scene.resourcesGPU.getSampler("linear");
         this.modelRes.sampler.set("default", defaultSampler);
-        for (let i in this.gltfJson.samplers) {
-            let perSamplerData = this.gltfJson.samplers[i];
-            let samplerBindingType: GPUSamplerBindingType;      //必须，手动bind group layout需要
-            let magFilter: GPUFilterMode = "linear";
-            if (perSamplerData.magFilter && perSamplerData.magFilter == "9728") {
-                magFilter = "nearest";
-            }
-            let minFilter: GPUFilterMode = "linear";
-            let mipmapFilter: GPUFilterMode | undefined;
-            if (perSamplerData.minFilter) {
-                switch (perSamplerData.minFilter) {
-                    case "9728"://NEAREST 
-                        minFilter = "nearest";
-                        // mipmapFilter = "nearest";
-                        break;
-                    case "9729"://LINEAR
-                        minFilter = "linear";
-                        // mipmapFilter = "linear";
-                        break;
-                    case "9984"://NEAREST_MIPMAP_NEAREST 
-                        minFilter = "nearest";
-                        mipmapFilter = "nearest";
-                        break;
-                    case "9985"://LINEAR_MIPMAP_NEAREST  
-                        minFilter = "linear";
-                        mipmapFilter = "nearest";
-                        break;
-                    case "9986"://NEAREST_MIPMAP_LINEAR  
-                        minFilter = "nearest";
-                        mipmapFilter = "linear";
-                        break;
-                    case "9987"://LINEAR_MIPMAP_LINEAR  
-                        minFilter = "linear";
-                        mipmapFilter = "linear";
-                        break;
-                    default:
-                        minFilter = "linear";
-                        break;
+        if (this.gltfJson.samplers)
+            for (let i in this.gltfJson.samplers) {
+                let perSamplerData: GLTFSampler = this.gltfJson.samplers[i];
+                let samplerBindingType: GPUSamplerBindingType = "filtering";      //必须，手动bind group layout需要
+                let magFilter: GPUFilterMode = "linear";
+                if (perSamplerData.magFilter && perSamplerData.magFilter == 9728) {
+                    magFilter = "nearest";
                 }
-            }
+                let minFilter: GPUFilterMode = "linear";
+                let mipmapFilter: GPUFilterMode | undefined;
+                if (perSamplerData.minFilter) {
+                    switch (perSamplerData.minFilter) {
+                        case 9728://NEAREST 
+                            minFilter = "nearest";
+                            samplerBindingType = "non-filtering";
+                            // mipmapFilter = "nearest";
+                            break;
+                        case 9729://LINEAR
+                            minFilter = "linear";
+                            samplerBindingType = "filtering";
+                            // mipmapFilter = "linear";
+                            break;
+                        case 9984://NEAREST_MIPMAP_NEAREST 
+                            minFilter = "nearest";
+                            mipmapFilter = "nearest";
+                            samplerBindingType = "non-filtering";
+                            break;
+                        case 9985://LINEAR_MIPMAP_NEAREST  
+                            minFilter = "linear";
+                            mipmapFilter = "nearest";
+                            samplerBindingType = "filtering";
+                            break;
+                        case 9986://NEAREST_MIPMAP_LINEAR  
+                            minFilter = "nearest";
+                            mipmapFilter = "linear";
+                            samplerBindingType = "filtering";
+                            break;
+                        case 9987://LINEAR_MIPMAP_LINEAR  
+                            minFilter = "linear";
+                            mipmapFilter = "linear";
+                            samplerBindingType = "filtering";
+                            break;
+                        default:
+                            minFilter = "linear";
+                            break;
+                    }
+                }
 
-            if (perSamplerData.minFilter && perSamplerData.minFilter == "9728") {
-                minFilter = "nearest";
-            }
-            else {
-                minFilter = "linear";
-            }
-            let addressModeU: GPUAddressMode | undefined;
-            if (perSamplerData.wrapS) {
-                switch (perSamplerData.wrapS) {
-                    case "33071"://CLAMP_TO_EDGE 
-                        addressModeU = "clamp-to-edge";
-                        break;
-                    case "33072":// MIRRORED_REPEAT 
-                        addressModeU = "mirror-repeat";
-                        break;
-                    case "10497"://REPEAT
-                        addressModeU = "repeat";
-                        break;
-                    default:
-                        addressModeU = "repeat";
-                        break;
+                if (perSamplerData.minFilter && perSamplerData.minFilter == 9728) {
+                    minFilter = "nearest";
                 }
-            }
-            let addressModeV: GPUAddressMode | undefined;
-            if (perSamplerData.wrapT) {
-                switch (perSamplerData.wrapT) {
-                    case "33071"://CLAMP_TO_EDGE 
-                        addressModeV = "clamp-to-edge";
-                        break;
-                    case "33072":// MIRRORED_REPEAT 
-                        addressModeV = "mirror-repeat";
-                        break;
-                    case "10497"://REPEAT
-                        addressModeV = "repeat";
-                        break;
-                    default:
-                        addressModeV = "repeat";
-                        break;
+                else {
+                    minFilter = "linear";
                 }
-            }
+                let addressModeU: GPUAddressMode | undefined;
+                if (perSamplerData.wrapS) {
+                    switch (perSamplerData.wrapS) {
+                        case 33071://CLAMP_TO_EDGE 
+                            addressModeU = "clamp-to-edge";
+                            break;
+                        case 33072:// MIRRORED_REPEAT 
+                            addressModeU = "mirror-repeat";
+                            break;
+                        case 10497://REPEAT
+                            addressModeU = "repeat";
+                            break;
+                        default:
+                            addressModeU = "repeat";
+                            break;
+                    }
+                }
+                let addressModeV: GPUAddressMode | undefined;
+                if (perSamplerData.wrapT) {
+                    switch (perSamplerData.wrapT) {
+                        case 33071://CLAMP_TO_EDGE 
+                            addressModeV = "clamp-to-edge";
+                            break;
+                        case 33072:// MIRRORED_REPEAT 
+                            addressModeV = "mirror-repeat";
+                            break;
+                        case 10497://REPEAT
+                            addressModeV = "repeat";
+                            break;
+                        default:
+                            addressModeV = "repeat";
+                            break;
+                    }
+                }
 
-            let perSampler = this.device.createSampler({
-                label: perSamplerData.name || i,
-                magFilter,
-                minFilter,
-                mipmapFilter,
-                addressModeU,
-                addressModeV,
-            });
-            this.modelRes.sampler.set(Number(i), perSampler);
-        }
+                let perSampler = this.device.createSampler({
+                    label: perSamplerData.name || i,
+                    magFilter,
+                    minFilter,
+                    mipmapFilter,
+                    addressModeU,
+                    addressModeV,
+                });
+                this.modelRes.sampler.set(Number(i), perSampler);
+                this.modelRes.GPUSamplerBindingType.set(Number(i), samplerBindingType);
+            }
     }
 
     async initGPUTextures() {
@@ -989,7 +1012,7 @@ export class GLTFModel extends BaseModel {
                             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
                         });
                         this.device.queue.copyExternalImageToTexture(
-                            { source: perImageData as ImageBitmap, flipY: true }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。
+                            { source: perImageData as ImageBitmap, flipY: false }, //翻转Y轴,纹理错误
                             /**
                              * 存储的纹理像素不得进行预乘
                              * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
@@ -1017,7 +1040,7 @@ export class GLTFModel extends BaseModel {
                         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
                     });
                     this.device.queue.copyExternalImageToTexture(
-                        { source: bitmap, flipY: true }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。
+                        { source: bitmap, flipY: false }, //翻转Y轴,纹理错误
                         /**
                          * 存储的纹理像素不得进行预乘
                          * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
@@ -1055,6 +1078,7 @@ export class GLTFModel extends BaseModel {
                 let perTexture = new Texture({
                     source: gpuTexture,
                     sampler: sampler,
+                    samplerBindingType: this.modelRes.GPUSamplerBindingType.get(Number(perTextureData.sampler)),
                 }, this.device, this.scene);
                 await perTexture.init(this.scene);
                 this.modelRes.texture.set(Number(i), perTexture);
@@ -1153,6 +1177,7 @@ export class GLTFModel extends BaseModel {
                 if (pbrMetallicRoughness && pbrMetallicRoughness.baseColorTexture?.index != undefined) {
                     albedoTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.baseColorTexture?.index);
                     albedo.texture = albedoTexture;
+
                 }
                 //metallic
                 let metallicFactor = pbrMetallicRoughness?.metallicFactor || 1;
@@ -1181,24 +1206,25 @@ export class GLTFModel extends BaseModel {
                         roughness,
                     }
                 };
-                let perMaterial;
-                if (pbrMetallicRoughness!.baseColorTexture != undefined) {
-                    metallicTexture = <Texture>this.getRes(T_ModelResKind.texture, Number(pbrMetallicRoughness!.baseColorTexture!.index));
-                    perMaterial = new TextureMaterial({
-                        textures: {
-                            color: metallicTexture,
-                        }
-                    });
-                }
-                else {
-                    perMaterial = new ColorMaterial({
-                        color: [1, 0, 0, 1],
-                    });
-                }
-                // let perMaterial = new PBRMaterial(inputPBRMaterial);
+                // let perMaterial;
+                // if (pbrMetallicRoughness!.baseColorTexture != undefined) {
+                //     metallicTexture = <Texture>this.getRes(T_ModelResKind.texture, Number(pbrMetallicRoughness!.baseColorTexture!.index));
+                //     perMaterial = new TextureMaterial({
+                //         textures: {
+                //             color: metallicTexture,
+                //         }
+                //     });
+                // }
+                // else {
+                //     perMaterial = new ColorMaterial({
+                //         color: [1, 0, 0, 1],
+                //     });
+                // }
+                let perMaterial = new PBRMaterial(inputPBRMaterial);
                 this.modelRes.material.set(Number(i), perMaterial);
             }
     }
+
     /**
      * 初始化entity 
      */
@@ -1262,10 +1288,70 @@ export class GLTFModel extends BaseModel {
                     else if (k == "TEXCOORD_1") {
                         nameOfAttribute = "uv1";
                     }
-                    // if (k == "NORMAL_0") {
-                    //     nameOfAttribute = "normal";
-                    // }
+                    if (k == "NORMAL") {
+                        nameOfAttribute = "normal";
+                    }
+                    if (k == "JOINTS_0") {
+                        nameOfAttribute = "joints";
+                    }
+                    if (k == "WEIGHTS_0") {
+                        nameOfAttribute = "weight";
+                    }
+
                     verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
+                }
+                if ("normal" in verticesOfDataOfEntity == false && (primitive.mode == undefined || primitive.mode == 4 || primitive.mode == 5 || primitive.mode == 6)) {//如果没有法线，计算法线
+                    let positionAccessorID = primitive.attributes["POSITION"];
+                    let positionAccessor = this.modelData.json.accessors[positionAccessorID];
+                    let normalAccessorID = positionAccessorID + "_normal";
+                    let alreadyNormal = this.modelRes.accessor.has(normalAccessorID);
+                    if (alreadyNormal) {
+                        verticesOfDataOfEntity["normal"] = this.modelRes.accessor.get(normalAccessorID) as I_vsGPUBufferBundle;
+                    }
+                    else {
+                        let positions = this.getBufferSourceForAccessor(positionAccessor) as Float32Array;
+                        let normalAccessorBufferSource: I_vsGPUBufferBundle;
+                        let gpuBuffer: GPUBuffer;
+                        if ("indices" in primitive) {//如果有索引，根据索引计算法线
+                            let indicesAccessorID: number = primitive["indices"]!;
+                            let indicesAccessor = this.modelData.json.accessors[indicesAccessorID];
+                            let indices = this.getBufferSourceForAccessor(indicesAccessor) as Uint16Array | Uint32Array;
+                            let normals: Float32Array = BaseFunction.computeNormalsFromPositionsAndIndices(positions, indices);
+                            gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
+                            normalAccessorBufferSource = {
+                                buffer: gpuBuffer,
+                                format: "float32x3",
+                                wgslFormat: "vec3f",
+                                name: normalAccessorID,
+                                arrayStride: 3 * 4,
+                                count: verticesOfDataOfEntity["position"].count,
+                                offset: 0,
+                                byteSize: verticesOfDataOfEntity["position"].byteSize,
+                                min: [-1, -1, -1],
+                                max: [1, 1, 1],
+                            };
+                            verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
+                        }
+                        else {//如果没有索引，根据顶点顺序计算法线
+                            let normals: Float32Array = BaseFunction.computeNormalsFromPositionsNoIndex(positions);
+                            gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
+                            normalAccessorBufferSource = {
+                                buffer: gpuBuffer,
+                                format: "float32x3",
+                                wgslFormat: "vec3f",
+                                name: normalAccessorID,
+                                arrayStride: 3 * 4,
+                                count: verticesOfDataOfEntity["position"].count,
+                                offset: 0,
+                                byteSize: verticesOfDataOfEntity["position"].byteSize,
+                                min: [-1, -1, -1],
+                                max: [1, 1, 1],
+                            };
+                            verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
+                        }
+                        this.modelRes.accessor.set(normalAccessorID, normalAccessorBufferSource);
+                        this.modelRes.GPUBuffers.set(normalAccessorID, gpuBuffer);
+                    }
                 }
                 /////////////////////////////////////////////////////////////////////////////////////////////////////
                 //gpubuffer of index and draw mode   part
@@ -1367,7 +1453,8 @@ export class GLTFModel extends BaseModel {
                     case 4: //triangle
                         primitiveOfDataOfRender = {
                             topology: "triangle-list",
-                            cullMode: "none",//todo,临时方案，后续根据模型数据动态设置
+                            cullMode: "back",
+                            // cullMode: "none",//todo,临时方案，后续根据模型数据动态设置
                         }
                         break;
                     case 5: //triangle strip
@@ -1436,90 +1523,5 @@ export class GLTFModel extends BaseModel {
 
 
 
-async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject): Promise<any> {
 
-    let node: GLTFNode = gltf.modelData.json.nodes[nodeID];
-    // let oneNode: NodeInstance = new NodeInstance();
-    // await oneNode.init(gltf.scene, parent);
-    let oneNode: NodeInstance = await newNode(gltf.scene, parent);
-    oneNode.Name = node.name || "gltf_" + nodeID;
-    console.log(oneNode.ID, oneNode.Name);
-    {
-        ////////////////////////////////////////////////
-        //如果当前节点有mesh，就添加到parent中
-        if (node.mesh !== undefined && typeof node.mesh == "number") {//有mesh，就添加到parent中
-            let mesh = <BaseEntity>gltf.getRes(T_ModelResKind.entity, node.mesh);
-            if (node.matrix !== undefined) {
-                // mesh.setMatrix(node.matrix);
-            }
-            else {
-                if (node.scale !== undefined) {
-                    // mesh.setScale(node.scale);
-                }
-                else if (node.rotation !== undefined) {
-                    // mesh.setRotation(node.rotation);
-                }
-                else if (node.translation !== undefined) {
-                    // mesh.setPosition(node.translation);
-                }
-            }
-            if (node.name !== undefined) {
-                mesh.Name = node.name;
-            }
-            //morph target，设置权重与mesh的权重相同，会被override，node的权重会被忽略
-            if (node.weights !== undefined) {
-                // mesh.setWeights(node.weights);
-            }
-            oneNode.attachEntity(mesh);
-            // await parent.addChild(oneNode);
-        }
-        //////////////////////////////////////////////
-        //TRS ,matrix
-        if (node.scale !== undefined) {
-            oneNode.Scale = node.scale as weVec3;
-        }
-        if (node.rotation !== undefined) {
-            oneNode.Quaternion = node.rotation as weVec4;
-        }
-        if (node.translation !== undefined) {
-            oneNode.Position = node.translation as weVec3;
-        }
-        if (node.matrix !== undefined) {
-            oneNode.Matrix = mat4.create(...node.matrix);
-        }
-        await parent.addChild(oneNode);
-
-        ////////////////////////////////////////////////
-        //child node
-        //nodeID下如果有children，就递归添加
-        if (node.children) {
-            let children = node.children as number[];
-            for (let childID of children) {
-                await addChildMesh(gltf, childID, oneNode);
-            }
-        }
-        ////////////////////////////////////////////////
-        //如果当前节点有附件camera
-        if (node.camera !== undefined) {
-            // let camera = gltf.modelData.json.cameras[node.camera];
-            // let cameraEntity = new CameraEntity(camera);
-            // await mesh.addChild(cameraEntity);
-        }
-        ////////////////////////////////////////////////
-        //如果当前节点有附件skin
-        if ("skin" in node) {
-
-        }
-        ////////////////////////////////////////////////
-        //如果当前节点有附件extensions
-        if (node.extensions !== undefined) {
-            // if (node.extensions["KHR_morph_targets"] !== undefined) {
-            //     let morphTarget = node.extensions["KHR_morph_targets"];
-            //     if (morphTarget.weights !== undefined) {
-            //         // mesh.setWeights(morphTarget.weights);
-            //     }
-            // }
-        }
-    }
-}
 

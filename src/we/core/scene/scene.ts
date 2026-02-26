@@ -155,14 +155,16 @@ export class Scene {
         };
 
     /** 
-     * 色调映射，默认：acesToSRGB
+     * 色调映射，默认：linearToSRGB
+     * 
      * 1、不同的色调映射，会有不同的效果
      * 
-     * 2、如果是计算类的颜色，建议使用linearToSRGB
+     * 2、如果是计算类的颜色，建议使用linearToSRGB 或 linear
      * 
-     * 3、如果是显示类的颜色，建议使用acesToSRGB
+     * 3、如果是显示类的颜色，建议使用acesToSRGB。todo：还需要更新，有偏色
      */
-    E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.acesToSRGB;
+    // E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.acesToSRGB;
+    E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.linearToSRGB;
 
 
 
@@ -431,39 +433,42 @@ export class Scene {
         this.canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
         this.reSize(this.canvas.clientWidth * devicePixelRatio, this.canvas.clientHeight * devicePixelRatio);
 
+        this.renderManager = new RenderManager(this);//需要在entityManager等需要push DC 的ECS之前初始化
+
         this.resourcesGPU = new ResourceManagerOfGPU();
-        this.resourcesGPU.device = device;
-        let textureDefault = new DefaultTexture(device);
-        this.resourcesGPU.textureOfString.set("default", textureDefault.texture);
-        this.resourcesGPU.weTextureOfString.set("default", textureDefault);
-        let cubeTextureDefault = new DefaultCubeTexture(device);
-        this.resourcesGPU.textureOfString.set("defaultCube", cubeTextureDefault.texture);
-        this.resourcesGPU.weTextureOfString.set("defaultCube", cubeTextureDefault);
-        let baseInputPBR: IV_PBRMaterial = {
-            textures: {
-                albedo: { value: [1, 1, 1, 1] },
-                metallic: { value: 1 },
-                roughness: { value: 1 },
+        {
+            this.resourcesGPU.device = device;
+            let textureDefault = new DefaultTexture(device);
+            this.resourcesGPU.textureOfString.set("default", textureDefault.texture);
+            this.resourcesGPU.weTextureOfString.set("default", textureDefault);
+            let cubeTextureDefault = new DefaultCubeTexture(device);
+            this.resourcesGPU.textureOfString.set("defaultCube", cubeTextureDefault.texture);
+            this.resourcesGPU.weTextureOfString.set("defaultCube", cubeTextureDefault);
+            let baseInputPBR: IV_PBRMaterial = {
+                textures: {
+                    albedo: { value: [1, 1, 1, 1] },
+                    metallic: { value: 1 },
+                    roughness: { value: 1 },
+                }
             }
+            let defaultMaterial = new PBRMaterial(baseInputPBR);//gltf 默认材质
+            this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
+            let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
+            this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
         }
-        let defaultMaterial = new PBRMaterial(baseInputPBR);//gltf 默认材质
-        this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
-        let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
-        this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
-        this.root = new RootManager(this);
-        await this.root.init(this);
-        this.renderManager = new RenderManager(this);
-        this.entityManager = new EntityManager(this);
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);
+        this.animationManager = new AnimationManager(this);
+        this.animationGroupManager = new AnimationGroupManager(this);
+        this.root = new RootManager(this);
+        await this.root.init(this);
+        this.skinsManager = new SkinsManager(this);
+        this.entityManager = new EntityManager(this);
         this.lightsManager = new LightsManager(this);
-        this.inputManager = new InputManager(this);
         this.cameraManager = new CameraManager({ scene: this });
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
-        this.animationManager = new AnimationManager(this);
-        this.skinsManager = new SkinsManager(this);
-        this.animationGroupManager = new AnimationGroupManager(this);
+        this.inputManager = new InputManager(this);
     }
     getResourceDefaultPBR(): PBRMaterial {
         let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");
@@ -714,12 +719,18 @@ export class Scene {
         //physices engine manager
 
         //animation manager update, 动画更新需要在entity更新之前
-        this.animationGroupManager.update(this.clock); //动画组更新,需要在动画更新之前
         this.animationManager.update(this.clock); //动画更新
+        this.animationGroupManager.update(this.clock); //动画组更新,需要在动画更新之前
 
-
-        //root update :entiy ,light,camera 共性基础
+        //root update :entiy ,light,camera 共性基础（位置、旋转、缩放、矩阵）
         this.root.update(this.clock);
+
+        //skins manager update,更新全局的逆绑定矩阵
+        //在root ECS之后更新。（在这里更新就是本镇同步的更新）
+        this.skinsManager.update(this.clock);
+
+        //entity 与 instance的更新（uniform，storage）
+        this.entityManager.update(this.clock);
 
         //lights(shadowmap) manager update
         this.lightsManager.update(this.clock);
@@ -728,11 +739,7 @@ export class Scene {
         this.cameraManager.update(this.clock);
 
 
-        //todo，20250912，缺少camera与BVH的判断
-        this.entityManager.update(this.clock);
-
-        //skins manager update,更新全局的逆绑定矩阵
-        this.skinsManager.update(this.clock);
+        this.postProcessManager.update(this.clock);//push command to render manager array
 
         //particle manager and update DCCC        
 
@@ -740,7 +747,6 @@ export class Scene {
         this.generateBox();
         this.generateSphere();
         this.updateBVH();
-        this.postProcessManager.update(this.clock);
     }
     /**每帧循环 onBeforeRender */
     async onBeforeRender() {

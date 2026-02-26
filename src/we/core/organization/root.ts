@@ -598,8 +598,8 @@ export abstract class NodeObject extends NodeSpace {
      * 1、有数据，则存在动画。
      * 2、每个元素为一个动画对象。
     */
-    _animation: BaseAnimation[] =[];//| undefined;
-    get Animation(): BaseAnimation[]  {
+    _animation: BaseAnimation[] = [];//| undefined;
+    get Animation(): BaseAnimation[] {
         return this._animation;
     }
     set Animation(animation: BaseAnimation[]) {
@@ -620,7 +620,7 @@ export abstract class NodeObject extends NodeSpace {
     /** 骨架动画数据  SkinAnimation object 
      * 目前只设计了一个蒙皮动画。同一节点上不存在多个蒙皮动画。
      */
-    _skinAnimation: SkinAnimation[]=[];
+    _skinAnimation: SkinAnimation[] = [];
     get SkinAnimation(): SkinAnimation[] {
         return this._skinAnimation;
     }
@@ -796,8 +796,10 @@ export abstract class NodeObject extends NodeSpace {
         }
         //注销骨骼动画
         if (this._skinAnimation) {
-            this._skinAnimation.destroy();
-            this._skinAnimation = undefined;
+            this._skinAnimation.forEach((skinAnimation) => {
+                skinAnimation.destroy();
+            });
+            this._skinAnimation = [];
         }
         // //注销动画组
         // if (this.AnimationGroup) {
