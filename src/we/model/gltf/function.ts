@@ -5,6 +5,7 @@ import { BaseEntity } from "../../core/entity/baseEntity";
 import { newNode, NodeInstance, NodeObject } from "../../core/organization/root";
 import { GLTFModel } from "./gltf";
 import { T_ModelResKind } from "../../core/model/BaseModel";
+import { TypedArray } from "webgpu-utils";
 export async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject): Promise<any> {
 
     let node = gltf.gltfDataLoader.getNode(nodeID);
@@ -694,55 +695,55 @@ export function computeNormalsFromPositionsNoIndex(positions: Float32Array): Flo
 //     return arrayView;
 // }
 
-// /**
-//  * 为sparse 写入bufferView中的数据
-//  * @param bufferView 要写入的bufferView
-//  * @param type 类型
-//  * @param index 索引
-//  * @param value 值
-//  */
-// export function writeArayBufferViewForSparse(buffe: ArrayBuffer, type: string, componentType: number, index: number, value: any, sparseIndex: number) {
-//     let bufferView;
-//     if (componentType == 5120) {
-//         bufferView = new Int8Array(buffe);
-//     }
-//     else if (componentType == 5121) {
-//         bufferView = new Uint8Array(buffe);
-//     }
-//     else if (componentType == 5122) {
-//         bufferView = new Int16Array(buffe);
-//     }
-//     else if (componentType == 5123) {
-//         bufferView = new Uint16Array(buffe);
-//     }
-//     else if (componentType == 5125) {
-//         bufferView = new Uint32Array(buffe);
-//     }
-//     else if (componentType == 5126) {
-//         bufferView = new Float32Array(buffe);
-//     }
-//     else {
-//         throw new Error(`GLTFModel:  component type ${componentType} not support`);
-//     }
-//     if (type == "SCALAR") {
-//         bufferView[index] = value[sparseIndex];
-//     }
-//     else if (type == "VEC2") {
-//         bufferView[index * 2] = value[sparseIndex * 2];
-//         bufferView[index * 2 + 1] = value[sparseIndex * 2 + 1];
-//     }
-//     else if (type == "VEC3") {
-//         bufferView[index * 3] = value[sparseIndex * 3];
-//         bufferView[index * 3 + 1] = value[sparseIndex * 3 + 1];
-//         bufferView[index * 3 + 2] = value[sparseIndex * 3 + 2];
-//     }
-//     else if (type == "VEC4") {
-//         bufferView[index * 4] = value[sparseIndex * 4];
-//         bufferView[index * 4 + 1] = value[sparseIndex * 4 + 1];
-//         bufferView[index * 4 + 2] = value[sparseIndex * 4 + 2];
-//         bufferView[index * 4 + 3] = value[sparseIndex * 4 + 3];
-//     }
-//     else {
-//         throw new Error(`GLTFModel:  type ${type} not support`);
-//     }
-// }
+/**
+ * 为sparse 写入bufferView中的数据
+ * @param bufferView 要写入的bufferView
+ * @param type 类型
+ * @param index 索引
+ * @param value 值
+ */
+export function writeArayBufferViewForSparse(Buffer: TypedArray, type: string, componentType: number, index: number, value: any, sparseIndex: number) {
+    let bufferView;
+    if (componentType == 5120) {
+        bufferView = new Int8Array(Buffer.buffer, Buffer.byteOffset, Buffer.length);
+    }
+    else if (componentType == 5121) {
+        bufferView = new Uint8Array(Buffer.buffer, Buffer.byteOffset, Buffer.length);
+    }
+    else if (componentType == 5122) {
+        bufferView = new Int16Array(Buffer.buffer, Buffer.byteOffset, Buffer.length / 2);
+    }
+    else if (componentType == 5123) {
+        bufferView = new Uint16Array(Buffer.buffer, Buffer.byteOffset, Buffer.length / 2);
+    }
+    else if (componentType == 5125) {
+        bufferView = new Uint32Array(Buffer.buffer, Buffer.byteOffset, Buffer.length / 4);
+    }
+    else if (componentType == 5126) {
+        bufferView = new Float32Array(Buffer.buffer, Buffer.byteOffset, Buffer.length );
+    }
+    else {
+        throw new Error(`GLTFModel:  component type ${componentType} not support`);
+    }
+    if (type == "SCALAR") {
+        bufferView[index] = value[sparseIndex];
+    }
+    else if (type == "VEC2") {
+        bufferView[index * 2] = value[sparseIndex * 2];
+        bufferView[index * 2 + 1] = value[sparseIndex * 2 + 1];
+    }
+    else if (type == "VEC3") {
+        bufferView[index * 3] = value[sparseIndex * 3];
+        bufferView[index * 3 + 1] = value[sparseIndex * 3 + 1];
+        bufferView[index * 3 + 2] = value[sparseIndex * 3 + 2];
+    }
+    else if (type == "VEC4") {
+        bufferView[index * 4] = value[sparseIndex * 4];
+        bufferView[index * 4 + 1] = value[sparseIndex * 4 + 1];
+        bufferView[index * 4 + 2] = value[sparseIndex * 4 + 2];
+        bufferView[index * 4 + 3] = value[sparseIndex * 4 + 3];
+    }
+    else {
+        throw new Error(`GLTFModel:  type ${type} not support`);
+    }
+}

@@ -6,7 +6,7 @@ import { GLTFModel } from "./gltf";
 import { I_indexGPUBufferBundle, I_vsGPUBufferBundle } from "../../core/command/DrawCommandGenerator";
 import { E_accessorUseFor, T_accessorBufferSource } from "./base";
 import * as BaseFunction from "./function";
-import { createCommonGPUBuffer } from "../../core/command/baseFunction";
+import { cloneBufferSource, createCommonGPUBuffer } from "../../core/command/baseFunction";
 
 
 export class GltfDataAtLoaders extends ModelDataLoader {
@@ -324,12 +324,72 @@ export class GltfDataAtLoaders extends ModelDataLoader {
                 byteSize: countsOfList * 4,
             } as I_indexGPUBufferBundle;
         }
-        else if (useFor == E_accessorUseFor.vertex) {
+        else if (useFor == E_accessorUseFor.vertex && accessor.sparse === undefined) {
             let accessorArray = this.getAccessorForByte(accessorID);
             const { format, wgslFormat, byteSize, arrayStride } = this.getAccessorTypeForGPUVertexFormat(accessorID);
             if (!gpuBuffer) {
                 gpuBuffer = this.createGPUBuffer(accessorID, accessorArray);
             }
+            accessorBufferSource = {
+                buffer: gpuBuffer,
+                format: format,
+                wgslFormat: wgslFormat,
+                name: accessor.name || accessorID.toString(),
+                arrayStride: arrayStride,
+                count: accessor.count,
+                offset: 0,
+                byteSize: byteSize,
+                min: accessor.min,
+                max: accessor.max,
+            } as I_vsGPUBufferBundle;
+        }
+        else if (useFor == E_accessorUseFor.vertex && accessor.sparse !== undefined) {
+            const { format, wgslFormat, byteSize, arrayStride } = this.getAccessorTypeForGPUVertexFormat(accessorID);
+            if (!gpuBuffer) {
+                let countOfSparse = accessor.sparse.count;
+                // sparse index
+                // let indexBufferSparse = this.getArrayViewForBufferView(accessor.sparse.indices.bufferView,
+                // accessor.sparse.indices.componentType,
+                //     countOfSparse,
+                //     "SCALAR",
+                //     accessor.sparse.indices.byteOffset);
+                let indexBufferSparse_source = this.getBufferByBufferViewID(accessor.sparse.indices.bufferView!);          //获取bufferView对应的buffer
+                let indexBufferSparse: Uint16Array | Uint32Array;
+                if (accessor.sparse.indices.componentType == 5123) {
+                    indexBufferSparse = new Uint16Array(indexBufferSparse_source.arrayBuffer, indexBufferSparse_source.byteOffset, indexBufferSparse_source.byteLength / 2);
+                }
+                else {
+                    indexBufferSparse = new Uint32Array(indexBufferSparse_source.arrayBuffer, indexBufferSparse_source.byteOffset, indexBufferSparse_source.byteLength / 4);
+                }
+
+
+                // sparse value
+                // let valueBufferSparse = this.getArrayViewForBufferView(accessor.sparse.values.bufferView,
+                //     accessor.componentType,
+                //     countOfSparse,
+                //     accessor.type,
+                //     accessor.sparse.values.byteOffset);
+                let valueBufferSparse_source = this.getBufferByBufferViewID(accessor.sparse.values.bufferView!);          //获取bufferView对应的buffer
+                let valueBufferSparse: Float32Array = new Float32Array(valueBufferSparse_source.arrayBuffer, valueBufferSparse_source.byteOffset, valueBufferSparse_source.byteLength / 4);
+
+                let fromBuffer = this.getAccessorForByte(accessorID) as Float32Array;
+                let bufferAttribute = new Float32Array(cloneBufferSource(fromBuffer, fromBuffer.byteOffset, fromBuffer.byteLength));
+
+                // 写入sparse数据到bufferAttribute
+                for (let i_sparse = 0; i_sparse < countOfSparse; i_sparse++) {
+                    let index = indexBufferSparse[i_sparse];
+                    BaseFunction.writeArayBufferViewForSparse(bufferAttribute,
+                        accessor.type,
+                        accessor.componentType,
+                        index,
+                        valueBufferSparse,
+                        i_sparse);
+                }
+                // 构建对应的GPUBuffer
+                let byteOffset = 0;//sparse数据对应的Arraybuffer是新建的，从0开始
+                gpuBuffer = this.createGPUBuffer(accessorID, bufferAttribute);
+            }
+            // 构建对应的GPUBufferBundle
             accessorBufferSource = {
                 buffer: gpuBuffer,
                 format: format,
