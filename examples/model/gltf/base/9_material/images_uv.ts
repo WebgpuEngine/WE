@@ -62,11 +62,11 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-console.log(gltf.modelData.json.images,typeof gltf.modelData.json.images[0].bufferView);
+// console.log(gltf.modelData.json.images,typeof gltf.modelData.json.images[0].bufferView);
 scene.add(gltf);
 
-gltf.printAccessorContent(0)
-gltf.printAccessorContent(1)
+// gltf.printAccessorContent(0)
+// gltf.printAccessorContent(1)
 
 // let geometry = new SphereGeometry(
 

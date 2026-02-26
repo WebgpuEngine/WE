@@ -118,7 +118,7 @@ async function decompressPrimitive(
       }
     }
   }
-
+//add by tom 20260224
   // @ts-ignore
     let dracoAttributes = primitive.extensions.KHR_draco_mesh_compression.attributes;
   let list = {};

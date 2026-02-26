@@ -52,6 +52,7 @@ const GEOMETRY_TYPE = {
 // Native Draco attribute names to GLTF attribute names.
 const DRACO_TO_GLTF_ATTRIBUTE_NAME_MAP = {
   POSITION: 'POSITION',
+  // fix by tom 20260224
   // NORMAL: 'NORMAL',
   // COLOR: 'COLOR_0',
   // TEX_COORD: 'TEXCOORD_0'
@@ -446,7 +447,7 @@ export default class DracoParser {
     }
 
     // Attribute of "GENERIC" type, we need to assign some name
-    return `${uniqueId}`;
+    return `${uniqueId}`;// add by tom 20260224
   }
 
   // METADATA EXTRACTION

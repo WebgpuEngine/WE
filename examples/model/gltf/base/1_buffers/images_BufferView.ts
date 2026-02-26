@@ -46,4 +46,4 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-console.log(gltf.modelData.json.images,typeof gltf.modelData.json.images[0].bufferView);
+// console.log(gltf.modelData.json.images,typeof gltf.modelData.json.images[0].bufferView);

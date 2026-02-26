@@ -1,8 +1,9 @@
 import { vec3 } from "wgpu-matrix";
-import { PerspectiveCamera } from "../../../../../src/we/core/camera/perspectiveCamera";
-import { IV_Scene } from "../../../../../src/we/core/scene/base";
-import { initScene } from "../../../../../src/we/core/scene/fn";
-import { createGLTFModel } from "../../../../../src/we/model/gltf/gltf";
+import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
+import { IV_Scene } from "../../../../src/we/core/scene/base";
+import { initScene } from "../../../../src/we/core/scene/fn";
+import { createGLTFModel } from "../../../../src/we/model/gltf/gltf";
+import { GltfDataAtLoaders } from "../../../../src/we/model/gltf/gltfAtLoaders";
 
 declare global {
     interface Window {
@@ -42,15 +43,20 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
-let gltf = await createGLTFModel({
-    scene: scene,
-    url: "/models/gltf/base/triangle/sparse.gltf"
-}
-);
-window.gltf = gltf;
+// let gltf = await createGLTFModel({
+//     scene: scene,
+//     url: "/models/gltf/base/triangle/sparse.gltf"
+// }
+// );
+// window.gltf = gltf;
 // gltf.printAccessorContent(0)
 // gltf.printBufferView(2,5123,3,"SCALAR",0)
 // gltf.printAccessorContent(1)
 // gltf.printBufferView(3,5126,3,"VEC3",0)
 
-await scene.add(gltf);
+// await scene.add(gltf);
+
+let url="/models/gltf/model/Fox/glTF-Binary/Fox.glb"
+let dataLoader = new GltfDataAtLoaders(url, scene.device);
+await dataLoader.init();
+window.dataLoader = dataLoader;

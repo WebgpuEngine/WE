@@ -8,6 +8,7 @@ import { Clock } from "../scene/clock";
 import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { BaseTexture } from "../texture/baseTexture";
+import { ModelDataLoader } from "./ModelDataLoader";
 
 export interface I_Model extends I_Update {
     scene: Scene,
@@ -80,8 +81,13 @@ export abstract class BaseModel extends NodeObject {
      * 2、pickup使用一个RenderID
      */
     asWhole: boolean = true;
-    /**模型原始数据*/
+    /**模型原始数据
+     * 20260226 ,逐步作废
+    */
     modelData: any;
+
+    modelLoader!: ModelDataLoader;
+
     /**模型资源*/
     modelRes!: {
         [key: string]: Map<any, any>;

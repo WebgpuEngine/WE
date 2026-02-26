@@ -62,7 +62,7 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-console.log(gltf.modelData.json.images, typeof gltf.modelData.json.images[0].bufferView);
+// console.log(gltf.modelData.json.images, typeof gltf.modelData.json.images[0].bufferView);
 let box =scene.add(gltf, {
   position: [0, 0, 0],
   scale: [1, 1, 1],
@@ -75,7 +75,7 @@ console.log("add gltf instance", box);
 // gltf.printAccessorContent(0)
 // gltf.printAccessorContent(1)
 // gltf.printAccessorContent(2)
-gltf.printAccessorContent(3)
+// gltf.printAccessorContent(3)
 
 
 // let geometry = new SphereGeometry(

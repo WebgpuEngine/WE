@@ -48,22 +48,22 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-console.warn("accessor 4: inversBindMatrices(2个4*4矩阵)")
-gltf.printAccessorContent(4)
-console.warn("accessor 5: samplers input ,time(12个时间点[f32] )")
-gltf.printAccessorContent(5)
-console.warn("accessor 6: samplers output ,rotate(12个 vec4)")
-gltf.printAccessorContent(6)
-console.log("==================================attribute ======================    ")
-console.warn("attribute：10个vec4 joints_0")
-let joints_0 = gltf.printAccessorContent(2, )
-for (let i = 0; i < joints_0.length; i += 4) {
-    console.log(joints_0[i], joints_0[i + 1], joints_0[i + 2], joints_0[i + 3])
-}
-console.warn("attribute：10个vec4 weights_0")
-let weights_0 = gltf.printAccessorContent(3, false)
-for (let i = 0; i < weights_0.length; i += 4) {
-    console.log(weights_0[i], weights_0[i + 1], weights_0[i + 2], weights_0[i + 3])
-}
+// console.warn("accessor 4: inversBindMatrices(2个4*4矩阵)")
+// gltf.printAccessorContent(4)
+// console.warn("accessor 5: samplers input ,time(12个时间点[f32] )")
+// gltf.printAccessorContent(5)
+// console.warn("accessor 6: samplers output ,rotate(12个 vec4)")
+// gltf.printAccessorContent(6)
+// console.log("==================================attribute ======================    ")
+// console.warn("attribute：10个vec4 joints_0")
+// let joints_0 = gltf.printAccessorContent(2, )
+// for (let i = 0; i < joints_0.length; i += 4) {
+//     console.log(joints_0[i], joints_0[i + 1], joints_0[i + 2], joints_0[i + 3])
+// }
+// console.warn("attribute：10个vec4 weights_0")
+// let weights_0 = gltf.printAccessorContent(3, false)
+// for (let i = 0; i < weights_0.length; i += 4) {
+//     console.log(weights_0[i], weights_0[i + 1], weights_0[i + 2], weights_0[i + 3])
+// }
 
 await scene.add(gltf);

@@ -48,10 +48,10 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-console.log("accessor 2: samplers input ")
-gltf.printAccessorContent(2)
-console.log("accessor 3: samplers output ")
-gltf.printAccessorContent(3)
+// console.log("accessor 2: samplers input ")
+// gltf.printAccessorContent(2)
+// console.log("accessor 3: samplers output ")
+// gltf.printAccessorContent(3)
 
 
 await scene.add(gltf);
