@@ -262,11 +262,12 @@ let skins = new SkinAnimation(
   }
 );
 
-let animationGroup = new AnimationGroup(
-  [keyFrame_0, keyFrame_1, keyFrame_2, keyFrame_3, skins],
+let animationGroup = new AnimationGroup({
+  animations: [keyFrame_0, keyFrame_1, keyFrame_2, keyFrame_3, skins],
   scene,
-  joint_0
-);
+  parent: joint_0,
+  name: "skeleton_animation",
+});
 
 window.animationGroup = animationGroup;
 

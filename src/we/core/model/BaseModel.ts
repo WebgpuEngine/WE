@@ -13,7 +13,11 @@ import { ModelDataLoader } from "./ModelDataLoader";
 export interface I_Model extends I_Update {
     scene: Scene,
     url: string,
-
+    /**
+     * 是否开启debug模式
+     * 1、instanceRes是否注销
+     */
+    debug?: boolean,
 }
 
 export interface I_ModelResMap {
@@ -37,6 +41,7 @@ export enum T_ModelResKind {
 }
 
 export abstract class BaseModel extends NodeObject {
+    debug: boolean = false;
 
     /** 动画组对象 animation group object      */
     _animationGroup: AnimationGroup[] | undefined;

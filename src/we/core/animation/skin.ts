@@ -50,7 +50,10 @@ export interface IV_SkinAnimationValue {
     parent: NodeObject;
     name?: string;
     skeleton: Skeleton | IV_Skeleton;
-    entity: BaseEntity;
+    /** entity 实体,必须是parent之下的entity
+     * 这个可以忽略
+     */
+    entity?: BaseEntity;
 }
 export class SkinAnimation implements I_UUID {
     UUID: string;
@@ -133,7 +136,15 @@ export class SkinAnimation implements I_UUID {
         this.playState = E_PlayState.stoped;
     }
     pause(): void {
-        this.playState = E_PlayState.stoped;
+        if (this.playState == E_PlayState.stoped) {
+            return;
+        }
+        else if (this.playState == E_PlayState.pause) {
+            this.playState = E_PlayState.playing;
+        }
+        else if (this.playState == E_PlayState.playing) {
+            this.playState = E_PlayState.pause;
+        }
     }
     reset(): void {
         this.playState = E_PlayState.playing;

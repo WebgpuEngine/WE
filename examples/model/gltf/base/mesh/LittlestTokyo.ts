@@ -8,6 +8,7 @@ import { ColorMaterial } from "../../../../../src/we/core/material/standard/colo
 import { IV_MeshEntity, Mesh } from "../../../../../src/we/core/entity/mesh/mesh";
 import { DirectionalLight } from "../../../../../src/we/core/light/DirectionalLight";
 import { AmbientLight } from "../../../../../src/we/core/light/ambientLight";
+import { FXAA } from "../../../../../src/we/core/postprocess/FXAA";
 
 declare global {
   interface Window {
@@ -17,8 +18,10 @@ declare global {
 }
 let input: IV_Scene = {
   canvas: "render",
-  backgroudColor: [0, 0, 0, 0.91],
+  backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
+  toneMapping: "linear",
+  deferRender: "color",
 };
 let scene = await initScene({
   initConfig: input,
@@ -26,16 +29,16 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1, 1],
-  intensity: 3,
-
+  direction: [0, 1, 1],
+  intensity: 1,
+  shadow: false,
 });
 await scene.add(oneDirlight);
 
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.3
+    intensity: 0.9
   }
 )
 await scene.add(ambientLight);
@@ -46,9 +49,9 @@ let Y = 0;
 let camera = new PerspectiveCamera({
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.01,
-  far: 100,
-  position: [3, 3, 2],
+  near: 1,
+  far: 1000,
+  position: [3, 3, 200],
   lookAt: [0, 0, 0],
   controlType: "orbit",
 
@@ -63,42 +66,11 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-let nodeModel = await scene.add(gltf, {
+window.gltfInstance = await scene.add(gltf, {
   // position: [0, 0, 0],
-  scale: [3, 3, 3],
+  scale: [0.3, 0.3, 0.3],
   // rotate: [1, 0, 0, Math.PI/2],
 });
-console.log(nodeModel);
 
-// let geometry = new SphereGeometry(
+let blur = new FXAA({ scene });
 
-//   {
-//     // radius:1.1,
-//     // phiStart:0,
-//     // phiLength:Math.PI/2 ,
-//     // // thetaStart:0,
-//     // // thetaLength:Math.PI,
-//     // heightSegments:15,
-//     // widthSegments:1,
-//   }
-// );
-
-// let colorMaterial = new ColorMaterial({
-//   color: [0, 0.1, 0.2, 1]
-// });
-
-// let inputMesh: IV_MeshEntity = {
-//   attributes: {
-//     geometry: geometry,
-//   },
-//   scale: [0.15, 0.15, 0.15],
-//   position: [0, 0, -1],
-//   material: colorMaterial,
-//   wireFrame: {
-//     color: [1, 1, 1, 1],
-//     enable: true,
-//     // wireFrameOnly: true,
-//   }
-// }
-// let mesh = new Mesh(inputMesh);
-// await scene.add(mesh);

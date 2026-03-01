@@ -397,6 +397,9 @@ export abstract class NodeSpace extends RootGPU {
      *    A、在模型gltf中，旋转使用四元数。
      */
     updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
+        if(this.Name==="0" ){
+            let abc=1;
+        }
         this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         if (_m4) {
             if (_opera === "copy")
@@ -606,16 +609,16 @@ export abstract class NodeObject extends NodeSpace {
         this._animation = animation;
     }
 
-    // /** 动画组对象 animation group object     
-    //  * 1、gltf等模型使用
-    // */
-    // _animationGroup: AnimationGroup[] | undefined;
-    // get AnimationGroup(): AnimationGroup[] | undefined {
-    //     return this._animationGroup;
-    // }
-    // set AnimationGroup(animationGroup: AnimationGroup[]) {
-    //     this._animationGroup = animationGroup;
-    // }
+    /** 动画组对象 animation group object     
+     * 1、gltf等模型使用
+    */
+    _animationGroup: AnimationGroup[] | undefined;
+    get AnimationGroup(): AnimationGroup[] | undefined {
+        return this._animationGroup;
+    }
+    set AnimationGroup(animationGroup: AnimationGroup[]) {
+        this._animationGroup = animationGroup;
+    }
 
     /** 骨架动画数据  SkinAnimation object 
      * 目前只设计了一个蒙皮动画。同一节点上不存在多个蒙皮动画。
@@ -1064,6 +1067,9 @@ export abstract class NodeObject extends NodeSpace {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
+        if(this.Name=="0" ){
+            let abc=1;
+        }
         // if (this.lastUpdaeTime === clock.now) //更新检查
         //     return false;
         super.update(clock, false, false);                             //不更新updateSelf(),不更新updateAtEnd();都只执行一次

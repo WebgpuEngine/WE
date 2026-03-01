@@ -1,3 +1,4 @@
+import { TypedArray } from "webgpu-utils";
 import { weVec2, weVec3, weVec4 } from "../base/coreDefine";
 import { AnimationGroup } from "./animationGroup";
 import { BaseAnimation } from "./BaseAnimation";
@@ -60,7 +61,7 @@ export enum E_AnimationTargetType {
     /** 权重
      * 1、权重:[w1,w2,w3,...]
      */
-    weight = "weight",
+    weights = "weights",
     // /** 变形目标,使用weights
     //  * morphTarget:morphTarget数量(attribute 中position[N] 的数量)
     //  */
@@ -120,13 +121,13 @@ export interface I_AnimationSampler {
     /** 插值模式 */
     interpolation: E_InterpolationModes,
     /** 时间轴 */
-    frames: number[],
+    frames: number[]|TypedArray,
     /** 关键帧值
      * 1、关键帧值的长度必须与时间轴长度相等
      * 2、如果目标属性为morphTarget，关键帧值的长度必须是时间轴长度的整数倍（数值为morphTarget数量）
      * 
      */
-    values: number[],//| weVec2[] | weVec3[] | weVec4[],
+    values: number[]|TypedArray,//| weVec2[] | weVec3[] | weVec4[],
     /** 目标属性 
      * quaternion ：四元数，用于旋转动画,vec4
      * position ：位置向量，用于位置动画,vec3

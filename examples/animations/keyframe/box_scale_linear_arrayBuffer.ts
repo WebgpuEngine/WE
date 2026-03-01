@@ -6,7 +6,7 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { IV_AnimationValue } from "../../../src/we/core/animation/BaseAnimation";
-import { E_AnimationPlayType, E_AnimationTargetType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
+import { E_AnimationTargetType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
 import { KeyFrameAnimation } from "../../../src/we/core/animation/keyFrame";
 
 declare global {
@@ -61,27 +61,22 @@ let inputMesh: IV_MeshEntity = {
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
-let meshEntity = await scene.add({
-  entity: mesh,
-  // position: [0.5, 0, 0],
-  // scale: [2, 2, 2],
-});
+let meshEntity = await scene.add(mesh);
 
 
 let sampler: I_AnimationSampler = {
   interpolation: E_InterpolationModes.linear,
-  frames: [0, 1, 2, 3, 4],
-  values: [
-    0, 0, 1, 0 / 180 * Math.PI,
-    0, 0, 1, 90 / 180 * Math.PI,
-    0, 0, 1, 180 / 180 * Math.PI,
-    0, 0, 1, 270 / 180 * Math.PI,
-    0, 0, 1, 360 / 180 * Math.PI,
-
-  ],
-  target: E_AnimationTargetType.rotation,
-
-  targetStride: 4
+  frames: new Float32Array([0, 1, 2, 3, 4, 5]),
+  values: new Float32Array([
+    1, 1, 1,
+    2, 2, 2,
+    3, 3, 3,
+    4, 4, 4,
+    5, 5, 5,
+    6, 6, 6,
+  ]),
+  target: E_AnimationTargetType.scale,
+  targetStride: 3
 }
 let aniValue: IV_AnimationValue = {
   parent: meshEntity,
@@ -91,5 +86,4 @@ let aniValue: IV_AnimationValue = {
 let keyFrame: KeyFrameAnimation = new KeyFrameAnimation(aniValue);
 window.keyFrame = keyFrame;
 
-keyFrame.play({speed:2,mode:{type:E_AnimationPlayType.loop}})
-// keyFrame.play({speed:2,mode:{type:"count",count:1}})
+keyFrame.play({speed:2,mode:{type:"count",count:1}})

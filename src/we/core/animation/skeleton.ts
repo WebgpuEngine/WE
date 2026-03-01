@@ -4,7 +4,7 @@ import { Clock } from "../scene/clock";
 
 export interface IV_Skeleton {
     joints: NodeObject[];
-    jointsMatrices: ArrayBuffer | Mat4[];
+    jointsMatrices: Float32Array | Mat4[];
 }
 
 export class Skeleton {
@@ -17,7 +17,7 @@ export class Skeleton {
     /** 骨骼节点逆绑定矩阵 */
     inverseBindMatrices: Mat4[] = [];
     /** 骨骼节点变换矩阵 arraybuffer */
-    _jointsMat: ArrayBuffer | undefined;
+    _jointsMat: Float32Array | undefined;
 
     output: ArrayBuffer | undefined;
     outputMatrices: Mat4[] = [];
@@ -25,16 +25,16 @@ export class Skeleton {
     constructor(values?: IV_Skeleton) {
         if (values) {
             if (Array.isArray(values.jointsMatrices)) {
-                this._jointsMat = new ArrayBuffer(values.jointsMatrices.length * 4 * 16);
+                this._jointsMat = new Float32Array(values.jointsMatrices.length * 4 * 16);
                 for (let i = 0; i < values.joints.length; ++i) {
-                    this.inverseBindMatrices.push(new Float32Array(this._jointsMat, i * 4 * 16, 16));
+                    this.inverseBindMatrices.push(new Float32Array(this._jointsMat.buffer, this._jointsMat.byteOffset + i * 4 * 16, 16));
                     mat4.copy(values.jointsMatrices[i], this.inverseBindMatrices[i]);
                 }
             }
-            else if (values.jointsMatrices instanceof ArrayBuffer) {
+            else if (values.jointsMatrices instanceof Float32Array) {
                 this._jointsMat = values.jointsMatrices;
                 for (let i = 0; i < values.joints.length; ++i) {
-                    this.inverseBindMatrices.push(new Float32Array(this._jointsMat, i * 4 * 16, 16));
+                    this.inverseBindMatrices.push(new Float32Array(this._jointsMat.buffer, this._jointsMat.byteOffset + i * 4 * 16, 16));
                 }
             }
             if (values.joints) {
@@ -47,7 +47,7 @@ export class Skeleton {
             if (values.joints.length != this.inverseBindMatrices.length) {
                 throw new Error("Skeleton: joints length is not equal to inverseBindMatrices length");
             }
-            
+
             this.output = new ArrayBuffer(values.joints.length * 4 * 16);
             for (let i = 0; i < values.joints.length; ++i) {
                 this.outputMatrices.push(new Float32Array(this.output, i * 4 * 16, 16));
@@ -79,7 +79,7 @@ export class Skeleton {
     //     this.addInverseBindMatrix(matrix);
     //     this.count = this.joints.length;
     // }
-    setJointsMatricesForBuffer(jointsMatrices: ArrayBuffer) {
+    setJointsMatricesForBuffer(jointsMatrices: Float32Array) {
         this._jointsMat = jointsMatrices;
     }
     setInverseBindMatrices(matrices: Mat4[]) {
@@ -104,6 +104,9 @@ export class Skeleton {
         for (let i in this.joints) {
             let perJoint = this.joints[i];
             mat4.multiply(perJoint.matrixWorld, this.inverseBindMatrices[i], this.outputMatrices[i]);
+            if (i == '0') {
+                // console.log(i, perJoint.matrixWorld, this.inverseBindMatrices[i], this.outputMatrices[i]);
+            }
         }
     }
 }

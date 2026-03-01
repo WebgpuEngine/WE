@@ -26,8 +26,8 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1, 1],
-  intensity: 2,
+  direction: [1, 10, 1],
+  intensity: 3,
 
 });
 await scene.add(oneDirlight);
@@ -62,42 +62,8 @@ let gltf = await createGLTFModel({
 }
 );
 window.gltf = gltf;
-let nodeModel = await scene.add(gltf, {
+window.gltfInstance = await scene.add(gltf, {
   // position: [0, 0, 0],
   scale: [3, 3, 3],
   // rotate: [1, 0, 0, Math.PI/2],
 });
-console.log(nodeModel);
-
-// let geometry = new SphereGeometry(
-
-//   {
-//     // radius:1.1,
-//     // phiStart:0,
-//     // phiLength:Math.PI/2 ,
-//     // // thetaStart:0,
-//     // // thetaLength:Math.PI,
-//     // heightSegments:15,
-//     // widthSegments:1,
-//   }
-// );
-
-// let colorMaterial = new ColorMaterial({
-//   color: [0, 0.1, 0.2, 1]
-// });
-
-// let inputMesh: IV_MeshEntity = {
-//   attributes: {
-//     geometry: geometry,
-//   },
-//   scale: [0.15, 0.15, 0.15],
-//   position: [0, 0, -1],
-//   material: colorMaterial,
-//   wireFrame: {
-//     color: [1, 1, 1, 1],
-//     enable: true,
-//     // wireFrameOnly: true,
-//   }
-// }
-// let mesh = new Mesh(inputMesh);
-// await scene.add(mesh);

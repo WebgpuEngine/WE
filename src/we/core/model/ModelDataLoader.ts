@@ -31,6 +31,9 @@ export abstract class ModelDataLoader {
     abstract getScene(index?: number): any;
     abstract getScenes(): any[] | undefined;
 
+    abstract getSkin(index: number): any | undefined;
+    abstract getSkins(): any[] | undefined;
+
     abstract detachData(): void;
 
     abstract getAccessorForByte(index: number): Uint32Array | Int32Array | Float32Array;

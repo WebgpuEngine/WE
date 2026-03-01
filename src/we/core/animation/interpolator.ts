@@ -132,7 +132,7 @@ export class Interpolator {
         //         return false;
         //     }
         // }
-        if (this.sampler.target == E_AnimationTargetType.weight) {
+        if (this.sampler.target == E_AnimationTargetType.weights) {
             if (this.sampler.frames.length != this.sampler.values.length / this.sampler.targetStride) {
                 console.warn("weight Animation: play: sampler value length is not equal times length * targetStride");
                 return false;
@@ -179,6 +179,7 @@ export class Interpolator {
         }
         this.computeTime(clock);
         this.updateOutput();
+        // console.log(this.output);
     }
     updateOutput(): void {
         let stride: number = this.sampler.targetStride;
@@ -187,7 +188,7 @@ export class Interpolator {
             case E_AnimationTargetType.rotation:
             case E_AnimationTargetType.scale:
             // case E_AnimationTargetType.morphTarget:
-            case E_AnimationTargetType.weight:
+            case E_AnimationTargetType.weights:
 
                 // stride = 3;
                 // if (this.sampler.target == E_AnimationTargetType.rotation) {
@@ -222,12 +223,12 @@ export class Interpolator {
                         this.sampler.values[this.timer.currentKeyFrameIndex * stride + 3]
                     ];
                     let q2: weVec4 = [
-                        this.sampler.values[this.timer.currentKeyFrameIndex * stride + 1],
-                        this.sampler.values[this.timer.currentKeyFrameIndex * stride + 2],
-                        this.sampler.values[this.timer.currentKeyFrameIndex * stride + 3],
-                        this.sampler.values[this.timer.currentKeyFrameIndex * stride + 4]
+                        this.sampler.values[(this.timer.currentKeyFrameIndex + 1) * stride + 0],
+                        this.sampler.values[(this.timer.currentKeyFrameIndex + 1) * stride + 1],
+                        this.sampler.values[(this.timer.currentKeyFrameIndex + 1) * stride + 2],
+                        this.sampler.values[(this.timer.currentKeyFrameIndex + 1) * stride + 3]
                     ];
-                    this.slerpQuat(q1, q2, this.timer.time);
+                    this.output = this.slerpQuat(q1, q2, this.timer.time);
                 }
                 else if (this.sampler.interpolation == E_InterpolationModes.cubicSpline) {
                     let deltaTime = this.sampler.frames[this.timer.currentKeyFrameIndex + 1] - this.sampler.frames[this.timer.currentKeyFrameIndex];
@@ -287,7 +288,7 @@ export class Interpolator {
             // case E_AnimationTargetType.morphTarget:
             //     console.warn("morphTarget Animation: play: not implemented");
             //     break;
-            case E_AnimationTargetType.weight:
+            case E_AnimationTargetType.weights:
                 console.warn("weight Animation: play: not implemented");
                 break;
             default:

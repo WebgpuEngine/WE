@@ -98,7 +98,7 @@ let linesEntity = await scene.add(
 );
 
 let sampler: I_AnimationSampler = {
-  target: E_AnimationTargetType.weight,
+  target: E_AnimationTargetType.weights,
   interpolation: E_InterpolationModes.linear,
   frames: timer,
   values: weights,

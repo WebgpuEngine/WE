@@ -25,6 +25,13 @@ import { E_PlayState, I_AnimationPlayParams } from "./base";
 import { BaseAnimation } from "./BaseAnimation";
 import { SkinAnimation } from "./skin";
 
+
+export interface IV_AnimationGroupValue {
+    animations: (BaseAnimation | SkinAnimation)[],
+    scene: Scene,
+    parent?: NodeObject,
+    name?: string,
+}
 export class AnimationGroup implements I_UUID {
     UUID: string;
     _isDestroy: boolean = false;
@@ -44,12 +51,13 @@ export class AnimationGroup implements I_UUID {
     playState: E_PlayState = E_PlayState.stoped;
     /** 当前动画组是否由骨骼蒙皮动画     */
     _skinAnimation: SkinAnimation[] | undefined;
-    constructor(animations: (BaseAnimation | SkinAnimation)[], scene: Scene, parent?: NodeObject) {
+    constructor(values: IV_AnimationGroupValue) {
         this.UUID = WeGenerateUUID();
-        if (parent) this.parent = parent;
-        this.scene = scene;
-        this.manager = scene.animationGroupManager;
-        for (let perOne of animations) {
+        if (values.parent) this.parent = values.parent;
+        this.scene = values.scene;
+        this.manager = values.scene.animationGroupManager;
+        if (values.name) this.Name = values.name;
+        for (let perOne of values.animations) {
             this.add(perOne);
         }
     }
@@ -90,7 +98,10 @@ export class AnimationGroup implements I_UUID {
     }
     play(playAnimation?: I_AnimationPlayParams | "loop" | number): void {
         for (let perOne of this.list) {
-            perOne.play(playAnimation);
+            if (perOne)
+                perOne.play(playAnimation);
+            else 
+                console.warn("动画组中存在空动画");
         }
         if (this._skinAnimation != undefined) {
             for (let perSkin of this._skinAnimation) {
@@ -131,13 +142,15 @@ export class AnimationGroup implements I_UUID {
 
     update(clock: Clock): void {
         if (this.playState == E_PlayState.playing) {
-            let state = 0;
+            let state = 0;//记录停止的动画数量
+            //更新所有动画,累计停止的动画数量
             for (let perOne of this.list) {
                 if (perOne.playState == E_PlayState.stoped) {
                     state++;
                 }
             }
-            if (state == this.list.length) {//所有动画都停止了
+            //所有动画都停止了，组也停止。主要是为了skin动画，防止skin中的矩阵在非更新状态下被更新，影响CPU性能
+            if (state == this.list.length) {
                 this.stop(clock);
             }
         }

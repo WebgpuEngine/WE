@@ -400,7 +400,7 @@ export var SHT_refDCG: I_singleShaderTemplate = {
         );
 
         let count = i32(u_entity_base.joint_matrix_count);
-        for(var i=0 ;i < count;i++) {
+        for(var i=0 ;i < 4;i++) {
             let per_joint = u32(attributes.joints[i]);
             // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
             skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
@@ -409,6 +409,7 @@ export var SHT_refDCG: I_singleShaderTemplate = {
         // worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));
         vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
         vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
+        vsOutput.normal = normalize(vec4f(skin_mat* vec4f(normal, 0)).xyz);
     }
         `,
             ],

@@ -92,7 +92,7 @@ export abstract class BaseAnimation implements I_UUID {
         this.UUID = WeGenerateUUID();
         this.scene = this.parent.scene;
         this.manager = this.scene.animationManager;
-        if (kind == undefined || kind != E_AnimationTargetType.weight) {
+        if (kind == undefined || kind != E_AnimationTargetType.weights) {
             this.manager.add(this);
         }
         if (values.name) {
@@ -214,7 +214,15 @@ export abstract class BaseAnimation implements I_UUID {
      * @param clock 
      */
     pause(): void {
-        this.playState = E_PlayState.pause;
+        if (this.playState == E_PlayState.stoped) {
+            return;
+        }
+        else if (this.playState == E_PlayState.pause) {
+            this.playState = E_PlayState.playing;
+        }
+        else if (this.playState == E_PlayState.playing) {
+            this.playState = E_PlayState.pause;
+        }
     }
     /**
      * 重置播放

@@ -6,7 +6,7 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { IV_AnimationValue } from "../../../src/we/core/animation/BaseAnimation";
-import { E_AnimationPlayType, E_AnimationTargetType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
+import { E_AnimationTargetType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
 import { KeyFrameAnimation } from "../../../src/we/core/animation/keyFrame";
 
 declare global {
@@ -57,30 +57,25 @@ let inputMesh: IV_MeshEntity = {
     color: [1, 1, 1, 1],
     enable: true,
     // wireFrameOnly: true,
-  }
+  },
+  position: [0.5, 0, 0],
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
-let meshEntity = await scene.add({
-  entity: mesh,
-  // position: [0.5, 0, 0],
-  // scale: [2, 2, 2],
-});
+let meshEntity = await scene.add(mesh);
 
 
 let sampler: I_AnimationSampler = {
   interpolation: E_InterpolationModes.linear,
-  frames: [0, 1, 2, 3, 4],
-  values: [
-    0, 0, 1, 0 / 180 * Math.PI,
-    0, 0, 1, 90 / 180 * Math.PI,
-    0, 0, 1, 180 / 180 * Math.PI,
-    0, 0, 1, 270 / 180 * Math.PI,
-    0, 0, 1, 360 / 180 * Math.PI,
-
-  ],
-  target: E_AnimationTargetType.rotation,
-
+  frames: new Float32Array([0, 0.25, 0.5, 0.75, 1]),
+  values: new Float32Array([
+    0, 0, 0, 1,
+    0, 0, 0.7070000171661377, 0.7070000171661377,
+    0, 0, 1, 0,
+    0, 0, 0.7070000171661377, -0.7070000171661377,
+    0, 0, 0, 1
+  ]),
+  target: E_AnimationTargetType.quaternion,
   targetStride: 4
 }
 let aniValue: IV_AnimationValue = {
@@ -91,5 +86,4 @@ let aniValue: IV_AnimationValue = {
 let keyFrame: KeyFrameAnimation = new KeyFrameAnimation(aniValue);
 window.keyFrame = keyFrame;
 
-keyFrame.play({speed:2,mode:{type:E_AnimationPlayType.loop}})
-// keyFrame.play({speed:2,mode:{type:"count",count:1}})
+keyFrame.play({ speed: 1, mode: { type: "count", count: 1 } })

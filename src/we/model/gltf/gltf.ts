@@ -31,9 +31,20 @@ import { BaseMaterial } from "../../core/material/baseMaterial";
 import { ModelDataLoader } from "../../core/model/ModelDataLoader";
 import { GltfDataAtLoaders } from "./gltfAtLoaders";
 import { weVec4 } from "../../core/base/coreDefine";
+import { AnimationGroup } from "../../core/animation/animationGroup";
+import { E_AnimationTargetType, E_InterpolationModes, I_AnimationSampler } from "../../core/animation/base";
+import { TypedArray } from "webgpu-utils";
+import { KeyFrameAnimation } from "../../core/animation/keyFrame";
+import { MorphTargetAnimation } from "../../core/animation/morphTarget";
+import { SkinAnimation } from "../../core/animation/skin";
+import { Skeleton } from "../../core/animation/skeleton";
 
 
-
+export interface I_gltfInstanceResource {
+    nodes: Map<any, NodeObject>;
+    animation: Map<any, any>;
+    animationGroup: Map<any, any>;
+}
 
 export async function createGLTFModel(input: I_Model): Promise<GLTFModel> {
     let type: "gltf" | "glb";
@@ -76,6 +87,8 @@ export class GLTFModel extends BaseModel {
             "entity": new Map<any, BaseEntity>(),
             "animation": new Map<any, any>(),
         };
+    instanceNodes: Map<any, I_gltfInstanceResource> = new Map();
+    meshAndSkinBundle: { meshID: number, skinID: number, nodeID: number }[] = [];
 
     constructor(input: I_Model) {
         super(input);
@@ -87,9 +100,262 @@ export class GLTFModel extends BaseModel {
         // this.modelData = input.data;
         this.scene = input.scene;
         this.device = input.scene.device;
+        this.debug = input.debug || false;
     }
-    /**detachData
-     * 初始化模型数据,
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**实例化
+    * 初始化模型节点
+    * 1、被parent的addChild调用
+    * 2、调用initScene初始化场景
+    * @param parent 父节点
+    * @param attachValue 节点空间属性
+    * @returns 场景节点实例
+    */
+    async initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
+        let nodeOfScene: NodeInstanceModel = await this.initScene(parent, this.currentScene, attachValue);
+        await this.initAnimationsForInstance(nodeOfScene);
+        await this.initSkinsForInstance(nodeOfScene);
+        if (this.debug === false) {
+            this.instanceNodes.delete(nodeOfScene);//必须，否则map的资源不会被GC（在instance注销的情况）。debug模式时开启
+        }
+        return nodeOfScene;
+    }
+
+    /**
+     * 初始化场景，主入口。
+     * 1、gltf会新建一个node object作为场景节点，并返回
+     * 2、根据场景索引，初始化场景中的节点
+     * 3、初始化节点是递归操作（包括camera）
+     * 4、如果有animation，则在新的Node Object上初始化animation，并注册到animationManager
+     * 5、如果有animation，则在新的Node Object上初始化animation group，并注册到animationGroupManager
+     * @param id 场景索引
+     * @param attachValue 节点空间属性
+     * @returns 场景节点实例
+     */
+    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
+        let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
+        await nodeOfScene.init(this.scene, parent);         // 初始化node object
+        this.instanceNodes.set(nodeOfScene, {
+            nodes: new Map<any, NodeObject>(),
+            animation: new Map<any, any>(),
+            animationGroup: new Map<any, any>(),
+        });
+        nodeOfScene._modelOrigin = this;
+        nodeOfScene._name = "gltf scene " + nodeOfScene.ID;
+
+        let scene = this.gltfDataLoader.getScene(id);
+        if (scene == undefined) {
+            throw new Error(`scene ${id} not found`);
+        }
+        let nodes: number[] = [];
+        if (scene.nodes != undefined) {
+            nodes = scene.nodes as number[];
+        }
+        else {
+            throw new Error(`scene ${id} not found nodes`);
+        }
+        this.currentScene = id;
+        /**    push mesh to children         */
+        for (let nodeID of nodes) {
+            await BaseFunction.addNode(this, nodeID, nodeOfScene, nodeOfScene);
+        }
+        return nodeOfScene;
+    }
+    cleanInstanceResource(): void {
+        if (this.debug === false) {
+            this.instanceNodes.clear();//必须，否则map的资源不会被GC（在instance注销的情况）。debug模式时开启
+        }
+    }
+    /**
+     * 初始化皮肤
+     * 1、皮肤附加到NodeObject
+     * 2、皮肤实例附加到NodeInstanceModel
+     */
+    async initSkinsForInstance(nodeOfScene: NodeInstanceModel) {
+        //1、递归获得mesh和skin的组合，以及对应的node ,输出[{meshID,skinID,nodeID}]
+
+        //2、遍历mesh和skin的组合，初始化SkinAnimation,输出  [SkinAnimation]
+        let skinAnimations: SkinAnimation[] = [];
+        for (let bundle of this.meshAndSkinBundle) {
+            let node = this.instanceNodes.get(nodeOfScene)!.nodes.get(bundle.nodeID);
+            let mesh = node?.Entity;
+            let skin = this.gltfDataLoader.getSkin(bundle.skinID);
+
+            let jointsNodes = skin.joints;
+            let jointMatrix = await this.getAccessor(skin.inverseBindMatrices, E_accessorUseFor.array) as Float32Array;
+            let joints: NodeObject[] = [];
+            for (let i of jointsNodes) {
+                joints.push(this.instanceNodes.get(nodeOfScene)!.nodes.get(i)!);
+            }
+            let skeletons = new Skeleton({
+                joints: joints,
+                jointsMatrices: jointMatrix,
+            });
+
+            let skinAnimation = new SkinAnimation(
+                {
+                    parent: node!,
+                    skeleton: skeletons,
+                    entity: node!.Entity,
+                }
+            );
+            skinAnimations.push(skinAnimation);
+        }
+
+        //3、为每个animation group 增加skin animation：
+        // //nodeOfScene.animationGroup.addSkinAnimation(skinAnimation)
+        if (nodeOfScene.AnimationGroup == undefined) {
+            console.warn(`can not found animation group for skin at node id: ${nodeOfScene.ID}`);
+            return;
+        }
+        for (let animationGroup of nodeOfScene.AnimationGroup) {
+            for (let skinAnimation of skinAnimations) {
+                animationGroup.addSkinAnimation(skinAnimation);
+            }
+        }
+    }
+
+    /**
+     * 获取节点的morph target 数量
+     * @param nodeID 节点索引
+     * @returns morph target 数量
+     */
+    getMorphTargetsForNode(nodeID: number): number {
+        let node = this.gltfDataLoader.getNode(nodeID);
+        if (node == undefined) {
+            throw new Error(`node ${nodeID} not found`);
+        }
+        if (node.mesh == undefined) {
+            throw new Error(`node ${nodeID} not found mesh`);
+        }
+        let mesh = this.gltfDataLoader.getMesh(node.mesh);
+        if (mesh == undefined) {
+            throw new Error(`mesh ${node.mesh} not found`);
+        }
+        let stride = mesh.primitives[0].targets.length;
+        return stride;
+    }
+    /**
+     * 初始化动画
+     * 1、基础动画附加到NodeObject
+     * 2、动画组附加到NodeInstanceModel
+     */
+    async initAnimationsForInstance(nodeOfScene: NodeInstanceModel) {
+        let animationGroupsJSON = this.gltfDataLoader.gltfJSON().animations;
+        if (animationGroupsJSON == undefined) {
+            return;
+        }
+        if (animationGroupsJSON.length == 0) {
+            return;
+        }
+        let animationGroups: AnimationGroup[] = [];
+        for (let i in animationGroupsJSON) {
+            let perAnimationGroupJSON = animationGroupsJSON[i];
+            let name = perAnimationGroupJSON.name || i;
+            let perGroupList: (KeyFrameAnimation | MorphTargetAnimation)[] = [];
+            for (let j in perAnimationGroupJSON.channels) {
+                let perChannels = perAnimationGroupJSON.channels[j];
+                let perSampler = perAnimationGroupJSON.samplers[perChannels.sampler];
+                let targetNode = this.instanceNodes.get(nodeOfScene)!.nodes.get(perChannels.target.node);
+                let interpolation;
+                if (perSampler.interpolation == undefined) {
+                    interpolation = E_InterpolationModes.linear;
+                }
+                else {
+                    interpolation = perSampler.interpolation.toLowerCase();
+                    if (!Object.values(E_InterpolationModes).includes(interpolation)) {
+                        throw new Error(`animation interpolation type ${interpolation} not found`);
+                    }
+                }
+                let frames = await this.getAccessor(perSampler.input, E_accessorUseFor.array) as TypedArray;
+                let values = await this.getAccessor(perSampler.output, E_accessorUseFor.array) as TypedArray;
+
+                let targetAnimationType = perChannels.target.path.toLowerCase();
+                //gltf rotation 是 四元数
+                if (targetAnimationType === E_AnimationTargetType.rotation) {
+                    targetAnimationType = E_AnimationTargetType.quaternion;
+                }
+                else if (targetAnimationType == "translation") {
+                    targetAnimationType = E_AnimationTargetType.position;
+                }
+
+                if (!Object.values(E_AnimationTargetType).includes(targetAnimationType)) {
+                    throw new Error(`animation target type ${targetAnimationType} not found`);
+                }
+
+
+                let targetStride = 4;
+                switch (targetAnimationType) {
+                    case E_AnimationTargetType.quaternion:
+                        targetStride = 4;
+                        break;
+                    case E_AnimationTargetType.position:
+                    case E_AnimationTargetType.scale:
+                        targetStride = 3;
+                        break;
+                    case E_AnimationTargetType.weights:
+                        targetStride = this.getMorphTargetsForNode(perChannels.target.node);
+                        break;
+                    default:
+                        throw new Error(`animation target type ${targetAnimationType} not found`);
+                }
+
+                let sampler: I_AnimationSampler = {
+                    interpolation: interpolation,
+                    frames: frames,
+                    values: values,
+                    target: targetAnimationType,
+                    targetStride: targetStride,
+                }
+                let oneAnimation: KeyFrameAnimation | MorphTargetAnimation;
+                if (targetAnimationType === E_AnimationTargetType.weights) {
+                    oneAnimation = new MorphTargetAnimation({
+                        parent: targetNode!,
+                        sampler: sampler,
+                    });
+                }
+                else {
+                    oneAnimation = new KeyFrameAnimation({
+                        parent: targetNode!,
+                        sampler: sampler,
+                    });
+
+                }
+                perGroupList.push(oneAnimation);
+            }
+            let animationGroup = new AnimationGroup(
+                {
+                    animations: perGroupList,
+                    scene: this.scene,
+                    parent: nodeOfScene,
+                    name,
+                }
+            );
+            animationGroups.push(animationGroup);
+        }
+        nodeOfScene.AnimationGroup = animationGroups;
+    }
+    initCamerasForInstance() { }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 继承BaseModel的方法
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    _destroy(): void {
+    }
+
+    async readyForGPU(): Promise<any> {
+        //已经在new时传入了GPUDevice，不需要再进行ready工作。
+    }
+    updateSelf(clock: Clock): void {
+        //1、更新mesh的update，按照node tree
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //init part
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /** 释放模型原始资源  */
+    detachData(): void {
+        throw new Error("Method not implemented.");
+    }
+    /**初始化模型数据,
      * 1. 解析模型数据,GPUBuffer(attributes),GPUTexture,image,
      * 2. 初始化模型数据,meshes,materials,animations,cameras
      * 3. 初始化模型数据,
@@ -111,74 +377,8 @@ export class GLTFModel extends BaseModel {
         await this.initTextures();
         this.initMaterials();
         await this.initMeshes();
-        this.initCameras();
-        this.initAnimations();
+        // this.initAnimationSamplers();
     }
-    _destroy(): void {
-    }
-    /**
-     * 释放模型原始资源
-     */
-    detachData(): void {
-        throw new Error("Method not implemented.");
-    }
-    async readyForGPU(): Promise<any> {
-        //已经在new时传入了GPUDevice，不需要再进行ready工作。
-    }
-    updateSelf(clock: Clock): void {
-        //1、更新mesh的update，按照node tree
-    }
-    /**实例化
-     * 初始化模型节点
-     * 1、被parent的addChild调用
-     * 2、调用initScene初始化场景
-     * @param parent 父节点
-     * @param attachValue 节点空间属性
-     * @returns 场景节点实例
-     */
-    async initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
-        let nodeOfScene: NodeInstanceModel = await this.initScene(parent, this.currentScene, attachValue);
-        return nodeOfScene;
-    }
-
-    /**
-     * 初始化场景，主入口。
-     * 1、gltf会新建一个node object作为场景节点，并返回
-     * 2、根据场景索引，初始化场景中的节点
-     * 3、初始化节点是递归操作（包括camera）
-     * 4、如果有animation，则在新的Node Object上初始化animation，并注册到animationManager
-     * 5、如果有animation，则在新的Node Object上初始化animation group，并注册到animationGroupManager
-     * @param id 场景索引
-     * @param attachValue 节点空间属性
-     * @returns 场景节点实例
-     */
-    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
-        let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
-        await nodeOfScene.init(this.scene, parent);         // 初始化node object
-        nodeOfScene._modelOrigin = this;
-        nodeOfScene._name = "gltf scene " + nodeOfScene.ID;
-
-        let scene = this.gltfDataLoader.getScene(id);
-        if (scene == undefined) {
-            throw new Error(`scene ${id} not found`);
-        }
-        let nodes: number[] = [];
-        if (scene.nodes != undefined) {
-            nodes = scene.nodes as number[];
-        }
-        else {
-            throw new Error(`scene ${id} not found nodes`);
-        }
-        this.currentScene = id;
-        /**
-         *  push mesh to children
-         */
-        for (let nodeID of nodes) {
-            await BaseFunction.addChildMesh(this, nodeID, nodeOfScene);
-        }
-        return nodeOfScene;
-    }
-
     /**
      * 注销场景
      * 1、注销所有实体和camera
@@ -194,49 +394,6 @@ export class GLTFModel extends BaseModel {
             }
         }
     }
-
-    /**
-     * 获取GPUBuffer：获取对应的GPUBuffer.number id 、bufferViewID+"_webgpu"和 alias id（accessorID+"_xxx"）三种格式
-     * 1、如果有,则返回对应的GPUBuffer；
-     *      A、优先返回bufferViewID+"_webgpu" 对应的gpubuffer；
-     *      B、numberID 和 aliaseID 不冲突，同等对待
-     *      C、如果alias 和 bufferViewID 都没有,则返回undefined。
-     * 2、bufferViewID对应三种形式
-     *      A、bufferViewID     
-     *      B、webgpu alias：bufferViewID+"_webgpu"
-     *      C、特殊的 accessor alias 对应，比如sparse accessor(名称特殊，由使用者决定)。
-     
-     */
-    getGPUBufferFromRES(bufferViewID: number | string): GPUBuffer | undefined {
-        let id = bufferViewID;
-        if (this.modelRes.GPUBuffers.has(id + "_webgpu")) {
-            id += "_webgpu";
-        }
-        if (this.modelRes.GPUBuffers.has(id)) {
-            let gpuBuffer = this.modelRes.GPUBuffers.get(id);
-            if (gpuBuffer) {
-                return gpuBuffer;
-            }
-            else {
-                throw new Error(`GPUBuffer ${id} not found `);
-            }
-        }
-        return undefined;
-    }
-    /**
-     * 设置GPUBuffer别名
-     * 1、不包括numberID,numberID对应GPUBuffer在this.initBufferViews()中已经建立;
-     * 2、 两种情况：
-     *      A、alias：bufferViewID+"_webgpu"，将bufferViewID 对应的GPUBuffer 别名设置为 bufferViewID+"_webgpu"
-     *      B、特殊的accessor对应，比如sparse accessor。
-     * @param bufferViewID 
-     * @param gpuBuffer 
-     */
-    setGPUBufferAliasToRES(bufferViewID: string, gpuBuffer: GPUBuffer) {
-        this.modelRes.GPUBuffers.set(bufferViewID + "_webgpu", gpuBuffer);
-    }
-
-
     /**
      * 获取资源,根据资源类型(T_ModelResKind)和资源id获取资源
      * @param kind 资源类型
@@ -305,7 +462,6 @@ export class GLTFModel extends BaseModel {
         console.warn(`GLTFModel: getRes ${kind} : ${key} not found`);
         return false;
     }
-
 
     /**
      * 初始化采样器
@@ -420,7 +576,6 @@ export class GLTFModel extends BaseModel {
         }
 
     }
-
     async initGPUTextures() {
         let defaultGPUTexture = this.scene.resourcesGPU.textureOfString.get("default");
         this.modelRes.GPUTexture.set("default", defaultGPUTexture);
@@ -630,7 +785,6 @@ export class GLTFModel extends BaseModel {
      * 初始化entity 
      */
     async initMeshes() {
-
         let meshes = this.gltfDataLoader.getMeshes();
         if (meshes) {
             console.log("meshes.count ", meshes.length);
@@ -697,7 +851,7 @@ export class GLTFModel extends BaseModel {
                             nameOfAttribute = "joints";
                         }
                         if (k == "WEIGHTS_0") {
-                            nameOfAttribute = "weight";
+                            nameOfAttribute = "weights";
                         }
 
                         verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
@@ -756,6 +910,13 @@ export class GLTFModel extends BaseModel {
                             this.modelRes.GPUBuffers.set(normalAccessorID, gpuBuffer);
                         }
                     }
+                    if (primitive.targets)
+                        for (let k in primitive.targets) {
+                            let index = Number(k) + 1;
+                            let oneAttribute = primitive.targets[k]["POSITION"];
+                            let accessor = await this.gltfDataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
+                            verticesOfDataOfEntity["position_" + index] = accessor as I_vsGPUBufferBundle;
+                        }
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //gpubuffer of index and draw mode   part
                     //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
@@ -907,16 +1068,10 @@ export class GLTFModel extends BaseModel {
             throw new Error(`gltf not found meshes`);
         }
     }
+    /** 获取accessor */
     getAccessor(idOfaccessors: any, useFor: E_accessorUseFor) {
         return this.gltfDataLoader.getAccessor(idOfaccessors, useFor);
     }
-
-
-    initNodes() { }
-    initSkins() { }
-    initAnimations() { }
-    initCameras() { }
-
     saveJSON() {
         throw new Error("Method not implemented.");
     }

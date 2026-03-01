@@ -44,18 +44,14 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/animation/simpleAnimation.gltf"
+    url: "/models/gltf/base/morphTarget/MorphTarget.gltf"
 }
 );
 window.gltf = gltf;
-console.log("accessor 2: samplers input ")
-gltf.printAccessorContent(2)
-console.log("accessor 3: samplers output ")
-gltf.printAccessorContent(3)
 
 
-await scene.add(gltf);
-
+window.gltfInstance =await scene.add(gltf);
+gltfInstance.AnimationGroup[0].play("loop");
 
 // const q = quat.fromEuler(0,0, Math.PI/8,  'xyz'); // 角度（弧度）、旋转顺序
 // console.log(q)

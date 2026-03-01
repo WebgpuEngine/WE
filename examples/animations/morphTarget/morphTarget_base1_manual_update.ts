@@ -101,7 +101,7 @@ let morphTargetArray = new ArrayBuffer(4 * 4);          //4个f32 ，默认的mo
 let weightsFloat32Array = new Float32Array(morphTargetArray);
 
 let sampler: I_AnimationSampler = {
-  target: E_AnimationTargetType.weight,
+  target: E_AnimationTargetType.weights,
   interpolation: E_InterpolationModes.linear,
   frames: timer,
   values: weights,

@@ -19,7 +19,9 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
-  toneMapping:"linear",
+  toneMapping: "linear",
+  deferRender: "color",
+
 };
 let scene = await initScene({
   initConfig: input,
@@ -72,53 +74,20 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
   scene: scene,
-  url: "/models/gltf/model/Fox/glTF-Binary/Fox.glb"
-  // url: "/models/gltf/model/Fox/glTF/Fox.gltf"
+  url: "/models/gltf/model/Fox/glTF-Binary/Fox.glb",
+  // url: "/models/gltf/model/Fox/glTF/Fox.gltf",
+  debug: true,
 }
 );
 window.gltf = gltf;
 console.log(gltf);
-scene.add(gltf,
-   {
-  position: [0, 0, 0],
-  scale: [0.1, 0.1, 0.1],
-  rotate: [0, 1, 0, Math.PI/2],
-}
+window.gltfInstance = await scene.add(gltf,
+  {
+    position: [0, 0, 0],
+    scale: [0.1, 0.1, 0.1],
+    rotate: [0, 1, 0, Math.PI / 2],
+  }
 );
-// gltf.printAccessorContent(0)
-// gltf.printAccessorContent(1)
-// gltf.printAccessorContent(2)
 
-// let geometry = new SphereGeometry(
+// gltfInstance.AnimationGroup[0].play();;
 
-//   {
-//     // radius:1.1,
-//     // phiStart:0,
-//     // phiLength:Math.PI/2 ,
-//     // // thetaStart:0,
-//     // // thetaLength:Math.PI,
-//     // heightSegments:15,
-//     // widthSegments:1,
-//   }
-// );
-
-// let colorMaterial = new ColorMaterial({
-//   color: [0, 0.1, 0.2, 1]
-// });
-
-// let inputMesh: IV_MeshEntity = {
-//   attributes: {
-//     geometry: geometry,
-//   },
-//   // scale: [0.15, 0.15, 0.15],
-//   position: [0, 0, -1],
-//   material: colorMaterial,
-//   wireFrame: {
-//     color: [1, 1, 1, 1],
-//     enable: true,
-//     // wireFrameOnly: true,
-//   }
-// }
-// let mesh = new Mesh(inputMesh);
-// console.log(mesh);
-// await scene.add(mesh);

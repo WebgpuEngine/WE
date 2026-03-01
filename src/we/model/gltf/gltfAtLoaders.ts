@@ -10,6 +10,7 @@ import { cloneBufferSource, createCommonGPUBuffer } from "../../core/command/bas
 
 
 export class GltfDataAtLoaders extends ModelDataLoader {
+
     url: string;
     modelData!: GLTFWithBuffers | GLB;
     gltfType: "gltf" | "glb";
@@ -168,7 +169,12 @@ export class GltfDataAtLoaders extends ModelDataLoader {
     gltfJSON(): any {
         return this.gltf.json;
     }
-
+    getSkin(index: number) {
+        return this.gltf.getSkin(index);
+    }
+    getSkins(): any[] | undefined {
+        return this.gltf.json.skins;
+    }
     /////////////////////////////////////////////////////////////////////////////////////
     // 获取accessor数据
     /////////////////////////////////////////////////////////////////////////////////////

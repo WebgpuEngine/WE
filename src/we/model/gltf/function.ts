@@ -6,14 +6,26 @@ import { newNode, NodeInstance, NodeObject } from "../../core/organization/root"
 import { GLTFModel } from "./gltf";
 import { T_ModelResKind } from "../../core/model/BaseModel";
 import { TypedArray } from "webgpu-utils";
-export async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: NodeObject): Promise<any> {
+
+/**
+ * 实例化节点到实例化场景中
+ * @param gltf  gltf模型
+ * @param nodeID 节点id
+ * @param parent 父节点
+ * @param root 根节点
+ */
+export async function addNode(gltf: GLTFModel, nodeID: number, parent: NodeObject, root: NodeObject): Promise<any> {
 
     let node = gltf.gltfDataLoader.getNode(nodeID);
+
+    if (node.mesh != undefined && node.skin != undefined) {
+        gltf.meshAndSkinBundle.push({ meshID: node.mesh, skinID: node.skin, nodeID: nodeID });
+    }
     // let node = gltf.modelData.json.nodes[nodeID];
     // let oneNode: NodeInstance = new NodeInstance();
     // await oneNode.init(gltf.scene, parent);
     let oneNode = await newNode(parent);
-    oneNode.Name = node.name || "gltf_" + nodeID;
+    oneNode.Name = node.name || nodeID;
     // console.log(oneNode.ID, oneNode.Name);
     ////////////////////////////////////////////////
     //如果当前节点有mesh，就添加到parent中
@@ -65,7 +77,7 @@ export async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: Node
     if (node.children) {
         let children = node.children as number[];
         for (let childID of children) {
-            await addChildMesh(gltf, childID, oneNode);
+            await addNode(gltf, childID, oneNode, root);
         }
     }
     ////////////////////////////////////////////////
@@ -90,6 +102,7 @@ export async function addChildMesh(gltf: GLTFModel, nodeID: number, parent: Node
         //     }
         // }
     }
+    gltf.instanceNodes.get(root)!.nodes.set(nodeID, oneNode);
 }
 /////////////////////////////////////////////////////////////////
 // 转换index fan 到 list
@@ -720,7 +733,7 @@ export function writeArayBufferViewForSparse(Buffer: TypedArray, type: string, c
         bufferView = new Uint32Array(Buffer.buffer, Buffer.byteOffset, Buffer.length / 4);
     }
     else if (componentType == 5126) {
-        bufferView = new Float32Array(Buffer.buffer, Buffer.byteOffset, Buffer.length );
+        bufferView = new Float32Array(Buffer.buffer, Buffer.byteOffset, Buffer.length);
     }
     else {
         throw new Error(`GLTFModel:  component type ${componentType} not support`);
