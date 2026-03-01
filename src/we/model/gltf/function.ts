@@ -16,7 +16,7 @@ import { TypedArray } from "webgpu-utils";
  */
 export async function addNode(gltf: GLTFModel, nodeID: number, parent: NodeObject, root: NodeObject): Promise<any> {
 
-    let node = gltf.gltfDataLoader.getNode(nodeID);
+    let node = gltf.DataLoader.getNode(nodeID);
 
     if (node.mesh != undefined && node.skin != undefined) {
         gltf.meshAndSkinBundle.push({ meshID: node.mesh, skinID: node.skin, nodeID: nodeID });

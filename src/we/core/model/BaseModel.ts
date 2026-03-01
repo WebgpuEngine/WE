@@ -44,7 +44,7 @@ export abstract class BaseModel extends NodeObject {
     debug: boolean = false;
 
     /** 动画组对象 animation group object      */
-    _animationGroup: AnimationGroup[] | undefined;
+    // _animationGroup: AnimationGroup[] | undefined;
     get AnimationGroup(): AnimationGroup[] | undefined {
         return this._animationGroup;
     }

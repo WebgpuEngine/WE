@@ -49,15 +49,15 @@ export interface I_gltfInstanceResource {
 export async function createGLTFModel(input: I_Model): Promise<GLTFModel> {
     let type: "gltf" | "glb";
     let gltf = new GLTFModel(input);
-    let gltfDataLoader = new GltfDataAtLoaders(input.url, input.scene.device, gltf);
-    await gltfDataLoader.init();
-    await gltf.initData(gltfDataLoader);
+    let DataLoader = new GltfDataAtLoaders(input.url, input.scene.device, gltf);
+    await DataLoader.init();
+    await gltf.initData(DataLoader);
     return gltf;
 }
 
 
 export class GLTFModel extends BaseModel {
-    gltfDataLoader!: ModelDataLoader;
+    DataLoader!: ModelDataLoader;
     url: string;
 
     /** gltf当前场景索引 */
@@ -143,7 +143,7 @@ export class GLTFModel extends BaseModel {
         nodeOfScene._modelOrigin = this;
         nodeOfScene._name = "gltf scene " + nodeOfScene.ID;
 
-        let scene = this.gltfDataLoader.getScene(id);
+        let scene = this.DataLoader.getScene(id);
         if (scene == undefined) {
             throw new Error(`scene ${id} not found`);
         }
@@ -179,7 +179,7 @@ export class GLTFModel extends BaseModel {
         for (let bundle of this.meshAndSkinBundle) {
             let node = this.instanceNodes.get(nodeOfScene)!.nodes.get(bundle.nodeID);
             let mesh = node?.Entity;
-            let skin = this.gltfDataLoader.getSkin(bundle.skinID);
+            let skin = this.DataLoader.getSkin(bundle.skinID);
 
             let jointsNodes = skin.joints;
             let jointMatrix = await this.getAccessor(skin.inverseBindMatrices, E_accessorUseFor.array) as Float32Array;
@@ -221,14 +221,14 @@ export class GLTFModel extends BaseModel {
      * @returns morph target 数量
      */
     getMorphTargetsForNode(nodeID: number): number {
-        let node = this.gltfDataLoader.getNode(nodeID);
+        let node = this.DataLoader.getNode(nodeID);
         if (node == undefined) {
             throw new Error(`node ${nodeID} not found`);
         }
         if (node.mesh == undefined) {
             throw new Error(`node ${nodeID} not found mesh`);
         }
-        let mesh = this.gltfDataLoader.getMesh(node.mesh);
+        let mesh = this.DataLoader.getMesh(node.mesh);
         if (mesh == undefined) {
             throw new Error(`mesh ${node.mesh} not found`);
         }
@@ -241,7 +241,7 @@ export class GLTFModel extends BaseModel {
      * 2、动画组附加到NodeInstanceModel
      */
     async initAnimationsForInstance(nodeOfScene: NodeInstanceModel) {
-        let animationGroupsJSON = this.gltfDataLoader.gltfJSON().animations;
+        let animationGroupsJSON = this.DataLoader.gltfJSON().animations;
         if (animationGroupsJSON == undefined) {
             return;
         }
@@ -360,8 +360,8 @@ export class GLTFModel extends BaseModel {
      * 2. 初始化模型数据,meshes,materials,animations,cameras
      * 3. 初始化模型数据,
      */
-    async initData(gltfDataLoader: GltfDataAtLoaders) {
-        this.gltfDataLoader = gltfDataLoader;
+    async initData(DataLoader: GltfDataAtLoaders) {
+        this.DataLoader = DataLoader;
         // if (this.gltfType == "gltf") {
         //     this.gltfJson = (this.modelData as GLTFWithBuffers).json;
         //     // this.modelGltfBuffers = (this.modelData as GLTFWithBuffers).buffers;
@@ -471,7 +471,7 @@ export class GLTFModel extends BaseModel {
     initSamplers() {
         let defaultSampler = this.scene.resourcesGPU.getSampler("linear");
         this.modelRes.sampler.set("default", defaultSampler);
-        let samplers = this.gltfDataLoader.getSamplers();
+        let samplers = this.DataLoader.getSamplers();
 
         if (samplers) {
             for (let i in samplers) {
@@ -579,10 +579,10 @@ export class GLTFModel extends BaseModel {
     async initGPUTextures() {
         let defaultGPUTexture = this.scene.resourcesGPU.textureOfString.get("default");
         this.modelRes.GPUTexture.set("default", defaultGPUTexture);
-        let images = this.gltfDataLoader.getImages();
+        let images = this.DataLoader.getImages();
         if (images) {
             for (let i in images) {
-                let perImageData = await this.gltfDataLoader.getImage(Number(i));
+                let perImageData = await this.DataLoader.getImage(Number(i));
                 if (!perImageData) {
                     continue;
                 }
@@ -612,7 +612,7 @@ export class GLTFModel extends BaseModel {
     async initTextures() {
         let defaultTexture = this.scene.resourcesGPU.weTextureOfString.get("default");
         this.modelRes.texture.set("default", defaultTexture);
-        let textures = this.gltfDataLoader.getTextures();
+        let textures = this.DataLoader.getTextures();
 
         if (textures)
             for (let i in textures) {
@@ -663,7 +663,7 @@ export class GLTFModel extends BaseModel {
         let vertexMaterial = new VertexColorMaterial();
         this.modelRes.material.set("vertexColor", vertexMaterial);
 
-        let materials = this.gltfDataLoader.getMaterials();
+        let materials = this.DataLoader.getMaterials();
         if (materials)
             for (let i in materials) {
                 let perMaterialData = materials[i];
@@ -785,7 +785,7 @@ export class GLTFModel extends BaseModel {
      * 初始化entity 
      */
     async initMeshes() {
-        let meshes = this.gltfDataLoader.getMeshes();
+        let meshes = this.DataLoader.getMeshes();
         if (meshes) {
             console.log("meshes.count ", meshes.length);
             for (let i in meshes) {
@@ -824,7 +824,7 @@ export class GLTFModel extends BaseModel {
                     } = {};
                     for (let k in primitive.attributes) {
                         let oneAttribute = primitive.attributes[k];
-                        let accessor = await this.gltfDataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
+                        let accessor = await this.DataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
                         // let accessor = this.modelRes.accessor.get(oneAttribute.toString());
                         if (accessor == undefined) {
                             console.warn(`mesh ${name} primitive ${j} attribute ${k} not found accessor`);
@@ -865,14 +865,14 @@ export class GLTFModel extends BaseModel {
                             verticesOfDataOfEntity["normal"] = this.modelRes.accessor.get(normalAccessorID) as I_vsGPUBufferBundle;
                         }
                         else {
-                            let positions = this.gltfDataLoader.getAccessorForByte(positionAccessorID) as Float32Array;
+                            let positions = this.DataLoader.getAccessorForByte(positionAccessorID) as Float32Array;
                             // let positions = this.getBufferSourceForAccessor(positionAccessor) as Float32Array;
                             let normalAccessorBufferSource: I_vsGPUBufferBundle;
                             let gpuBuffer: GPUBuffer;
                             if ("indices" in primitive) {//如果有索引，根据索引计算法线
                                 let indicesAccessorID: number = primitive["indices"]!;
                                 // let indicesAccessor = this.modelData.json.accessors[indicesAccessorID];
-                                let indices = this.gltfDataLoader.getAccessorForByte(indicesAccessorID) as Uint32Array;
+                                let indices = this.DataLoader.getAccessorForByte(indicesAccessorID) as Uint32Array;
                                 let normals: Float32Array = BaseFunction.computeNormalsFromPositionsAndIndices(positions, indices);
                                 gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
                                 normalAccessorBufferSource = {
@@ -914,7 +914,7 @@ export class GLTFModel extends BaseModel {
                         for (let k in primitive.targets) {
                             let index = Number(k) + 1;
                             let oneAttribute = primitive.targets[k]["POSITION"];
-                            let accessor = await this.gltfDataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
+                            let accessor = await this.DataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
                             verticesOfDataOfEntity["position_" + index] = accessor as I_vsGPUBufferBundle;
                         }
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -963,7 +963,7 @@ export class GLTFModel extends BaseModel {
                     else {                                                          // draw mode
                         let count: number;
                         if (primitive.attributes.POSITION != undefined) {
-                            let position = this.gltfDataLoader.getAccessorOfSource(primitive.attributes.POSITION);
+                            let position = this.DataLoader.getAccessorOfSource(primitive.attributes.POSITION);
                             if (position == undefined) {
                                 throw new Error(`mesh ${name} primitive ${j} attribute position not found accessor`);
                             }
@@ -1070,7 +1070,7 @@ export class GLTFModel extends BaseModel {
     }
     /** 获取accessor */
     getAccessor(idOfaccessors: any, useFor: E_accessorUseFor) {
-        return this.gltfDataLoader.getAccessor(idOfaccessors, useFor);
+        return this.DataLoader.getAccessor(idOfaccessors, useFor);
     }
     saveJSON() {
         throw new Error("Method not implemented.");
