@@ -104,9 +104,10 @@ export class Skeleton {
         for (let i in this.joints) {
             let perJoint = this.joints[i];
             mat4.multiply(perJoint.matrixWorld, this.inverseBindMatrices[i], this.outputMatrices[i]);
-            if (i == '0') {
-                // console.log(i, perJoint.matrixWorld, this.inverseBindMatrices[i], this.outputMatrices[i]);
-            }
+
+        }
+        if (1 == 1) {
+            //  console.log(i, perJoint.matrixWorld, this.inverseBindMatrices[i], this.outputMatrices[i]);
         }
     }
 }

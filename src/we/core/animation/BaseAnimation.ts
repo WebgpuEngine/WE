@@ -140,6 +140,10 @@ export abstract class BaseAnimation implements I_UUID {
         if (!this.check()) {
             return;
         }
+        if (this.playState == E_PlayState.pause) {
+            this.playState = E_PlayState.playing;
+            return;
+        }
         this.stop();
         //1. 检查参数
         if (!this.interpolator.check()) {

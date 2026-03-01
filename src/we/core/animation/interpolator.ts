@@ -323,9 +323,7 @@ export class Interpolator {
         }
         this.timer.timeCurrent += clock.deltaTime * this.Speed;
         this.timer.totalTime += clock.deltaTime * this.Speed;
-        // this.timer.currentKeyFrameIndex = this.sampler.frames.findIndex((time) => time >= this.timer.timeCurrent) //- 1;
-        this.timer.currentKeyFrameIndex = this.findTimeIndex(this.timer.timeCurrent);
-        // console.log("currentKeyFrameIndex", this.timer.currentKeyFrameIndex, this.timer.timeCurrent);
+        this.timer.currentKeyFrameIndex = this.findTimeIndex(this.timer.timeCurrent);//没有，返回-1
         if (this.timer.currentKeyFrameIndex < 0) {//如果当前时间大于等于最后一个关键帧时间
             let rePlay = false;
             if (this.Loop) {
@@ -354,6 +352,7 @@ export class Interpolator {
                 //step 的最后一个关键帧 ，不同于linear，需要特殊处理，使其在最后一个关键帧时间点保持
                 if (this.sampler.interpolation == E_InterpolationModes.step) {
                     this.timer.currentKeyFrameIndex = this.sampler.frames.length - 1;
+                    // this.timer.currentKeyFrameIndex = this.sampler.frames.length - 1;
                     return;
                 }
             }
@@ -367,21 +366,29 @@ export class Interpolator {
         else {
             this.timer.time = 0;
         }
+        // console.log(clock.now, this.timer.currentKeyFrameIndex, this.timer.totalTime, this.timer.timeCurrent)
         // console.log("position", this.parent.parent.Position[0], ",", this.timer.totalTime, this.timer.timeCurrent);
+        if (this.timer.currentKeyFrameIndex >= 81) {
+            let abc = 1;
+        }
+        if (this.timer.currentKeyFrameIndex == -1) {
+            let abc = 1;
+        }
+
     }
     stop() {
         this.finished = true;
         if (this.parent)
             this.parent.playState = E_PlayState.stop;//设置为stop，非stoped，需要parent.update()处理
     }
+    /**
+     * 查找当前时间所在的关键帧索引
+     * 1、时间序列是增量的，findIndex会返回第一个大于等于当前时间的关键帧索引（即当前时间所在的关键帧+1）
+     *     A、time：0.1，times：[0,1,2]，返回1
+     * 2、最后一个，返回-1
+     */
     findTimeIndex(currentTime: number): number {
-        /**
-         * 查找当前时间所在的关键帧索引
-         * 1、时间序列是增量的，findIndex会返回第一个大于等于当前时间的关键帧索引（即当前时间所在的关键帧+1）
-         *     A、time：0.1，times：[0,1,2]，返回1
-         * 2、最后一个，返回-1
-         */
-        let index = this.sampler.frames.findIndex((t) => t >= currentTime);
+        let index = this.sampler.frames.findIndex((t) => t >= currentTime);//没有，返回-1
         // 处理当前时间大于等于最后一个关键帧时间的情况
         if (index > 0 && this.sampler.frames[index] > currentTime) {
             index--;

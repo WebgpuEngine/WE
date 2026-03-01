@@ -6,7 +6,7 @@
  *      A、更改动画组list中的状态
  *      B、后续的播放等操作，由AnimationGroupManager和BaseAnimation负责。
  * 3、骨骼动画
- *  A、皮肤骨骼动画使用_skinAnimation数组管理。
+ *  A、皮肤骨骼动画使用listSkins数组管理。
  *  B、皮肤骨骼动画组与动画组，无对应关系
  * 
  * 4、播放状态
@@ -50,7 +50,7 @@ export class AnimationGroup implements I_UUID {
     /** 播放状态 */
     playState: E_PlayState = E_PlayState.stoped;
     /** 当前动画组是否由骨骼蒙皮动画     */
-    _skinAnimation: SkinAnimation[] | undefined;
+    listSkins: SkinAnimation[] = [];
     constructor(values: IV_AnimationGroupValue) {
         this.UUID = WeGenerateUUID();
         if (values.parent) this.parent = values.parent;
@@ -60,6 +60,7 @@ export class AnimationGroup implements I_UUID {
         for (let perOne of values.animations) {
             this.add(perOne);
         }
+        this.manager.add(this);
     }
     destroy(): void {
         this._isDestroy = true;
@@ -83,65 +84,76 @@ export class AnimationGroup implements I_UUID {
         }
     }
     addSkinAnimation(animation: SkinAnimation): void {
-        if (this._skinAnimation == undefined) {
-            this._skinAnimation = [];
+        if (this.listSkins == undefined) {
+            this.listSkins = [];
         }
-        this._skinAnimation.push(animation);
+        this.listSkins.push(animation);
     }
     removeSkinAnimation(animation: SkinAnimation): void {
-        if (this._skinAnimation != undefined) {
-            let index = this._skinAnimation.indexOf(animation);
+        if (this.listSkins != undefined) {
+            let index = this.listSkins.indexOf(animation);
             if (index != -1) {
-                this._skinAnimation.splice(index, 1);
+                this.listSkins.splice(index, 1);
             }
         }
     }
+    checkParent
     play(playAnimation?: I_AnimationPlayParams | "loop" | number): void {
+
         for (let perOne of this.list) {
             if (perOne)
                 perOne.play(playAnimation);
-            else 
+            else
                 console.warn("动画组中存在空动画");
         }
-        if (this._skinAnimation != undefined) {
-            for (let perSkin of this._skinAnimation) {
+        if (this.listSkins != undefined) {
+            for (let perSkin of this.listSkins) {
                 perSkin.play();
             }
         }
+        this.playState = E_PlayState.playing;
     }
     stop(clock: Clock): void {
         for (let perOne of this.list) {
             perOne.stop();
         }
-        if (this._skinAnimation != undefined) {
-            for (let perSkin of this._skinAnimation) {
+        if (this.listSkins != undefined) {
+            for (let perSkin of this.listSkins) {
                 perSkin.stop();
             }
         }
+        this.playState = E_PlayState.stoped;
     }
     pause(clock: Clock): void {
         for (let perOne of this.list) {
             perOne.pause();
         }
-        if (this._skinAnimation != undefined) {
-            for (let perSkin of this._skinAnimation) {
+        if (this.listSkins != undefined) {
+            for (let perSkin of this.listSkins) {
                 perSkin.pause();
             }
         }
+        this.playState = E_PlayState.pause;
     }
     reset(clock: Clock): void {
         for (let perOne of this.list) {
             perOne.reset();
         }
-        if (this._skinAnimation != undefined) {
-            for (let perSkin of this._skinAnimation) {
+        if (this.listSkins != undefined) {
+            for (let perSkin of this.listSkins) {
                 perSkin.reset();
             }
         }
     }
 
+    /** 更新动画组 
+     * 1、gltf的动画组，如果有skin动画，则skin动画在所有的动画组。
+     *  A、需要注意，单一播放动画组，同时只能有一个在播放
+     *  B、如果是动画组权重，todo
+    */
     update(clock: Clock): void {
-        if (this.playState == E_PlayState.playing) {
+        if (this.playState == E_PlayState.playing) 
+        {
             let state = 0;//记录停止的动画数量
             //更新所有动画,累计停止的动画数量
             for (let perOne of this.list) {
@@ -154,6 +166,7 @@ export class AnimationGroup implements I_UUID {
                 this.stop(clock);
             }
         }
+        // console.log("动画组更新",this.Name, this.playState,state);
     }
 
 }
