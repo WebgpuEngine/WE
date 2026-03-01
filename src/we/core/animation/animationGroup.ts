@@ -97,7 +97,7 @@ export class AnimationGroup implements I_UUID {
             }
         }
     }
-    checkParent
+    // checkParent
     play(playAnimation?: I_AnimationPlayParams | "loop" | number): void {
 
         for (let perOne of this.list) {
