@@ -17,8 +17,8 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * 在图形学的功能包括：IBL、SSGI、SSR、SSAO等
 * 在物理引擎 上使用rapier进行物理引擎工作；
 * 在模型部分：涉及gltf、obj、fbx等模型；
-* 动画管理部分涵盖:关键帧、骨骼动画、变形模板、VAT、粒子系统等；
-* 在渲染引擎的架构上是从底层独立设计与实现的，参考了Babylon、three、cesium、ue等；
+* 动画管理部分涵盖:关键帧、骨骼动画、变形目标、粒子系统等；
+* 在渲染引擎的架构上是从底层独立设计与实现的，参考了Babylon、three、cesium、UE等；
 * 在底层机制以command集合（Draw Command、Compute Command、Copy Command）进行shader提交；
 * 在更新机制与事件机制上，有多途径的update机制和onEvent处理；
 
@@ -63,7 +63,10 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 | ![1763631648964](images/README/1763631648964.png) | ![1763631691112](images/README/1763631691112.png) | ![1763631752890](images/README/1763631752890.png) |
 | 延迟渲染 deferRender：PBR                         | 延迟渲染 deferRebder：BlinnPhong                  | 延迟渲染 deferRebder：BlinnPhong                  |
 | ![1763631817758](images/README/1763631817758.png) | ![1763631965740](images/README/1763631965740.png) | ![1763631975198](images/README/1763631975198.png) |
-|                                                   |                                                   |                                                   |
+| 骨骼动画 skeleton                                 | 变形目标 morph target                             | gltf Fox 骨骼动画                                 |
+| ![1772438077121](images/README/1772438077121.png) | ![1772438257776](images/README/1772438257776.png) | ![1772437632575](images/README/1772437632575.png) |
+| gltf Hen 骨骼动画                                 | gltf LittlestTokyo                                |                                                   |
+| ![1772439162506](images/README/1772439162506.png) | ![1772437639746](images/README/1772437639746.png) |                                                   |
 
 # 资料参考与推荐
 
