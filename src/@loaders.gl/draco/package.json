@@ -60,7 +60,9 @@
     "@loaders.gl/loader-utils": "4.3.4",
     "@loaders.gl/schema": "4.3.4",
     "@loaders.gl/worker-utils": "4.3.4",
-    "draco3d": "1.5.7"
+    "draco3d": "1.5.7",
+    "esbuild": "^0.27.3",
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@types/draco3d": "^1.4.9"

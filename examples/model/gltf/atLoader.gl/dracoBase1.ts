@@ -1,0 +1,47 @@
+import { vec3 } from "wgpu-matrix";
+import { IV_Scene } from "../../../../src/we/core/scene/base";
+import { initScene } from "../../../../src/we/core/scene/fn";
+import { GltfDataAtLoaders } from "../../../../src/we/model/gltf/gltfAtLoaders";
+import { Scene } from "../../../../src/we/core/scene/scene";
+import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
+
+declare global {
+    interface Window {
+        scene: any
+        DC: any
+    }
+}
+let input: IV_Scene = {
+    canvas: "render",
+    backgroudColor: [0, 0, 0, 0.91],
+    reversedZ: true,
+};
+let scene = await initScene({
+    initConfig: input,
+});
+window.scene = scene;
+
+
+let radius = 5;
+let Y = 0;
+let camera = new PerspectiveCamera({
+  fov: (2 * Math.PI) / 5,
+  aspect: scene.aspect,
+  near: 0.01,
+  far: 100,
+  position: [0, 0, 5],
+  lookAt: [0, 0, 0],
+  controlType: "orbit",
+
+});
+await scene.add(camera);
+
+
+
+let url = "/models/gltf/model/Box/glTF-Draco/Box.gltf"
+// const url = "/models/gltf/model/Fox/glTF-Binary/Fox.glb"
+
+
+let dataLoader = new GltfDataAtLoaders(url, scene.device);
+await dataLoader.init();
+window.dataLoader = dataLoader;

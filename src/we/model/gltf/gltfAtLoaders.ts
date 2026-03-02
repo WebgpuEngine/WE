@@ -1,3 +1,12 @@
+/**
+ * 一、使用了修改版的@loader.gl 库，修改了一些代码，以支持draco压缩的attribute到 gltf的转换
+ *  1、draco修改了默认属性
+ *  2、gltf修改KHR_draco_mesh_compression文件，将draco压缩的attribute添加到gltf的accessor中
+ *      A、但产生了draco后的getTypedArrayForAccessor()，报错；如果是draco，需要使用自定义的function，不能使用getTypedArrayForAccessor
+ *      B、非draco的accessor，不受影响
+ * 
+ * 
+ */
 import { TypedArray } from "webgpu-utils";
 import { ModelDataLoader } from "../../core/model/ModelDataLoader";
 import { GLB, GLBLoader, GLTF, GLTFBufferView, GLTFImage, GLTFLoader, GLTFScene, GLTFScenegraph, GLTFWithBuffers } from "@loaders.gl/gltf";
@@ -49,11 +58,11 @@ export class GltfDataAtLoaders extends ModelDataLoader {
         let data: GLTFWithBuffers | GLB;
         if (this.url.indexOf(".gltf") != -1) {
             type = "gltf";
-            data = await load(this.url, GLTFLoader,);
+            data = await load(this.url, GLTFLoader,{worker: false});
         }
         else if (this.url.indexOf(".glb") > -1) {
             type = "glb";
-            data = await load(this.url, GLTFLoader,);
+            data = await load(this.url, GLTFLoader,{worker: true});
         }
         else {
             throw new Error("GLTFModel: unknown file type");
@@ -178,6 +187,14 @@ export class GltfDataAtLoaders extends ModelDataLoader {
     /////////////////////////////////////////////////////////////////////////////////////
     // 获取accessor数据
     /////////////////////////////////////////////////////////////////////////////////////
+    isDraco(): boolean {
+        return this.gltf.getRemovedExtensions().includes("EXT_draco_mesh_compression");
+    }
+
+    /** 获取accessor数据
+     * @param index accessor索引
+     * @returns accessor数据
+     */
     getAccessorOfSource(index: number): any | undefined {
         return this.gltf.getAccessor(index);
     }
@@ -213,7 +230,23 @@ export class GltfDataAtLoaders extends ModelDataLoader {
      * @returns 
      */
     getAccessorForByte(index: number): Uint32Array | Int32Array | Float32Array {
-        let arrayBuffer = this.gltf.getTypedArrayForAccessor(index);
+        let accessor = this.gltf.getAccessor(index);
+        let arrayBuffer;
+        //此处使用了修改版本的@loader.gl/gltf，增加了accessor.value的类型
+        // @ts-ignore
+        if (accessor.value == undefined) {
+            try {
+                arrayBuffer = this.gltf.getTypedArrayForAccessor(index);
+            }
+            catch (error) {
+                console.error(`gltf accessor index:${index} 's bufferView not support`);
+                throw error;
+            }
+        }
+        else {
+            // @ts-ignore
+            arrayBuffer = accessor.value;
+        }
         if (arrayBuffer instanceof Uint32Array || arrayBuffer instanceof Int32Array) {
             return arrayBuffer;
         }
@@ -419,8 +452,14 @@ export class GltfDataAtLoaders extends ModelDataLoader {
      * @param accessorID 
      * @returns 包含format、wgslFormat、byteSize、arrayStride的对象
      */
-    getAccessorTypeForGPUVertexFormat(accessorID: number): { format: GPUVertexFormat, wgslFormat: string, byteSize: number, arrayStride: number } {
-        let accessor = this.gltf.getAccessor(accessorID);
+    getAccessorTypeForGPUVertexFormat(accessorID: number | object): { format: GPUVertexFormat, wgslFormat: string, byteSize: number, arrayStride: number } {
+        let accessor;
+        if (typeof accessorID == "number") {
+            accessor = this.gltf.getAccessor(accessorID);
+        }
+        else {
+            accessor = accessorID as any;
+        }
         let type = accessor.type;
         let format: GPUVertexFormat;
         let wgslFormat: string;

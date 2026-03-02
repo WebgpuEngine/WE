@@ -2,12 +2,13 @@
  * @author bythesword
  * @date 2026-01-15
  * @description 
- *  一、todo:
- *      1、gltf accessor中的vertex数据和vertex spares中的类型u8,i8,u16,i16的VEC3数据的重构未验证
- *      2、vertex 数据中stride中存在offset的实现，即数据为一个stride中包括： position+uv+noraml，每个属性有不同的stride中的offset
- *      3、normal的重建计算。
- *              A、non-indexed的normal重建计算：每个三角形一个normal，顶点使用面法线。
- *              B、indexed的normal重建计算：1、计算每个三角形，顶点使用三角形法线；2，将所有顶点的相同normal合并，取平均。
+ *  一、mesh的primitive的属性对应名称
+ *      1、JOINTS_0对应到了属性joints，对于JOINTS_1,2,3...对应属性未处理
+ *      2、WEIGHTS_0对应到了属性weights，对于WEIGHTS_1,2,3...对应属性未处理
+ *      3、POSITION对应到了属性position
+ *      4、NORMAL对应到了属性normal
+ *      5、TEXCOORD_0对应到了属性uv，对于TEXCOORD_1对应属性uv1
+ * 
  */
 import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
@@ -819,163 +820,13 @@ export class GLTFModel extends BaseModel {
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //attribute part 
                     //初始化mesh顶点数据为 we entity的顶点数据格式；
-                    let verticesOfDataOfEntity: {
-                        [name: string]: I_vsGPUBufferBundle
-                    } = {};
-                    for (let k in primitive.attributes) {
-                        let oneAttribute = primitive.attributes[k];
-                        let accessor = await this.DataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
-                        // let accessor = this.modelRes.accessor.get(oneAttribute.toString());
-                        if (accessor == undefined) {
-                            console.warn(`mesh ${name} primitive ${j} attribute ${k} not found accessor`);
-                            continue;
-                        }
-                        let nameOfAttribute = k.toLowerCase();
-                        if (k == "COLOR_0") {
-                            nameOfAttribute = "color";
-                        }
-                        // if (k == "UV_0") {
-                        //     nameOfAttribute = "uv";
-                        // }
-                        // else 
-                        if (k == "TEXCOORD_0") {
-                            nameOfAttribute = "uv";
-                        }
-                        else if (k == "TEXCOORD_1") {
-                            nameOfAttribute = "uv1";
-                        }
-                        if (k == "NORMAL") {
-                            nameOfAttribute = "normal";
-                        }
-                        if (k == "JOINTS_0") {
-                            nameOfAttribute = "joints";
-                        }
-                        if (k == "WEIGHTS_0") {
-                            nameOfAttribute = "weights";
-                        }
-
-                        verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
-                    }
-                    if ("normal" in verticesOfDataOfEntity == false && (primitive.mode == undefined || primitive.mode == 4 || primitive.mode == 5 || primitive.mode == 6)) {//如果没有法线，计算法线
-                        let positionAccessorID = primitive.attributes["POSITION"];
-                        // let positionAccessor = this.modelData.json.accessors[positionAccessorID];
-                        let normalAccessorID = positionAccessorID + "_normal";
-                        let alreadyNormal = this.modelRes.accessor.has(normalAccessorID);
-                        if (alreadyNormal) {
-                            verticesOfDataOfEntity["normal"] = this.modelRes.accessor.get(normalAccessorID) as I_vsGPUBufferBundle;
-                        }
-                        else {
-                            let positions = this.DataLoader.getAccessorForByte(positionAccessorID) as Float32Array;
-                            // let positions = this.getBufferSourceForAccessor(positionAccessor) as Float32Array;
-                            let normalAccessorBufferSource: I_vsGPUBufferBundle;
-                            let gpuBuffer: GPUBuffer;
-                            if ("indices" in primitive) {//如果有索引，根据索引计算法线
-                                let indicesAccessorID: number = primitive["indices"]!;
-                                // let indicesAccessor = this.modelData.json.accessors[indicesAccessorID];
-                                let indices = this.DataLoader.getAccessorForByte(indicesAccessorID) as Uint32Array;
-                                let normals: Float32Array = BaseFunction.computeNormalsFromPositionsAndIndices(positions, indices);
-                                gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
-                                normalAccessorBufferSource = {
-                                    buffer: gpuBuffer,
-                                    format: "float32x3",
-                                    wgslFormat: "vec3f",
-                                    name: normalAccessorID,
-                                    arrayStride: 3 * 4,
-                                    count: verticesOfDataOfEntity["position"].count,
-                                    offset: 0,
-                                    byteSize: verticesOfDataOfEntity["position"].byteSize,
-                                    min: [-1, -1, -1],
-                                    max: [1, 1, 1],
-                                };
-                                verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
-                            }
-                            else {//如果没有索引，根据顶点顺序计算法线
-                                let normals: Float32Array = BaseFunction.computeNormalsFromPositionsNoIndex(positions);
-                                gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
-                                normalAccessorBufferSource = {
-                                    buffer: gpuBuffer,
-                                    format: "float32x3",
-                                    wgslFormat: "vec3f",
-                                    name: normalAccessorID,
-                                    arrayStride: 3 * 4,
-                                    count: verticesOfDataOfEntity["position"].count,
-                                    offset: 0,
-                                    byteSize: verticesOfDataOfEntity["position"].byteSize,
-                                    min: [-1, -1, -1],
-                                    max: [1, 1, 1],
-                                };
-                                verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
-                            }
-                            this.modelRes.accessor.set(normalAccessorID, normalAccessorBufferSource);
-                            this.modelRes.GPUBuffers.set(normalAccessorID, gpuBuffer);
-                        }
-                    }
-                    if (primitive.targets)
-                        for (let k in primitive.targets) {
-                            let index = Number(k) + 1;
-                            let oneAttribute = primitive.targets[k]["POSITION"];
-                            let accessor = await this.DataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
-                            verticesOfDataOfEntity["position_" + index] = accessor as I_vsGPUBufferBundle;
-                        }
+                    let verticesOfDataOfEntity = await this.getVerticesOfPrimitive(primitive, i, j);
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //gpubuffer of index and draw mode   part
-                    //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
-                    let stripIndexFormat: GPUIndexFormat = "uint16";
-                    //index accessor 转义we interface，可以为undefined(无index)
-                    let indexesOfDataOfEntity: T_indexAttribute | undefined;
-                    let drawMode: I_drawMode | I_drawModeIndexed;
-                    if (meshSource.primitives[0].indices != undefined) {                //index 
-                        let idOfaccessors = meshSource.primitives[0].indices;
-                        let useFor: E_accessorUseFor
-                        switch (primitive.mode) {
-                            case 0:
-                                useFor = E_accessorUseFor.indexPointList;
-                                break;
-                            case 1:
-                                useFor = E_accessorUseFor.indexLineList;
-                                break;
-                            case 2:
-                                useFor = E_accessorUseFor.indexTriangleList;
-                                break;
-                            case 3:
-                                useFor = E_accessorUseFor.indexLineStrip;
-                                break;
-                            case 4:
-                                useFor = E_accessorUseFor.indexTriangleList;
-                                break;
-                            case 5:
-                                useFor = E_accessorUseFor.indexTriangleStrip;
-                                break;
-                            case 6:
-                                useFor = E_accessorUseFor.indexTriangleFan;
-                                break;
-                            default:
-                                useFor = E_accessorUseFor.indexTriangleList;
-                        }
-                        let indexAttribute = await this.getAccessor(idOfaccessors, useFor);
-                        stripIndexFormat = (indexAttribute as I_indexGPUBufferBundle).format;//重置 stripIndexFormat 为索引缓冲区的格式
-
-                        indexesOfDataOfEntity = indexAttribute as I_indexGPUBufferBundle;
-                        drawMode = {
-                            indexCount: (indexAttribute as I_indexGPUBufferBundle).count,
-                        }
-                    }
-                    else {                                                          // draw mode
-                        let count: number;
-                        if (primitive.attributes.POSITION != undefined) {
-                            let position = this.DataLoader.getAccessorOfSource(primitive.attributes.POSITION);
-                            if (position == undefined) {
-                                throw new Error(`mesh ${name} primitive ${j} attribute position not found accessor`);
-                            }
-                            count = position.count;
-                        }
-                        else {
-                            throw new Error(`mesh ${i} don't have POSITION attribute`);
-                        }
-                        drawMode = {
-                            vertexCount: count,
-                        }
-                    }
+                    let indecis = await this.getIndecisOfPrimitive(primitive, i, j);
+                    let drawMode = indecis.drawMode;
+                    let indexesOfDataOfEntity = indecis.indecis;
+                    let stripIndexFormat = indecis.stripIndexFormat;
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     // primitive of render
                     let primitiveOfDataOfRender: GPUPrimitiveState = {
@@ -1067,6 +918,184 @@ export class GLTFModel extends BaseModel {
         else {
             throw new Error(`gltf not found meshes`);
         }
+    }
+    /** 获取primitive的顶点数据 
+     * @param primitive primitive数据
+     * @param meshID meshID
+     * @param primitiveID primitiveID
+     * @returns 顶点数据集合
+    */
+    async getVerticesOfPrimitive(primitive: any, meshID: string, primitiveID: string): Promise<{ [name: string]: I_vsGPUBufferBundle }> {
+        let verticesOfDataOfEntity: {
+            [name: string]: I_vsGPUBufferBundle
+        } = {};
+        for (let k in primitive.attributes) {
+            let oneAttribute = primitive.attributes[k];
+            let accessor = await this.DataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
+            // let accessor = this.modelRes.accessor.get(oneAttribute.toString());
+            if (accessor == undefined) {
+                console.warn(`mesh ${meshID} primitive ${primitiveID} attribute ${k} not found accessor`);
+                continue;
+            }
+            let nameOfAttribute = k.toLowerCase();
+            if (k == "COLOR_0") {
+                nameOfAttribute = "color";
+            }
+            // if (k == "UV_0") {
+            //     nameOfAttribute = "uv";
+            // }
+            // else 
+            if (k == "TEXCOORD_0") {
+                nameOfAttribute = "uv";
+            }
+            else if (k == "TEXCOORD_1") {
+                nameOfAttribute = "uv1";
+            }
+            if (k == "NORMAL") {
+                nameOfAttribute = "normal";
+            }
+            if (k == "JOINTS_0") {
+                nameOfAttribute = "joints";
+            }
+            if (k == "WEIGHTS_0") {
+                nameOfAttribute = "weights";
+            }
+
+            verticesOfDataOfEntity[nameOfAttribute] = accessor as I_vsGPUBufferBundle;
+        }
+        if ("normal" in verticesOfDataOfEntity == false && (primitive.mode == undefined || primitive.mode == 4 || primitive.mode == 5 || primitive.mode == 6)) {//如果没有法线，计算法线
+            let positionAccessorID = primitive.attributes["POSITION"];
+            // let positionAccessor = this.modelData.json.accessors[positionAccessorID];
+            let normalAccessorID = positionAccessorID + "_normal";
+            let alreadyNormal = this.modelRes.accessor.has(normalAccessorID);
+            if (alreadyNormal) {
+                verticesOfDataOfEntity["normal"] = this.modelRes.accessor.get(normalAccessorID) as I_vsGPUBufferBundle;
+            }
+            else {
+                let positions = this.DataLoader.getAccessorForByte(positionAccessorID) as Float32Array;
+                // let positions = this.getBufferSourceForAccessor(positionAccessor) as Float32Array;
+                let normalAccessorBufferSource: I_vsGPUBufferBundle;
+                let gpuBuffer: GPUBuffer;
+                if ("indices" in primitive) {//如果有索引，根据索引计算法线
+                    let indicesAccessorID: number = primitive["indices"]!;
+                    // let indicesAccessor = this.modelData.json.accessors[indicesAccessorID];
+                    let indices = this.DataLoader.getAccessorForByte(indicesAccessorID) as Uint32Array;
+                    let normals: Float32Array = BaseFunction.computeNormalsFromPositionsAndIndices(positions, indices);
+                    gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
+                    normalAccessorBufferSource = {
+                        buffer: gpuBuffer,
+                        format: "float32x3",
+                        wgslFormat: "vec3f",
+                        name: normalAccessorID,
+                        arrayStride: 3 * 4,
+                        count: verticesOfDataOfEntity["position"].count,
+                        offset: 0,
+                        byteSize: verticesOfDataOfEntity["position"].byteSize,
+                        min: [-1, -1, -1],
+                        max: [1, 1, 1],
+                    };
+                    verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
+                }
+                else {//如果没有索引，根据顶点顺序计算法线
+                    let normals: Float32Array = BaseFunction.computeNormalsFromPositionsNoIndex(positions);
+                    gpuBuffer = createCommonGPUBuffer(this.device, normalAccessorID, normals.buffer as ArrayBuffer, 0, normals.byteLength);
+                    normalAccessorBufferSource = {
+                        buffer: gpuBuffer,
+                        format: "float32x3",
+                        wgslFormat: "vec3f",
+                        name: normalAccessorID,
+                        arrayStride: 3 * 4,
+                        count: verticesOfDataOfEntity["position"].count,
+                        offset: 0,
+                        byteSize: verticesOfDataOfEntity["position"].byteSize,
+                        min: [-1, -1, -1],
+                        max: [1, 1, 1],
+                    };
+                    verticesOfDataOfEntity["normal"] = normalAccessorBufferSource;
+                }
+                this.modelRes.accessor.set(normalAccessorID, normalAccessorBufferSource);
+                this.modelRes.GPUBuffers.set(normalAccessorID, gpuBuffer);
+            }
+        }
+        if (primitive.targets)
+            for (let k in primitive.targets) {
+                let index = Number(k) + 1;
+                let oneAttribute = primitive.targets[k]["POSITION"];
+                let accessor = await this.DataLoader.getAccessor(oneAttribute, E_accessorUseFor.vertex);
+                verticesOfDataOfEntity["position_" + index] = accessor as I_vsGPUBufferBundle;
+            }
+        return verticesOfDataOfEntity;
+    }
+    /** 获取primitive的索引缓冲区和drawMode 
+     * @param primitive primitive
+     * @param meshID meshID
+     * @param primitiveID primitiveID
+     * @returns {indecis:T_indexAttribute | undefined,drawMode: I_drawMode | I_drawModeIndexed} 索引缓冲区和drawMode
+    */
+    async getIndecisOfPrimitive(primitive: any, meshID: string, primitiveID: string): Promise<
+        {
+            indecis: T_indexAttribute | undefined,
+            drawMode: I_drawMode | I_drawModeIndexed,
+            stripIndexFormat: GPUIndexFormat,
+        }> {
+        //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
+        let indexesOfDataOfEntity: T_indexAttribute | undefined;
+        let stripIndexFormat: GPUIndexFormat = "uint16";//gltf中一般默认uint16
+        //index accessor 转义we interface，可以为undefined(无index)
+        let drawMode: I_drawMode | I_drawModeIndexed;
+        if (primitive.indices != undefined) {                //index 
+            let idOfaccessors = primitive.indices;
+            let useFor: E_accessorUseFor
+            switch (primitive.mode) {
+                case 0:
+                    useFor = E_accessorUseFor.indexPointList;
+                    break;
+                case 1:
+                    useFor = E_accessorUseFor.indexLineList;
+                    break;
+                case 2:
+                    useFor = E_accessorUseFor.indexTriangleList;
+                    break;
+                case 3:
+                    useFor = E_accessorUseFor.indexLineStrip;
+                    break;
+                case 4:
+                    useFor = E_accessorUseFor.indexTriangleList;
+                    break;
+                case 5:
+                    useFor = E_accessorUseFor.indexTriangleStrip;
+                    break;
+                case 6:
+                    useFor = E_accessorUseFor.indexTriangleFan;
+                    break;
+                default:
+                    useFor = E_accessorUseFor.indexTriangleList;
+            }
+            let indexAttribute = await this.getAccessor(idOfaccessors, useFor);
+            stripIndexFormat = (indexAttribute as I_indexGPUBufferBundle).format;//重置 stripIndexFormat 为索引缓冲区的格式
+
+            indexesOfDataOfEntity = indexAttribute as I_indexGPUBufferBundle;
+            drawMode = {
+                indexCount: (indexAttribute as I_indexGPUBufferBundle).count,
+            }
+        }
+        else {                                                          // draw mode
+            let count: number;
+            if (primitive.attributes.POSITION != undefined) {
+                let position = this.DataLoader.getAccessorOfSource(primitive.attributes.POSITION);
+                if (position == undefined) {
+                    throw new Error(`mesh ${meshID} primitive ${primitiveID} attribute position not found accessor`);
+                }
+                count = position.count;
+            }
+            else {
+                throw new Error(`mesh ${meshID} primitive ${primitiveID} don't have POSITION attribute`);
+            }
+            drawMode = {
+                vertexCount: count,
+            }
+        }
+        return { indecis: indexesOfDataOfEntity, drawMode, stripIndexFormat };
     }
     /** 获取accessor */
     getAccessor(idOfaccessors: any, useFor: E_accessorUseFor) {

@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import type {TypedArray, MeshAttribute, MeshGeometry} from '@loaders.gl/schema';
+import type { TypedArray, MeshAttribute, MeshGeometry } from '@loaders.gl/schema';
 
 // Draco types (input)
 import type {
@@ -25,8 +25,8 @@ import type {
   DracoOctahedronTransform
 } from './draco-types';
 
-import {getMeshBoundingBox} from '@loaders.gl/schema';
-import {getDracoSchema} from './utils/get-draco-schema';
+import { getMeshBoundingBox } from '@loaders.gl/schema';
+import { getDracoSchema } from './utils/get-draco-schema';
 
 /** Options to control draco parsing */
 export type DracoParseOptions = {
@@ -35,7 +35,7 @@ export type DracoParseOptions = {
   /** Specify which attribute metadata entry stores the attribute name */
   attributeNameEntry?: string;
   /** Names and ids of extra attributes to include in the output */
-  extraAttributes?: {[uniqueId: string]: number};
+  extraAttributes?: { [uniqueId: string]: number };
   /** Skip transforms specific quantized attributes */
   quantizedAttributes?: ('POSITION' | 'NORMAL' | 'COLOR' | 'TEX_COORD' | 'GENERIC')[];
   /** Skip transforms specific octahedron encoded  attributes */
@@ -195,8 +195,8 @@ export default class DracoParser {
   _getDracoAttributes(
     dracoGeometry: Mesh | PointCloud,
     options: DracoParseOptions
-  ): {[unique_id: number]: DracoAttribute} {
-    const dracoAttributes: {[unique_id: number]: DracoAttribute} = {};
+  ): { [unique_id: number]: DracoAttribute } {
+    const dracoAttributes: { [unique_id: number]: DracoAttribute } = {};
 
     for (let attributeId = 0; attributeId < dracoGeometry.num_attributes(); attributeId++) {
       // Note: Draco docs do not seem clear on `GetAttribute` ids just being a zero-based index,
@@ -291,15 +291,15 @@ export default class DracoParser {
     loaderData: DracoLoaderData,
     dracoGeometry: Mesh | PointCloud,
     options: DracoParseOptions
-  ): {[attributeName: string]: MeshAttribute} {
-    const attributes: {[key: string]: MeshAttribute} = {};
+  ): { [attributeName: string]: MeshAttribute } {
+    const attributes: { [key: string]: MeshAttribute } = {};
 
     for (const loaderAttribute of Object.values(loaderData.attributes)) {
       const attributeName = this._deduceAttributeName(loaderAttribute, options);
       loaderAttribute.name = attributeName;
       const values = this._getAttributeValues(dracoGeometry, loaderAttribute);
       if (values) {
-        const {value, size} = values;
+        const { value, size } = values;
         attributes[attributeName] = {
           value,
           size,
@@ -357,7 +357,7 @@ export default class DracoParser {
   _getAttributeValues(
     dracoGeometry: Mesh | PointCloud,
     attribute: DracoAttribute
-  ): {value: TypedArray; size: number} | null {
+  ): { value: TypedArray; size: number } | null {
     const TypedArrayCtor = DRACO_DATA_TYPE_TO_TYPED_ARRAY_MAP[attribute.data_type];
     if (!TypedArrayCtor) {
       // eslint-disable-next-line no-console
@@ -388,7 +388,7 @@ export default class DracoParser {
       this.draco._free(ptr);
     }
 
-    return {value, size: numComponents};
+    return { value, size: numComponents };
   }
 
   // Attribute names
@@ -447,6 +447,7 @@ export default class DracoParser {
     }
 
     // Attribute of "GENERIC" type, we need to assign some name
+    // return `CUSTOM_ATTRIBUTE_${uniqueId}`;
     return `${uniqueId}`;// add by tom 20260224
   }
 
@@ -469,7 +470,7 @@ export default class DracoParser {
    * @param dracoMetadata
    * @returns
    */
-  _getDracoMetadata(dracoMetadata: Metadata): {[entry: string]: DracoMetadataEntry} {
+  _getDracoMetadata(dracoMetadata: Metadata): { [entry: string]: DracoMetadataEntry } {
     // The not so wonderful world of undocumented Draco APIs :(
     if (!dracoMetadata || !dracoMetadata.ptr) {
       return {};
@@ -509,7 +510,7 @@ export default class DracoParser {
 
   /** Skip transforms for specific attribute types */
   _disableAttributeTransforms(options: DracoParseOptions) {
-    const {quantizedAttributes = [], octahedronAttributes = []} = options;
+    const { quantizedAttributes = [], octahedronAttributes = [] } = options;
     const skipAttributes = [...quantizedAttributes, ...octahedronAttributes];
     for (const dracoAttributeName of skipAttributes) {
       this.decoder.SkipAttributeTransform(this.draco[dracoAttributeName]);
@@ -524,7 +525,7 @@ export default class DracoParser {
     dracoAttribute: PointAttribute,
     options: DracoParseOptions
   ): DracoQuantizationTransform | null {
-    const {quantizedAttributes = []} = options;
+    const { quantizedAttributes = [] } = options;
     const attribute_type = dracoAttribute.attribute_type();
     const skip = quantizedAttributes.map((type) => this.decoder[type]).includes(attribute_type);
     if (skip) {
@@ -548,7 +549,7 @@ export default class DracoParser {
     dracoAttribute: PointAttribute,
     options: DracoParseOptions
   ): DracoOctahedronTransform | null {
-    const {octahedronAttributes = []} = options;
+    const { octahedronAttributes = [] } = options;
     const attribute_type = dracoAttribute.attribute_type();
     const octahedron = octahedronAttributes
       .map((type) => this.decoder[type])

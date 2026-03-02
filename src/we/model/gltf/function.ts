@@ -13,6 +13,12 @@ import { TypedArray } from "webgpu-utils";
  * @param nodeID 节点id
  * @param parent 父节点
  * @param root 根节点
+ * 
+ * 一、未处理的情况与问题
+ *   1、mesh有多个primitive，目前只处理了第一个primitive。
+ *         A、一个实体的点线面可能都存在
+ *         B、非相关实体，但对于后续操作，比如动画由相同的操作
+ *         
  */
 export async function addNode(gltf: GLTFModel, nodeID: number, parent: NodeObject, root: NodeObject): Promise<any> {
 

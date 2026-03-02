@@ -2,10 +2,10 @@
 // Only TRIANGLES: 0x0004 and TRIANGLE_STRIP: 0x0005 are supported
 /* eslint-disable camelcase */
 
-import type {LoaderContext} from '@loaders.gl/loader-utils';
-import {sliceArrayBuffer, parseFromContext} from '@loaders.gl/loader-utils';
+import type { LoaderContext } from '@loaders.gl/loader-utils';
+import { sliceArrayBuffer, parseFromContext } from '@loaders.gl/loader-utils';
 
-import {DracoLoader, DracoLoaderOptions} from '@loaders.gl/draco';
+import { DracoLoader, DracoLoaderOptions } from '@loaders.gl/draco';
 
 import type {
   GLTF,
@@ -13,10 +13,10 @@ import type {
   GLTFMeshPrimitive,
   GLTF_KHR_draco_mesh_compression
 } from '../types/gltf-json-schema';
-import type {GLTFLoaderOptions} from '../../gltf-loader';
+import type { GLTFLoaderOptions } from '../../gltf-loader';
 
-import {GLTFScenegraph} from '../api/gltf-scenegraph';
-import {getGLTFAccessors, getGLTFAccessor} from '../gltf-utils/gltf-attribute-utils';
+import { GLTFScenegraph } from '../api/gltf-scenegraph';
+import { getGLTFAccessors, getGLTFAccessor } from '../gltf-utils/gltf-attribute-utils';
 
 const KHR_DRACO_MESH_COMPRESSION = 'KHR_draco_mesh_compression';
 
@@ -24,7 +24,7 @@ const KHR_DRACO_MESH_COMPRESSION = 'KHR_draco_mesh_compression';
 export const name = KHR_DRACO_MESH_COMPRESSION;
 
 export function preprocess(
-  gltfData: {json: GLTF},
+  gltfData: { json: GLTF },
   options: GLTFLoaderOptions,
   context: LoaderContext
 ): void {
@@ -37,7 +37,7 @@ export function preprocess(
 }
 
 export async function decode(
-  gltfData: {json: GLTF},
+  gltfData: { json: GLTF },
   options: GLTFLoaderOptions,
   context: LoaderContext
 ): Promise<void> {
@@ -99,13 +99,13 @@ async function decompressPrimitive(
   // TODO - remove when `parse` is fixed to handle `byteOffset`s
   const bufferCopy = sliceArrayBuffer(buffer.buffer, buffer.byteOffset); // , buffer.byteLength);
 
-  const dracoOptions: DracoLoaderOptions = {...options};
+  const dracoOptions: DracoLoaderOptions = { ...options };
 
   // TODO - remove hack: The entire tileset might be included, too expensive to serialize
   delete dracoOptions['3d-tiles'];
   const decodedData = await parseFromContext(bufferCopy, DracoLoader, dracoOptions, context);
 
-  const decodedAttributes: {[key: string]: GLTFAccessor} = getGLTFAccessors(decodedData.attributes);
+  const decodedAttributes: { [key: string]: GLTFAccessor } = getGLTFAccessors(decodedData.attributes);
 
   // Restore min/max values
   for (const [attributeName, decodedAttribute] of Object.entries(decodedAttributes)) {
@@ -118,28 +118,36 @@ async function decompressPrimitive(
       }
     }
   }
-//add by tom 20260224
+  //add by tom 20260224
   // @ts-ignore
-    let dracoAttributes = primitive.extensions.KHR_draco_mesh_compression.attributes;
+  let dracoAttributes = primitive.extensions.KHR_draco_mesh_compression.attributes;
   let list = {};
   if (dracoAttributes) {
     for (let i in dracoAttributes) {
+      // @ts-ignore
       list[dracoAttributes[i]] = i;
     }
     for (let i in decodedAttributes) {
-      if (i in list) {
-        primitive.attributes[list[i]] = decodedAttributes[i];
+      if (i == "POSITION") {
+        let index = primitive.attributes[i];
+        // @ts-ignore
+        scenegraph.gltf.json.accessors[index] = decodedAttributes[i];
       }
-      else {
-        primitive.attributes[i] = decodedAttributes[i];
+      else if (i in list) {
+        // @ts-ignore
+        let index = primitive.attributes[list[i]];
+        // @ts-ignore
+        scenegraph.gltf.json.accessors[index] = decodedAttributes[i];
       }
     }
   }
   else
+    // @ts-ignore
     primitive.attributes = decodedAttributes;
   if (decodedData.indices) {
     // @ts-ignore
-    primitive.indices = getGLTFAccessor(decodedData.indices);
+    // primitive.indices = getGLTFAccessor(decodedData.indices);
+    scenegraph.gltf.json.accessors[primitive.indices] = getGLTFAccessor(decodedData.indices);
   }
 
   // Extension has been processed, delete it
@@ -158,7 +166,7 @@ function compressMesh(attributes, indices, mode: number = 4, options, context: L
   }
 
   // TODO - use DracoWriter using encode w/ registered DracoWriter...
-  const compressedData = options.DracoWriter.encodeSync({attributes});
+  const compressedData = options.DracoWriter.encodeSync({ attributes });
 
   // Draco compression may change the order and number of vertices in a mesh.
   // To satisfy the requirement that accessors properties be correct for both
@@ -166,7 +174,7 @@ function compressMesh(attributes, indices, mode: number = 4, options, context: L
   // attributes and indices using data that has been decompressed from the Draco buffer,
   // rather than the original source data.
   // @ts-ignore TODO this needs to be fixed
-  const decodedData = context?.parseSync?.({attributes});
+  const decodedData = context?.parseSync?.({ attributes });
   const fauxAccessors = options._addFauxAttributes(decodedData.attributes);
 
   const bufferViewIndex = options.addBufferView(compressedData);
