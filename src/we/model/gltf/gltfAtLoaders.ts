@@ -62,7 +62,7 @@ export class GltfDataAtLoaders extends ModelDataLoader {
         }
         else if (this.url.indexOf(".glb") > -1) {
             type = "glb";
-            data = await load(this.url, GLTFLoader,{worker: true});
+            data = await load(this.url, GLTFLoader,{worker: false});
         }
         else {
             throw new Error("GLTFModel: unknown file type");
