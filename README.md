@@ -20,7 +20,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * 动画管理部分涵盖:关键帧、骨骼动画、变形目标、粒子系统等；
 * 在渲染引擎的架构上是从底层独立设计与实现的，参考了Babylon、three、cesium、UE等；
 * 在底层机制以command集合（Draw Command、Compute Command、Copy Command）进行shader提交；
-* 在更新机制与事件机制上，有多途径的update机制和onEvent处理；
+* 在更新机制与事件机制上，以ECS为核心机制以及Event处理；
 
 # 更多功能说明
 
@@ -41,7 +41,8 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * 后处理是在有管理器和后处理功能组成，目前有FXAA，blue，colordemo等；
 * stage有四个：默认的world，ui、stage1(导航等)，stage2（地图等）；
 * ECS应用的比较多，比如实体、材质、光影、摄像机、输入管理、动画、纹理等都是采用的ECS的概念进行管理；
-* todo：粒子系统，动画系统、SSGI、SSR、SSAO、TAA、
+* 动画系统包括：关键帧(keyFrame)、变形目标(mophTarget)、骨骼动画、以及通过物理引擎实现的物理驱动动画；
+* todo：粒子系统、SSGI、SSR、SSAO、TAA、
 
 # 简单示例
 
@@ -66,7 +67,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 | 骨骼动画 skeleton                                 | 变形目标 morph target                             | gltf Fox 骨骼动画                                 |
 | ![1772438077121](images/README/1772438077121.png) | ![1772438257776](images/README/1772438257776.png) | ![1772437632575](images/README/1772437632575.png) |
 | gltf Hen 骨骼动画                                 | gltf LittlestTokyo                                |                                                   |
-| ![1772439162506](images/README/1772439162506.png) | ![1772437639746](images/README/1772437639746.png) |                                                   |
+| ![1772470423684](images/README/1772470423684.png) | ![1772437639746](images/README/1772437639746.png) |                                                   |
 
 # 资料参考与推荐
 

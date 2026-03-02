@@ -41,7 +41,7 @@ WE3D includes two parts: the base engine and the editor. (WE3D is currently in t
 * Post-processing is composed of manager and post-processing functions, currently there are FXAA, blue, colordemo, etc.;
 * There are four stages: default world, ui, stage1 (navigation, etc.), stage2 (maps, etc.);
 * ECS is used in many applications, such as entities, materials, light and shadow, cameras, input management, animation, textures, etc. are all managed by the concept of ECS;
-* todo: Particle System, Animation System, SSGI, SSR, SSAO, TAA,
+* todo: Particle System,  SSGI, SSR, SSAO, TAA,
 
 # Simple example
 
@@ -63,7 +63,10 @@ WE3D includes two parts: the base engine and the editor. (WE3D is currently in t
 | ![1763631648964](images/README/1763631648964.png) | ![1763631691112](images/README/1763631691112.png) | ![1763631752890](images/README/1763631752890.png) |
 | 延迟渲染 deferRender：PBR                         | 延迟渲染 deferRebder：BlinnPhong                  | 延迟渲染 deferRebder：BlinnPhong                  |
 | ![1763631817758](images/README/1763631817758.png) | ![1763631965740](images/README/1763631965740.png) | ![1763631975198](images/README/1763631975198.png) |
-|                                                   |                                                   |                                                   |
+| skeleton                                          | morph target                                      | gltf Fox                                          |
+| ![1772438077121](images/README/1772438077121.png) | ![1772438257776](images/README/1772438257776.png) | ![1772437632575](images/README/1772437632575.png) |
+| gltf Hen                                         | gltf LittlestTokyo                                |                                                   |
+| ![1772439162506](images/README/1772470423684.png) | ![1772437639746](images/README/1772437639746.png) |                                                   |
 
 # Information reference and recommendation
 
