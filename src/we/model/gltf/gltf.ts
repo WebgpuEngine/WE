@@ -803,6 +803,11 @@ export class GLTFModel extends BaseModel {
                     let inputEntity: IV_MeshEntity | IV_PointsEntity | IV_LinesEntity;  //enity 属性
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //material part
+                    let materialDataSource = this.DataLoader.getMaterial(primitive.material);
+                    let cullMode: GPUCullMode = "back";
+                    if (materialDataSource.doubleSided && materialDataSource.doubleSided === true) {
+                        cullMode = "none";
+                    }
                     let materialOfPerEntity;                        //当前entity的primitive的材质
                     if (primitive.material == undefined) {          //如果primitive没有材质，默认使用default材质
                         materialOfPerEntity = this.getRes(T_ModelResKind.material, "default");
@@ -832,6 +837,7 @@ export class GLTFModel extends BaseModel {
                     let primitiveOfDataOfRender: GPUPrimitiveState = {
                         topology: "triangle-strip",
                         // cullMode: "none",//双面
+                        cullMode: cullMode,
                     };
                     switch (primitiveMode) {
                         case 0: //point
@@ -862,13 +868,15 @@ export class GLTFModel extends BaseModel {
                         case 4: //triangle
                             primitiveOfDataOfRender = {
                                 topology: "triangle-list",
-                                cullMode: "back",
+                                cullMode: cullMode,
+                                // cullMode: "back",
                                 // cullMode: "none",//双面
                             }
                             break;
                         case 5: //triangle strip
                             primitiveOfDataOfRender = {
                                 topology: "triangle-strip",
+                                cullMode: cullMode,
                                 stripIndexFormat: stripIndexFormat,//设置索引缓冲区的格式
                                 // stripIndexFormat: "uint16",
                             }
@@ -876,6 +884,7 @@ export class GLTFModel extends BaseModel {
                         case 6: //triangle fan，webgpu没有fan，转为list ，相关数据index在获取时已经转换
                             primitiveOfDataOfRender = {
                                 topology: "triangle-list",
+                                cullMode: cullMode,
                             }
                             break;
                         default:

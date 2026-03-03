@@ -9,6 +9,7 @@ struct PBRBaseUniform{
     roughness : f32,         //粗糙度
     ao : f32,                //环境光遮蔽,没有数据版本的AO图(只看use)，默认:1
     emissive : vec4f,        //自发光颜色,只有数据版本的自发光
+    //20260303 todo,uv 和uv2 不同的处理方式，修改为1=uv，2=uv1，3=uniform  color。其他纹理类似
     useColorModel: u32,     //是否使用颜色纹理:0=vs color, 1=texture,2= uniform color
     useNormalModel: u32,    //是否使用法线纹理:0=vs normal, 1=texture
     useHeightModel: u32,    //是否使用高度纹理:0=没有高度图, 1=有高度图
