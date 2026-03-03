@@ -535,7 +535,7 @@ export class PBRMaterial extends BaseMaterial {
         this.checkInsideUniformBundle();
         this.writeUniformBuffer();
         this._state = E_lifeState.finished;
-        console.log("PBRMaterial readyForGPU");
+        // console.log("PBRMaterial readyForGPU");
     }
     /**
      * 检查insideUniformBundle是否符合要求

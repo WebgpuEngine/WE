@@ -206,7 +206,7 @@ export class GLTFModel extends BaseModel {
         //3、为每个animation group 增加skin animation：
         // //nodeOfScene.animationGroup.addSkinAnimation(skinAnimation)
         if (nodeOfScene.AnimationGroup == undefined) {
-            console.warn(`can not found animation group for skin at node id: ${nodeOfScene.ID}`);
+            // console.warn(`can not found animation group for skin at node id: ${nodeOfScene.ID}`);
             return;
         }
         for (let animationGroup of nodeOfScene.AnimationGroup) {
@@ -788,7 +788,7 @@ export class GLTFModel extends BaseModel {
     async initMeshes() {
         let meshes = this.DataLoader.getMeshes();
         if (meshes) {
-            console.log("meshes.count ", meshes.length);
+            // console.log("meshes.count ", meshes.length);
             for (let i in meshes) {
                 let meshSource = meshes[i];
                 for (let j in meshSource.primitives) {

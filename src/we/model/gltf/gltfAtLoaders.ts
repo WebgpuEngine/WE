@@ -58,11 +58,43 @@ export class GltfDataAtLoaders extends ModelDataLoader {
         let data: GLTFWithBuffers | GLB;
         if (this.url.indexOf(".gltf") != -1) {
             type = "gltf";
-            data = await load(this.url, GLTFLoader,{worker: false});
+            data = await load(this.url, GLTFLoader,
+                {
+                    draco: {
+                        // decoderType: "wasm",
+                        // libraryPath:  '/draco3dgltf/',
+                        // extraAttributes: {
+                        //     'joints':0,
+                        //     NORMAL: 'normal',
+                        //     TEXCOORD_0: 'texcoord',
+                        //     COLOR_0: 'color',
+                        // },
+                        //         attributeNameEntry: 
+                        workerUrl: "/@loaders.gl/draco/draco-worker.js",
+                    },
+                    worker: true
+
+                });
         }
         else if (this.url.indexOf(".glb") > -1) {
             type = "glb";
-            data = await load(this.url, GLTFLoader,{worker: false});
+            data = await load(this.url, GLTFLoader,
+                {
+                    draco: {
+                        // decoderType: "wasm",
+                        // libraryPath:  '/draco3dgltf/',
+                        // extraAttributes: {
+                        //     'joints':0,
+                        //     NORMAL: 'normal',
+                        //     TEXCOORD_0: 'texcoord',
+                        //     COLOR_0: 'color',
+                        // },
+                        //         attributeNameEntry: 
+                        workerUrl: "/@loaders.gl/draco/draco-worker.js",
+                    },
+                    worker: true
+
+                });
         }
         else {
             throw new Error("GLTFModel: unknown file type");
