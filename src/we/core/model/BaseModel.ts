@@ -1,13 +1,9 @@
 import { AnimationGroup } from "../animation/animationGroup";
 import { I_Update } from "../base/coreDefine";
-import { DrawCommand } from "../command/DrawCommand";
-import { BaseEntity } from "../entity/baseEntity";
-import { BaseMaterial } from "../material/baseMaterial";
-import { IV_NodeSpace, NodeInstanceModel, NodeObject } from "../organization/root";
+import { NodeInstanceModel, NodeObject } from "../organization/nodeObject";
+import { IV_NodeSpace } from "../organization/nodeSpace";
 import { Clock } from "../scene/clock";
-import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
-import { BaseTexture } from "../texture/baseTexture";
 import { ModelDataLoader } from "./ModelDataLoader";
 
 export interface I_Model extends I_Update {

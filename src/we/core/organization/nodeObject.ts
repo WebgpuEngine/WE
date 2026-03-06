@@ -1,0 +1,897 @@
+////////////////////////////////////////////////////////////
+// some JSON
+///////////////////////////////////////////////////////////
+
+import { vec3, Mat4, mat4 } from "wgpu-matrix";
+import { AnimationGroup } from "../animation/animationGroup";
+import { BaseAnimation } from "../animation/BaseAnimation";
+import { SkinAnimation } from "../animation/skin";
+import { WeightMixAnimation } from "../animation/weightMixAnimation";
+import { weVec4, weVec3, weMat4, E_lifeState } from "../base/coreDefine";
+import { BaseCamera } from "../camera/baseCamera";
+import { BaseEntity } from "../entity/baseEntity";
+import { BaseLight } from "../light/baseLight";
+import { BaseModel } from "../model/BaseModel";
+import { BaseParticle } from "../particle/baseParticle";
+import { Clock } from "../scene/clock";
+import { E_renderPassName } from "../scene/renderManager";
+import { Scene } from "../scene/scene";
+import { IV_NodeSpace, NodeSpace } from "./nodeSpace";
+import { RootGPU } from "./root";
+import { PhysicalBody } from "../physical/physicalBody";
+
+/** 空间类型
+ * 1、BVH使用instance Mesh 的AABB信息
+ * 2、物理引擎驱动需要刚体和碰撞器的类型
+ */
+export enum E_BVHSpaceType {
+    /** 无空间 ,非instance mesh 节点*/
+    none = "none",
+
+    /** 固定空间，不移动 
+     * 1、不考虑物理引擎，固定位置，只供BVH使用
+     * 2、WE空间中，固定位置，不会移动。
+     *     A、root ECS及自身将忽略位置更新；
+     *     B、如果有动画的，则不能设置为fixed。
+     * 3、物理引擎中没有刚体，碰撞体类型为sensor。
+    */
+    fixed = "fixed",
+
+    /** 动态空间，会移动
+     * 1、不考虑物理碰撞，位置可变。只供BVH使用。
+     * 2、WE空间中，动态移动，一般为程序控制或者动画控制。
+     * 3、物理引擎中没有刚体，碰撞体类型为sensor。
+     */
+    dynamic = "dynamic",
+
+    /** 物理引擎属性 
+     * 1、若具有物理引擎属性，则NodeObject的更新位置了信息，不受parent的影响（也不再使用parent的matrixWorld矩阵）。
+     * 2、NodeObject位置受物理引擎控制，同时必须具有physics属性。
+     * 3、初始化的position等信息为世界坐标下的。
+    */
+    physical = "physical",
+}
+
+
+
+export interface NodeObjectJSON {
+    type: string,
+    name: string,
+    id: number,
+    // renderID: number,
+    UUID: string,
+    position: number[],
+    scale: number[] | undefined,
+    rotate: {
+        axis: number[],
+        angleInRadians: number,
+    } | undefined,
+    quaternion: weVec4 | undefined,
+    enable: boolean,
+    visible: boolean,
+    matrix: number[],
+    matrixWorld: number[],
+    parent: number,
+    children: number[],
+}
+/**
+ * model 空间属性附加参数
+ * 1、默认空间类型为none，比如：空节点
+ * 2、有entity的instance节点，必须设置为非none
+ */
+export interface IV_AttachSpaceAttributeToNodeModel {
+    position?: weVec3,
+    scale?: weVec3,
+    rotate?: weVec4,
+    quaternion?: weVec4,
+    matrix?: weMat4,
+}
+
+//////////////////////////////////////////////////////////////NodeObject////////////////////////////////////////////////////////////////////////////////////////
+export interface IV_Node extends IV_NodeSpace {
+    /** 空间类型 ,默认none*/
+    spaceType?: E_BVHSpaceType,
+
+    entity?: BaseEntity,
+
+    physicalBody?: PhysicalBody,
+
+    /** 实例化的节点对象,延迟，目前没有必须要实现，
+     * 实例化nodeObject时，需要进行整体的clone和数据的深度copy。
+     */
+    // instanceNode?: NodeObject,
+
+    /**todo 实例化的相机对象(目前将相机作为节点的属性：非子对象) */
+    // camera?: BaseCamera,
+
+    /**todo  实例化的光源对象(目前将光源作为节点的属性，非子对象) */
+    // light?: BaseLight,
+
+    /**todo 实例化的粒子对象(目前将粒子作为节点的子对象) */
+    // particle?: BaseParticle,
+
+    /**todo 实例化的动画对象(目前将动画作为节点的属性) */
+    // animation?: BaseAnimation[],
+}
+/**
+ * 节点对象
+ * 1、导入导出需要实例化
+ * 2、readyForGPU需要实例化
+ * 3、_destroy需要实例化
+ * 4、updateSelf需要实例化
+ */
+export abstract class NodeObject extends NodeSpace {
+    /** BVH空间类型 */
+    _spaceType: E_BVHSpaceType = E_BVHSpaceType.none;
+    set SpaceType(value: E_BVHSpaceType | string) {
+        if (typeof value === "string") {
+            if (value in E_BVHSpaceType) {
+                this._spaceType = value as E_BVHSpaceType;
+            } else {
+                console.warn(`NodeObject SpaceType ${value} is not in E_BVHSpaceType`);
+            }
+        } else {
+            this._spaceType = value;
+        }
+    }
+    get SpaceType(): E_BVHSpaceType {
+        return this._spaceType;
+    }
+    /** 物理体对象 physical body object */
+    _physicalBody: PhysicalBody | undefined;
+
+    set PhysicalBody(value: PhysicalBody) {
+        this._physicalBody = value;
+    }
+    get PhysicalBody(): PhysicalBody | undefined {
+        return this._physicalBody;
+    }
+
+    constructor(input?: IV_Node) {
+        super(input);
+        if (input) {
+            if (input.entity) {
+                this.Entity = input.entity;
+            }
+            if (input.physicalBody) {
+                this._physicalBody = input.physicalBody;
+            }
+            // if (input.particle) this.Particle = input.particle;
+            // if (input.animation) this.Animation = input.animation;
+        }
+    }
+    /** stageID*/
+    stageID: number = 0;
+
+    /**父节点 parent node     */
+    _parent: NodeObject | undefined;
+    get Parent(): NodeObject | undefined {
+        return this._parent;
+    }
+    set Parent(value: NodeObject | undefined) {
+        this._parent = value;
+    }
+    /**  子节点 child nodes     */
+    _children: NodeObject[] = [];
+
+
+    /** renderID，use for pickup generate by stage      */
+    _renderID!: number;
+    set renderID(id: number) {
+        this._renderID = id;
+    }
+    get renderID() {
+        return this._renderID;
+    }
+
+
+
+    /** 实体对象 entity object     */
+    _entity: BaseEntity | undefined;
+    get Entity(): BaseEntity | undefined {
+        return this._entity;
+    }
+    set Entity(entity: BaseEntity) {
+        this._entity = entity;
+    }
+
+
+    /** 粒子对象 particle object     */
+    _particle: BaseParticle[] | undefined;
+    get Particle(): BaseParticle[] | undefined {
+        return this._particle;
+    }
+    // set Particle(particle: BaseParticle) {
+    //     this._particle = particle;
+    // }
+
+
+    /** 动画对象 animation object     
+     * 1、有数据，则存在动画。
+     * 2、每个元素为一个动画对象。
+    */
+    _animation: BaseAnimation[] = [];//| undefined;
+    get Animation(): BaseAnimation[] {
+        return this._animation;
+    }
+    set Animation(animation: BaseAnimation[]) {
+        this._animation = animation;
+    }
+
+    /** 动画组对象 animation group object     
+     * 1、gltf等模型使用
+    */
+    _animationGroup: AnimationGroup[] | undefined;
+    get AnimationGroup(): AnimationGroup[] | undefined {
+        return this._animationGroup;
+    }
+    set AnimationGroup(animationGroup: AnimationGroup[]) {
+        this._animationGroup = animationGroup;
+    }
+
+    /** 骨架动画数据  SkinAnimation object 
+     * 目前只设计了一个蒙皮动画。同一节点上不存在多个蒙皮动画。
+     */
+    _skinAnimation: SkinAnimation[] = [];
+    get SkinAnimation(): SkinAnimation[] {
+        return this._skinAnimation;
+    }
+    set SkinAnimation(skinAnimation: SkinAnimation[]) {
+        this._skinAnimation = skinAnimation;
+    }
+
+    /** 骨架皮肤数据  ArrayBuffer of  jointsMat 
+    *  1、有数据，则存在骨骼动画。
+    *  2、工作流(每个NodeObject的逆绑定矩阵（世界逆绑定矩阵）=NodeObject的matrixWorld*inverseBindMatrix)
+    *      A、获得matrixWorld，
+    *      B、根据jointsMat，计算出每个joint的world matrix。
+    */
+    _jointsMat: ArrayBuffer | undefined;
+    get JointsMat(): ArrayBuffer | undefined {
+        return this._jointsMat;
+    }
+    set JointsMat(skeletonSkin: ArrayBuffer) {
+        this._jointsMat = skeletonSkin;
+    }
+
+
+    /**  morphTarget 目标值数据  ArrayBuffer of  morphTargetMat 
+     *  1、有数据，则存在morphTarget动画。
+    */
+    _morphTarget: ArrayBuffer | undefined;
+    get MorphTarget(): ArrayBuffer | undefined {
+        return this._morphTarget;
+    }
+    set MorphTarget(morphTarget: ArrayBuffer) {
+        this._morphTarget = morphTarget;
+    }
+
+
+    /**
+     * 权重动画 weight animation object
+     * 1、有数据，则存在权重动画。权重动画存在于_animation[]中,这里是指针的概念。
+     * 2、工作流
+     *      update()，根据是否有权重动画，选择matrixWorld的更新方式。
+     * 3、如果存在多个权重动画组，这个标志为当前使用的权重动画组。
+     */
+    _weightMixAnimation: WeightMixAnimation | undefined;
+    get WeightMixAnimation(): WeightMixAnimation | undefined {
+        return this._weightMixAnimation;
+    }
+    set WeightMixAnimation(weightMix: WeightMixAnimation) {
+        this._weightMixAnimation = weightMix;
+    }
+
+
+    /**
+     * 节点是否可见,如果不在root的树，则visible为false，但没有删除，还在资源池中
+     * node visible
+     */
+    visible: boolean = true;
+    set Visible(value: boolean) {
+        if (value === this.visible) return;
+        else {
+            this.visible = value;
+            // this.children.forEach((child) => {//不递归，只改变当前节点的visible
+            //     child.Visible = value;
+            // });
+        }
+    }
+    get Visible(): boolean {
+        return this.visible;
+    }
+
+
+    /**
+     * 向上递归，判断是否可见
+     * 1、通过parent.type 判断是否为root节点
+     */
+    getVisibleAndParents(): boolean {
+        if (this.visible == false) {
+            return false;
+        }
+        if (this.Parent == undefined) {
+            return false;
+        }
+        else if (this.Parent.type == "root") {
+            return true;
+        }
+        else {
+            return this.Visible && this.Parent.getVisibleAndParents();
+        }
+    }
+
+    enable: boolean = true;
+    set Enable(value: boolean) {
+        if (value === this.enable) return;
+        else {
+            this.enable = value;
+            this.children.forEach((child) => {
+                child.Enable = value;
+            });
+        }
+    }
+    get Enable(): boolean {
+        return this.enable;
+    }
+    /**
+     * 向上递归，判断是否可用性
+     */
+    getEnableAndParents(): boolean {
+        if (this.Enable == false) {
+            return false;
+        }
+        if (this.Parent == undefined) {
+            return false;
+        }
+        else if (this.Parent.type == "root") {
+            return true;
+        }
+        else {
+            return this.Enable && this.Parent.getEnableAndParents();
+        }
+    }
+
+    // /**是否为entity */
+    // noEntity!: boolean;
+    // /**是否为模型的子节点 */
+    // belongModel?: BaseModel | undefined;
+
+
+
+    /**
+     * 三段式初始化的第二步：init()
+     * 
+     * @param scene 
+     * @param parent 
+     * @param renderID 
+     * @returns 
+     */
+    async init(scene: Scene, parent?: NodeObject, renderID?: number): Promise<any> {
+        super.init(scene);
+        if (parent) {
+            this.Parent = parent;
+        }
+        // //获取最新的ID
+        // this.renderID = this.scene.root.getRenderID();//这里的renderID包括了所有的子类，enity，camera，light，material，texture，其中只有enity是实现使用的
+        // return this.renderID + 1;
+    }
+    /**
+     * 销毁节点
+     * 1、递归销毁所有子节点
+     * 2、需要entityManager中移除entity;entity的updateSelf()会更新instance 相关
+     * 3、需要注销动画
+     * 4、需要注销骨骼动画
+     * 5、需要注销动画组
+     * 6、需要注销粒子系统
+     * 7、需要注销BVH和物理引擎中的相关数据
+     */
+    destroy(): void {
+        //递归销毁所有子节点
+        if (this.children.length > 0) {
+            for (let child of this.children) {
+                if (child instanceof NodeObject) {
+                    child.destroy();
+                }
+            }
+            this._children = [];
+        }
+        //从entityManager中移除entity
+        this.detachEntity();
+
+        //注销动画
+        if (this.Animation) {
+            this.Animation.forEach((animation) => {
+                animation.destroy();
+            });
+            this.Animation = [];
+        }
+        //注销骨骼动画
+        if (this._skinAnimation) {
+            this._skinAnimation.forEach((skinAnimation) => {
+                skinAnimation.destroy();
+            });
+            this._skinAnimation = [];
+        }
+        // //注销动画组
+        // if (this.AnimationGroup) {
+        //     this.AnimationGroup.forEach((animationGroup) => {
+        //         animationGroup.destroy();
+        //     });
+        //     this.AnimationGroup = [];
+        // }
+        //注销粒子系统
+        // if (this.Particle) {
+        //     this.Particle.forEach((particle) => {
+        //         particle.destroy();
+        //     });
+        //     this._particle = undefined;
+        // }
+        //注销BVH和物理引擎中的相关数据
+        // if (this.BVH) {
+        //     this.BVH.destroy();
+        // }
+        // if (this.PhysicsBody) {
+        //     this.PhysicsBody.destroy();
+        // }
+
+        super.destroy();
+    }
+
+    get children() { return this._children; }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // add 
+    /**
+     * 附着entity到NodeObject上
+     * 1. 如果NodeObject已经有entity，抛出错误
+     * 2. 如果entity已经constructed,但没有init,则init entity
+     * 3. 将entity添加到entityManager中
+     * 
+     * @param entity 
+     */
+    async attachEntity(entity: BaseEntity) {
+        if (this.Entity) {
+            console.warn("NodeObject already has an entity, remove it first");
+        }
+        else {
+            this.Entity = entity;
+            if (entity._state == E_lifeState.constructed) {//如果entity已经constructed,但没有init,则init entity
+                await entity.init(this.scene);
+            }
+            this.scene.entityManager.add(entity, this);//将entity添加到entityManager中
+        }
+    }
+    /** 从NodeObject上分离entity     */
+    detachEntity() {
+        if (this.Entity) {
+            this.scene.entityManager.remove(this.Entity, this);//将entity从entityManager中移除
+        }
+    }
+
+    /**
+     * 添加子节点
+     * 1. 如果是子节点，直接添加到children中
+     *      A、camera
+     *      B、light
+     *      C、其他类型的NodeObject，直接添加到children中
+     *          model，particle
+     * 2、entity
+     *      A. 如果是BaseEntity，通过新建参数，
+     *          并将entity附着到新建Node Object上。         
+     *      B. 如果是IV_Node，根据参数创建对应的Node Object；
+     *          如果存在entity，并将entity附着到NodeObject上。
+     *      C、将entity和node添加到entityManager中
+     * 3、如果不存在entity，将node添加到children中
+     * 
+     * 4、如果是Model，根据modelAttachValue创建对应的Node Instance
+     * 
+     * @param child  NodeObject | BaseEntity | IV_Node 
+     * @returns  Promise<NodeObject> 
+     */
+    async addChild(child: NodeObject | BaseEntity | IV_Node, modelAttachValue?: IV_NodeSpace): Promise<NodeObject> {
+        let childNode: NodeObject;
+        if (child instanceof NodeObject) {
+            // child.parent = this;
+            if (child.type == "Model" && child instanceof NodeObject) {
+                await (child as BaseModel).init(this.scene, this);                                  //init
+                childNode = await (child as BaseModel).initInstance(this, modelAttachValue);        //initInstance,返回NodeInstanceModel
+            }
+            else if (child instanceof NodeObject) {
+                await child.init(this.scene, this);
+                childNode = child;
+            }
+            else {
+                throw new Error("child type not support");
+            }
+            if (child.type == "Camera") {
+                this.scene.cameraManager.add(child as unknown as BaseCamera);
+                childNode = child;
+            }
+            else if (child.type == "Light") {//这里不能使用 instanceof BaseLight，会遇到 “暂时性死区 Uncaught ReferenceError: Cannot access 'NodeOrigin' before initialization” 问题，应该是BaseLight的在NodeObject解析完成之前进行了初始化
+                this.scene.lightsManager.add(child as BaseLight);
+                this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+                if ((child as BaseLight).Shadow)
+                    this.scene.renderManager.RC[E_renderPassName.transparent][child.UUID] = [];
+                childNode = child;
+            }
+            else if (child.type == "ParticleSystem") {
+                // this.scene.particleManager.addParticleSystem(child as ParticleSystem);
+                throw new Error("ParticleSystem 未实现");
+            }
+            // else if (child.type == "Model") {
+            //     // this.scene.modelManager.addModel(child as Model);
+            // }
+
+        }
+        //节点，根据参数创建
+        else {
+            let initValue: IV_Node;
+            if (child instanceof RootGPU) {
+                initValue = {
+                    entity: child,
+                };
+            }
+            else {
+                initValue = child;
+            }
+            childNode = await this.initNodeObject(initValue);
+        }
+        this._children.push(childNode);
+        return childNode;
+    }
+    add = this.addChild;
+
+    async initNodeObject(value: IV_Node): Promise<NodeObject> {
+        let childNode: NodeObject = new NodeInstance(value);//创建node object
+        await childNode.init(this.scene, this);  //初始化node object
+        childNode.Parent = this;    //设置parent
+        if (value.entity) {//如果有entity
+            if (value.entity._state == E_lifeState.constructed) {//如果entity已经constructed,但没有init,则init entity
+                await value.entity.init(this.scene);
+            }
+            this.scene.entityManager.add(value.entity, childNode);//将entity添加到entityManager中
+        }
+        // if (value.animation) {
+        //     throw new Error("animation 未实现");
+        // }
+        // if (value.particle) {
+        //     throw new Error("particle 未实现");
+        // }
+        return childNode;
+    }
+    removeChild(child: NodeObject): NodeObject | false {
+        let index = this._children.indexOf(child);
+        if (index !== -1) {
+            // this._children[index].removeChildren();//递归移除子节点
+            child.Parent = undefined;
+            this._children[index].visible = false;
+            this._children.splice(index, 1);
+            return child;
+        }
+        console.log("未找到对应的子节点", child);
+        return false;
+
+        ////20260106 camera 和  light 的删除有ECS附着，之后转移到ESC中
+        // if (childRemoveResult) {
+        //     if (child.type == "Camera") {
+        //         this.scene.cameraManager.remove(child as unknown as BaseCamera);
+        //         delete this.scene.renderManager.RC[E_renderPassName.forward][child.UUID];
+        //     }
+        //     else if (child.type == "Light") {
+        //         this.scene.lightsManager.remove(child as BaseLight);
+        //         this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
+        //         if (this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID])
+        //             delete this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID];
+        //         if (this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID])
+        //             delete this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID];
+        //     }
+        //     else {
+        //         console.log("未找到对应的ECS manager", child);
+        //     }
+        // }
+        // return childRemoveResult;
+    }
+    remove = this.removeChild;
+    /**
+     * remove all children
+     * 移除所有子节点
+     */
+    removeChildren() {
+        this._children.forEach((child) => {
+            child.removeChild(child);
+        });
+    }
+    /**
+     * 返回第一个具有id的object
+     * @param id 子节点的id
+     */
+    getObjectIndexByID(id: number): number | boolean {
+        for (let i in this.children) {
+            if (this.children[i].ID == id) {
+                return parseInt(i);
+            }
+        }
+        return false;
+    }
+    /**
+     * get child by UUID
+     * @param id 
+     * @returns 
+     */
+    getObjectIndexByUUID(id: string): number | boolean {
+        for (let i in this.children) {
+            if (this.children[i].UUID == id) {
+                return parseInt(i);
+            }
+        }
+        return false;
+    }
+    /**
+     * get child by renderID
+     * @param id 
+     * @returns 
+     */
+    getObjectIndexByRenderID(id: number): number | boolean {
+        for (let i in this.children) {
+            if (this.children[i]._renderID == id) {
+                return parseInt(i);
+            }
+        }
+        return false;
+    }
+    /**
+     * 返回第一个具有name的object
+     * @param name 
+     * @returns 
+     */
+    getObjectByName(name: string): NodeObject | boolean {
+        for (let i of this.children) {
+            if (i.Name == name) {
+                return this;
+            }
+            else if (i instanceof NodeObject) {
+                let scope = i.getObjectByName(name);
+                if (typeof scope != "boolean") {
+                    return scope;
+                }
+            }
+        }
+        return false;
+    }
+
+
+
+
+    /**
+     * 更新
+     * 1、判断是否需要更新（时间上）
+     * 2、调用super.update()更新，
+     *      A、NodeSpace：更新空间属性
+     *      B、RootGPU：更新user call back，调用最终子类更新自身updateSelf()
+     * 3、更新NodeObject的属性
+     * 4、更新子节点
+     * @param clock Clock 时钟
+     * @param updateSelftFN 是否调用自身的updateSelf(),默认=true
+     *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
+     * @returns 
+     */
+    update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
+        if (this.Name == "0") {
+            let abc = 1;
+        }
+        // if (this.lastUpdaeTime === clock.now) //更新检查
+        //     return false;
+        super.update(clock, false, false);                             //不更新updateSelf(),不更新updateAtEnd();都只执行一次
+        this.updateSelfAttribute(clock);
+        //更新updateSelf()。只更新一次,在所有自身更新之后
+        if (updateSelftFN && this.needUpdateSelf) {
+            this.updateSelf(clock);
+            this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
+        }
+        if (this.children.length > 0)                           //更新子节点
+            for (let i of this.children)
+                i.update(clock);
+
+        //根据是否使用罗德里格斯旋转，以及在local还是world空间，来更新旋转矩阵
+        this.rodriguesRotation(true);
+
+        //测试：更新inputValues，比如更改matrixWorld,在更新完成位置和matrix之后
+        // if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
+        //     this.inputValues.update(this);
+        // }
+        //在最后执行调用
+        if (updateAtEndFN)
+            // if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function") {
+            if (this.needUpdateuserDefineAtEnd) {
+                this.inputValues.updateAtEnd!(this);
+            }
+
+        return true;
+
+    }
+    /**
+     * 更新自己的属性
+     */
+    updateSelfAttribute(clock: Clock) {
+        //更新包围盒
+        if (this.Entity && this.Entity.boundingBox) {
+            let box = this.Entity.boundingBox;
+            const min = vec3.transformMat4(box.min, this.matrixWorld);
+            const max = vec3.transformMat4(box.max, this.matrixWorld);
+            this.scene.Box3s.push({
+                min: [min[0], min[1], min[2]],
+                max: [max[0], max[1], max[2]]
+            });//更新scene的包围盒数组
+        }
+    }
+    /**
+     * 自下而上的更新，一条线而上，不更新兄弟节点
+     * @param clock 
+     * @returns 
+     */
+    updateParentOnly(clock: Clock) {
+        if (this.Parent !== undefined && this.Parent.Name == "root") {
+            this.Parent.updateParentOnly(clock);//递归
+        }
+        if (this.lastUpdaeTime !== clock.now) {//更新自己
+            this.updateSelfAttribute(clock);
+            this.updateSelf(clock);
+        }
+    }
+
+
+
+    /** 
+     * 更新世界矩阵，
+     *          递归乘以父节点的矩阵
+     */
+    updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
+        if (this.Parent !== undefined && this.Parent.type !== "root") {
+            this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
+        }
+        else {
+            this.matrixWorld = this.updateMatrix();
+        }
+        // console.log("root:", this.matrixWorld);
+        return this.matrixWorld;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * 输出JSON格式
+     * 需要每个继承类覆盖属性实现
+     */
+    abstract saveJSON(): any;
+    /**
+     * 加载JSON格式数据
+     * @param json 输入的JSON格式数据
+     */
+    abstract loadJSON(json: any): void;
+    // getBaseJSON(): NodeObjectJSON {
+    //     let outputJSON: NodeObjectJSON = {
+    //         type: this.type,
+    //         name: this._name,
+    //         id: this._id,
+    //         // renderID: this._renderID,
+    //         UUID: this.UUID,
+    //         position: [],// this._position,
+    //         scale: [],// this._scale,
+    //         rotate: {
+    //             axis: [],
+    //             angleInRadians: 0,
+    //         },
+    //         quaternion: undefined,
+    //         enable: this.enable,
+    //         visible: this.visible,
+    //         matrix: [],// this.matrix,
+    //         matrixWorld: [],//this.matrixWorld,
+    //         parent: 0,
+    //         children: []
+    //     };
+    //     for (let i of this._position)
+    //         outputJSON.position.push(i);
+
+    //     if (this._quaternion) {
+    //         for (let i of this._quaternion)
+    //             outputJSON.quaternion!.push(i);
+    //     }
+    //     else {
+    //         outputJSON.quaternion = undefined;
+    //     }
+    //     if (this._scale) {
+    //         for (let i of this._scale)
+    //             outputJSON.scale.push(i);
+    //     }
+    //     else {
+    //         outputJSON.scale = undefined;
+    //     }
+    //     if (this._rotate) {
+    //         for (let i of this._rotate.axis)
+    //             outputJSON.rotate!.axis.push(i);
+    //         outputJSON.rotate!.angleInRadians = this._rotate.angleInRadians;
+    //     }
+    //     else {
+    //         outputJSON.rotate = undefined;
+    //     }
+
+    //     if (this.matrix)
+    //         for (let i of this.matrix)
+    //             outputJSON.matrix.push(i);
+
+    //     if (this.matrixWorld)
+    //         for (let i of this.matrixWorld)
+    //             outputJSON.matrixWorld.push(i);
+    //     if (this.parent)
+    //         outputJSON.parent = this.parent.ID;
+    //     for (let i of this._children) {
+    //         outputJSON.children.push(i.ID);
+    //     }
+
+    //     return outputJSON
+    // }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// NodeInstance and NodeInstanceModel
+
+/**
+ * 节点实例
+ * 用于实例化节点对象
+ */
+export class NodeInstance extends NodeObject {
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+    async readyForGPU(): Promise<any> {
+        // throw new Error("Method not implemented.");
+
+    }
+    _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
+    updateSelf(clock: Clock): void {
+        // throw new Error("Method not implemented.");
+    }
+}
+/**
+ * 节点实例
+ * 用于实例化节点对象
+ */
+export class NodeInstanceModel extends NodeObject {
+    /**
+     *  模型来源 : 指向原始模型
+     * 1、animation的数据来源使用modelOrigin
+    */
+    _modelOrigin!: BaseModel;
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+    async readyForGPU(): Promise<any> {
+        // throw new Error("Method not implemented.");
+
+    }
+    _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
+    updateSelf(clock: Clock): void {
+        // throw new Error("Method not implemented.");
+    }
+}
+
+/**
+ * 创建一个新的空节点实例
+ * @param scene 场景
+ * @param parent 父节点
+ * @returns 新的节点实例
+ */
+export async function newNode(parent: NodeInstance) {
+    let scene: Scene = parent.scene;
+    let node = new NodeInstance();
+    await node.init(scene, parent);
+    return node;
+}

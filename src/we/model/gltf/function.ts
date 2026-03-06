@@ -2,10 +2,11 @@ import { GLTFAccessor, GLTFBufferView, GLTFNode } from "@loaders.gl/gltf";
 import { weVec3, weVec4 } from "../../core/base/coreDefine";
 import { mat4 } from "wgpu-matrix";
 import { BaseEntity } from "../../core/entity/baseEntity";
-import { newNode, NodeInstance, NodeObject } from "../../core/organization/root";
+// import { newNode, NodeInstance, NodeObject } from "../../core/organization/root";
 import { GLTFModel } from "./gltf";
 import { T_ModelResKind } from "../../core/model/BaseModel";
 import { TypedArray } from "webgpu-utils";
+import { NodeObject, newNode } from "../../core/organization/nodeObject";
 
 /**
  * 实例化节点到实例化场景中

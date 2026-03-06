@@ -1,5 +1,5 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
-import { IV_NodeSpace, NodeObject, } from '../organization/root';
+// import { IV_NodeSpace, NodeObject, } from '../organization/root';
 import { CamreaControl, IV_CamreaControl } from '../control/cameracControl';
 import { I_Update, weVec3, weVec4 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
@@ -12,6 +12,8 @@ import { CameraManager } from './cameraManager';
 import { I_viewport } from '../command/base';
 import { isWeVec3 } from '../base/coreFunction';
 import { IV_OrbitCameraControl, OrbitCameraControl } from '../control/OrbitCameraControl';
+import { NodeObject } from '../organization/nodeObject';
+import { IV_NodeSpace } from '../organization/nodeSpace';
 
 
 

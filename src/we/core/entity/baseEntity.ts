@@ -1,4 +1,4 @@
-import { NodeObject, NodeSpace } from "../organization/root";
+// import { NodeObject, NodeSpace } from "../organization/root";
 
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
@@ -27,6 +27,8 @@ import { mergeLightUUID } from "../light/lightsManager";
 import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFunction";
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { E_AnimationType } from "../animation/base";
+import { NodeObject } from "../organization/nodeObject";
+import { NodeSpace } from "../organization/nodeSpace";
 
 
 export abstract class BaseEntity extends NodeSpace {

@@ -1,11 +1,12 @@
 import { mat4, Mat4, vec3, Vec3, } from "wgpu-matrix";
-import { NodeObject } from "../organization/root";
+// import { NodeObject } from "../organization/root";
 import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
 import { weColor3, I_Update, weVec3 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { isWeColor3 } from "../base/coreFunction";
 import { LightsManager } from "./lightsManager";
+import { NodeObject } from "../organization/nodeObject";
 
 /**
  * 光源的类型

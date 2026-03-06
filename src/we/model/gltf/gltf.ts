@@ -12,7 +12,7 @@
  */
 import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
-import { IV_NodeSpace, NodeInstanceModel, NodeObject, RootGPU } from "../../core/organization/root";
+// import { IV_NodeSpace, NodeInstanceModel, NodeObject, RootGPU } from "../../core/organization/root";
 import { createCommonGPUBuffer } from "../../core/command/baseFunction";
 import { I_indexGPUBufferBundle, I_vsGPUBufferBundle, T_indexAttribute } from "../../core/command/DrawCommandGenerator";
 import { IV_MeshEntity, Mesh } from "../../core/entity/mesh/mesh";
@@ -39,6 +39,9 @@ import { KeyFrameAnimation } from "../../core/animation/keyFrame";
 import { MorphTargetAnimation } from "../../core/animation/morphTarget";
 import { SkinAnimation } from "../../core/animation/skin";
 import { Skeleton } from "../../core/animation/skeleton";
+import { NodeObject, NodeInstanceModel } from "../../core/organization/nodeObject";
+import { IV_NodeSpace } from "../../core/organization/nodeSpace";
+import { RootGPU } from "../../core/organization/root";
 
 
 export interface I_gltfInstanceResource {
