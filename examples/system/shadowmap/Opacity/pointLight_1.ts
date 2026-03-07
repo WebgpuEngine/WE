@@ -39,6 +39,7 @@ let camera = new PerspectiveCamera({
   position: [-2, 2, 6],
   lookAt: [0, 0, 0],
   controlType: "arcball",
+  name: "相机",
 });
 await scene.add(camera);
 
@@ -76,6 +77,8 @@ let light1Entity1 = new Mesh(
 let lightRadius = 3.5;
 let lightZ = 2.;
 let lightNode1 = await scene.add({
+  name: "light1 Ball instance",
+
   entity: light1Entity1,
   position: [1, 1, 1],
   update: (scope: any) => {
@@ -87,6 +90,7 @@ let lightNode1 = await scene.add({
 
 let onelight = new PointLight(
   {
+    name:"点光源",
     position: [0, 0, 0],
     // position: [1, 1, 1],
     intensity: .750,
@@ -222,7 +226,8 @@ let bottomPlane = new Mesh({
   position: [0, -5, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
-await scene.add(bottomPlane);
+let bottomPlaneNode = await scene.add(bottomPlane);
+bottomPlaneNode.Name = "bottomPlane";
 
 let topPlane = new Mesh({
   attributes: {
@@ -232,7 +237,8 @@ let topPlane = new Mesh({
   position: [0, 5, 0],
   rotate: [1, 0, 0, Math.PI / 2],
 });
-await scene.add(topPlane);
+let topPlaneNode = await scene.add(topPlane);
+topPlaneNode.Name = "topPlane";
 
 let backPlane = new Mesh({
   attributes: {
@@ -241,7 +247,8 @@ let backPlane = new Mesh({
   material: groundMaterial,
   position: [0, 0, -5],
 });
-await scene.add(backPlane);
+let backPlaneNode = await scene.add(backPlane);
+backPlaneNode.Name = "backPlane";
 
 let frontPlane = new Mesh({
   attributes: {
@@ -252,7 +259,8 @@ let frontPlane = new Mesh({
 
   rotate: [1, 0, 0, Math.PI],
 });
-await scene.add(frontPlane);
+let frontPlaneNode = await scene.add(frontPlane);
+frontPlaneNode.Name = "frontPlane";
 
 let leftPlane = new Mesh({
   attributes: {
@@ -263,7 +271,8 @@ let leftPlane = new Mesh({
   rotate: [0, 1, 0, Math.PI / 2],//正的,normal 相关
 }
 );
-await scene.add(leftPlane);
+let leftPlaneNode = await scene.add(leftPlane);
+leftPlaneNode.Name = "leftPlane";
 
 let rightPlane = new Mesh({
   attributes: {
@@ -273,4 +282,5 @@ let rightPlane = new Mesh({
   position: [5, 0, 0],
   rotate: [0, 1, 0, -Math.PI / 2],//负的,normal 相关
 });
-await scene.add(rightPlane);
+let rightPlaneNode = await scene.add(rightPlane);
+rightPlaneNode.Name = "rightPlane";

@@ -118,18 +118,8 @@ export enum E_renderPassName {
  * 1、pipelineOrder：按照pipeline结构进行分类的命令队列
  * 2、dynmaicOrder：动态命令队列，不进行分类与优化
 */
-// interface I_renderDrawCommand {
-//     [name: string]: {
-//         pipelineOrder: Map<I_PipelineStructure, commmandType[]>,
-//         dynmaicOrder: commmandType[],
-//     }
-// }
 interface I_renderDrawCommand {
     [name: string]: commmandType[],
-    // {
-    //     pipelineOrder: Map<I_PipelineStructure, commmandType[]>,
-    //     dynmaicOrder: commmandType[],
-    // }
 }
 /**
  * 通用的渲染通道

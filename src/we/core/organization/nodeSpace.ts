@@ -19,7 +19,10 @@ export interface IV_NodeSpace extends I_Update {
     matrix?: weMat4,
 }
 export abstract class NodeSpace extends RootGPU {
-    needUpdateMatrix: boolean = true;
+    /**是否需要更新本地矩阵 */
+    needUpdateLocalMatrix: boolean = true;
+    /**是否需要更新全局矩阵 */
+    needUpdateGlobalMatrix: boolean = true;
     /**当前mesh的local的矩阵，按需更新 */
     matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
     /**当前entity在世界坐标（层级的到root)，可以动态更新 */
@@ -28,7 +31,6 @@ export abstract class NodeSpace extends RootGPU {
 
     //空间属性
     _position: Vec3 = vec3.create();
-    _positionOld: Vec3 | undefined;
     set Position(pos: Vec3 | weVec3) {
         // this._position = pos;
         // return;
@@ -43,7 +45,6 @@ export abstract class NodeSpace extends RootGPU {
         return this._position;
     }
 
-    _scaleOld: Vec3 | undefined;
     _scale: Vec3 = vec3.create(1, 1, 1);
     set Scale(scale: Vec3 | weVec3) {
         // this._scale = scale;
@@ -61,7 +62,6 @@ export abstract class NodeSpace extends RootGPU {
 
     /**旋转：自身原点为中心( 不，考虑_position位置)
      */
-    _rotateOld: weVec4 | undefined;
     _rotate: weVec4 | undefined;
 
     set Rotate(rotate: weVec4) {
@@ -75,7 +75,7 @@ export abstract class NodeSpace extends RootGPU {
      * 2、数组第三个元素为旋转角度
      * 3、数组第四个元素为是否在世界坐标下旋转
     */
-    _rodriguesRotation: [Vec3, Vec3, number, boolean] | undefined = undefined;
+    _rodriguesRotation: [Vec3, Vec3, number, boolean] | undefined;
     /** 任意点的任意轴的罗德里格斯旋转
      * 1、数组第一个元素为旋转点，第二个元素为旋转轴
      * 2、数组第三个元素为旋转角度
@@ -143,7 +143,6 @@ export abstract class NodeSpace extends RootGPU {
             mat4.copy(matTraget, this.matrix);
         }
     }
-    _quaternionOld: Quat | undefined;
     _quaternion: Quat | undefined;
     set Quaternion(quaternion: Vec4 | weVec4) {
         if (isWeVec4(quaternion)) {
@@ -157,6 +156,8 @@ export abstract class NodeSpace extends RootGPU {
         return this._quaternion;
     }
 
+
+    /**初始化矩阵 */
     _matrix: Mat4 | undefined;
     set Matrix(matrix: Mat4 | weMat4) {
         if (isWeMat4(matrix)) {
@@ -177,8 +178,9 @@ export abstract class NodeSpace extends RootGPU {
             if (input.scale) this.Scale = input.scale;
             if (input.rotate) this.Rotate = input.rotate;
             if (input.quaternion) this.Quaternion = input.quaternion;
-            if (input.matrix) mat4.copy(input.matrix, this.matrix);
+            if (input.matrix) mat4.copy(input.matrix, this._matrix);
         }
+        this.updateMatrix();//初始化矩阵
     }
     /**scale */
     scale(vec: Vec3) {
@@ -236,6 +238,7 @@ export abstract class NodeSpace extends RootGPU {
         this.matrix = mat4.setTranslation(this.matrix, pos);
     }
 
+
     /**
      * 1、矩阵操作一般来说：
      *      CPU中：S*R*T(右乘)，行向量*列矩阵=行向量
@@ -246,62 +249,33 @@ export abstract class NodeSpace extends RootGPU {
      * 3、旋转部分，四元数优先，然后后轴旋转。
      *    A、在模型gltf中，旋转使用四元数。
      */
-    updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
-        /**
-         * 一、判断needUpdateMatrix是否为true
-         * 
-         * 二、判断是否需要更新矩阵
-         * 1、判断parent 的matrixWorld是否有变化
-         * 2、判断position，scale，rotate|quaternion是否有变化
-         * 
-         * 
-         * 三、更新矩阵
-         */
-        //一、判断needUpdateMatrix是否为true
-        if (!this.needUpdateMatrix) {
-            return this.matrix;
-        }
-        //二、判断是否需要更新矩阵
-        let flagScale = false;
-        let flagPosition = false;
-        let flagQuaternion = false;
-        let flagParentMatrixWorld = false;
-        let flagRotate = false;
-
-        if (this._scale[0] == 1 || this._scale[1] == 1 || this._scale[2] !== 1) {
-            let abc = 1
-        }
-        //三、更新矩阵
+    // updateMatrix(_m4?: Mat4, _opera: "copy" | "multiply" = "copy"): Mat4 {
+    updateMatrix(): Mat4 {
         if (this.Name === "0") {
             let abc = 1;
         }
-        this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        if (_m4) {
-            if (_opera === "copy")
-                this.matrix = mat4.copy(_m4);
-            else if (_opera === "multiply")
-                this.matrix = mat4.multiply(this.matrix, _m4);
-        }
-        else if (this._matrix !== undefined) {
+        // 1、如果提供了初始化矩阵，直接复制
+        if (this._matrix !== undefined) {
             mat4.copy(this._matrix, this.matrix);
         }
-
-
+        // 2、如果没有提供初始化矩阵，默认单位矩阵
+        else {
+            this.matrix = mat4.set(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        }
         if (this._scale)
             this.scale(this._scale);
 
         if (this._quaternion)
             this.quaternion();
         else if (this._rotate) {
-            // this.rotateAxis(this._rotate.axis, this._rotate.angleInRadians);
             this.rotateAxis(vec3.fromValues(this._rotate[0], this._rotate[1], this._rotate[2]), this._rotate[3]);
         }
-        if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0))
+        if (this._position && (this._position[0] !== 0 || this._position[1] !== 0 || this._position[2] !== 0)) {
             // this.translate(this._position);
             this.setTranslation(this._position);
+        }
         //根据是否使用罗德里格斯旋转，以及在local还是world空间，来更新旋转矩阵
         this.rodriguesRotation(false);
-
         return this.matrix;
     }
     /**
@@ -311,21 +285,24 @@ export abstract class NodeSpace extends RootGPU {
      * @param _matrixWorld 世界矩阵
      * @returns 世界位置
      */
-    updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
-        if (_matrixWorld) {
-            this.worldPosition = vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
-        }
-        else {
-            this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
-        }
-        return this.worldPosition;
-    }
+    // updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
+    //     if (_matrixWorld) {
+    //         this.worldPosition = vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
+    //     }
+    //     else {
+    //         this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+    //     }
+    //     return this.worldPosition;
+    // }
+
     /**
      * 更新世界矩阵，返回世界矩阵
      * @param _parentMatrixWorld 父节点的世界矩阵（可选项）
      * @returns 世界矩阵
      */
     abstract updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4
+
+
     /**
      * 正常更新
      * 1、更新空间属性
@@ -339,19 +316,110 @@ export abstract class NodeSpace extends RootGPU {
      */
     update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
         super.update(clock, false, false);//更新I_Update，不更新updateSelf()
-        this.updateMatrixWorld();//更新 world matrix
-        this.updateWorldPosition(); //更新 world position
+        this.needUpdateLocalMatrix = this.checkNeedUpdateMatrix();
+        //用于减少无变化 实体或NodeObject的矩阵计算量。
+        if (this.needUpdateLocalMatrix) {
+            this.updateMatrix();
+        }
         //更新updateSelf()。只更新一次,在所有自身更新之后
-        if (updateSelftFN && this.needUpdateSelf) {
+        if (updateSelftFN ) {
             this.updateSelf(clock);
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }
         //在最后执行调用
         if (updateAtEndFN)
-            // if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function") {
             if (this.needUpdateuserDefineAtEnd) {
                 this.inputValues.updateAtEnd!(this);
             }
         return true;
+    }
+    /** 父空间的矩阵世界 */
+    _parentMatrixWorld: Mat4 | undefined;
+    _positionOld: Vec3 | undefined;
+    _scaleOld: Vec3 | undefined;
+    _rotateOld: Vec4 | undefined;
+    _quaternionOld: Quat | undefined;
+    _rodriguesRotationOld: [Vec3, Vec3, number, boolean] | undefined;
+    /** 检查是否需要更新矩阵 
+     * 这里是TRS
+    */
+    checkNeedUpdateMatrix(): boolean {
+        let flagScale = false;
+        let flagPosition = false;
+        let flagQuaternion = false;
+        let flagRotate = false;
+        let flagRodriguesRotation = false;
+
+        if (this._scaleOld == undefined) {
+            flagScale = true;
+            this._scaleOld = vec3.create();
+            vec3.copy(this._scale, this._scaleOld);
+        }
+        else if (vec3.equals(this._scale, this._scaleOld) === false) {
+            flagScale = true;
+            vec3.copy(this._scale, this._scaleOld);
+        }
+
+        if (this._positionOld == undefined) {
+            flagPosition = true;
+            this._positionOld = vec3.create();
+            vec3.copy(this._position, this._positionOld);
+        }
+        else if (vec3.equals(this._position, this._positionOld) === false) {
+            flagPosition = true;
+            vec3.copy(this._position, this._positionOld);
+        }
+        if (this._quaternion) {
+            if (this._quaternionOld == undefined && this._quaternion !== undefined) {
+                flagQuaternion = true;
+                this._quaternionOld = vec4.create();
+                vec4.copy(this._quaternion, this._quaternionOld);
+            }
+            else if (this._quaternion !== undefined && this._quaternionOld !== undefined) {
+                if (vec4.equals(this._quaternion, this._quaternionOld) === false) {
+                    flagQuaternion = true;
+                    vec4.copy(this._quaternion, this._quaternionOld);
+                }
+            }
+        }
+        else if (this._rotate) {
+            if (this._rotateOld == undefined) {
+                flagRotate = true;
+                this._rotateOld = vec4.create();
+                vec3.copy(this._rotate, this._rotateOld);
+            }
+            else if (this._rotate !== undefined && this._rotateOld !== undefined) {
+                if (vec3.equals(this._rotate, this._rotateOld) === false) {
+                    flagRotate = true;
+                    vec3.copy(this._rotate, this._rotateOld);
+                }
+            }
+        }
+        if (this._rodriguesRotation) {
+            if (this._rodriguesRotationOld == undefined) {
+                flagRodriguesRotation = true;
+                this._rodriguesRotationOld = [vec3.create(), vec3.create(), 0, false];
+                vec4.copy(this._rodriguesRotation[0], this._rodriguesRotationOld[0]);
+                vec4.copy(this._rodriguesRotation[1], this._rodriguesRotationOld[1]);
+                this._rodriguesRotationOld[2] = this._rodriguesRotation[2];
+                this._rodriguesRotationOld[3] = this._rodriguesRotation[3];
+            }
+            else if (this._rodriguesRotation !== undefined && this._rodriguesRotationOld !== undefined) {
+                if (
+                    vec3.equals(this._rodriguesRotation[0], this._rodriguesRotationOld[0]) === false ||
+                    vec3.equals(this._rodriguesRotation[1], this._rodriguesRotationOld[1]) === false ||
+                    this._rodriguesRotation[2] !== this._rodriguesRotationOld[2] ||
+                    this._rodriguesRotation[3] !== this._rodriguesRotationOld[3]
+                ) {
+                    flagRodriguesRotation = true;
+                    vec4.copy(this._rodriguesRotation[0], this._rodriguesRotationOld[0]);
+                    vec4.copy(this._rodriguesRotation[1], this._rodriguesRotationOld[1]);
+                    this._rodriguesRotationOld[2] = this._rodriguesRotation[2];
+                    this._rodriguesRotationOld[3] = this._rodriguesRotation[3];
+                }
+            }
+        }
+        this.needUpdateLocalMatrix = flagScale || flagPosition || flagQuaternion || flagRotate || flagRodriguesRotation;
+        return this.needUpdateLocalMatrix;
     }
 }

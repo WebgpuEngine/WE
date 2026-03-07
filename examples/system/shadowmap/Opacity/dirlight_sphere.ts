@@ -21,7 +21,7 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
-  reversedZ:true,
+  reversedZ: true,
 };
 let scene = await initScene({
   initConfig: input,
@@ -51,7 +51,7 @@ await scene.add(camera);
 
 let onelight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1,-1],
+  direction: [1, 1, -1],
   intensity: 0.5,
   shadow: true,
 });
@@ -96,14 +96,15 @@ let inputMesh: IV_MeshEntity = {
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
-await scene.add(mesh);
+let meshEntity = await scene.add(mesh);
+meshEntity.Name = "sphere"
 
 let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
 });
 let groundMaterial = new PhongMaterial({
-  color: [1,1,1, 1],
+  color: [1, 1, 1, 1],
   roughness: 1,
   metalness: 0.1,
   shininess: 32
@@ -116,4 +117,5 @@ let groundMesh = new Mesh({
   position: [0, -1, 0],
   rotate: [1, 0, 0, -Math.PI / 2]
 });
-await scene.add(groundMesh);
+let groundEntity = await scene.add(groundMesh);
+groundEntity.Name = "ground"

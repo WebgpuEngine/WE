@@ -2,7 +2,7 @@
 // some JSON
 ///////////////////////////////////////////////////////////
 
-import { vec3, Mat4, mat4 } from "wgpu-matrix";
+import { vec3, Mat4, mat4, Vec3, vec4, Quat, Vec4 } from "wgpu-matrix";
 import { AnimationGroup } from "../animation/animationGroup";
 import { BaseAnimation } from "../animation/BaseAnimation";
 import { SkinAnimation } from "../animation/skin";
@@ -80,6 +80,7 @@ export interface NodeObjectJSON {
  * 2、有entity的instance节点，必须设置为非none
  */
 export interface IV_AttachSpaceAttributeToNodeModel {
+    name?: string,
     position?: weVec3,
     scale?: weVec3,
     rotate?: weVec4,
@@ -150,15 +151,28 @@ export abstract class NodeObject extends NodeSpace {
     constructor(input?: IV_Node) {
         super(input);
         if (input) {
+            if (input.name) {
+                this.Name = input.name;
+            }
             if (input.entity) {
                 this.Entity = input.entity;
+                if (input.spaceType) {
+                    this.SpaceType = input.spaceType;
+                }
+                else {
+                    this.SpaceType = E_BVHSpaceType.dynamic;
+                }
             }
             if (input.physicalBody) {
-                this._physicalBody = input.physicalBody;
+                this.PhysicalBody = input.physicalBody;
+                this.SpaceType = E_BVHSpaceType.physical;
             }
             // if (input.particle) this.Particle = input.particle;
             // if (input.animation) this.Animation = input.animation;
         }
+        this.updateMatrixWorld();//更新 world matrix
+        this.updateWorldPosition(); //更新 world position
+        this.updateSelfAttribute();//更新自身属性，AABB
     }
     /** stageID*/
     stageID: number = 0;
@@ -676,43 +690,38 @@ export abstract class NodeObject extends NodeSpace {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
-        if (this.Name == "0") {
-            let abc = 1;
-        }
-        // if (this.lastUpdaeTime === clock.now) //更新检查
-        //     return false;
         super.update(clock, false, false);                             //不更新updateSelf(),不更新updateAtEnd();都只执行一次
-        this.updateSelfAttribute(clock);
+        this.needUpdateGlobalMatrix = this.checkNeedUpdateMatrix();//调用slef class 的checkNeedUpdateMatrix()，确认parent的matrixWorld是否有变化
+        //用于减少无变化NodeObject的矩阵计算量。这里之哟NodeObject，包括了，Light，Camera
+        if (this.needUpdateGlobalMatrix) {
+            this.updateMatrixWorld();//更新 world matrix
+            this.updateWorldPosition(); //更新 world position
+        }
+        //更新自身属性，AABB
+        this.updateSelfAttribute();
         //更新updateSelf()。只更新一次,在所有自身更新之后
-        if (updateSelftFN && this.needUpdateSelf) {
+        if (updateSelftFN) {
             this.updateSelf(clock);
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }
         if (this.children.length > 0)                           //更新子节点
-            for (let i of this.children)
-                i.update(clock);
-
+            for (let i of this.children) {
+                i.update(clock);//更新子节点,包括：node object，light，camera
+            }
         //根据是否使用罗德里格斯旋转，以及在local还是world空间，来更新旋转矩阵
         this.rodriguesRotation(true);
-
-        //测试：更新inputValues，比如更改matrixWorld,在更新完成位置和matrix之后
-        // if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
-        //     this.inputValues.update(this);
-        // }
         //在最后执行调用
         if (updateAtEndFN)
             // if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function") {
             if (this.needUpdateuserDefineAtEnd) {
                 this.inputValues.updateAtEnd!(this);
             }
-
         return true;
-
     }
     /**
      * 更新自己的属性
      */
-    updateSelfAttribute(clock: Clock) {
+    updateSelfAttribute() {
         //更新包围盒
         if (this.Entity && this.Entity.boundingBox) {
             let box = this.Entity.boundingBox;
@@ -725,21 +734,37 @@ export abstract class NodeObject extends NodeSpace {
         }
     }
     /**
-     * 自下而上的更新，一条线而上，不更新兄弟节点
-     * @param clock 
-     * @returns 
-     */
+    * 自下而上的更新，一条线而上，不更新兄弟节点
+    * @param clock 
+    * @returns 
+    */
     updateParentOnly(clock: Clock) {
         if (this.Parent !== undefined && this.Parent.Name == "root") {
             this.Parent.updateParentOnly(clock);//递归
         }
         if (this.lastUpdaeTime !== clock.now) {//更新自己
-            this.updateSelfAttribute(clock);
+            this.updateSelfAttribute();
             this.updateSelf(clock);
         }
     }
 
 
+    /**
+     * 更新世界位置
+     * 1、entity的worldPosition 是entity的position在世界坐标系下的位置
+     * 2、如果没有提供世界矩阵，默认使用entity的matrixWorld
+     * @param _matrixWorld 世界矩阵
+     * @returns 世界位置
+     */
+    updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
+        if (_matrixWorld) {
+            this.worldPosition = vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
+        }
+        else {
+            this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+        }
+        return this.worldPosition;
+    }
 
     /** 
      * 更新世界矩阵，
@@ -747,13 +772,39 @@ export abstract class NodeObject extends NodeSpace {
      */
     updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
         if (this.Parent !== undefined && this.Parent.type !== "root") {
-            this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
+            // this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
+            this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.matrix);
         }
         else {
-            this.matrixWorld = this.updateMatrix();
+            // this.matrixWorld = this.updateMatrix();
+            this.matrixWorld = this.matrix;
         }
         // console.log("root:", this.matrixWorld);
         return this.matrixWorld;
+    }
+
+
+    /** 检查是否需要更新矩阵 */
+    checkNeedUpdateMatrix(): boolean {
+        let flagParentMatrixWorld = false;
+        // if (this.Parent !== undefined) {
+        //     flagParentMatrixWorld = this.Parent.needUpdateMatrix;
+        // }
+        if (this.Parent !== undefined) {
+            if (this._parentMatrixWorld == undefined) {
+                flagParentMatrixWorld = true;
+                this._parentMatrixWorld = mat4.create();
+                mat4.copy(this.Parent.matrixWorld, this._parentMatrixWorld);
+            }
+            else if (this._parentMatrixWorld !== undefined && this.Parent.matrixWorld !== undefined) {
+                if (mat4.equals(this._parentMatrixWorld, this.Parent.matrixWorld) === false) {
+                    flagParentMatrixWorld = true;
+                    mat4.copy(this.Parent.matrixWorld, this._parentMatrixWorld);
+                }
+            }
+        }
+        this.needUpdateGlobalMatrix = this.needUpdateLocalMatrix || flagParentMatrixWorld;
+        return this.needUpdateGlobalMatrix;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

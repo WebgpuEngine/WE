@@ -529,22 +529,25 @@ export abstract class BaseEntity extends NodeSpace {
         return this.matrix;
     }
 
-    /**
-     * 更新世界位置,entity无worldPosition，只有position在本地坐标系下的位置
-     * 1、entity需要实例化，并使用实例的世界坐标。
-     * 2、由于entity的worldPosition是在本地坐标系下的位置，worldPostion=(0,0,0)
-     * 3、每个instance的世界矩阵不同而不同，所以这里的更新世界位置=返回世界坐标系（不更新entity的worldPosition）
-     * 4、如果没有提供世界矩阵，默认使用entity的matrixWorld，并返回entity的position在世界坐标系下的位置（0,0,0）
-     * @param _matrixWorld 世界矩阵
-     * @returns 世界位置
-     */
+    // /**
+    //  * 更新世界位置,entity无worldPosition，只有position在本地坐标系下的位置
+    //  * 1、entity需要实例化，并使用实例的世界坐标。
+    //  * 2、由于entity的worldPosition是在本地坐标系下的位置，worldPostion=(0,0,0)
+    //  * 3、每个instance的世界矩阵不同而不同，所以这里的更新世界位置=返回世界坐标系（不更新entity的worldPosition）
+    //  * 4、如果没有提供世界矩阵，默认使用entity的matrixWorld，并返回entity的position在世界坐标系下的位置（0,0,0）
+    //  * @param _matrixWorld 世界矩阵
+    //  * @returns 世界位置
+    //  */
+    // updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
+    //     if (_matrixWorld) {
+    //         return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
+    //     }
+    //     else {
+    //         return vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);//（0,0,0）
+    //     }
+    // }
     updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
-        if (_matrixWorld) {
-            return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
-        }
-        else {
-            return vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);//（0,0,0）
-        }
+        return this.worldPosition;
     }
     /**
      * 获取实例的世界矩阵，不更新entity的worldPosition
@@ -563,7 +566,9 @@ export abstract class BaseEntity extends NodeSpace {
      * @returns 实例的世界位置
      */
     getWorldPositionOfInstance(instance: NodeObject): Vec3 {
-        return this.updateWorldPosition(this.getMatrixWorldOfInstance(instance));
+        // return this.updateWorldPosition(this.getMatrixWorldOfInstance(instance));
+        let _matrixWorld = this.getMatrixWorldOfInstance(instance);
+        return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
     }
     setBoundingBox(box: boundingBox) {
         this.boundingBox = box;

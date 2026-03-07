@@ -205,7 +205,7 @@ export abstract class BaseLight extends NodeObject {
     manager!: LightsManager;
 
     constructor(input: I_optionBaseLight, kind: E_lightType) {
-        super();
+        super(input);
         this.type = "Light";
         this.ID = WeGenerateID();
 

@@ -339,7 +339,7 @@ export abstract class BaseCamera extends NodeObject {
       /**
        * orbitCameraControl中，根据旋转更新了right
        */
-      vec3.cross(back, this.right,this.up);
+      vec3.cross(back, this.right, this.up);
     }
     /**方向在世界坐标系的+Y轴，特殊判断条件，防止up向量和back向量平行
      *    ______X
@@ -349,7 +349,7 @@ export abstract class BaseCamera extends NodeObject {
      */
     // else if (this.back[0] == 0 && this.back[1] == 1 && this.back[2] == 0) {
     else if (dotBackUp < -0.999999) {
-      vec3.cross(back, this.right,this.up);
+      vec3.cross(back, this.right, this.up);
     }
     else {
       /** ///////////////////////////////////////////////////////////////////////////////////////////
@@ -439,7 +439,8 @@ export abstract class BaseCamera extends NodeObject {
     ////移动到NodeObject中
     // this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
     super.updateWorldPosition();
-    this.positionOfModelMatrix = this.worldPosition;//更新model matrix
+    // this.positionOfModelMatrix = this.worldPosition;//更新model matrix
+    this.positionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
     return this.worldPosition;
   }
 

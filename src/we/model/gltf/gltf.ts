@@ -806,10 +806,12 @@ export class GLTFModel extends BaseModel {
                     let inputEntity: IV_MeshEntity | IV_PointsEntity | IV_LinesEntity;  //enity 属性
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //material part
-                    let materialDataSource = this.DataLoader.getMaterial(primitive.material);
                     let cullMode: GPUCullMode = "back";
-                    if (materialDataSource.doubleSided && materialDataSource.doubleSided === true) {
-                        cullMode = "none";
+                    if (primitive.material) {
+                        let materialDataSource = this.DataLoader.getMaterial(primitive.material);
+                        if (materialDataSource.doubleSided && materialDataSource.doubleSided === true) {
+                            cullMode = "none";
+                        }
                     }
                     let materialOfPerEntity;                        //当前entity的primitive的材质
                     if (primitive.material == undefined) {          //如果primitive没有材质，默认使用default材质

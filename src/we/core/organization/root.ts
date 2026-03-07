@@ -70,10 +70,7 @@ export abstract class RootGPU implements I_UUID {
      * 是否用户自定义更新函数，在update()函数最后调用
      */
     needUpdateuserDefineAtEnd: boolean = false;
-    /**
-     * 是否需要在update()函数中更新自身
-     */
-    needUpdateSelf: boolean = true;
+
     /**
      * 节点是否以及GPU准备好
      * node is ready of GPU
@@ -82,12 +79,15 @@ export abstract class RootGPU implements I_UUID {
     constructor(input?: I_Update) {
         this.UUID = WeGenerateUUID();
         this.ID = WeGenerateID();
-        // console.log("create root:", this.ID);
         if (input) this.inputValues = input;
-        if (input?.name) this._name = input!.name!;
+        if (input?.name) {
+            this._name = input!.name!;
+        }
         else this._name = this.ID.toString();
+        //是否需要用户自定义更新函数
         if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function")
             this.needUpdateuserDefine = true;
+        //是否需要用户自定义更新函数，在update()函数最后调用
         if (this.inputValues && this.inputValues.updateAtEnd !== undefined && typeof this.inputValues.updateAtEnd === "function")
             this.needUpdateuserDefineAtEnd = true;
     }

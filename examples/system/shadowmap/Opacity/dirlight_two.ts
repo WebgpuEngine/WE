@@ -70,7 +70,8 @@ let twolight = new DirectionalLight({
   update: (light) => {
     const now = Date.now() / 2000; 
     light.Direction=[Math.sin(now), 1,Math.cos(now)];
-  }
+  },
+  name:"dir2"
 });
 await scene.add(twolight);
 

@@ -8,7 +8,7 @@ import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 import { BaseLight } from "../light/baseLight";
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseGeometry } from "../geometry/baseGeometry";
-import { IV_NodeSpace } from "../organization/root";
+import { IV_NodeSpace } from "../organization/nodeSpace";
 
 export enum E_entityType {
     mesh = "mesh",

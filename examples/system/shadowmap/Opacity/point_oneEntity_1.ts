@@ -77,6 +77,7 @@ let onelight = new PointLight(
     // position: [1, 1, 1],
     intensity: .5,
     shadow: true,
+    name: "light1",
   }
 );
 await lightNode1.addChild(onelight);
