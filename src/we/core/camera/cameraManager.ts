@@ -1153,9 +1153,14 @@ export class CameraManager extends ECSManager<BaseCamera> {
         let uniform00_ColorTexture: GPUBindGroupEntry = {
             // label: "ToneMapping uniform color texture0",
             binding: 0,
-            // resource: this.GBufferManager.GBuffer[UUID].finalRender.finalLinearColor.createView(),
             resource: this.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
         };
+        if (this.scene.deferRender.enable == true && this.scene.deferRender.deferRenderColor == true) {
+            uniform00_ColorTexture = {
+                binding: 0,
+                resource: this.GBufferManager.GBuffer[UUID].forward.deferColor.createView(),
+            };
+        }
         //bindgroup layout 0 的描述
         let bindGroupLayoutDescriptor0: GPUBindGroupLayoutDescriptor =
         {
