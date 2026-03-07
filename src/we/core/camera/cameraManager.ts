@@ -1121,8 +1121,10 @@ export class CameraManager extends ECSManager<BaseCamera> {
                 returnColor = "return vec4f(linearToHDR(color.rgb), color.a);";
                 break;
             default:
-                returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
+                // returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
+                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
         }
+        // 如果颜色空间是srgb，那么就不需要转换
         if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
             returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
         let shader = `   
@@ -1146,6 +1148,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             code: shader,
         });
 
+        //uniform00 颜色纹理来源：camera的GBuffer的color
         // ToneMapping 绑定的uniform 00 是颜色纹理
         let uniform00_ColorTexture: GPUBindGroupEntry = {
             // label: "ToneMapping uniform color texture0",

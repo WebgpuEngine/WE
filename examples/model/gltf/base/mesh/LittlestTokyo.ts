@@ -21,7 +21,7 @@ let input: IV_Scene = {
   backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
   toneMapping: "linear",
-  deferRender: "color",
+  // deferRender: "color",
 };
 let scene = await initScene({
   initConfig: input,

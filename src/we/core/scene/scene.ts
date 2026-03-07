@@ -833,9 +833,15 @@ export class Scene {
         let defaultCamera = this.cameraManager.defaultCamera;
         if (defaultCamera) {
             //直接copy GBuffer的color到canvas
-            // let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].forward.GBuffer["color"];
             // let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].finalRender.toneMappingTexture;
-            copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
+
+            // let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].forward.GBuffer["color"];
+            let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].forward.deferColor;
+            copyTextureToTexture(this.device, finalColorOfGBuffer, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
+
+
+
+            // copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
         }
         else {
             // console.error("没有默认相机");

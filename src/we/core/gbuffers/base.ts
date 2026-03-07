@@ -185,6 +185,7 @@ export interface I_GBufferGroup {
             colorAttachmentTargets: GPUColorTargetState[],
             /** 每个camera的forward GBuffer存储位置 */
             GBuffer: I_GBuffer,
+            deferColor: GPUTexture,
         },
         MSAA?: {
             /** 每个camera MSAA GBuffer的渲染描述 */

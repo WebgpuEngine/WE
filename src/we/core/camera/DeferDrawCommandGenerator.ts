@@ -20,7 +20,7 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
     scene: Scene;
     device: GPUDevice;
 
-    shaderModule!: GPUShaderModule|undefined;
+    shaderModule!: GPUShaderModule | undefined;
     flagShaderModule: string = "DeferRender";
     DDC: {
         [UUID in string]: commmandType[]
@@ -48,14 +48,14 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
         if (this.DDC[UUID] === undefined) {
             this.DDC[UUID] = [];
         }
-        let copyCommand = new CopyCommandT2T({
-            A: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color),
-            // B: this.parent.testTexture,
-            B: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture,
-            size: this.scene.surface.size,
-            device: this.device,
-        });
-        this.DDC[UUID].push(copyCommand);
+        // let copyCommand = new CopyCommandT2T({
+        //     A: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color),
+        //     // B: this.parent.testTexture,
+        //     B: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture,
+        //     size: this.scene.surface.size,
+        //     device: this.device,
+        // });
+        // this.DDC[UUID].push(copyCommand);
 
         let pipeline: GPURenderPipeline;
         let uniforms: GPUBindGroup[] = [];
@@ -66,7 +66,8 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
                     {
                         binding: 0,
                         // resource: this.parent.testTexture.createView(),
-                        resource: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture.createView(),
+                        // resource: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture.createView(),
+                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color).createView(),
                     },
                     {
                         binding: 1,
@@ -169,7 +170,8 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
         {
             colorAttachments: [
                 {
-                    view: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color).createView({ label: "Defer Render :" + UUID }),
+                    // view: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color).createView({ label: "Defer Render :" + UUID }),
+                    view: this.parent.GBufferManager.GBuffer[UUID].forward.deferColor.createView({ label: "Defer Render :" + UUID }),
                     loadOp: 'clear',
                     storeOp: 'store',
                 }]

@@ -80,7 +80,7 @@ let onelight = new PointLight(
   {
     position: [0, 0, 0],
     // position: [1, 1, 1],
-    intensity: 9,
+    intensity:19,
     // intensity: 20,//没有进行tone mapping 之前
     shadow: true,
 
@@ -88,7 +88,13 @@ let onelight = new PointLight(
 );
 await light1Entity1Node.addChild(onelight);
 
-
+let ambientLight = new AmbientLight(
+  {
+    color: [1, 1, 1],
+    intensity: 0.05
+  }
+)
+await scene.add(ambientLight);
 ///////////////////////////////////////////////////////////////////////
 
 //实体球

@@ -52,7 +52,7 @@ await scene.add(camera);
 let dirlight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [1, 1, 1],
-  intensity: 0.25,
+  intensity: .5,
 
 });
 await scene.add(dirlight);
@@ -60,7 +60,7 @@ await scene.add(dirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.000001
+    intensity: 0.1
   }
 )
 await scene.add(ambientLight);

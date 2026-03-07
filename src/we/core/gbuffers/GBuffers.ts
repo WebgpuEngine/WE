@@ -155,7 +155,7 @@ export class GBuffers {
                     if (key != E_GBufferNames.color) {
                         RPD_MSAAinfo_colorAttachments.push({
                             view: texture.createView({ label: id + " MSAA info " + key }),
-                            clearValue: [0,0,0,0],
+                            clearValue: [0, 0, 0, 0],
                             loadOp: 'clear',
                             storeOp: 'store',
                         });
@@ -205,11 +205,21 @@ export class GBuffers {
                     depthStoreOp: 'store',
                 },
             };
+            //20260308 新增deferColor,临时使用，后续优化
+            let textureDeferColor = device.createTexture({
+                label: name + " deferColor " + unixTime,
+                size: [width, height],
+                format: V_weLinearFormat,
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+                // sampleCount: MSAA ? 4 : 1,
+            });
+
             this.GBuffer[id] = {
                 forward: {
                     RPD: RPD_forward,
                     colorAttachmentTargets: forward_ColorAttachmentTargets,
                     GBuffer: gbuffers,
+                    deferColor: textureDeferColor,
                 },
                 finalRender,
             };

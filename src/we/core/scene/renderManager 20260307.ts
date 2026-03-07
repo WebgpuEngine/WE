@@ -479,7 +479,7 @@ export class RenderManager {
     }
 
     /**
-     * timelineDC,只有渲染DC
+     * timelineDC,只有渲染DC。与普通提交没有区别。
      * @param list 渲染列表
      */
     async renderTimelineDC(list: I_renderDrawOfTimeline) {
@@ -644,58 +644,60 @@ export class RenderManager {
             let flagUUID = UUID;        //标记UUID，MSAA时UUID 会和forward的UUID在计数器中冲突
             if (MSAA != undefined) flagUUID = MSAA + UUID;
 
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //单组提交，defer，forward，msaa都没问题
-            // for (let perCommand of perOne) {
-            //     if (MSAA != undefined) {
-            //         if (MSAA == "MSAA")
-            //             this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //         else {
-            //             this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //         }
-            //     }
-            //     else {
-            //         this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //     }
-            //     this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-            //     perCommand.submit();
-            // }
-            // //MSAA  resolve part,并且过滤掉空数组
-            // if (MSAA == "MSAA" && perOne.length > 0) {
-            //     this.scene.cameraManager.resolveMSAA(UUID);
-            // }
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            // defer 合并提交有问题（待查），但forward 和msaa 都没问题，
-            //20260308 ，解决。原因，复用tonemapping GPUTexture产生的问题。GPU和CPU效率有大幅提升
-            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-            for (let perCommand of perOne) {
-                if (MSAA != undefined) {
-                    if (MSAA == "MSAA")
-                        this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                    else {
-                        this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                        // this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+            if (this.scene.deferRender.enable && this.scene.deferRender.deferRenderColor == true) {
+                ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                //多次的单次提交，影响CPU使用率，也影响GPU的处理速度，会产生小从提交-->处理的时间片，也会影响GPU速度
+                //***********************单组提交，defer + forward，msaa都没问题*******************************
+                for (let perCommand of perOne) {
+                    if (MSAA != undefined) {
+                        if (MSAA == "MSAA")
+                            this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                        else {
+                            this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                        }
                     }
+                    else {
+                        this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                    }
+                    this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
+                    perCommand.submit();
                 }
-                else {
-                    this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                }
-                let commandBuffer = await perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-                this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-            }
-            //submit part
-            if (submitCommand.length > 0) {
-                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-                if (MSAA == "MSAA") {
-                    await this.device.queue.onSubmittedWorkDone();
+
+                //MSAA  resolve part,并且过滤掉空数组
+                if (MSAA == "MSAA" && perOne.length > 0) {
                     this.scene.cameraManager.resolveMSAA(UUID);
                 }
             }
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            else {
+                ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                // *******************************defer 合并提交有问题（待查），但forward 和msaa 都没问题，******************************************
+                let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
+                for (let perCommand of perOne) {
+                    if (MSAA != undefined) {
+                        if (MSAA == "MSAA")
+                            this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                        else {
+                            this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                            // this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                        }
+                    }
+                    else {
+                        this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                    }
+                    let commandBuffer = await perCommand.update();
+                    submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
+                    this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
+                }
+                //submit part
+                if (submitCommand.length > 0) {
+                    this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+                    if (MSAA == "MSAA") {
+                        this.scene.cameraManager.resolveMSAA(UUID);
+                    }
+                }
+                ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+            }
         }
     }
     async renderDeferDC(list: I_renderDrawOfTimeline) {
@@ -736,14 +738,12 @@ export class RenderManager {
         this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
         //defer render Of depth
         this.renderForwaredDC(this.RC[E_renderPassName.depth]);
-
+        //MSAA,未开启MSAA
+        // this.doCommand(this.RC[E_renderPassName.MSAA]);
+        this.renderForwaredDC(this.RC[E_renderPassName.MSAA], "MSAA");
         //不透明enity
         if (this.scene.MSAA === true)//开启MSAA，forward
-        {        //MSAA,未开启MSAA
-            // this.doCommand(this.RC[E_renderPassName.MSAA]);
-            this.renderForwaredDC(this.RC[E_renderPassName.MSAA], "MSAA");
             this.renderForwaredDC(this.RC[E_renderPassName.forward], "MSAAinfo");
-        }
         else
             this.renderForwaredDC(this.RC[E_renderPassName.forward]);
         //defer render
