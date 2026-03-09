@@ -524,10 +524,10 @@ export abstract class BaseEntity extends NodeSpace {
      * @param parentMatrixWorld 父矩阵
      * @returns 世界矩阵
      */
-    updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
-        this.updateMatrix();
-        return this.matrix;
-    }
+    // updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
+    //     this.updateMatrix();
+    //     return this.matrix;
+    // }
 
     // /**
     //  * 更新世界位置,entity无worldPosition，只有position在本地坐标系下的位置

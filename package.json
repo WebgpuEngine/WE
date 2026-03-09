@@ -17,7 +17,10 @@
     "ts-jest": "^29.4.1",
     "typedoc": "^0.28.11",
     "typescript": "~5.8.3",
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "muigui": "^0.0.22",
+    "stats.js": "^0.17.0",
+    "lil-gui": "^0.17.0"
   },
   "dependencies": {
     "@dimforge/rapier3d": "^0.19.2",
@@ -30,7 +33,6 @@
     "@loaders.gl/textures": "4.3.4",
     "@loaders.gl/video": "4.3.4",
     "@loaders.gl/zip": "4.3.4",
-    "muigui": "^0.0.22",
     "webgpu-utils": "^1.11.0",
     "wgpu-matrix": "^3.4.0"
   }

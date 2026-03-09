@@ -19,15 +19,20 @@ export interface IV_NodeSpace extends I_Update {
     matrix?: weMat4,
 }
 export abstract class NodeSpace extends RootGPU {
+
     /**是否需要更新本地矩阵 */
     needUpdateLocalMatrix: boolean = true;
-    /**是否需要更新全局矩阵 */
-    needUpdateGlobalMatrix: boolean = true;
-    /**当前mesh的local的矩阵，按需更新 */
+
+    /**local matrix  */
     matrix: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
+    /**当前entity在世界坐标（层级的到root)，可以动态更新 
+     * 1、在directInWorldSpace为true时，matrixWorld与matrix相同
+     * 2、在directInWorldSpace为false时，matrixWorld为matrix的累计乘积
+    */
     matrixWorld: Mat4 = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+    /**在世界坐标下的位置(x,y,z)  */
     worldPosition: Vec3 = vec3.create();
+
 
     //空间属性
     _position: Vec3 = vec3.create();
@@ -300,7 +305,7 @@ export abstract class NodeSpace extends RootGPU {
      * @param _parentMatrixWorld 父节点的世界矩阵（可选项）
      * @returns 世界矩阵
      */
-    abstract updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4
+    // abstract updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4
 
 
     /**
@@ -322,7 +327,7 @@ export abstract class NodeSpace extends RootGPU {
             this.updateMatrix();
         }
         //更新updateSelf()。只更新一次,在所有自身更新之后
-        if (updateSelftFN ) {
+        if (updateSelftFN) {
             this.updateSelf(clock);
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }

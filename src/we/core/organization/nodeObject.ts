@@ -174,6 +174,25 @@ export abstract class NodeObject extends NodeSpace {
         this.updateWorldPosition(); //更新 world position
         this.updateSelfAttribute();//更新自身属性，AABB
     }
+    /**是否直接在世界坐标下 
+     * 1、如果为true，则position等信息均为世界坐标下的；
+     *      A、更新顺序，还是按照RootECS的更新顺序；
+     *      B、更新时，将忽略parent的matrixWorld，直接使用position等信息更新matrix（matrixWorld=matrix）；
+     * 2、如果为false，则position等信息为本地坐标下的；
+     * 3、物理引擎驱动，需要为true
+    */
+
+    /**是否需要更新全局矩阵 */
+    needUpdateGlobalMatrix: boolean = true;
+    _directInWorldSpace: boolean = false;
+    get DirectInWorldSpace(): boolean {
+        return this._directInWorldSpace;
+    }
+    set DirectInWorldSpace(value: boolean) {
+        this._directInWorldSpace = value;
+    }
+
+
     /** stageID*/
     stageID: number = 0;
 
@@ -691,14 +710,22 @@ export abstract class NodeObject extends NodeSpace {
      */
     update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
         super.update(clock, false, false);                             //不更新updateSelf(),不更新updateAtEnd();都只执行一次
-        this.needUpdateGlobalMatrix = this.checkNeedUpdateMatrix();//调用slef class 的checkNeedUpdateMatrix()，确认parent的matrixWorld是否有变化
-        //用于减少无变化NodeObject的矩阵计算量。这里之哟NodeObject，包括了，Light，Camera
-        if (this.needUpdateGlobalMatrix) {
-            this.updateMatrixWorld();//更新 world matrix
+        //不是直接在世界空间坐标系中，层级更新世界矩阵
+        if (this.DirectInWorldSpace === false) {
+            this.needUpdateGlobalMatrix = this.checkNeedUpdateMatrix();//调用slef class 的checkNeedUpdateMatrix()，确认parent的matrixWorld是否有变化
+            //用于减少无变化NodeObject的矩阵计算量。这里之哟NodeObject，包括了，Light，Camera
+            if (this.needUpdateGlobalMatrix) {
+                this.updateMatrixWorld();//更新 world matrix
+                this.updateWorldPosition(); //更新 world position
+            }
+            //更新自身属性，AABB
+            this.updateSelfAttribute();
+        }
+        //直接存在世界空间坐标系中
+        else {
+            mat4.copy(this.matrix, this.matrixWorld);
             this.updateWorldPosition(); //更新 world position
         }
-        //更新自身属性，AABB
-        this.updateSelfAttribute();
         //更新updateSelf()。只更新一次,在所有自身更新之后
         if (updateSelftFN) {
             this.updateSelf(clock);
@@ -761,7 +788,10 @@ export abstract class NodeObject extends NodeSpace {
             this.worldPosition = vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
         }
         else {
-            this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+            if (this.DirectInWorldSpace === false)
+                this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
+            else
+                this.worldPosition = vec3.fromValues(this.matrix[12], this.matrix[13], this.matrix[14]);
         }
         return this.worldPosition;
     }
@@ -771,14 +801,20 @@ export abstract class NodeObject extends NodeSpace {
      *          递归乘以父节点的矩阵
      */
     updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
-        if (this.Parent !== undefined && this.Parent.type !== "root") {
-            // this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
-            this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.matrix);
+        if (this.DirectInWorldSpace === false) {
+            if (this.Parent !== undefined && this.Parent.type !== "root") {
+                // this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.updateMatrix());
+                this.matrixWorld = mat4.multiply(this.Parent.matrixWorld, this.matrix);
+            }
+            else {
+                // this.matrixWorld = this.updateMatrix();
+                this.matrixWorld = this.matrix;
+            }
         }
         else {
-            // this.matrixWorld = this.updateMatrix();
-            this.matrixWorld = this.matrix;
+            mat4.copy(this.matrix, this.matrixWorld);
         }
+
         // console.log("root:", this.matrixWorld);
         return this.matrixWorld;
     }
