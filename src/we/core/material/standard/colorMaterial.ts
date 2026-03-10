@@ -1,7 +1,7 @@
 import { weColor4, E_lifeState } from "../../base/coreDefine";
 import { isWeColor4 } from "../../base/coreFunction";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { createUniformBuffer } from "../../command/baseFunction";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
@@ -127,35 +127,38 @@ export class ColorMaterial extends BaseMaterial {
      * @returns 
      */
     getOpaqueCodeFS(template: I_ShaderTemplate, _startBinding: number): I_materialBundleOutput {
-        let uniform1: T_uniformOneGroup = [];
-        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        for (let i in template) {
-            let perPartSHT = template[i] as I_ShaderTemplate;
-            if (i == "scene") {
-                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
-                shaderTemplateFinal[i] = shader.scene;
-            }
-            else if (i == "material") {
-                let code: string = "";
-                code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
-                for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
-                    if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                        code = code.replace(perOne.replace, perOne.replaceCode as string);
-                    }
-                    //$color
-                    if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                        let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-                        code = code.replace(perOne.replace, replaceValue);
-                    }
-                }
-                shaderTemplateFinal[i] = {
-                    templateString: code,
-                    groupAndBindingString: "",
-                    owner: perPartSHT.owner,
-                }
-            }
-        }
-        return { uniformGroup: uniform1, shaderTemplateFinal, bindingNumber: _startBinding };
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(template, replaceList, _startBinding);
+        return output;
+        // let uniform1: T_uniformOneGroup = [];
+        // let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+        // for (let i in template) {
+        //     let perPartSHT = template[i] as I_ShaderTemplate;
+        //     if (i == "scene") {
+        //         let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
+        //         shaderTemplateFinal[i] = shader.scene;
+        //     }
+        //     else if (i == "material") {
+        //         let code: string = "";
+        //         code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
+        //         for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
+        //             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+        //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
+        //             }
+        //             //$color
+        //             if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+        //                 // let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        //                 // code = code.replace(perOne.replace, replaceValue);
+        //             }
+        //         }
+        //         shaderTemplateFinal[i] = {
+        //             templateString: code,
+        //             groupAndBindingString: "",
+        //             owner: perPartSHT.owner,
+        //         }
+        //     }
+        // }
+        // return { uniformGroup: uniform1, shaderTemplateFinal, bindingNumber: _startBinding };
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
@@ -198,14 +201,14 @@ export class ColorMaterial extends BaseMaterial {
         let replaceList = new Map<string, string | (() => string)>();
 
 
-        let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        // let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
         if (renderObject instanceof BaseCamera) {
-            replaceList.set("$fsOutputColor", replaceValue);
+            // replaceList.set("$fsOutputColor", replaceValue);
             let output = this.formatSHT(template, replaceList, 0);
             output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
             {//获取当前材质的TTPF的输出uniform bundle 。
                 let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
-                output.uniformGroup.push(...uniformBundle.entry);
+                (output.uniformGroup as T_uniformEntries[]).push(...uniformBundle.entry as T_uniformEntries[]);
                 output.bindingNumber = uniformBundle.bindingNumber;
                 output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
             }
@@ -228,7 +231,7 @@ export class ColorMaterial extends BaseMaterial {
             //camera 的TTP  SHT
             template = SHT_materialColor_TTP_FS;
             let replaceList = new Map<string, string | (() => string)>();
-            replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+            // replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
             let output = this.formatSHT(template, replaceList, 0);
             return output;
         }
@@ -245,37 +248,40 @@ export class ColorMaterial extends BaseMaterial {
     getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial
     //{ bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; }
     {
-        if (this.unifromEntryBundle_Common != undefined) {
-            return this.unifromEntryBundle_Common;
-        }
-        else {
-            let binding: number = startBinding;
-            let uniform1: T_uniformOneGroup = [];
-            let groupAndBindingString: string = "";
+        let binding: number = startBinding;
+        let uniform1: T_uniformOneGroup = [];
 
-            let uniformBuffer: GPUBindGroupEntry = {
-                binding: binding,
-                resource: this.uniformGPUBuffer,
-            };
-            let uniformBufferLayout: GPUBindGroupLayoutEntry = {
-                binding: binding,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer: {
-                    type: "uniform",
-                },
-            };
-            //添加到resourcesGPU的Map中
-            this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
-            this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
-            //push到uniform1队列
-            uniform1.push(uniformBuffer);
-            this.unifromEntryBundle_Common = {
-                bindingNumber: startBinding,
-                groupAndBindingString,
-                entry: uniform1
-            };
-            return this.unifromEntryBundle_Common;
-        }
+        let groupAndBindingString: string = `
+struct color_material_uniform  {
+    color: vec4f,
+}
+@group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
+`;
+
+        let uniformBuffer: GPUBindGroupEntry = {
+            binding: binding,
+            resource: this.uniformGPUBuffer,
+        };
+        let uniformBufferLayout: GPUBindGroupLayoutEntry = {
+            binding: binding,
+            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            buffer: {
+                type: "uniform",
+            },
+        };
+        //添加到resourcesGPU的Map中
+        this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
+        this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
+        //push到uniform1队列
+        uniform1.push(uniformBuffer);
+        //20260311 ,这里必须是新的变量，这个变量会被传递给后续的function，内容会被修改。
+        // 如果使用this.unifromEntryBundle_Common，后续的function会修改这个变量，导致错误。
+        let unifromEntryBundle_Common = {
+            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+            groupAndBindingString,
+            entry: uniform1
+        };
+        return unifromEntryBundle_Common;
     }
 
     _destroy(): void {

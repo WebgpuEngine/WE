@@ -474,7 +474,7 @@ export class DrawCommandGenerator {
         if (values.dynamic && values.dynamic === true) {
             let layoutNumber = 0;
             if (values.system) {
-                layoutNumber = 1;
+                layoutNumber =2;
             }
             commandOption.dynamicUniform = {
                 bindGroupLayout: DC_bindGroupLayouts,
@@ -1318,20 +1318,21 @@ export class DrawCommandGenerator {
 
         //3.2、VS shadermodel 编译
         let vsCacheShaderModelName = values.label;
-        if (typeof values.render.fragment?.code !== "string") {
-            let name = values.render.fragment?.code?.material?.owner;
-            if (name.includes("WireFrameMaterial")) {
-                let id = values.IDS?.ID || values.label;
-                vsCacheShaderModelName = `${id} wireFrame`;
-            }
-            else {
-                vsCacheShaderModelName = values.IDS!.ID.toString();
-            }
-        }
-        if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
-            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
-        }
-        else {
+        // if (typeof values.render.fragment?.code !== "string") {
+        //     let name = values.render.fragment?.code?.material?.owner;
+        //     if (name.includes("WireFrameMaterial")) {
+        //         let id = values.IDS?.ID || values.label;
+        //         vsCacheShaderModelName = `${id} wireFrame`;
+        //     }
+        //     else {
+        //         vsCacheShaderModelName = values.IDS!.ID.toString();
+        //     }
+        // }
+        // if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
+        //     moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
+        // }
+        // else
+        {
             moduleVS = this.device.createShaderModule({
                 label: `vs ${vsCacheShaderModelName}`, //@${this.clock.now} 
                 code: shadercode,

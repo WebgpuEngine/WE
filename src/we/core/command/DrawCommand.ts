@@ -241,7 +241,7 @@ export class DrawCommand extends BaseDrawCommand {
 
             //初始化BindGroup描述
             let bindGroupDesc: GPUBindGroupDescriptor = {
-                label: values.label + " bindGroupLayoutDescriptor of " + layoutNumber,
+                label: "DC 动态绑定"+values.label + " bindGroupLayoutDescriptor of " + layoutNumber,
                 layout: bindGroupLayout,
                 entries: bindGroupEntry,
             }

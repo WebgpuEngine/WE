@@ -73,11 +73,11 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
             // },
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            {
-                name: "colorFS set color",
-                replace: "$fsOutputColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
-            },
+            // {
+            //     name: "colorFS set color",
+            //     replace: "$fsOutputColor",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
+            // },
             // {//判断alpha的code
             //     name: "if alpha",
             //     replace: "$fsIfAlpha",           //判断alpha
@@ -112,12 +112,12 @@ export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
             // },
             SHT_replaceGBufferMSAAinfo_FSOutput,                                            // WGSL_replace_MSAAinfo_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            {
-                name: "colorFS set color",
-                replace: "$fsOutputColor",           //取消设置颜色
-                replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: "",
-            },
+            // {
+            //     name: "colorFS set color",
+            //     replace: "$fsOutputColor",           //取消设置颜色
+            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
+            //     replaceCode: "",
+            // },
             // {//判断alpha的code
             //     name: "if alpha",
             //     replace: "$fsIfAlpha",           //判断alpha
@@ -156,11 +156,11 @@ export var SHT_materialColor_TT_FS: I_ShaderTemplate = {
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
 
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            {
-                name: "colorFS set color",
-                replace: "$fsOutputColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
-            }
+            // {
+            //     name: "colorFS set color",
+            //     replace: "$fsOutputColor",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
+            // }
         ],
     }
 }

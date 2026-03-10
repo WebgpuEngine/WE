@@ -116,78 +116,73 @@ export class TextureMaterial extends BaseMaterial {
      * @returns 绑定槽位，组绑定字符串，uniform组，layout组
      */
     getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
-        // if (this.unifromEntryBundle_Common != undefined) {
-        //     return this.unifromEntryBundle_Common;
-        // }
-        // else
-        {
-            let binding = startBinding;
-            let groupAndBindingString = "";
-            let uniform1: T_uniformOneGroup = [];
-            let layout: GPUBindGroupLayoutEntry[] = [];
 
-            {////group binding  texture 字符串
-                groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_colorTexture: texture_2d<f32>;\n `;
-                //uniform texture
-                let uniformTexture: GPUBindGroupEntry = {
-                    binding: binding,
-                    resource: this.textures[E_TextureType.color].texture.createView(),
-                };
-                //uniform texture layout
-                let uniformTextureLayout: GPUBindGroupLayoutEntry = {
-                    binding: binding,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "float",
-                        viewDimension: "2d",
-                        // multisampled: false,
-                    },
-                };
-                //添加到resourcesGPU的Map中
-                this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
-                this.mapList.push({
-                    key: uniformTexture,
-                    type: E_resourceKind.textureOfString,
-                });
-                //push到uniform1队列
-                uniform1.push(uniformTexture);
-                //+1
-                binding++;
-            }
+        let binding = startBinding;
+        let groupAndBindingString = "";
+        let uniform1: T_uniformOneGroup = [];
+        let layout: GPUBindGroupLayoutEntry[] = [];
 
-            {////group bindgin sampler 字符串
-                groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-                //uniform sampler
-                let uniformSampler: GPUBindGroupEntry = {
-                    binding: binding,
-                    resource: this.defaultSampler,
-                };
-                //uniform sampler layout
-                let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-                    binding: binding,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    sampler: {
-                        type: this.defaultSamplerBindingType,
-                    },
-                };
-                //添加到resourcesGPU的Map中
-                this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout);
-                this.mapList.push({
-                    key: uniformSampler,
-                    type: "sampler",
-                });
-                //push到uniform1队列
-                uniform1.push(uniformSampler);
-                //+1
-                binding++;
-            }
-            let unifromEntryBundle_Common = {
-                bindingNumber: binding,
-                groupAndBindingString: groupAndBindingString,
-                entry: uniform1,
+        {////group binding  texture 字符串
+            groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_colorTexture: texture_2d<f32>;\n `;
+            //uniform texture
+            let uniformTexture: GPUBindGroupEntry = {
+                binding: binding,
+                resource: this.textures[E_TextureType.color].texture.createView(),
             };
-            return unifromEntryBundle_Common;
+            //uniform texture layout
+            let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+                binding: binding,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                texture: {
+                    sampleType: "float",
+                    viewDimension: "2d",
+                    // multisampled: false,
+                },
+            };
+            //添加到resourcesGPU的Map中
+            this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
+            this.mapList.push({
+                key: uniformTexture,
+                type: E_resourceKind.textureOfString,
+            });
+            //push到uniform1队列
+            uniform1.push(uniformTexture);
+            //+1
+            binding++;
         }
+
+        {////group bindgin sampler 字符串
+            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
+            //uniform sampler
+            let uniformSampler: GPUBindGroupEntry = {
+                binding: binding,
+                resource: this.defaultSampler,
+            };
+            //uniform sampler layout
+            let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
+                binding: binding,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                sampler: {
+                    type: this.defaultSamplerBindingType,
+                },
+            };
+            //添加到resourcesGPU的Map中
+            this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout);
+            this.mapList.push({
+                key: uniformSampler,
+                type: "sampler",
+            });
+            //push到uniform1队列
+            uniform1.push(uniformSampler);
+            //+1
+            binding++;
+        }
+        let unifromEntryBundle_Common = {
+            bindingNumber: binding,
+            groupAndBindingString: groupAndBindingString,
+            entry: uniform1,
+        };
+        return unifromEntryBundle_Common;
     }
     /**
      * 获取前向渲染的不透明材质的bundle，用于生成DC

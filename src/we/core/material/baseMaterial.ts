@@ -280,7 +280,7 @@ export abstract class BaseMaterial extends RootGPU {
             let uniform1: T_uniformOneGroup = [];
             let layout: GPUBindGroupLayoutEntry[] = [];
             let uniforIDTexture: I_dynamicTextureEntryForView = {
-                label: this.Name + " texture ID at group(1) binding(" + bindingNumber + ")",
+                label: this.Name + " texture ID at group(2) binding(" + bindingNumber + ")",
                 binding: bindingNumber,
                 getResource: () => { return renderObject.manager.getTTRenderTexture("id"); },
             };
