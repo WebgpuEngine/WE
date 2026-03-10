@@ -22,6 +22,8 @@ import { CubeTexture } from "../texture/cubeTexxture";
 export abstract class BaseMaterial extends RootGPU {
     declare inputValues: IV_BaseMaterial;
 
+    doubleSided: boolean = false;
+
     kind!: E_MaterialType;
 
     /**
@@ -109,6 +111,7 @@ export abstract class BaseMaterial extends RootGPU {
     constructor(input?: IV_BaseMaterial) {
         super();
         this.type = "material";
+        this.doubleSided = input?.doubleSided || false;
         // this.reversedZ = false;
         if (input) {
             this.inputValues = input;

@@ -338,7 +338,8 @@ export class Mesh extends EntityBundleMaterial {
                 else {
                     throw new Error("透明材质的transparentOption不能为空");
                 }
-                valueDC.label = "TT mesh:" + this.ID;
+                // valueDC.label = "TT mesh:" + this.ID;
+                valueDC.label = this.ID.toString();
                 dcTT = this.DCG.generateDrawCommand(valueDC);
                 this.cameraDC[UUID][E_renderPassName.transparent].push(dcTT);
             }
@@ -355,7 +356,8 @@ export class Mesh extends EntityBundleMaterial {
                     return camera.manager.getTT_RenderRPD(UUID);
                 };
                 //label
-                valueDC.label = "TTP mesh:" + this.ID;
+                // valueDC.label = "TTP mesh:" + this.ID;
+                valueDC.label = this.ID.toString();
                 if (valueDC.render.fragment)
                     valueDC.render.fragment.targets = camera.manager.getTTColorAttachmentTargets();
                 //深度
@@ -400,7 +402,8 @@ export class Mesh extends EntityBundleMaterial {
                 //RPD
                 valueDC.renderPassDescriptor = () => { return camera.manager.GBufferManager.getGBufferColorRPD_TTPF(UUID); };
                 //label
-                valueDC.label = `TTPF mesh:${this.ID}`;
+                // valueDC.label = `TTPF mesh:${this.ID}`;
+                valueDC.label = this.ID.toString();
                 ////没有深度比较，没有深度写入
                 valueDC.render.depthStencil = false;
                 // GPUColorTargetState

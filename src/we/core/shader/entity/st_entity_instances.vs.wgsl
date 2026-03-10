@@ -15,7 +15,7 @@ struct st_entity {
 }
 
 struct st_instance_info {
-  node_id:u32,
+  node_id:u32,    //实例化时的节点id
   stage_id:u32,
   uv:vec2f,
   //joint_matrix_group_id:u32,       //todo，当前使用的 skin joint matrix group id

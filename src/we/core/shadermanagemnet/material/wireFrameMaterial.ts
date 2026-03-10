@@ -11,7 +11,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommon
 export var SHT_WireFrameFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "WireFrameMaterial_Forward",
         add: [
             SHT_vsStructOutput,
             {
@@ -40,7 +40,7 @@ export var SHT_WireFrameFS: I_ShaderTemplate = {
 export var SHT_WireFrameFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "WireFrameMaterial MSAA",
         add: [
             SHT_vsStructOutput,
             {
@@ -69,7 +69,7 @@ export var SHT_WireFrameFS_MSAA: I_ShaderTemplate = {
 export var SHT_WireFrameFS_MSAAinfo: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "WireFrameMaterial MSAAinfo",
         add: [
             SHT_vsStructOutput,
             {

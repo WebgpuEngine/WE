@@ -570,22 +570,23 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             {
                 let valueDC = getIV_DC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.MSAA }, false, this);
                 valueDC.system!.MSAA = "MSAA";
-                if (TO !== undefined)
-                    valueDC.label = "TO MSAA:" + valueDC.label;
-                else
-                    valueDC.label = "opacity MSAA:" + valueDC.label;
+                // if (TO !== undefined)
+                //     valueDC.label = "TO MSAA:" + valueDC.label;
+                // else
+                //     valueDC.label = "opacity MSAA:" + valueDC.label;
+                valueDC.label = this.ID.toString();
                 let dc = this.DCG.generateDrawCommand(valueDC);
                 this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
             }
             {       //info forward 部分
                 let valueDC = getIV_DC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.inforForward }, false, this);
                 valueDC.system!.MSAA = "MSAAinfo";
-                if (TO !== undefined)
-                    valueDC.label = "TO MSAA info:" + valueDC.label;
-                else
-                    valueDC.label = "opacity MSAA info:" + valueDC.label;
+                // if (TO !== undefined)
+                //     valueDC.label = "TO MSAA info:" + valueDC.label;
+                // else
+                //     valueDC.label = "opacity MSAA info:" + valueDC.label;
+                valueDC.label = this.ID.toString();
                 dc = this.DCG.generateDrawCommand(valueDC);
-                // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }
         }
         else {//正常的前向渲染输出,只输出一个DC（defer 或  forward）
@@ -613,10 +614,12 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 let valueDC = getIV_DC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterial }, false, this);
                 let drawFor = " forward ";
                 if (this.deferColor) drawFor = " defer "
-                if (TO !== undefined)
-                    valueDC.label = "TO:" + valueDC.label;
-                else
-                    valueDC.label = "opacity:" + valueDC.label;
+                // if (TO !== undefined)
+                //     valueDC.label = "TO:" + valueDC.label;
+                // else
+                //     valueDC.label = "opacity:" + valueDC.label;
+                if (valueDC.label == undefined)
+                    valueDC.label = this.ID.toString();
                 dc = this.DCG.generateDrawCommand(valueDC);
                 // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }

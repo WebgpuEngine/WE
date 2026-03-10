@@ -20,6 +20,7 @@ import { I_VertexBufferEntry } from "./BaseDrawCommand";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
+    parent: BaseEntity,
 }
 
 //==================================================================================================================
@@ -292,6 +293,7 @@ export interface IV_DC {
 export class DrawCommandGenerator {
     device: GPUDevice;
     scene: Scene;
+    parent: BaseEntity;
     resources: ResourceManagerOfGPU;
     AA: AA;
     MSAA: boolean;
@@ -304,6 +306,7 @@ export class DrawCommandGenerator {
     constructor(inputValue: IV_DrawCommandGenerator) {
         this.device = inputValue.scene.device;
         this.scene = inputValue.scene;
+        this.parent = inputValue.parent;
         this.resources = this.scene.resourcesGPU;
         this.AA = this.scene.AA;
         this.MSAA = this.scene.MSAA;
@@ -784,7 +787,18 @@ export class DrawCommandGenerator {
      * 2、索引资源
      * 
      * @param values 
-     * @returns  { DC_vertexBuffers, DC_verticesBufferLayout, DC_localtions, DC_vertexNames, DC_indexBuffer }
+     * @returns  { 
+     * DC_vertexBuffers, 顶点GPUBuffer列表
+     * 
+     * DC_indexBuffer 索引GPUBuffer
+     * 
+     * DC_vertexNames, 顶点资源的名称列表，反射code中的内容使用，exp："position"
+     * 
+     * DC_localtions, 顶点资源的名称列表，反射code中的内容使用，在WGSL中结构体：VertexShaderOutput中使用；exp：" @location(0) position : vec3f  ,"
+     * 
+     * DC_verticesBufferLayout, 顶点GPUBuffer的布局
+     * 
+     * }
      */
     initVertexPart(values: IV_DC): {
         DC_vertexBuffers: I_VertexBufferEntry[],
@@ -796,9 +810,22 @@ export class DrawCommandGenerator {
         //1、buffer资源
         // 20260114修改为 I_VertexBufferEntry
         let DC_vertexBuffers: I_VertexBufferEntry[] = [];//当前DC的顶点列表。之后在DC中passEncoder.setVertexBuffer(parseInt(i), verticesBuffer)使用。
+        /** GPUVertexBufferLayout格式样本：
+          {
+            "arrayStride": 12,
+            "attributes": [
+                {
+                    "shaderLocation": 0,
+                    "format": "float32x3",
+                    "offset": 0
+                }
+            ],
+            "stepMode": "vertex"
+           }
+         */
         let DC_verticesBufferLayout: GPUVertexBufferLayout[] = [];//vertex.buffers[]
-        let DC_localtions: string[] = [];//顶点资源的名称列表，反射code中的内容使用
-        let DC_vertexNames: string[] = [];//顶点资源的名称列表，反射code中的内容使用
+        let DC_localtions: string[] = [];//顶点资源的名称列表，反射code中的内容使用，在WGSL中结构体：VertexShaderOutput中使用；exp：" @location(0) position : vec3f  ,"
+        let DC_vertexNames: string[] = [];//顶点资源的名称列表，反射code中的内容使用；exp："position"
         let DC_indexBuffer: GPUBuffer | undefined;//GPUBuffer默认使用uint32的格式。passEncoder.setIndexBuffer(this.indexBuffer, 'uint32');
         //1.1、顶点资源
 
@@ -1082,7 +1109,7 @@ export class DrawCommandGenerator {
 
         let DC_bindGroups: GPUBindGroup[] = [];
         let DC_bindGroupLayouts: GPUBindGroupLayout[] = [];
-        let layoutNumber = 0;
+        let layoutNumber = 0;           //uniform的BindGroupLayout数量，最多4个
         //2.1 、获取 BindGroup 0 以及其layout。camera 和light都从各自的体系获得
         if (values.system) {
             let UUID = this.checkUUID(values);
@@ -1102,6 +1129,7 @@ export class DrawCommandGenerator {
         //2.2、创建其他uniforms的BindGroup和BindGroupLayout
         if (values.data.uniforms) {
             for (let i in values.data.uniforms) {
+                //如果bindGroupLayout数量超过4个，就跳出循环
                 if (layoutNumber > 3) {
                     console.warn("uniforms 最多只能有4个BindGroup");
                     break;
@@ -1137,6 +1165,7 @@ export class DrawCommandGenerator {
                 //BindGroup layout的数据入口  -->2.1.1
                 let bindGroupLayoutEntry: GPUBindGroupLayoutEntry[] = [];
 
+                //如果是GPUBindGroup，就直接使用
                 if (isGPUBindGroup(perGroup)) {
                     bindGroup = perGroup;
                     let bindGroupLayoutGet = this.resources.get(bindGroup)!;//是否有对应的layout
@@ -1287,10 +1316,27 @@ export class DrawCommandGenerator {
         //     console.log(shadercode);
 
         //3.2、VS shadermodel 编译
-        moduleVS = this.device.createShaderModule({
-            label: `vs ${values.label} @${this.clock.now} `,
-            code: shadercode,
-        });
+        let vsCacheShaderModelName = values.label;
+        if (typeof values.render.fragment?.code !== "string") {
+            let name = values.render.fragment?.code?.material?.owner;
+            if (name.includes("WireFrameMaterial")) {
+                vsCacheShaderModelName = values.IDS?.ID +` ${name}`;
+            }
+            else {
+                vsCacheShaderModelName = values.IDS!.ID.toString() ;
+            }
+        }
+        if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
+            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
+        }
+        else {
+            moduleVS = this.device.createShaderModule({
+                label: `vs ${vsCacheShaderModelName}`, //@${this.clock.now} 
+                code: shadercode,
+            });
+            this.resources.shaderModuleOfString.set(vsCacheShaderModelName, moduleVS);
+
+        }
         //3.3 GPURenderPipelineDescriptor.vertex部分
         let constansVS = {};
         if (values.render.vertex.constants) { constansVS = values.render.vertex.constants; }
@@ -1311,24 +1357,38 @@ export class DrawCommandGenerator {
             else {
                 let codeFS: string;
                 let flagFS = "fsCode";
-                //如果是字符串,则直接赋值
-                if (typeof values.render.fragment.code === "string")
+                //如果是字符串,则直接赋值,并创建ShaderModule
+                if (typeof values.render.fragment.code === "string") {
                     codeFS = values.render.fragment.code;
+                    moduleFS = this.device.createShaderModule({
+                        label: `${flagFS} ${values.label},// @${this.clock.now}`,
+                        code: codeFS,
+                    })
+                }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
-                    let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final);
-                    if (FS_SHT) {
-                        codeFS = this.convertSHT2ShaderCode(FS_SHT);
+                    let nameOfMaterial = values.render.fragment.code.material.owner;
+                    //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
+                    if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
+                        moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;
                     }
                     else {
-                        throw new Error("fragment code SHT模板中material不能为空");
+                        let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final);
+                        if (FS_SHT) {
+                            codeFS = this.convertSHT2ShaderCode(FS_SHT);
+                        }
+                        else {
+                            throw new Error("fragment code SHT模板中material不能为空");
+                        }
+                        flagFS = "fs"
+                        moduleFS = this.device.createShaderModule({
+                            label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
+                            code: codeFS,
+                        })
+                        this.resources.shaderModuleOfString.set(nameOfMaterial, moduleFS);
                     }
-                    flagFS = "fs"
                 }
-                moduleFS = this.device.createShaderModule({
-                    label: `${flagFS} ${values.label} @${this.clock.now}`,
-                    code: codeFS,
-                })
+
             }
             //3.4.2 配置targets
             let targets: GPUColorTargetState[] = [];
@@ -1389,13 +1449,14 @@ export class DrawCommandGenerator {
     initPipeLine(values: IV_DC, vertex: GPUVertexState, fragment: GPUFragmentState | undefined, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
         //1、创建GPURenderPipelineDescriptor
         let pipelineLayoutDescriptor: GPUPipelineLayoutDescriptor = {
-            label: "PipelineLayout@" + this.clock.now + " " + values.label,
+            label: values.label,
+            // label: "PipelineLayout@" + this.clock.now + " " + values.label,
             bindGroupLayouts: DC_bindGroupLayouts,
         }
         //2、创建GPUPipelineLayout
         let pipelineLayout = this.device.createPipelineLayout(pipelineLayoutDescriptor);
         let descriptor: GPURenderPipelineDescriptor = {
-            label: "Pipeline@" + this.clock.now + " " + values.label,
+            label: values.label,
             vertex,
             layout: pipelineLayout,
         }

@@ -807,12 +807,15 @@ export class GLTFModel extends BaseModel {
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //material part
                     let cullMode: GPUCullMode = "back";
-                    if (primitive.material) {
+                    if (primitive.material != undefined) {
                         let materialDataSource = this.DataLoader.getMaterial(primitive.material);
                         if (materialDataSource.doubleSided && materialDataSource.doubleSided === true) {
                             cullMode = "none";
                         }
+                        console.log("cullMode ", cullMode, materialDataSource.doubleSided);
                     }
+                    // else
+                    //     console.log("primitive ", primitive);
                     let materialOfPerEntity;                        //当前entity的primitive的材质
                     if (primitive.material == undefined) {          //如果primitive没有材质，默认使用default材质
                         materialOfPerEntity = this.getRes(T_ModelResKind.material, "default");

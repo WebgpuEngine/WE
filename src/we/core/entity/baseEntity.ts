@@ -35,7 +35,7 @@ export abstract class BaseEntity extends NodeSpace {
     ////////////////////////////////////////////////////////////////////
     //基础属性
     input: IV_BaseEntity;
-    /**实例化数量，默认为1 */
+    /**内部实例化数量，默认为1 */
     instance: I_entityInstance = {
         numInstances: 1,
     }
@@ -500,7 +500,7 @@ export abstract class BaseEntity extends NodeSpace {
         this.updateJointMatrixBuffer();
 
         this.transparent = this.getTransparent();
-        this.DCG = new DrawCommandGenerator({ scene: this.scene });
+        this.DCG = new DrawCommandGenerator({ scene: this.scene ,parent: this});
         this._state = E_lifeState.finished;
         // return this.renderID + 1;
     }

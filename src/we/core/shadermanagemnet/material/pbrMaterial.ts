@@ -73,12 +73,12 @@ import PBRMaterialWGSL from "../../shader/material/PBR/PBR.fs.wgsl?raw"
 var PBRFS = PBRMaterialWGSL.toString();
 
 /**
- * PBR forward SHT。(未进行材质统一化)
+ * PBR forward SHT。(材质统一化)
  */
 export var SHT_materialPBRFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PBRMaterial",
+        owner: "PBRMaterial forward",
         add: [
             SHT_vsStructOutput,
             {
@@ -143,7 +143,7 @@ export var SHT_materialPBRFS: I_ShaderTemplate = {
 export var SHT_materialPBRFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PBRMaterial",
+        owner: "PBRMaterial MSAA",
         add: [
             SHT_vsStructOutput,
             {
@@ -204,7 +204,7 @@ var PBRFS_MSAAinfo = PBRMaterialMSAAinfoWGSL.toString();
 export var SHT_materialPBRFS_MSAA_info: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PBRMaterial",
+        owner: "PBRMaterial MSAA info",
         add: [
             SHT_vsStructOutput,
             {
@@ -273,12 +273,12 @@ var SHT_replace_PBR_deferColorCode: I_shaderTemplateReplace =
 }
 
 /**
- * forward defer PBR part of forward SHT。(未进行材质统一化)
+ * forward defer PBR part of forward SHT。(材质统一化)
  */
 export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PBRMaterial",
+        owner: "PBRMaterial defer color",
         add: [
             SHT_vsStructOutput,
             {
@@ -339,10 +339,13 @@ export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
     }
 }
 
+/**
+ * defer color MSAA 是放弃的方案，后期通过 defer depth +MSAA代替。todo：20260310
+ */
 export var SHT_materialPBRFS_defer_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PBRMaterial",
+        owner: "PBRMaterial defer MSAA",
         add: [
             SHT_vsStructOutput,
             {

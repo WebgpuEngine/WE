@@ -77,8 +77,9 @@ export abstract class RootGPU implements I_UUID {
      */
     _readyForGPU!: boolean;
     constructor(input?: I_Update) {
-        this.UUID = WeGenerateUUID();
         this.ID = WeGenerateID();
+        this.UUID=this.ID.toString();
+        // this.UUID = WeGenerateUUID();
         if (input) this.inputValues = input;
         if (input?.name) {
             this._name = input!.name!;

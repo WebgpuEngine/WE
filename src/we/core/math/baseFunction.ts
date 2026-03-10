@@ -53,6 +53,7 @@ export function WeGenerateUUID() {
     do {
         let sub = 7;
         let len = 36
+        // UUID = Math.random().toString(len).substring(sub);
         UUID = Math.random().toString(len).substring(sub) + '-' + Math.random().toString(len).substring(sub) + '-' + Math.random().toString(len).substring(sub) + '-' + Math.random().toString(len).substring(sub);
     } while (weUUIDs.has(UUID));
     weUUIDs.add(UUID);

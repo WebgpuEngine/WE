@@ -122,6 +122,16 @@ export interface IV_BaseMaterial extends I_Update {
      */
     samplerBindingType?: GPUSamplerBindingType,
 
+    /** 是否双面渲染，默认false 
+     * 1、WE中有两处可以涉及渲染的剔除
+     *      A、本处设置，只会涉及是否是双面
+     *      B、entity的primitive的参数;
+     * 2、执行判断顺序
+     *     VS设置->材质的doubleSided
+     * 3、优先级与覆盖
+     *     材质doubleSided高于entity的primitive设置，如果有材质的doubleSided参数，会覆盖entity的primitive的参数。
+    */
+    doubleSided?: boolean,
     // mipmap?: I_mipmap
 
 }

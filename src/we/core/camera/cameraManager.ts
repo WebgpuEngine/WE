@@ -139,6 +139,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         if (camera.name) {
             gbuffersOption.name = camera.name;
         }
+        // this.GBufferManager.initGBuffer(camera.Name || camera.ID.toString(), gbuffersOption);//使用UUID，太多了，不好改
         this.GBufferManager.initGBuffer(camera.UUID, gbuffersOption);
         //3、设置默认camera
         if (this.defaultCamera == undefined) {
