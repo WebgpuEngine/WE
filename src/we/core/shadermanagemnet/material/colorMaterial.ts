@@ -30,17 +30,19 @@ export var SHT_materialColorFS: I_ShaderTemplate = {
             // },
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            {
-                name: "colorFS set color",
-                replace: "$fsOutputColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
-            },
-            {//判断alpha的code
-                name: "if alpha",
-                replace: "$fsIfAlpha",           //判断alpha
-                replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: "if(output.color.a<1.0)\n{\n    discard;\n}",
-            }
+            //20260310，固定从unifrom中获取颜色，已经失去意义（硬编码）
+            // {
+            //     name: "colorFS set color",
+            //     replace: "$fsOutputColor",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
+            // },
+            //20260310 ,这个alpha判断在不透明和TO中是固定的,不需要replace,没意义
+            // {//判断alpha的code
+            //     name: "if alpha",
+            //     replace: "$fsIfAlpha",           //判断alpha
+            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
+            //     replaceCode: "if(output.color.a<1.0)\n{\n    discard;\n}",
+            // }
         ],
     }
 }
@@ -76,12 +78,12 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
                 replace: "$fsOutputColor",           //
                 replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
             },
-            {//判断alpha的code
-                name: "if alpha",
-                replace: "$fsIfAlpha",           //判断alpha
-                replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: "if(output.color.a<1.0)\n{\n    discard;\n}",
-            }
+            // {//判断alpha的code
+            //     name: "if alpha",
+            //     replace: "$fsIfAlpha",           //判断alpha
+            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
+            //     replaceCode: "if(output.color.a<1.0)\n{\n    discard;\n}",
+            // }
         ],
     }
 }
@@ -116,12 +118,12 @@ export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
                 replaceType: E_shaderTemplateReplaceType.replaceCode,
                 replaceCode: "",
             },
-            {//判断alpha的code
-                name: "if alpha",
-                replace: "$fsIfAlpha",           //判断alpha
-                replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: "",                                      //  MSAA infor 不输出 color
-            }
+            // {//判断alpha的code
+            //     name: "if alpha",
+            //     replace: "$fsIfAlpha",           //判断alpha
+            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
+            //     replaceCode: "",                                      //  MSAA infor 不输出 color
+            // }
         ],
     }
 }

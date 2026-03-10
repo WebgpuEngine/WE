@@ -87,6 +87,8 @@ export abstract class BaseMaterial extends RootGPU {
 
 
     /**
+     * todo，20260311，需要更新此部分说明
+     * 已下是未进行材质uniform统一化之前的设计。
      * 不透明、TO、TT、TTP、TTPF公用的uniform(目的：保证所有的uniform绑定槽号是相同的，不变化的)
      * 
      * 1、bindingNumber 绑定的槽号的通用的计数器。
@@ -817,6 +819,11 @@ export abstract class BaseMaterial extends RootGPU {
                             code = code.replace(perOne.replace, perOne.replaceCode as string);
                         }
                         //replaceValue
+                        /**
+                         * 替换值
+                         * 1、类型是： E_shaderTemplateReplaceType.value
+                         * 2、perOne.replace 作为key，去replaceList中查找对应的值
+                         */
                         else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
                             let replaceValue: string = "";
                             if (replaceList.has(perOne.replace)) {
@@ -837,6 +844,11 @@ export abstract class BaseMaterial extends RootGPU {
                             code = code.replace(perOne.replace, replaceValue);
                         }
                         //替换选择代码
+                        /**
+                         * 20260310
+                         * 1、E_shaderTemplateReplaceType.selectCode早期设计,在统一参数的material中，不能使用selectCode
+                         * 2、DCG的动态注入中还是有selectCode，影响VS的动画部分（morphtarget，skins）；
+                         */
                         else if (perOne.replaceType == E_shaderTemplateReplaceType.selectCode) {
                             if (code.indexOf(perOne.check!) != -1) {
                                 code = code.replace(perOne.replace, perOne.selectCode![1]);

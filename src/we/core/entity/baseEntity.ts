@@ -727,9 +727,9 @@ export abstract class BaseEntity extends NodeSpace {
                     this.createTransparent(camera);
                 }
                 else {
-                    if (this.scene.deferRender.enable && this.scene.deferRender.deferRenderDepth) {
-                        this.createDeferDepthDC(camera);
-                    }
+                    // if (this.scene.deferRender.enable && this.scene.deferRender.deferRenderDepth) {
+                    //     this.createDeferDepthDC(camera);
+                    // }
                     this.createForwardDC(camera);
                 }
             }

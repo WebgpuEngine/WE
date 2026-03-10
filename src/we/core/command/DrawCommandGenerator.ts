@@ -275,7 +275,7 @@ export interface IV_DC {
     parent?: BaseEntity,
     /**
      * 渲染pass的描述符，
-     * 1、如果有同级别中的system存在，则安装camera或light，去scene中获取
+     * 1、如果有同级别中的system存在，则按照camera或light，去scene中获取
      * 2、如果没有system：
      *  A、若有本项，则使用
      *  B、没有，则去scene中获取NDC的RPD
@@ -887,7 +887,8 @@ export class DrawCommandGenerator {
 
                     //判断是否以及存在顶点GPUBuffer
                     if (!this.resources.has(value, "vertices")) {
-                        vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey, data.buffer);
+                        // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey, data.buffer);
+                        vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
                         this.resources.set(value, vertexBuffer, "vertices");
                     }
                     else {
@@ -1320,10 +1321,11 @@ export class DrawCommandGenerator {
         if (typeof values.render.fragment?.code !== "string") {
             let name = values.render.fragment?.code?.material?.owner;
             if (name.includes("WireFrameMaterial")) {
-                vsCacheShaderModelName = values.IDS?.ID +` ${name}`;
+                let id = values.IDS?.ID || values.label;
+                vsCacheShaderModelName = `${id} wireFrame`;
             }
             else {
-                vsCacheShaderModelName = values.IDS!.ID.toString() ;
+                vsCacheShaderModelName = values.IDS!.ID.toString();
             }
         }
         if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {

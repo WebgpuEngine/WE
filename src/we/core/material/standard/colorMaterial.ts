@@ -2,11 +2,12 @@ import { weColor4, E_lifeState } from "../../base/coreDefine";
 import { isWeColor4 } from "../../base/coreFunction";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformOneGroup } from "../../command/base";
+import { createUniformBuffer } from "../../command/baseFunction";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace } from "../../shadermanagemnet/base";
 import { SHT_materialColor_TTP_FS, SHT_materialColor_TT_FS, SHT_materialColorFS, SHT_materialColor_TTPF_FS, SHT_materialColorFS_MSAA, SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
-import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, I_BundleOfMaterialForMSAA, E_MaterialType } from "../base";
+import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, I_BundleOfMaterialForMSAA, E_MaterialType, I_UniformBundleOfMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 export interface I_ColorMaterial extends IV_BaseMaterial {
@@ -15,13 +16,21 @@ export interface I_ColorMaterial extends IV_BaseMaterial {
 
 export class ColorMaterial extends BaseMaterial {
 
-
+    uniformGPUBuffer!: GPUBuffer;
+    unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
     declare inputValues: I_ColorMaterial;
-    color: weColor4 = [1, 1, 1, 1];
-    red: number = 1;
-    green: number = 1;
-    blue: number = 1;
-    alpha: number = 1;
+    _color: weColor4 = [1, 1, 1, 1];
+    get Color(): weColor4 {
+        return this._color;
+    }
+    set Color(value: weColor4) {
+        this._color = value;
+        this.writeUniformBuffer(true);
+    }
+    // red: number = 1;
+    // green: number = 1;
+    // blue: number = 1;
+    // alpha: number = 1;
 
     constructor(input: I_ColorMaterial) {
         super(input);
@@ -29,11 +38,11 @@ export class ColorMaterial extends BaseMaterial {
         this.inputValues = input;
         if (isWeColor4(input.color)) {
 
-            this.color = input.color;
-            this.red = input.color[0];
-            this.green = input.color[1];
-            this.blue = input.color[2];
-            this.alpha = input.color[3];
+            this._color = input.color;
+            // this.red = input.color[0];
+            // this.green = input.color[1];
+            // this.blue = input.color[2];
+            // this.alpha = input.color[3];
             if (input.color[3] < 1.0 || (input.transparent != undefined && (input.transparent?.type == undefined || input.transparent.type == "alpha"))) {
 
                 //在BaseMaterial中只验证了有transparent参数时
@@ -60,18 +69,24 @@ export class ColorMaterial extends BaseMaterial {
                     type: E_TransparentType.alpha,
                 };
                 this._transparent = transparent;
-                if (this.alpha < 1.0) {//如果alpha<1.0，就设置为alpha
+                if (this._color[3] < 1.0) {//如果alpha<1.0，就设置为alpha
                     //预乘
-                    this.red = this.red;// * this.alpha;
-                    this.green = this.green;// * this.alpha;
-                    this.blue = this.blue;// * this.alpha;
+                    // this.red = this.red;// * this.alpha;
+                    // this.green = this.green;// * this.alpha;
+                    // this.blue = this.blue;// * this.alpha;
                 }
                 else if (transparentValue && transparentValue.opacity && transparentValue.opacity < 1.0) {//如果alpha=1.0，就设置为opacity
                     //预乘
-                    this.red = this.red * transparentValue.opacity;
-                    this.green = this.green * transparentValue.opacity;
-                    this.blue = this.blue * transparentValue.opacity;
-                    this.alpha = transparentValue.opacity;
+                    // this.red = this.red * transparentValue.opacity;
+                    // this.green = this.green * transparentValue.opacity;
+                    // this.blue = this.blue * transparentValue.opacity;
+                    // this.alpha = transparentValue.opacity;
+                    this._color = [
+                        this._color[0] * transparentValue.opacity,
+                        this._color[1] * transparentValue.opacity,
+                        this._color[2] * transparentValue.opacity,
+                        transparentValue.opacity
+                    ];
                 }
             }
         }
@@ -80,10 +95,20 @@ export class ColorMaterial extends BaseMaterial {
         }
     }
     async readyForGPU(): Promise<any> {
+        this.writeUniformBuffer();
         this._state = E_lifeState.finished;
         // console.log(this._state);
     }
-
+    writeUniformBuffer(update: boolean = false) {
+        let bufferView = new Float32Array(this.unifromCPUBuffer);
+        bufferView.set(this._color);
+        if (update) {
+            this.device.queue.writeBuffer(this.uniformGPUBuffer, 0, this.unifromCPUBuffer);
+        }
+        else {
+            this.uniformGPUBuffer = createUniformBuffer(this.device, `colorMaterial:${this.UUID}`, this.unifromCPUBuffer);
+        }
+    }
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
@@ -91,7 +116,7 @@ export class ColorMaterial extends BaseMaterial {
     getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
         let template = SHT_materialColorFS;
         let replaceList = new Map<string, string | (() => string)>();
-        replaceList.set("$fsOutputColor", ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+        // replaceList.set("$fsOutputColor", ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
         let output = this.formatSHT(template, replaceList, startBinding);
         return output;
         // return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
@@ -217,13 +242,40 @@ export class ColorMaterial extends BaseMaterial {
      * @param startBinding 
      * @returns 
      */
-    getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
-        this.unifromEntryBundle_Common = {
-            bindingNumber: startBinding,
-            groupAndBindingString: "",
-            entry: []
-        };
-        return this.unifromEntryBundle_Common;
+    getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial
+    //{ bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; }
+    {
+        if (this.unifromEntryBundle_Common != undefined) {
+            return this.unifromEntryBundle_Common;
+        }
+        else {
+            let binding: number = startBinding;
+            let uniform1: T_uniformOneGroup = [];
+            let groupAndBindingString: string = "";
+
+            let uniformBuffer: GPUBindGroupEntry = {
+                binding: binding,
+                resource: this.uniformGPUBuffer,
+            };
+            let uniformBufferLayout: GPUBindGroupLayoutEntry = {
+                binding: binding,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: {
+                    type: "uniform",
+                },
+            };
+            //添加到resourcesGPU的Map中
+            this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
+            this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
+            //push到uniform1队列
+            uniform1.push(uniformBuffer);
+            this.unifromEntryBundle_Common = {
+                bindingNumber: startBinding,
+                groupAndBindingString,
+                entry: uniform1
+            };
+            return this.unifromEntryBundle_Common;
+        }
     }
 
     _destroy(): void {

@@ -26,7 +26,7 @@ attributes: st_location,
   //   );
   //   let count = u32(u_entity_base.joint_matrix_count);
   //   for(var i=0 ;i < 4;i++) {
-  //       let per_joint = u32(attributes.joints[i]);
+  //       let per_joint = u32(attributes.joints[i]);   //这里的attribute中的joints和weights 是不确定的因素，没有骨骼动画就没有joints和weights
   //       // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
   //       skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
   //   }
