@@ -49,7 +49,7 @@ var phongFS = phongMaterialWGSL.toString();
 export var SHT_materialPhongFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PhongMaterial",
+        owner: "PhongMaterial forward",
         add: [
             SHT_vsStructOutput,
             SHT_addMathBase,
@@ -94,7 +94,7 @@ export var SHT_materialPhongFS: I_ShaderTemplate = {
 export var SHT_materialPhongFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PhongMaterial",
+        owner: "PhongMaterial MSAA",
         add: [
             SHT_vsStructOutput,
             SHT_addMathBase,
@@ -146,7 +146,7 @@ var phongMSAAinfoFS = phongMaterial_MSAAinfo_WGSL.toString();
 export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PhongMaterial",
+        owner: "PhongMaterial MSAA info",
         add: [
             SHT_vsStructOutput,
             SHT_addMathBase,
@@ -207,7 +207,7 @@ export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
 export var SHT_materialPhongFS_defer: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "PhongMaterial",
+        owner: "PhongMaterial Defer Color",
         add: [
             SHT_vsStructOutput,
             SHT_addMathBase,

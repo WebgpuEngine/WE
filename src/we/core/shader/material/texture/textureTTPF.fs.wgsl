@@ -1,10 +1,21 @@
 //start : textureTTPF.fs.wgsl
     var materialColor=textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy );
     //如果有alpha，按照input规则输出，按照图像原始数据处理，否则 discard（这里的透明也写深度）
-    if($materialColorRule)
+    if(u_uniform_texture.has_alphaTest==1)
     {
-        discard;
+        if( materialColor.a < u_uniform_texture.alphaTest )
+        {
+            discard;
+        }
     }
-    $opacityPercent  
+    if( u_uniform_texture.has_opacity_percent == 1  )
+    {
+         materialColor.a = u_uniform_texture.opacity;
+    } 
+    // if($materialColorRule)
+    // {
+    //     discard;
+    // }
+    // $opacityPercent  
     color=materialColor;
 //end : textureTTPF.fs.wgsl

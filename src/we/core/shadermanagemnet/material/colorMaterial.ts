@@ -88,6 +88,8 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
     }
 }
 /** 颜色材质, 不透明, 按需合并到VS中 */
+import colorMSAAInfoFSWGSL from "../../shader/material/color/colorMSAAInfo.fs.wgsl?raw";
+var colorMSAAInfoFS = colorMSAAInfoFSWGSL.toString();
 export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,    
     material: {
@@ -100,30 +102,12 @@ export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
             },
             {
                 name: "fs",
-                code: colorFS,
+                code: colorMSAAInfoFS,
             },
         ],
         replace: [
-            // {//SHT_replaceGBufferMSAAinfo_FSOutput
-            //     name: "colorFS.output content",
-            //     replace: "$fsOutput",           //
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: WGSL_replace_MSAAinfo_gbuffer_output
-            // },
             SHT_replaceGBufferMSAAinfo_FSOutput,                                            // WGSL_replace_MSAAinfo_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            // {
-            //     name: "colorFS set color",
-            //     replace: "$fsOutputColor",           //取消设置颜色
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: "",
-            // },
-            // {//判断alpha的code
-            //     name: "if alpha",
-            //     replace: "$fsIfAlpha",           //判断alpha
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: "",                                      //  MSAA infor 不输出 color
-            // }
         ],
     }
 }

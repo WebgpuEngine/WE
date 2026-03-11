@@ -27,11 +27,14 @@ export enum E_MaterialType {
 export type T_TransparentOfMaterial = I_AlphaTransparentOfMaterial | I_PhysicalTransparentOfMaterial | I_SSSTransparentOfMaterial
 /**透明材质的初始化参数 */
 export interface I_AlphaTransparentOfMaterial {
-    /** 不透明度，float32，默认=1.0 
+    /** 不透明度（即alpha值），float32，默认=1.0 
      * 如果opacity与alphaTest同时存在，那么alphaTest会覆盖opacity。
     */
     opacity?: number,
-    /**alphaTest时要使用的alpha值。如果不透明度低于此值，则不会渲染材质。默认值为0 */
+    /**alphaTest时要使用的alpha值。
+     * 1、默认值为0 ，当前值=0时，即使纹理有alpha值，也会被忽略（可能会重新透明的图片的地方，成为黑色或其他颜色）。
+     * 2、如果不透明度低于此值，则不会渲染，即透明（discard）。
+    */
     alphaTest?: number,
     /** blending ，直接使用webGPU的GPUBlendState interface格式
      * 
@@ -49,6 +52,9 @@ export interface I_AlphaTransparentOfMaterial {
     */
     blendConstants?: number[],
     type: E_TransparentType.alpha,
+}
+export function isAlphaTransparentOfMaterial(transparent: T_TransparentOfMaterial): transparent is I_AlphaTransparentOfMaterial {
+    return transparent.type === E_TransparentType.alpha;
 }
 /**
  * 物理透明材质参数
@@ -103,7 +109,7 @@ export interface IV_BaseMaterial extends I_Update {
     /**透明材质的初始化参数
      * 默认不透明：没有此参数
      */
-    transparent?: T_TransparentOfMaterial,
+    transparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
 
     //以下部分为 material 的 default sampler
     /** 

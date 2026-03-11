@@ -54,6 +54,7 @@ let geometry = new SphereGeometry();
 let colorMaterial1 = new ColorMaterial({
   color: [1, 0.5, 0.5, 0.51],
 });
+
 let textureMaterial = new TextureMaterial({
   textures: {
     color: "/resource/images/img/we3D_alpha.png",
@@ -64,7 +65,25 @@ let colorMaterial2 = new ColorMaterial({
   color: [0, 1, 0, 1]
 });
 
+let inputMesh3: IV_MeshEntity = {
+  name:"green",
+  attributes: {
+    geometry: planeGeometry,
+  },
+  material: colorMaterial2,
+  position: [0, 0, -4],
+
+  // rotate: [1, 0, 0, Math.PI / 2],
+  primitive: {
+    cullMode: "none",
+  }
+}
+let mesh3 = new Mesh(inputMesh3);
+await scene.add(mesh3);
+
+
 let inputMesh1: IV_MeshEntity = {
+  name:"WE3D",
   attributes: {
     geometry: planeGeometry,
   },
@@ -82,6 +101,7 @@ await scene.add(mesh1);
 
 
 let inputMesh2: IV_MeshEntity = {
+  name:"color plane",
   attributes: {
     geometry: planeGeometry,
   },
@@ -94,4 +114,7 @@ let inputMesh2: IV_MeshEntity = {
 }
 let mesh2 = new Mesh(inputMesh2);
 await scene.add(mesh2);
+
+
+
 

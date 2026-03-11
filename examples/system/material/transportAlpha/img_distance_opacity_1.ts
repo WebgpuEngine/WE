@@ -70,6 +70,23 @@ let colorMaterial2 = new ColorMaterial({
   color: [0, 1, 0, 1]
 });
 
+
+let inputMesh3: IV_MeshEntity = {
+  attributes: {
+    geometry: planeGeometry,
+  },
+  material: colorMaterial2,
+  position: [0, 0, -6],
+
+  // rotate: [1, 0, 0, Math.PI / 2],
+  primitive: {
+    cullMode: "none",
+  }
+}
+let mesh3 = new Mesh(inputMesh3);
+await scene.add(mesh3);
+
+
 let inputMesh1: IV_MeshEntity = {
   attributes: {
     geometry: planeGeometry,
@@ -103,18 +120,4 @@ let inputMesh2: IV_MeshEntity = {
 let mesh2 = new Mesh(inputMesh2);
 await scene.add(mesh2);
 
-let inputMesh3: IV_MeshEntity = {
-  attributes: {
-    geometry: planeGeometry,
-  },
-  material: colorMaterial2,
-  position: [0, 0, -4],
-
-  // rotate: [1, 0, 0, Math.PI / 2],
-  primitive: {
-    cullMode: "none",
-  }
-}
-let mesh3 = new Mesh(inputMesh3);
-await scene.add(mesh3);
 

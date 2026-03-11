@@ -322,8 +322,8 @@ export class Mesh extends EntityBundleMaterial {
             let uniformsMaterialTOTT = this._material.getTTTT(camera);
             //TO
             if (uniformsMaterialTOTT.TO) {
-
-                this.generateOpacityDC(UUID, SHT_MeshVS, uniformsMaterialTOTT.TO);
+                let dc = this.generateOpacityDC(UUID, SHT_MeshVS, uniformsMaterialTOTT.TO);
+                this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }
             let dcTT: DrawCommand;
             //TT
@@ -343,86 +343,86 @@ export class Mesh extends EntityBundleMaterial {
                 dcTT = this.DCG.generateDrawCommand(valueDC);
                 this.cameraDC[UUID][E_renderPassName.transparent].push(dcTT);
             }
-        //     // //TTP
-        //     if (uniformsMaterialTOTT.TTP) {
-        //         let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTP });
-        //         /** 不需要设置透明，TTP的透明是xxxTTP.wgsl 中的透明逻辑,按需写代码。
-        //          *   ColorMaterial 不需要设置透明 （要么不透明，要么全透明）
-        //          *   TextureMaterial，是discard判断 。
-        //         */
-        //         //RPD 
-        //         //let rpd=camera.manager.getTT_RenderRPD(UUID);//test use
-        //         valueDC.renderPassDescriptor = () => {
-        //             return camera.manager.getTT_RenderRPD(UUID);
-        //         };
-        //         //label
-        //         valueDC.label = "TTP mesh:" + this.ID;
-        //         // valueDC.label = this.ID.toString();
-        //         if (valueDC.render.fragment)
-        //             valueDC.render.fragment.targets = camera.manager.getTTColorAttachmentTargets();
-        //         //深度
-        //         valueDC.render.depthStencil = false;//没有深度比较，没有深度写入
-        //         let dc = this.DCG.generateDrawCommand(valueDC);
-        //         // this.cameraDC[UUID][E_renderPassName.transparent].push(dc);
-        //         this.resourcesGPU.TT2TTP.set(dcTT, dc);
-        //         this.mapList.push({ key: dcTT, type: "TTP", map: "TT2TTP" });
-        //     }
-        //     // //TTPF
-        //     if (uniformsMaterialTOTT.TTPF) {
-        //         let bindingNumber = uniformsMaterialTOTT.TTPF.bindingNumber;
-        //         //增加TTPF的layer uniform到TTPF
-        //         {
-        //             // uniform  层数
-        //             let unifromTTPF: I_uniformArrayBufferEntry = {
-        //                 label: this.Name + " uniform at group(2) binding(" + bindingNumber + ")",
-        //                 binding: bindingNumber,
-        //                 size: this.uniformOfTTPFSize,
-        //                 data: this.uniformOfTTPF,
-        //                 update: true,
-        //             };
-        //             let uniformTTPF_Layout: GPUBindGroupLayoutEntry = {
-        //                 binding: bindingNumber,
-        //                 visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        //                 buffer: {
-        //                     type: "uniform"
-        //                 }
-        //             };
-        //             uniformsMaterialTOTT.TTPF.shaderTemplateFinal["material"].groupAndBindingString += ` @group(2) @binding(${bindingNumber}) var <uniform> u_TTPF : st_TTPF; \n `;
+            // //TTP
+            if (uniformsMaterialTOTT.TTP) {
+                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTP });
+                /** 不需要设置透明，TTP的透明是xxxTTP.wgsl 中的透明逻辑,按需写代码。
+                 *   ColorMaterial 不需要设置透明 （要么不透明，要么全透明）
+                 *   TextureMaterial，是discard判断 。
+                */
+                //RPD 
+                //let rpd=camera.manager.getTT_RenderRPD(UUID);//test use
+                valueDC.renderPassDescriptor = () => {
+                    return camera.manager.getTT_RenderRPD(UUID);
+                };
+                //label
+                valueDC.label = "TTP mesh:" + this.ID;
+                // valueDC.label = this.ID.toString();
+                if (valueDC.render.fragment)
+                    valueDC.render.fragment.targets = camera.manager.getTTColorAttachmentTargets();
+                //深度
+                valueDC.render.depthStencil = false;//没有深度比较，没有深度写入
+                let dc = this.DCG.generateDrawCommand(valueDC);
+                // this.cameraDC[UUID][E_renderPassName.transparent].push(dc);
+                this.resourcesGPU.TT2TTP.set(dcTT, dc);
+                this.mapList.push({ key: dcTT, type: "TTP", map: "TT2TTP" });
+            }
+            // //TTPF
+            if (uniformsMaterialTOTT.TTPF) {
+                let bindingNumber = uniformsMaterialTOTT.TTPF.bindingNumber;
+                //增加TTPF的layer uniform到TTPF
+                {
+                    // uniform  层数
+                    let unifromTTPF: I_uniformArrayBufferEntry = {
+                        label: this.Name + " uniform at group(2) binding(" + bindingNumber + ")",
+                        binding: bindingNumber,
+                        size: this.uniformOfTTPFSize,
+                        data: this.uniformOfTTPF,
+                        update: true,
+                    };
+                    let uniformTTPF_Layout: GPUBindGroupLayoutEntry = {
+                        binding: bindingNumber,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    };
+                    uniformsMaterialTOTT.TTPF.shaderTemplateFinal["material"].groupAndBindingString += ` @group(2) @binding(${bindingNumber}) var <uniform> u_TTPF : st_TTPF; \n `;
 
-        //             this.scene.resourcesGPU.set(unifromTTPF, uniformTTPF_Layout);
-        //             bindingNumber++;
-        //             (uniformsMaterialTOTT.TTPF.uniformGroup as I_uniformArrayBufferEntry[]).push(unifromTTPF);
-        //             this.unifromTTPF = unifromTTPF;
-        //         }
-        //         // //增加TTPF部分
-        //         // bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TTPF.uniformGroup);
-        //         // bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TTPF.singleShaderTemplateFinal;
-        //         let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTPF });
+                    this.scene.resourcesGPU.set(unifromTTPF, uniformTTPF_Layout);
+                    bindingNumber++;
+                    (uniformsMaterialTOTT.TTPF.uniformGroup as I_uniformArrayBufferEntry[]).push(unifromTTPF);
+                    this.unifromTTPF = unifromTTPF;
+                }
+                // //增加TTPF部分
+                // bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TTPF.uniformGroup);
+                // bundle.shaderTemplateFinal.material = uniformsMaterialTOTT.TTPF.singleShaderTemplateFinal;
+                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TTPF });
 
-        //         //RPD
-        //         valueDC.renderPassDescriptor = () => { return camera.manager.GBufferManager.getGBufferColorRPD_TTPF(UUID); };
-        //         //label
-        //         valueDC.label = `TTPF mesh:${this.ID}`;
-        //         // valueDC.label = this.ID.toString();
-        //         ////没有深度比较，没有深度写入
-        //         valueDC.render.depthStencil = false;
-        //         // GPUColorTargetState
-        //         if (valueDC.render.fragment)
-        //             valueDC.render.fragment.targets = camera.manager.GBufferManager.getGBufferColorCTS();
-        //         //设置为透明
-        //         let transparentOption = this._material.getTransparentOption();
-        //         if (transparentOption) {
-        //             valueDC.transparent = transparentOption as I_TransparentOptionOfMaterial;
-        //         }
-        //         else {
-        //             throw new Error("透明材质的transparentOption不能为空");
-        //         }
+                //RPD
+                valueDC.renderPassDescriptor = () => { return camera.manager.GBufferManager.getGBufferColorRPD_TTPF(UUID); };
+                //label
+                valueDC.label = `TTPF mesh:${this.ID}`;
+                // valueDC.label = this.ID.toString();
+                ////没有深度比较，没有深度写入
+                valueDC.render.depthStencil = false;
+                // GPUColorTargetState
+                if (valueDC.render.fragment)
+                    valueDC.render.fragment.targets = camera.manager.GBufferManager.getGBufferColorCTS();
+                //设置为透明
+                let transparentOption = this._material.getTransparentOption();
+                if (transparentOption) {
+                    valueDC.transparent = transparentOption as I_TransparentOptionOfMaterial;
+                }
+                else {
+                    throw new Error("透明材质的transparentOption不能为空");
+                }
 
-        //         let dc = this.DCG.generateDrawCommand(valueDC);
-        //         // this.cameraDC[UUID][E_renderPassName.transparent].push(dc);
-        //         this.resourcesGPU.TT2TTPF.set(dcTT, dc);
-        //         this.mapList.push({ key: dcTT, type: "TTPF", map: "TT2TTPF" });
-        //     }
+                let dc = this.DCG.generateDrawCommand(valueDC);
+                // this.cameraDC[UUID][E_renderPassName.transparent].push(dc);
+                this.resourcesGPU.TT2TTPF.set(dcTT, dc);
+                this.mapList.push({ key: dcTT, type: "TTPF", map: "TT2TTPF" });
+            }
 
         }
         //wireframe 前向渲染,暂时不考虑wireframe 透明渲染

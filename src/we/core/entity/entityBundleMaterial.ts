@@ -554,17 +554,17 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             {//MSAA 部分
                 if (this.deferColor) {
                     if (TO !== undefined) {
-                        uniformsMaterialMSAA = material.getFS_TO_DeferColorOfMSAA(bundle.bindingNumber);
+                        uniformsMaterialMSAA = material.getFS_TO_DeferColorOfMSAA();
                     }
                     else
-                        uniformsMaterialMSAA = material.getOpacity_DeferColorOfMSAA(bundle.bindingNumber);
+                        uniformsMaterialMSAA = material.getOpacity_DeferColorOfMSAA();
                 }
                 else {
                     if (TO !== undefined) {
-                        uniformsMaterialMSAA = material.getFS_TO_MSAA(bundle.bindingNumber);
+                        uniformsMaterialMSAA = material.getFS_TO_MSAA();
                     }
                     else
-                        uniformsMaterialMSAA = material.getOpacity_MSAA(bundle.bindingNumber);
+                        uniformsMaterialMSAA = material.getOpacity_MSAA();
                 }
             }
             {

@@ -58,21 +58,25 @@ let textureMaterial = new TextureMaterial({
   textures: {
     color: "/resource/images/img/we3D_alpha.png",
   },
-  transparent:{
+  transparent: {
     type: E_TransparentType.alpha,
-    alphaTest:0.50,
+    // opacity: 0.5,
+    alphaTest: 0.50,
   }
 });
+
 
 let colorMaterial2 = new ColorMaterial({
   color: [0, 1, 0, 1]
 });
 
 let inputMesh1: IV_MeshEntity = {
+  name:"WE3D",
   attributes: {
     geometry: planeGeometry,
   },
   material: textureMaterial,
+  // material: colorMaterial2,
   position: [0, 0, -2],
 
   primitive: {
@@ -80,23 +84,42 @@ let inputMesh1: IV_MeshEntity = {
   }
 }
 let mesh1 = new Mesh(inputMesh1);
+window.meshOfWE3D = mesh1;
 await scene.add(mesh1);
 
 
 
 
 let inputMesh2: IV_MeshEntity = {
+  name:"red",
   attributes: {
     geometry: planeGeometry,
   },
   material: colorMaterial1,
-  // rotate: [1, 0, 0, Math.PI / 2],
   position: [0, 0, 2],
 
+  // rotate: [1, 0, 0, Math.PI / 2],
   primitive: {
     cullMode: "none",
   }
 }
+
 let mesh2 = new Mesh(inputMesh2);
 await scene.add(mesh2);
+
+let inputMesh3: IV_MeshEntity = {
+  name:"green",
+  attributes: {
+    geometry: planeGeometry,
+  },
+  material: colorMaterial2,
+  position: [0, 0, -4],
+
+  // rotate: [1, 0, 0, Math.PI / 2],
+  primitive: {
+    cullMode: "none",
+  }
+}
+let mesh3 = new Mesh(inputMesh3);
+await scene.add(mesh3);
 

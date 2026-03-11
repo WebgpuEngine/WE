@@ -474,7 +474,7 @@ export class DrawCommandGenerator {
         if (values.dynamic && values.dynamic === true) {
             let layoutNumber = 0;
             if (values.system) {
-                layoutNumber =2;
+                layoutNumber = 2;
             }
             commandOption.dynamicUniform = {
                 bindGroupLayout: DC_bindGroupLayouts,
@@ -1318,10 +1318,11 @@ export class DrawCommandGenerator {
 
         //3.2、VS shadermodel 编译
         let vsCacheShaderModelName = values.label;
-        if (typeof values.render.fragment?.code !== "string") {
+        if (values.render?.fragment?.code && typeof values.render?.fragment?.code !== "string") {
             let name = values.render.fragment?.code?.material?.owner;
+            // console.log(name);
             if (name.includes("WireFrameMaterial")) {
-                let id = values.IDS?.ID || values.label;
+                let id = this.parent?.Name || (values.IDS?.ID || values.label);
                 vsCacheShaderModelName = `${id} wireFrame`;
             }
             else {
@@ -1334,7 +1335,7 @@ export class DrawCommandGenerator {
         else//可以缓存透明材质的VS shader model
         {
             moduleVS = this.device.createShaderModule({
-                label: `vs ${vsCacheShaderModelName}`, //@${this.clock.now} 
+                label: `vs ${this.parent?.Name || values.IDS?.ID}`, //@${this.clock.now} 
                 code: shadercode,
             });
             this.resources.shaderModuleOfString.set(vsCacheShaderModelName, moduleVS);

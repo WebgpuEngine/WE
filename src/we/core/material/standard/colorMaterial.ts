@@ -5,7 +5,7 @@ import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { createUniformBuffer } from "../../command/baseFunction";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace } from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialColor_TTP_FS, SHT_materialColor_TT_FS, SHT_materialColorFS, SHT_materialColor_TTPF_FS, SHT_materialColorFS_MSAA, SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
 import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, I_BundleOfMaterialForMSAA, E_MaterialType, I_UniformBundleOfMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
@@ -16,7 +16,7 @@ export interface I_ColorMaterial extends IV_BaseMaterial {
 
 export class ColorMaterial extends BaseMaterial {
 
-    uniformGPUBuffer!: GPUBuffer;
+    // uniformGPUBuffer!: GPUBuffer;
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
     declare inputValues: I_ColorMaterial;
     _color: weColor4 = [1, 1, 1, 1];
@@ -109,6 +109,7 @@ export class ColorMaterial extends BaseMaterial {
             this.uniformGPUBuffer = createUniformBuffer(this.device, `colorMaterial:${this.UUID}`, this.unifromCPUBuffer);
         }
     }
+    /**没有透明中的不透明部分，要不透明，要么全部alpha的透明 */
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }

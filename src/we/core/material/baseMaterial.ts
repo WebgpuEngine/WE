@@ -110,6 +110,12 @@ export abstract class BaseMaterial extends RootGPU {
     /**TTPF 的uniform Bundle  */
     unifromEntryBundle_TTPF: I_UniformBundleOfMaterial | undefined;
 
+
+    /** 材质的uniform GPU Buffer */
+    uniformGPUBuffer!: GPUBuffer;
+    /** 材质的uniform CPU Buffer */
+    unifromCPUBuffer!: ArrayBuffer;
+
     constructor(input?: IV_BaseMaterial) {
         super();
         this.type = "material";
@@ -335,24 +341,24 @@ export abstract class BaseMaterial extends RootGPU {
     getTTTT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): {
         TT: I_materialBundleOutput,
         TO?: I_materialBundleOutput,
-        // TTP: I_materialBundleOutput,
-        // TTPF: I_materialBundleOutput
+        TTP: I_materialBundleOutput,
+        TTPF: I_materialBundleOutput
     } {
         // this.setUniformIDOfTTPF(meshID);
 
         let TT: I_materialBundleOutput = this.getFS_TT(renderObject, startBinding);;
         let TO: I_materialBundleOutput;
-        // let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
-        // let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
+        let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
+        let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
         // // TT = this.getFS_TT(renderObject, startBinding);
         // // TTP = this.getFS_TTP(renderObject, startBinding);
         let TTTT: {
              TT: I_materialBundleOutput, TO?: I_materialBundleOutput, 
-            //  TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput 
+             TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput 
             } = 
             { 
                 TT, 
-                // TTP, TTPF
+                TTP, TTPF
              };
         if (this.hasOpaqueOfTransparent) {
             TO = this.getFS_TO(startBinding);
