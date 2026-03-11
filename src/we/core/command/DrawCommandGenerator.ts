@@ -1318,20 +1318,20 @@ export class DrawCommandGenerator {
 
         //3.2、VS shadermodel 编译
         let vsCacheShaderModelName = values.label;
-        // if (typeof values.render.fragment?.code !== "string") {
-        //     let name = values.render.fragment?.code?.material?.owner;
-        //     if (name.includes("WireFrameMaterial")) {
-        //         let id = values.IDS?.ID || values.label;
-        //         vsCacheShaderModelName = `${id} wireFrame`;
-        //     }
-        //     else {
-        //         vsCacheShaderModelName = values.IDS!.ID.toString();
-        //     }
-        // }
-        // if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
-        //     moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
-        // }
-        // else
+        if (typeof values.render.fragment?.code !== "string") {
+            let name = values.render.fragment?.code?.material?.owner;
+            if (name.includes("WireFrameMaterial")) {
+                let id = values.IDS?.ID || values.label;
+                vsCacheShaderModelName = `${id} wireFrame`;
+            }
+            else {
+                vsCacheShaderModelName = values.IDS!.ID.toString();
+            }
+        }
+        if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
+            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
+        }
+        else//可以缓存透明材质的VS shader model
         {
             moduleVS = this.device.createShaderModule({
                 label: `vs ${vsCacheShaderModelName}`, //@${this.clock.now} 

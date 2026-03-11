@@ -335,18 +335,25 @@ export abstract class BaseMaterial extends RootGPU {
     getTTTT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): {
         TT: I_materialBundleOutput,
         TO?: I_materialBundleOutput,
-        TTP: I_materialBundleOutput,
-        TTPF: I_materialBundleOutput
+        // TTP: I_materialBundleOutput,
+        // TTPF: I_materialBundleOutput
     } {
         // this.setUniformIDOfTTPF(meshID);
 
         let TT: I_materialBundleOutput = this.getFS_TT(renderObject, startBinding);;
         let TO: I_materialBundleOutput;
-        let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
-        let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
-        // TT = this.getFS_TT(renderObject, startBinding);
-        // TTP = this.getFS_TTP(renderObject, startBinding);
-        let TTTT: { TT: I_materialBundleOutput, TO?: I_materialBundleOutput, TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput } = { TT, TTP, TTPF };
+        // let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
+        // let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
+        // // TT = this.getFS_TT(renderObject, startBinding);
+        // // TTP = this.getFS_TTP(renderObject, startBinding);
+        let TTTT: {
+             TT: I_materialBundleOutput, TO?: I_materialBundleOutput, 
+            //  TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput 
+            } = 
+            { 
+                TT, 
+                // TTP, TTPF
+             };
         if (this.hasOpaqueOfTransparent) {
             TO = this.getFS_TO(startBinding);
             TTTT.TO = TO;

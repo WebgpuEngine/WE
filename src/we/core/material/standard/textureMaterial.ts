@@ -18,7 +18,7 @@ import { E_MaterialType, E_TextureType, E_TransparentType, I_BundleOfMaterialFor
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS, SHT_materialTexture_TTPF_FS, SHT_materialTextureFS, SHT_materialTextureFS_MSAA } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
 import { E_resourceKind } from "../../resources/resourcesGPU";
