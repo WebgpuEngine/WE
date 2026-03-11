@@ -52,9 +52,7 @@ let colorMaterial = new ColorMaterial({
 let defaultCubeTexture = scene.resourcesGPU.weTextureOfString.get("defaultCube");//ok
 
 let textureMaterial = new CubeTextureMaterial({
-  textures: {
-    cube: defaultCubeTexture,
-  },
+    texture: defaultCubeTexture ,
 });
 
 let inputMesh: IV_MeshEntity = {

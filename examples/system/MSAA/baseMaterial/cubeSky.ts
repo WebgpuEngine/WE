@@ -51,11 +51,8 @@ let boxGeometry = new BoxGeometry();
 
 
 let textureMaterial = new CubeTextureMaterial({
-  textures: {
     /** 立方体贴图 JPG 格式*/
-    // cube: "/resource/cubeIMG/cubemap/test",
-    cube: "/resource/cubeIMG/skycube1/skybox",
-  },
+    texture: "/resource/cubeIMG/skycube1/skybox",
   cubeType:"sky"
 });
 

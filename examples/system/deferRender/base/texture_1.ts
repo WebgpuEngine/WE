@@ -49,9 +49,7 @@ let colorMaterial = new ColorMaterial({
 });
 
 let textureMaterial = new TextureMaterial({
-  textures: {
-    color: "/resource/images/img/we3D.png",
-  },
+  texture: "/resource/images/img/we3D.png",
 });
 
 let inputMesh: IV_MeshEntity = {

@@ -11,17 +11,14 @@
  *    B、opacity,整体透明度
  */
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformGroups, T_uniformOneGroup } from "../../command/base";
+import {  T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
-import { BaseCamera } from "../../camera/baseCamera";
+import {  I_ShaderTemplate} from "../../shadermanagemnet/base";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial } from "../base";
 import { SHT_materialCubePositionTextureFS, SHT_materialCubePositionTextureFS_MSAA, SHT_materialCubePositionTextureFS_MSAAinfo, SHT_materialCubeSkyTextureFS, SHT_materialCubeSkyTextureFS_MSAA, SHT_materialCubeSkyTextureFS_MSAAinfo } from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { E_resourceKind } from "../../resources/resourcesGPU";
-import { SHT_materialTextureFS_MSAA } from "../../shadermanagemnet/material/textureMaterial";
-import { SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
 import { Texture } from "../../texture/texture";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
@@ -41,15 +38,15 @@ export class CubeTextureMaterial extends TextureMaterial {
     }
 
     async readyForGPU(): Promise<any> {
-        if (this.inputValues.textures[E_TextureType.cube] == undefined) {
+        if (this.inputValues.texture == undefined) {
             throw new Error("CubeTextureMaterial 缺少cubeTexture");
         }
         this.defaultSampler = this.checkSampler(this.inputValues);
-        if (this.inputValues.textures[E_TextureType.cube] instanceof Texture) {
-            this.textures[E_TextureType.cube] = this.inputValues.textures[E_TextureType.cube];
+        if (this.inputValues.texture instanceof Texture) {
+            this.textures[E_TextureType.cube] = this.inputValues.texture;
         }
-        else if (typeof this.inputValues.textures[E_TextureType.cube] == "string") {
-            let textureInstace = new CubeTexture({ source: this.inputValues.textures[E_TextureType.cube] }, this.device, this.scene);
+        else if (typeof this.inputValues.texture == "string") {
+            let textureInstace = new CubeTexture({ source: this.inputValues.texture }, this.device, this.scene);
             await textureInstace.init(this.scene);
             this.textures[E_TextureType.cube] = textureInstace;
         }

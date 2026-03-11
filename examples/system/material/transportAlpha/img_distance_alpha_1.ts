@@ -56,9 +56,7 @@ let colorMaterial1 = new ColorMaterial({
 });
 
 let textureMaterial = new TextureMaterial({
-  textures: {
-    color: "/resource/images/img/we3D_alpha.png",
-  },
+  texture: "/resource/images/img/we3D_alpha.png",
 });
 
 let colorMaterial2 = new ColorMaterial({

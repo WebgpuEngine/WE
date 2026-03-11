@@ -36,9 +36,10 @@ import { createUniformBuffer } from "../../command/baseFunction";
  * 纹理材质的初始化参数 * 
  */
 export interface IV_TextureMaterial extends IV_BaseMaterial {
-    textures: {
-        [name in E_TextureType]?: T_textureSourceType | Texture
-    },
+    // textures: {
+    //     [name in E_TextureType]?: T_textureSourceType | Texture
+    // },
+    texture: T_textureSourceType | Texture
 }
 
 export class TextureMaterial extends BaseMaterial {
@@ -87,21 +88,15 @@ export class TextureMaterial extends BaseMaterial {
     declare textures: {
         [name: string]: Texture
     };
-    /**纹理数量 */
-    countOfTextures!: number;
-    /**自增，纹理加载计算器 */
-    countOfTexturesOfFineshed!: number;
-
-    // opacityAlphaOperations: T_opacityAlphaOperations = "opacity";
 
     constructor(input: IV_TextureMaterial) {
         super(input);
         this.kind = E_MaterialType.texture;
         this.textures = {};
-        this.countOfTextures = 0;
-        this.countOfTexturesOfFineshed = 0;
-        if (input.textures)
-            this.countOfTextures = Object.keys(input.textures!).length;
+
+        if (input.texture == undefined) {
+            throw new Error("TextureMaterial: texture is undefined");
+        }
 
         if (input.transparent && isAlphaTransparentOfMaterial(input.transparent)) {
             if (input.transparent.alphaTest != undefined) {
@@ -136,18 +131,19 @@ export class TextureMaterial extends BaseMaterial {
     async readyForGPU(): Promise<any> {
         this.writeUniformBuffer();
         this.defaultSampler = this.checkSampler(this.inputValues);
-        for (let key in this.inputValues.textures) {
-            let texture = this.inputValues.textures[key as keyof IV_TextureMaterial["textures"]]!;
-            if (texture instanceof Texture) {
-                this.textures[key] = texture;
-            }
-            else {
-                let textureInstace = new Texture({ source: texture }, this.device, this.scene);
-                await textureInstace.init(this.scene);
-                this.textures[key] = textureInstace;
-            }
-            // this.countOfTexturesOfFineshed++;
+        // for (let key in this.inputValues.textures) {
+
+        let texture = this.inputValues.texture;
+        if (texture instanceof Texture) {
+            this.textures[E_TextureType.color] = texture;
         }
+        else {
+            let textureInstace = new Texture({ source: texture }, this.device, this.scene);
+            await textureInstace.init(this.scene);
+            this.textures[E_TextureType.color] = textureInstace;
+        }
+        // this.countOfTexturesOfFineshed++;
+        // }
         this._state = E_lifeState.finished;
     }
 
