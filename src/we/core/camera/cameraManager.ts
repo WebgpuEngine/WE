@@ -845,32 +845,33 @@ export class CameraManager extends ECSManager<BaseCamera> {
     }
     createComputeDepth(UUID: string): ComputeCommand {
         let computeCode = `
-                        // 绑定组布局:输入MSAA深度纹理,输出单样本深度纹理
-                        @group(0) @binding(0) var msaaDepth: texture_depth_multisampled_2d;
-                        @group(0) @binding(1) var outputDepth: texture_storage_2d<r32float, write>;
+// 绑定组布局:输入MSAA深度纹理,输出单样本深度纹理
+@group(0) @binding(0) var msaaDepth: texture_depth_multisampled_2d;
+@group(0) @binding(1) var outputDepth: texture_storage_2d<r32float, write>;
 
-                        // 工作组大小:16x16(可根据GPU性能调整)
-                        @compute @workgroup_size(16, 16)                        
-                        fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
-                            // 计算当前像素坐标（确保不超出纹理范围）
-                            let pixelCoord = vec2i(globalId.xy);
-                            if (u32(pixelCoord.x) >= textureDimensions(msaaDepth).x || 
-                                u32(pixelCoord.y )>= textureDimensions(msaaDepth).y) {
-                                return;
-                            }
+// 工作组大小:16x16(可根据GPU性能调整)
+@compute @workgroup_size(16, 16)                        
+fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
+    // 计算当前像素坐标（确保不超出纹理范围）
+    let pixelCoord = vec2i(globalId.xy);
+    if (u32(pixelCoord.x) >= textureDimensions(msaaDepth).x || 
+        u32(pixelCoord.y )>= textureDimensions(msaaDepth).y) {
+        return;
+    }
 
-                            // 读取所有MSAA样本,取最小值(可改为平均、最大等逻辑)
-                            var targetDepth = 0.0;//1.0; // 初始化为最大深度值(透视投影中通常为1.0),reverseZ为true时取最大值
-                            for (var i: u32 = 0; i < 4; i++) { // 遍历4个样本
-                                let sampleDepth = textureLoad(msaaDepth, pixelCoord, i);
-                                // if (sampleDepth < targetDepth) { // 取最小值,正向Z
-                                if (sampleDepth >= targetDepth) { // 取最大值,reverseZ为true时取最大
-                                targetDepth = sampleDepth;
-                                }
-                            }
+    // 读取所有MSAA样本,取最小值(可改为平均、最大等逻辑)
+    // var targetDepth = 1.0; // 取最小值,正向Z.
+    var targetDepth = 0.0;//1.0; // reverseZ为true时取最大值
+    for (var i: u32 = 0; i < 4; i++) { // 遍历4个样本
+        let sampleDepth = textureLoad(msaaDepth, pixelCoord, i);
+        // if (sampleDepth < targetDepth) { // 取最小值,正向Z
+        if (sampleDepth >= targetDepth) { // 取最大值,reverseZ为true时取最大
+        targetDepth = sampleDepth;
+        }
+    }
 
-                            // 写入解析后的单样本深度纹理
-                            textureStore(outputDepth, pixelCoord, vec4f(targetDepth,0,0,1));
+    // 写入解析后的单样本深度纹理
+    textureStore(outputDepth, pixelCoord, vec4f(targetDepth,0,0,1));
                         }`;
         // 3. 创建计算管线（自动布局），可以map cache的，不变的，todo：20251018
         const resolvePipeline = this.device.createComputePipeline({

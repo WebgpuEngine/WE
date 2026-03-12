@@ -5,7 +5,7 @@ import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
 import { commmandType, I_dynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final, T_SHTReplaceList } from "../shadermanagemnet/base";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { E_resourceKind } from "../resources/resourcesGPU";
@@ -213,7 +213,13 @@ export abstract class BaseMaterial extends RootGPU {
      */
     abstract getOpacity_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
     // abstract getOpacity_MSAA_Info(startBinding: number): I_BundleOfMaterialForMSAA;
+
+
     /**
+     * 20260312：之前已经明确MSAA+defer color，会产生采样的边缘问题，方案已经放弃。（改进成本不值得）
+     *          可以增加defer depth +MSAA的方案，形成两个体系：
+     *              A、延迟渲染+FXAA等（非MSAA的AA）
+     *              B、MSAA+defer depth，还可以再叠加其他AA
      * MSAA的延迟渲染 输出的shader模板
      * @param startBinding 
      * @returns { MSAA: I_materialBundleOutput, inforForward: I_materialBundleOutput }
@@ -221,7 +227,6 @@ export abstract class BaseMaterial extends RootGPU {
      *  2、inforForward:输出其他GBuffer信息（需要按照延迟渲染的约定进行）
      */
     abstract getOpacity_DeferColorOfMSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
-    // abstract getOpacity_DeferColorOfMSAA_Info(startBinding: number): I_BundleOfMaterialForMSAA;
 
     /**
      * 延迟渲染的shader模板输出
@@ -799,7 +804,7 @@ export abstract class BaseMaterial extends RootGPU {
 
     formatSHT(
         template: I_ShaderTemplate,
-        replaceList: T_SHTReplaceList,
+        replaceList: Map<string, string | ((scope?: any) => string)>,
         startBinding: number,
         // isTTPF: boolean = false,
         // renderObject?: BaseCamera

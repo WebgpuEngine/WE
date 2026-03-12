@@ -185,7 +185,7 @@ export class VideoMaterial extends BaseMaterial {
         return unifromEntryBundle_Common;
     }
 
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number=0): I_materialBundleOutput {
+    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
 
 
 
@@ -264,7 +264,7 @@ export class VideoMaterial extends BaseMaterial {
         throw new Error("Method not implemented.");
     }
     getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
+        return this.getOpacity_Forward(startBinding);
     }
 
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
@@ -285,7 +285,7 @@ export class VideoMaterial extends BaseMaterial {
     getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): string {
+    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
 

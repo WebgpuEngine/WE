@@ -1,10 +1,11 @@
 import { E_lifeState } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformGroups, T_uniformOneGroup } from "../../command/base";
+import { T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialColorFS, SHT_materialColorFS_MSAA_info, SHT_materialColorFS_MSAA } from "../../shadermanagemnet/material/colorMaterial";
+import { SHT_materialVertexColorFS } from "../../shadermanagemnet/material/vertexColorMaterial";
 import { E_MaterialType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
@@ -17,7 +18,7 @@ export class VertexColorMaterial extends BaseMaterial {
 
     declare inputValues: IV_BaseMaterial;
     constructor() {
-        super(     {}  );
+        super({});
         this.kind = E_MaterialType.vertex;
         // if (!input) {
         //     input = {};
@@ -34,12 +35,12 @@ export class VertexColorMaterial extends BaseMaterial {
         this.hasOpaqueOfTransparent = false;
     }
     getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
+        return this.getOpaqueCodeFS(SHT_materialVertexColorFS, startBinding);
     }
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
         let replaceList = new Map<string, string | (() => string)>();
-        let color: string = ` output.color = vec4f(fsInput.color,1); \n`;
-        replaceList.set("$fsOutputColor", color);
+        // let color: string = ` output.color = vec4f(fsInput.color,1); \n`;
+        // replaceList.set("$fsOutputColor", color);
         return this.formatSHT(template, replaceList, startBinding);
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
@@ -47,11 +48,9 @@ export class VertexColorMaterial extends BaseMaterial {
         let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
-    }
+
     getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
+        return this.getOpacity_Forward(startBinding);
     }
     getUniformEntryBundleOfCommon(startBinding: number): { bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; } {
         this.unifromEntryBundle_Common = {
@@ -60,6 +59,10 @@ export class VertexColorMaterial extends BaseMaterial {
             entry: []
         };
         return this.unifromEntryBundle_Common;
+    }
+
+    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+        throw new Error("Method not implemented.");
     }
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");

@@ -23,7 +23,6 @@ import { SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS, SHT_materialText
 import { BaseCamera } from "../../camera/baseCamera";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
-import { SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
 import { createUniformBuffer } from "../../command/baseFunction";
 
 

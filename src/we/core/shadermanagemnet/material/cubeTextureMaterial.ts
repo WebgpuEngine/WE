@@ -9,7 +9,7 @@ var cubeSkyTextureFS = cubeSKyTextureFSWGSL.toString();
 export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "CubeTextureMaterial forward ",
         add: [
             SHT_vsStructOutput,
             {
@@ -37,7 +37,7 @@ export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
 export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "CubeTextureMaterial MSAA",
         add: [
             SHT_vsStructOutput,
             {
@@ -71,7 +71,7 @@ export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
 export var SHT_materialCubeSkyTextureFS_MSAAinfo: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "CubeTextureMaterial MSAAinfo",
         add: [
             SHT_vsStructOutput,
             {
@@ -109,7 +109,7 @@ var cubePositionTextureFS = cubePositionTextureFSWGSL.toString();
 export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "CubeTextureMaterial position",
         add: [
             SHT_vsStructOutput,
             {
@@ -146,7 +146,7 @@ export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
 export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "CubeTextureMaterial position MSAA",
         add: [
             SHT_vsStructOutput,
             {
@@ -181,7 +181,7 @@ export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
 export var SHT_materialCubePositionTextureFS_MSAAinfo: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "CubeTextureMaterial position MSAAinfo",
         add: [
             SHT_vsStructOutput,
             {
