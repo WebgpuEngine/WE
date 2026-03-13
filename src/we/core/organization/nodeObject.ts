@@ -925,6 +925,13 @@ export abstract class NodeObject extends NodeSpace {
  * 用于实例化节点对象
  */
 export class NodeInstance extends NodeObject {
+    //20260313，为了TTPF，明确ID，的临时测试代码
+    // constructor(input?: IV_Node) {
+    //     super(input);
+    //     if (input.id !== undefined) {
+    //         this.ID = input.id;
+    //     }
+    // }
     saveJSON() {
         throw new Error("Method not implemented.");
     }

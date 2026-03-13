@@ -38,7 +38,7 @@ export var SHT_materialVertexColorFS: I_ShaderTemplate = {
 
 
 /** 颜色材质, 不透明, 按需合并到VS中 */
-export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
+export var SHT_materialVertexColorFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "VertexColorMaterial_MSAA",
@@ -60,9 +60,9 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
     }
 }
 /** 颜色材质, 不透明, 按需合并到VS中 */
-import colorMSAAInfoFSWGSL from "../../shader/material/color/colorMSAAInfo.fs.wgsl?raw";
+import colorMSAAInfoFSWGSL from "../../shader/material/vertexColor/colorMSAAInfo.fs.wgsl?raw";
 var colorMSAAInfoFS = colorMSAAInfoFSWGSL.toString();
-export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
+export var SHT_materialVertexColorFS_MSAA_info: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "VertexColorMaterial_MSAA_info",

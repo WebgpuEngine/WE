@@ -78,7 +78,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         this.deferRender = this.scene.deferRender.deferRenderColor;
         this.MSAA = this.scene.MSAA;
         this.GBufferManager = new GBuffers(this, this.scene.device);
-        this.DCG = new DrawCommandGenerator({ scene: this.scene });
+        this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this, });
         this.deferDCG = new DeferDrawCommandGenerator({ scene: this.scene, parent: this, });
         /**
          * 20251018，MSAA的depth数据进行resolve（先compute，在render 从朋友）后，有精度损失。放弃深度对比方法。

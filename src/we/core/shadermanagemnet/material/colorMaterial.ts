@@ -1,4 +1,4 @@
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_replace_gbuffer_output,  WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer, WGSL_st_transparentbuffer } from "../base"
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_replace_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer, WGSL_st_transparentbuffer } from "../base"
 import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
 ////////////////////////////////////////////////////////////////////////////////
 //material
@@ -7,7 +7,7 @@ import colorFSWGSL from "../../shader/material/color/color.fs.wgsl?raw";
 var colorFS = colorFSWGSL.toString();
 /** 颜色材质, 不透明, 按需合并到VS中 */
 export var SHT_materialColorFS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial_Forward",
         add: [
@@ -50,7 +50,7 @@ export var SHT_materialColorFS: I_ShaderTemplate = {
 
 /** 颜色材质, 不透明, 按需合并到VS中 */
 export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial_MSAA",
         add: [
@@ -91,7 +91,7 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
 import colorMSAAInfoFSWGSL from "../../shader/material/color/colorMSAAInfo.fs.wgsl?raw";
 var colorMSAAInfoFS = colorMSAAInfoFSWGSL.toString();
 export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial_MSAA_info",
         add: [
@@ -116,7 +116,7 @@ import colorTTFSWGSL from "../../shader/material/color/colorTT.fs.wgsl?raw";
 var colorTTFS = colorTTFSWGSL.toString();
 /**colorTT: 颜色材质, 透明, 按需合并到VS中 */
 export var SHT_materialColor_TT_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial_TT",
         add: [
@@ -150,37 +150,33 @@ export var SHT_materialColor_TT_FS: I_ShaderTemplate = {
 }
 
 
-import colorTTP_FSWGSL from "../../shader/material/color/colorTTP.fs.wgsl?raw";
-var colorTTP_FS = colorTTP_FSWGSL.toString();
+
 /**colorTP: 像素级别 */
 export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial_TTP",
         add: [
-            SHT_vsStructOutput,
-            SHT_TT,
             {
                 name: "fsOnput",
                 code: WGSL_st_transparentbuffer,
-            }
+            },
+            SHT_vsStructOutput,
+            SHT_TT,
+
         ],
         replace: [
+            //20260313 ，TTP不需要材质的color的输出，只需要来自VS的depth和id，进行比较
             {
                 name: "Color",
                 replace: "$Color",                                     //材质的主体代码,
                 replaceType: E_shaderTemplateReplaceType.replaceCode,  //` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha});
-                replaceCode: colorTTP_FS,
+                replaceCode: "",
             },
 
             SHT_replaceTT_FSOutput,             // replace: "$fsOutput",   ！！！！！！！
 
-            //replace 按照模板有时候是需要顺序的，这里就需要
-            {
-                name: "colorFS set color",
-                replace: "$OutputColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
-            }
+
         ]
     }
 }
@@ -193,8 +189,10 @@ export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
  * 1、使用TTPF的shader，在其中使用材质的输出逻辑替换
  * 2、basecolor的逻辑比较简单，只有一个color=vec4f()。其他的材质需要按需处理
 */
+import colorTTPF_FSWGSL from "../../shader/material/color/colorTTPF.fs.wgsl?raw";
+var colorTTPF_FS = colorTTPF_FSWGSL.toString();
 export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "ColorMaterial_TTPF",
         add: [
@@ -218,7 +216,8 @@ export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
             {
                 name: "fsOutputColor",
                 replace: "$fsOutputColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //color = vec4f(red, green, blue, alpha);
+                replaceType: E_shaderTemplateReplaceType.replaceCode,                //color = vec4f(red, green, blue, alpha);
+                replaceCode: colorTTPF_FS,
             }
         ],
     }
@@ -226,7 +225,7 @@ export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
 
 /** 位置颜色材质, 按需合并到VS中 */
 export var SHT_materialOneCubeFS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,    
+    scene: SHT_ScenOfCamera_FS,
     material: {
         owner: "PositionColorMaterial",
         add: [

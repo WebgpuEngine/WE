@@ -438,7 +438,7 @@ export abstract class BaseMaterial extends RootGPU {
 
     /**
      * 透明材质的像素级别对比与处理 （ transparent  transparent pixcel  ）
-     * 针对BVH的包围盒相交的清空
+     * 针对BVH的包围盒相交的情况
      * @param renderObject 渲染对象，相机或阴影映射
      * @param _startBinding binding开始值
      */

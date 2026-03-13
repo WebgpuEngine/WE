@@ -32,7 +32,7 @@ fn fs(fsInput: VertexShaderOutput) -> ST_TransParentGBuffer {
 
     //1、颜色的alpha逻辑.//统一工作流问题，
     var color: vec4f = vec4f(0,0,0,0); 
-    $Color    //输出颜色
+    $Color    //输出颜色,测试使用，
 
     //检查是否在不透明颜色之前    
     if(isTransparent)//u_camera_opacity_depth是固定的

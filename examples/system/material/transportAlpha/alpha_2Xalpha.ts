@@ -67,7 +67,11 @@ let inputMesh0: IV_MeshEntity = {
 
 }
 let mesh0 = new Mesh(inputMesh0);
-await scene.add(mesh0);
+
+window.white = await scene.add({
+  entity: mesh0,
+  id: 1 //这里的ID是临时测试代码，为了固定ID，测试TTPF
+});
 
 
 
@@ -85,7 +89,10 @@ let inputMesh1: IV_MeshEntity = {
   }
 }
 let mesh1 = new Mesh(inputMesh1);
-await scene.add(mesh1);
+await scene.add({
+  entity: mesh1,
+  id: 2
+});
 
 
 
@@ -103,5 +110,8 @@ let inputMesh2: IV_MeshEntity = {
   }
 }
 let mesh2 = new Mesh(inputMesh2);
-await scene.add(mesh2);
+await scene.add({
+  entity: mesh2,
+  id: 3
+});
 

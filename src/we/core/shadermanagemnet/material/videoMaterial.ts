@@ -9,7 +9,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommon
 export var SHT_materialVideoTextureFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "Video Material Forward",
         add: [
             SHT_vsStructOutput,
             {
@@ -48,7 +48,7 @@ export var SHT_materialVideoTextureFS: I_ShaderTemplate = {
 export var SHT_materialVideoTextureFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "Video Material MSAA",
         add: [
             SHT_vsStructOutput,
             {
@@ -86,7 +86,7 @@ export var SHT_materialVideoTextureFS_MSAA: I_ShaderTemplate = {
 export var SHT_materialVideoTextureFS_MSAA_info: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "ColorMaterial",
+        owner: "Video Material MSAA Info",
         add: [
             SHT_vsStructOutput,
             {

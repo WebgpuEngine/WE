@@ -20,7 +20,7 @@ import { I_VertexBufferEntry } from "./BaseDrawCommand";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
-    parent: BaseEntity,
+    parent: any,//BaseEntity,
 }
 
 //==================================================================================================================
@@ -293,7 +293,7 @@ export interface IV_DC {
 export class DrawCommandGenerator {
     device: GPUDevice;
     scene: Scene;
-    parent: BaseEntity;
+    parent: any;//BaseEntity;
     resources: ResourceManagerOfGPU;
     AA: AA;
     MSAA: boolean;
@@ -355,6 +355,11 @@ export class DrawCommandGenerator {
      * 1、立即更新模式。（与每帧的update相同，但可以一帧按需更新多次）
      * 2、TTPF需要使用
      * @param perEntry I_uniformArrayBufferEntry
+     * 
+     * 说明：20260313
+     * 1、原来设计是更新TTPF使用，20260313TTPF已经改为由公共资源管理，不再使用此函数更新。
+     * 2、功能保留，用于指定更新其他uniform数据。
+     * 3、参数目前指定的类型，看需求可以改变，
      */
     updateUniformOfGPUBuffer(perEntry: I_uniformArrayBufferEntry) {
         if (this.resources.has(perEntry, "uniformBuffer")) {

@@ -1,6 +1,6 @@
 import { E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformGroups } from "../../command/base";
+import { I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../../command/base";
 import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { mergeLightUUID } from "../../light/lightsManager";
@@ -373,26 +373,37 @@ export class Mesh extends EntityBundleMaterial {
                 //增加TTPF的layer uniform到TTPF
                 {
                     // uniform  层数
-                    let unifromTTPF: I_uniformArrayBufferEntry = {
-                        label: this.Name + " uniform at group(2) binding(" + bindingNumber + ")",
+                    // let unifromTTPF: I_uniformArrayBufferEntry = {
+                    //     label: this.Name + " uniform at group(2) binding(" + bindingNumber + ")",
+                    //     binding: bindingNumber,
+                    //     size: this.uniformOfTTPFSize,
+                    //     data: this.uniformOfTTPF,
+                    //     update: true,
+                    // };
+                    // let uniformTTPF_Layout: GPUBindGroupLayoutEntry = {
+                    //     binding: bindingNumber,
+                    //     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    //     buffer: {
+                    //         type: "uniform"
+                    //     }
+                    // };
+                    let unifromTTPF: GPUBindGroupEntry = {
                         binding: bindingNumber,
-                        size: this.uniformOfTTPFSize,
-                        data: this.uniformOfTTPF,
-                        update: true,
+                        resource: this.scene.commonResource.gpuBufferTTPF,
                     };
                     let uniformTTPF_Layout: GPUBindGroupLayoutEntry = {
                         binding: bindingNumber,
-                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        visibility:  GPUShaderStage.FRAGMENT,
                         buffer: {
-                            type: "uniform"
-                        }
+                            type: "uniform",
+                        },
                     };
                     uniformsMaterialTOTT.TTPF.shaderTemplateFinal["material"].groupAndBindingString += ` @group(2) @binding(${bindingNumber}) var <uniform> u_TTPF : st_TTPF; \n `;
 
                     this.scene.resourcesGPU.set(unifromTTPF, uniformTTPF_Layout);
                     bindingNumber++;
-                    (uniformsMaterialTOTT.TTPF.uniformGroup as I_uniformArrayBufferEntry[]).push(unifromTTPF);
-                    this.unifromTTPF = unifromTTPF;
+                    (uniformsMaterialTOTT.TTPF.uniformGroup as T_uniformEntries[]).push(unifromTTPF);
+                    // this.unifromTTPF = unifromTTPF;
                 }
                 // //增加TTPF部分
                 // bundle.uniformGroups[0].push(...uniformsMaterialTOTT.TTPF.uniformGroup);
@@ -504,9 +515,10 @@ export class Mesh extends EntityBundleMaterial {
         return indeicesWireframe;
     }
     /**
+     * 20260313 作废，使用公共的TTPF
      * 更新TTPF的uniform
      */
-    updateUniformLayerOfTTPF(): void {
-        this.DCG.updateUniformOfGPUBuffer(this.unifromTTPF);
-    }
+    // updateUniformLayerOfTTPF(): void {
+    //     this.DCG.updateUniformOfGPUBuffer(this.unifromTTPF);
+    // }
 }

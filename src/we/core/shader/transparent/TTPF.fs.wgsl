@@ -2,7 +2,6 @@
 
 struct st_TTPF{
      layer:u32,
-     meshID:u32,
 }
 
 @fragment  fn fs(fsInput: VertexShaderOutput) -> @location(0) vec4f {    
@@ -22,21 +21,18 @@ struct st_TTPF{
     else {
         id   = IDs.r;
     }
-    //   id   = IDs.a;
-    let mask:u32 = (1<<30)-1;
-    id=id&mask;
-    id=id>>14;
-    let ID:u32 =u_TTPF.meshID;
+
     
     //放在这里时统一工作流的问题，不能放在if中
     var color:vec4f =vec4f(1);
+    
     $fsOutputColor
 
-    if(id==ID && id !=0){
+    if(id==fsInput.entityID){
         // return vec4f(1,1,0,.51);
         return color;
     }
-    discard;
+    discard;//无匹配的ID，discard
     return vec4f(1,1,1,1);
 }
 //end : TTPF.fs.wgsl

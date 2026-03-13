@@ -30,6 +30,7 @@ import { DefaultTexture } from "../texture/defaultTexture";
 import { AnimationManager } from "../animation/animationManager";
 import { AnimationGroupManager } from "../animation/animationGroupManager";
 import { SkinsManager } from "../animation/skinsManager";
+import { CommonResource } from "../resources/commonResource";
 
 
 
@@ -269,28 +270,36 @@ export class Scene {
     root!: RootManager;
     /**GPU资源管理器 */
     resourcesGPU!: ResourceManagerOfGPU;
+    /**通用资源管理器 */
+    commonResource!: CommonResource;
+    /**渲染管理器 */
     renderManager!: RenderManager;
-    /**相机管理器 */
+    /**相机管理器
+     * 1、TTPF的buffer管理
+     * 2、todo：20260313，迁移cameraManager的公共性质的资源
+     */
     cameraManager!: CameraManager;
     /**实体管理器 */
     entityManager!: EntityManager;
     /*** 纹理管理器 */
     textureManager!: TextureManager;
-
     /*** 材质管理器 */
     materialManager!: MaterialManager;
     /**光源管理器 */
     lightsManager!: LightsManager;
     /**输入管理器 */
     inputManager!: InputManager;
-
+    /**拾取管理器 */
     pickupManager!: pickupManager;
-
+    /**后处理管理器 */
     postProcessManager!: PostProcessManager;
-
+    /**动画管理器 */
     animationManager!: AnimationManager;
+    /**蒙皮管理器 */
     skinsManager!: SkinsManager;
+    /**动画组管理器 */
     animationGroupManager!: AnimationGroupManager;
+
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -456,6 +465,7 @@ export class Scene {
             let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
             this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
         }
+        this.commonResource = new CommonResource(device);
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);
         this.animationManager = new AnimationManager(this);

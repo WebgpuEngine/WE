@@ -186,9 +186,6 @@ export class VideoMaterial extends BaseMaterial {
     }
 
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
-
-
-
         // if (this.getTransparent()) {
         //     let bundle = getOpacity_GBufferOfUniformOfDefer(binding, this.scene, camera);
         //     uniform1.push(...bundle.uniformGroup);
@@ -224,8 +221,6 @@ export class VideoMaterial extends BaseMaterial {
         //         }
         //     }
         // }
-
-
         let dynamic: boolean = false;
         if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture)
             dynamic = true;

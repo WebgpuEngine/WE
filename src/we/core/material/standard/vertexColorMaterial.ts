@@ -5,7 +5,7 @@ import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialColorFS, SHT_materialColorFS_MSAA_info, SHT_materialColorFS_MSAA } from "../../shadermanagemnet/material/colorMaterial";
-import { SHT_materialVertexColorFS } from "../../shadermanagemnet/material/vertexColorMaterial";
+import { SHT_materialVertexColorFS, SHT_materialVertexColorFS_MSAA, SHT_materialVertexColorFS_MSAA_info } from "../../shadermanagemnet/material/vertexColorMaterial";
 import { E_MaterialType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
@@ -44,8 +44,8 @@ export class VertexColorMaterial extends BaseMaterial {
         return this.formatSHT(template, replaceList, startBinding);
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
+        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVertexColorFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVertexColorFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
 

@@ -1217,35 +1217,37 @@ export abstract class BaseEntity extends NodeSpace {
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //TTPF 相关部分
+    //20260313 作废，使用公共的TTPF
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * 透明材质的TTPF的uniform layer 
-     */
-    uniformOfTTPFSize: number = 16;//需要确保 uniform 缓冲区的大小至少等于管线要求的最小大小，且是 16 字节的倍数。
-    /**
-     * TTPF使用的uniform的ArrayBuffer
-     */
-    uniformOfTTPF: ArrayBuffer = new ArrayBuffer(this.uniformOfTTPFSize);
-    /**TTPF 是使用的 uniform: 主要是目的是更新entity所在的TTP的层数（0-3） 
-     * I_uniformArrayBufferEntry结构使用在createTransparent（）中的TTPF代码部分
-    */
-    unifromTTPF!: I_uniformArrayBufferEntry;
-    /**
-     * 设置透明材质的TTPF的uniform
-     * @param layer  对应RGBA四层
-     */
-    setUniformLayerOfTTPF(layer: number) {
-        let view = new Uint32Array(this.uniformOfTTPF);
-        view[0] = layer;
-        view[1] = this.ID;
-        this.updateUniformLayerOfTTPF();
-        // console.log(view)
-    }
+    // /**
+    //  * 透明材质的TTPF的uniform layer 
+    //  */
+    // uniformOfTTPFSize: number = 16;//需要确保 uniform 缓冲区的大小至少等于管线要求的最小大小，且是 16 字节的倍数。
+    // /**
+    //  * TTPF使用的uniform的ArrayBuffer
+    //  */
+    // uniformOfTTPF: ArrayBuffer = new ArrayBuffer(this.uniformOfTTPFSize);
+    // /**TTPF 是使用的 uniform: 主要是目的是更新entity所在的TTP的层数（0-3） 
+    //  * I_uniformArrayBufferEntry结构使用在createTransparent（）中的TTPF代码部分
+    // */
+    // unifromTTPF!: I_uniformArrayBufferEntry;
+    // /**
+    //  * 设置透明材质的TTPF的uniform
+    //  * @param layer  对应RGBA四层
+    //  */
+    // setUniformLayerOfTTPF(layer: number) {
+    //     let view = new Uint32Array(this.uniformOfTTPF);
+    //     view[0] = layer;
+    //     view[1] = this.ID;
+    //     // console.log(layer, this.ID);
+    //     this.updateUniformLayerOfTTPF();
+    //     // console.log(view)
+    // }
 
-    /**
-     * 
-     */
-    abstract updateUniformLayerOfTTPF(): void
+    // /**
+    //  * 
+    //  */
+    // abstract updateUniformLayerOfTTPF(): void
 
 }
 
