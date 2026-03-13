@@ -101,9 +101,28 @@ export interface I_singleShaderTemplate_Final {
     groupAndBindingString: string,
     /** shader模板的绑定当前(已用的)值 */
     binding?: number,
-    /** shader模板是否动态 */
+    /** shader模板是否动态绑定资源
+     * 1、若是非动态资源，则对应FS的bindgroup的entry实现是静态数据形式。
+     * 2、若为动态资源，则对应FS的bindgroup的entry实现是箭头函数。
+     *      A、video需要动态绑定
+     *      B、与camera 相关texture需要动态绑定。（原因是resize后，texture会注销并新建）
+     */
     dynamic?: boolean,
-    owner: any,
+    /** shader模板的所有者名称
+     * 1、是DCG进行shader model 缓存的key，
+     * 2、要求全局唯一 
+     * 3、目前都是string
+     */
+    owner: string,
+    /**是否进行shader model 缓存
+     * 1、默认是true，进行缓存。
+     * 2、若为false，则不进行缓存。
+     *     A、不进行缓存，就是每个shader 都会编译。相对于多个相同的变种
+     *     B、不缓存，shader model的编译时间会增加。如果shader 比较多，而且复杂，会较大增加编译时间。
+     *     C、自定义shader的材质，不用缓存。
+     *     D、
+     */
+    cache?: boolean,
 }
 /**
  * 最终的模板内容

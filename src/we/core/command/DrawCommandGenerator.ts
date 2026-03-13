@@ -1374,6 +1374,10 @@ export class DrawCommandGenerator {
                         code: codeFS,
                     })
                 }
+                //不进行缓存，每次都需要创建ShaderModule。比如自定义shader 材质
+                else if (values.render.fragment.code?.material?.cache === false) {
+                    moduleFS=this.createShaderModule(values);
+                }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
                     let nameOfMaterial = values.render.fragment.code.material.owner;
@@ -1382,18 +1386,19 @@ export class DrawCommandGenerator {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;
                     }
                     else {
-                        let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final);
-                        if (FS_SHT) {
-                            codeFS = this.convertSHT2ShaderCode(FS_SHT);
-                        }
-                        else {
-                            throw new Error("fragment code SHT模板中material不能为空");
-                        }
-                        flagFS = "fs"
-                        moduleFS = this.device.createShaderModule({
-                            label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
-                            code: codeFS,
-                        })
+                        // let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final);
+                        // if (FS_SHT) {
+                        //     codeFS = this.convertSHT2ShaderCode(FS_SHT);
+                        // }
+                        // else {
+                        //     throw new Error("fragment code SHT模板中material不能为空");
+                        // }
+                        // flagFS = "fs"
+                        // moduleFS = this.device.createShaderModule({
+                        //     label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
+                        //     code: codeFS,
+                        // })
+                        moduleFS=this.createShaderModule(values);
                         this.resources.shaderModuleOfString.set(nameOfMaterial, moduleFS);
                     }
                 }
@@ -1452,8 +1457,24 @@ export class DrawCommandGenerator {
                 constants: constansFS,
             }
         }
-
         return { vertex, fragment };
+    }
+    createShaderModule(values: IV_DC): GPUShaderModule {
+        let nameOfMaterial = (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner;
+        let codeFS: string;
+        let FS_SHT = (values.render.fragment!.code as I_ShaderTemplate_Final);
+        if (FS_SHT) {
+            codeFS = this.convertSHT2ShaderCode(FS_SHT);
+        }
+        else {
+            throw new Error("fragment code SHT模板中material不能为空");
+        }
+        let flagFS = "fs"
+        let moduleFS = this.device.createShaderModule({
+            label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
+            code: codeFS,
+        })
+        return moduleFS;
     }
     initPipeLine(values: IV_DC, vertex: GPUVertexState, fragment: GPUFragmentState | undefined, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
         //1、创建GPURenderPipelineDescriptor
