@@ -6,7 +6,7 @@ fn ParallaxMappingBase( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap
 } 
 fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, depthMap : texture_2d<f32>, depthSampler : sampler) -> vec2f
 {
-    const layers = 128;
+    const layers = 32;
     const layersRate = 1;
     var viewDirLock =  viewDir;
     let depthOfP = textureSample(depthMap, depthSampler, texCoords).r;          //P点的高度  

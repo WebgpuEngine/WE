@@ -14,10 +14,7 @@ import { BaseMaterial } from "../baseMaterial";
 export interface IV_PhongMaterial extends IV_BaseMaterial {
   color?: weColor4;
   textures?: {
-    [E_TextureType.color]?: I_BaseTexture | Texture,
-    [E_TextureType.normal]?: I_BaseTexture | Texture,
-    [E_TextureType.parallax]?: I_BaseTexture | Texture,
-    [E_TextureType.specular]?: I_BaseTexture | Texture,
+    [name in E_TextureType]?: I_BaseTexture | Texture
   },
   parallax?: {
     scale: number,
@@ -35,79 +32,33 @@ export interface IV_PhongMaterial extends IV_BaseMaterial {
 
 export class PhongMaterial extends BaseMaterial {
 
-  /** 材质的phong参数，ArrayBuffer 
-   * size: 64,取决于WGSL 结构体大小
-  */
-  unifromCPUBuffer = new ArrayBuffer(64);
-  /** 材质的phong参数，Float32Array视图 */
-  unifromCPUBufferViews = {
-    shininess: new Float32Array(this.unifromCPUBuffer, 0, 1),
-    metalness: new Float32Array(this.unifromCPUBuffer, 4, 1),
-    roughness: new Float32Array(this.unifromCPUBuffer, 8, 1),
-    parallaxScale: new Float32Array(this.unifromCPUBuffer, 12, 1),
-    color: new Float32Array(this.unifromCPUBuffer, 16, 4),
-    has_color_texture: new Int32Array(this.unifromCPUBuffer, 32, 1),
-    has_normal_texture: new Int32Array(this.unifromCPUBuffer, 36, 1),
-    has_parallax_texture: new Int32Array(this.unifromCPUBuffer, 40, 1),
-    has_specular_texture: new Int32Array(this.unifromCPUBuffer, 44, 1),
-    parallax_layer: new Uint32Array(this.unifromCPUBuffer, 48, 1),
-  };
-
   declare inputValues: IV_PhongMaterial;
   declare textures: {
     [name: string]: Texture
   }
-  // unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
+  uniformPhong: ArrayBuffer = new ArrayBuffer(4 * 4);
   color: weColor4 = [1, 1, 1, 1];
   constructor(options: IV_PhongMaterial) {
     super(options);
     this.kind = E_MaterialType.Phong;
     this.textures = {};
     this.inputValues = options;
-
-    this.unifromCPUBufferViews.shininess[0] = 32.0;
-    this.unifromCPUBufferViews.metalness[0] = 0.50;
-    this.unifromCPUBufferViews.roughness[0] = 1.0;
-    this.unifromCPUBufferViews.parallaxScale[0] = 0.01;
-    this.unifromCPUBufferViews.parallax_layer[0] = 64;
-    this.unifromCPUBufferViews.has_color_texture[0] = 0;//0=vs color，1=color 数据，2= texture
-    this.unifromCPUBufferViews.has_normal_texture[0] = 0;
-    this.unifromCPUBufferViews.has_parallax_texture[0] = 0;
-    this.unifromCPUBufferViews.has_specular_texture[0] = 0;
-
+    let uniformPhongF32A = new Float32Array(this.uniformPhong);
+    uniformPhongF32A[0] = 32.0;
+    uniformPhongF32A[1] = 0.50;
+    uniformPhongF32A[2] = 1.0;
+    uniformPhongF32A[3] = 0.0;
     if (this.inputValues.shininess) {
-      this.unifromCPUBufferViews.shininess[0] = this.inputValues.shininess;
+      uniformPhongF32A[0] = this.inputValues.shininess;
     }
     if (this.inputValues.metalness) {
-      this.unifromCPUBufferViews.metalness[0] = this.inputValues.metalness;
+      uniformPhongF32A[1] = this.inputValues.metalness;
     }
     if (this.inputValues.roughness) {
-      this.unifromCPUBufferViews.roughness[0] = this.inputValues.roughness;
+      uniformPhongF32A[2] = this.inputValues.roughness;
     }
     if (this.inputValues.color) {
       this.color = this.inputValues.color;
-      this.unifromCPUBufferViews.color.set(this.color);
-      this.unifromCPUBufferViews.has_color_texture[0] = 1;//0=vs color，1=color 数据，2= texture
-    }
-    if (this.inputValues.parallax) {
-      this.unifromCPUBufferViews.parallaxScale[0] = this.inputValues.parallax.scale;
-      if (this.inputValues.parallax.layer) {
-        this.unifromCPUBufferViews.parallax_layer[0] = this.inputValues.parallax.layer;
-      }
-    }
-    if (options.textures) {
-      if (options.textures[E_TextureType.color]) {
-        this.unifromCPUBufferViews.has_color_texture[0] = 2;//0=vs color，1=color 数据，2= texture
-      }
-      if (options.textures[E_TextureType.normal]) {
-        this.unifromCPUBufferViews.has_normal_texture[0] = 1;
-      }
-      if (options.textures[E_TextureType.parallax]) {
-        this.unifromCPUBufferViews.has_parallax_texture[0] = 1;
-      }
-      if (options.textures[E_TextureType.specular]) {
-        this.unifromCPUBufferViews.has_specular_texture[0] = 1;
-      }
     }
 
   }
@@ -116,12 +67,8 @@ export class PhongMaterial extends BaseMaterial {
   }
   async readyForGPU(): Promise<any> {
     this.defaultSampler = this.checkSampler(this.inputValues);
-    this.textures[E_TextureType.color] = this.defaultTexture2D;
-    this.textures[E_TextureType.normal] = this.defaultTexture2D;
-    this.textures[E_TextureType.parallax] = this.defaultTexture2D;
-    this.textures[E_TextureType.specular] = this.defaultTexture2D;
     for (let key in this.inputValues.textures) {
-      let texture = this.inputValues.textures[key as E_TextureType.color || key as E_TextureType.normal || key as E_TextureType.parallax || key as E_TextureType.specular];
+      let texture = this.inputValues.textures[key as E_TextureType];
       if (texture && texture instanceof Texture) {
         this.textures[key] = texture;
       }
@@ -133,6 +80,9 @@ export class PhongMaterial extends BaseMaterial {
         await textureInstace.init(this.scene);
         this.textures[key] = textureInstace;
       }
+
+      // this.countOfTexturesOfFineshed++;
+
     }
     this._state = E_lifeState.finished;
   }
@@ -148,14 +98,14 @@ export class PhongMaterial extends BaseMaterial {
     ////group binding  texture 字符串
     groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
     //uniform texture
-    let unifromCPUBuffer: I_uniformArrayBufferEntry = {
+    let uniformPhong: I_uniformArrayBufferEntry = {
       binding: binding,
       size: 4 * 4,
-      data: this.unifromCPUBuffer,
+      data: this.uniformPhong,
       label: "Bulinn Phong uniform ",
     };
     //uniform texture layout
-    let unifromCPUBufferLayout: GPUBindGroupLayoutEntry = {
+    let uniformPhongLayout: GPUBindGroupLayoutEntry = {
       binding: binding,
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: {
@@ -163,14 +113,21 @@ export class PhongMaterial extends BaseMaterial {
       }
     };
     //添加到resourcesGPU的Map中
-    this.scene.resourcesGPU.set(unifromCPUBuffer, unifromCPUBufferLayout);
-    this.mapList.push({ key: unifromCPUBuffer, type: "uniformBuffer" });
+    this.scene.resourcesGPU.set(uniformPhong, uniformPhongLayout);
+    this.mapList.push({ key: uniformPhong, type: "uniformBuffer" });
     //push到uniform1队列
-    uniform1.push(unifromCPUBuffer);
+    uniform1.push(uniformPhong);
     //+1
     binding++;
 
- {
+
+    let flag_spec = false;
+    let flag_texture = false;
+    let flag_normal = false;
+    let flag_parallax = false;
+
+
+    if (this.inputValues.textures && Object.keys(this.inputValues.textures).length > 0) {
       ////group bindgin sampler 字符串
       groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
       //uniform sampler
@@ -196,7 +153,18 @@ export class PhongMaterial extends BaseMaterial {
 
       //循环绑定纹理
       for (let i in this.textures) {
-
+        if (i == E_TextureType.specular) {
+          flag_spec = true;
+        }
+        if (i == E_TextureType.color) {
+          flag_texture = true;
+        }
+        if (i == E_TextureType.normal) {
+          flag_normal = true;
+        }
+        if (i == E_TextureType.parallax) {
+          flag_parallax = true;
+        }
         //uniform texture
         let uniformTexture: GPUBindGroupEntry = {
           binding: binding,
@@ -226,66 +194,87 @@ export class PhongMaterial extends BaseMaterial {
     return unifromEntryBundle_Common;
   }
   getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
+    let code: string = "";
 
+
+    let flag_spec = false;
+    let flag_texture = false;
+    let flag_normal = false;
+    let flag_parallax = false;
+    //循环绑定纹理
+    for (let i in this.textures) {
+      if (i == E_TextureType.specular) {
+        flag_spec = true;
+      }
+      if (i == E_TextureType.color) {
+        flag_texture = true;
+      }
+      if (i == E_TextureType.normal) {
+        flag_normal = true;
+      }
+      if (i == E_TextureType.parallax) {
+        flag_parallax = true;
+      }
+    }
     let replaceList = new Map<string, string | (() => string)>();
-    // let materialColor = () => {
-    //   let replaceString = "";
-    //   if (flag_texture) {
-    //     if (flag_parallax && flag_normal) {
-    //       let parallaxLayer = this.inputValues.parallax?.layer || 0;
-    //       let parallaxScale = this.inputValues.parallax?.scale || 0.001;
-    //       // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
-    //       replaceString = ` 
-    //                 let TBN=getTBN_ForNormal(normal,fsInput.worldPosition,uv);
-    //                 let invertTBN=transpose(TBN );
-    //                 let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-    //                 `;
-    //       //todo:20250521
-    //       //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
-    //       //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
-    //       //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-    //       //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-    //       if (this.inputValues.parallax?.layer) {
+    let materialColor = () => {
+      let replaceString = "";
+      if (flag_texture) {
+        if (flag_parallax && flag_normal) {
+          let parallaxLayer = this.inputValues.parallax?.layer || 0;
+          let parallaxScale = this.inputValues.parallax?.scale || 0.001;
+          // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
+          replaceString = ` 
+                    let TBN=getTBN_ForNormal(normal,fsInput.worldPosition,uv);
+                    let invertTBN=transpose(TBN );
+                    let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+                    `;
+          //todo:20250521
+          //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
+          //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
+          //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+          //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+          if (this.inputValues.parallax?.layer) {
 
-    //         replaceString += `uv = parallax_occlusion(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
-    //       }
-    //       else {
-    //         replaceString += ` uv = ParallaxMappingBase(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
-    //       }
-    //       replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
-    //       // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
+            replaceString += `uv = parallax_occlusion(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+          }
+          else {
+            replaceString += ` uv = ParallaxMappingBase(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
+          }
+          replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
+          // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
 
-    //     }
-    //     else
-    //       replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy);\n `;
-    //   }
-    //   else {
-    //     replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
-    //   }
-    //   return replaceString;
-    // };
-    // let normal = () => {
-    //   let replaceString = "";
-    //   if (flag_normal) {
-    //     replaceString = `
-    //              let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb; 
-    //              normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
-    //             `;
-    //   }
-    //   return replaceString;
-    // };
-    // let specular = () => {
-    //   let replaceString = "";
-    //   if (flag_spec) {
-    //     replaceString = `
-    //             inSpecularColor= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;`
-    //     // specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
-    //   }
-    //   return replaceString;
-    // };
-    // replaceList.set("$materialColor", materialColor);
-    // replaceList.set("$normal", normal);
-    // replaceList.set("$specular", specular);
+        }
+        else
+          replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy);\n `;
+      }
+      else {
+        replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
+      }
+      return replaceString;
+    };
+    let normal = () => {
+      let replaceString = "";
+      if (flag_normal) {
+        replaceString = `
+                 let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb; 
+                 normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
+                `;
+      }
+      return replaceString;
+    };
+    let specular = () => {
+      let replaceString = "";
+      if (flag_spec) {
+        replaceString = `
+                inSpecularColor= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;`
+        // specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
+      }
+      return replaceString;
+    };
+    replaceList.set("$materialColor", materialColor);
+    replaceList.set("$normal", normal);
+    replaceList.set("$specular", specular);
     return this.formatSHT(template, replaceList, startBinding);
   }
   getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {

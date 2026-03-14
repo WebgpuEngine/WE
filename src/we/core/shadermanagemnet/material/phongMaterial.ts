@@ -68,9 +68,10 @@ export var SHT_materialPhongFS: I_ShaderTemplate = {
 
         ],
         replace: [
-            SHT_replace_Phong_mainColorCode,
-            SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
+            SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
+            SHT_replace_Phong_mainColorCode,
+
             {
                 name: "materialColor",
                 replace: "$materialColor",           //

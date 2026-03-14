@@ -171,7 +171,7 @@ export class PBRMaterial extends BaseMaterial {
         [name: string]: Texture
     };
     /** 材质的uniform GPUBuffer，用于shader */
-    uniformGPUBuffer!: GPUBuffer;
+    // uniformGPUBuffer!: GPUBuffer;
     /** 材质的uniform数据，ArrayBuffer 
      * size: 320,取决WGSL 结构体大小
     */
