@@ -72,20 +72,26 @@ export var SHT_materialPhongFS: I_ShaderTemplate = {
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replace_Phong_mainColorCode,
 
+            // {
+            //     name: "materialColor",
+            //     replace: "$materialColor",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //   var materialColor = $materialColor              //颜色或纹理颜色
+            // },
+            // {
+            //     name: "normal",
+            //     replace: "$normal",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
+            // },
+            // {
+            //     name: "specular",
+            //     replace: "$specular",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+            // },
             {
-                name: "materialColor",
-                replace: "$materialColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //   var materialColor = $materialColor              //颜色或纹理颜色
-            },
-            {
-                name: "normal",
-                replace: "$normal",           //
-                replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
-            },
-            {
-                name: "specular",
-                replace: "$specular",           //
+                name: "parallax",
+                replace: "$parallax",           //
                 replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+
             },
             SHT_replace_Phong_LightAndShadow_encode,
         ],
@@ -122,20 +128,26 @@ export var SHT_materialPhongFS_MSAA: I_ShaderTemplate = {
             },
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 
+            // {
+            //     name: "materialColor",
+            //     replace: "$materialColor",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //   var materialColor = $materialColor              //颜色或纹理颜色
+            // },
+            // {
+            //     name: "normal",
+            //     replace: "$normal",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
+            // },
+            // {
+            //     name: "specular",
+            //     replace: "$specular",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+            // },
             {
-                name: "materialColor",
-                replace: "$materialColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //   var materialColor = $materialColor              //颜色或纹理颜色
-            },
-            {
-                name: "normal",
-                replace: "$normal",           //
-                replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
-            },
-            {
-                name: "specular",
-                replace: "$specular",           //
+                name: "parallax",
+                replace: "$parallax",           //
                 replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+
             },
             SHT_replace_Phong_LightAndShadow_encode,
         ],
@@ -173,22 +185,28 @@ export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
             },
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 
+            // {
+            //     name: "normal",
+            //     replace: "$normal",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
+            // },
+            // {
+            //     name: "specular",
+            //     replace: "$specular",           //
+            //     replaceType: E_shaderTemplateReplaceType.replaceCode,                //数值，metalness
+            //     replaceCode: "",
+            // },
+            // {
+            //     name: "mainColorCode",
+            //     replace: "$mainColorCode",
+            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
+            //     replaceCode: ""
+            // },
             {
-                name: "normal",
-                replace: "$normal",           //
-                replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
-            },
-            {
-                name: "specular",
-                replace: "$specular",           //
-                replaceType: E_shaderTemplateReplaceType.replaceCode,                //数值，metalness
-                replaceCode: "",
-            },
-            {
-                name: "mainColorCode",
-                replace: "$mainColorCode",
-                replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: ""
+                name: "parallax",
+                replace: "$parallax",           //
+                replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+
             },
             {
                 name: "materialColor",
@@ -235,20 +253,26 @@ export var SHT_materialPhongFS_defer: I_ShaderTemplate = {
             },
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
+            // {
+            //     name: "materialColor",
+            //     replace: "$materialColor",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //   var materialColor = $materialColor              //颜色或纹理颜色
+            // },
+            // {
+            //     name: "normal",
+            //     replace: "$normal",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
+            // },
+            // {
+            //     name: "specular",
+            //     replace: "$specular",           //
+            //     replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+            // },
             {
-                name: "materialColor",
-                replace: "$materialColor",           //
-                replaceType: E_shaderTemplateReplaceType.value,                //   var materialColor = $materialColor              //颜色或纹理颜色
-            },
-            {
-                name: "normal",
-                replace: "$normal",           //
-                replaceType: E_shaderTemplateReplaceType.value,                 //var normal =$normal                             //来自VS，还是来自texture
-            },
-            {
-                name: "specular",
-                replace: "$specular",           //
+                name: "parallax",
+                replace: "$parallax",           //
                 replaceType: E_shaderTemplateReplaceType.value,                //数值，metalness
+
             },
             SHT_replace_Phong_LightAndShadow_encode,
         ],

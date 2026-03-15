@@ -295,6 +295,24 @@ export class PhongMaterial extends BaseMaterial {
     // replaceList.set("$materialColor", materialColor);
     // replaceList.set("$normal", normal);
     // replaceList.set("$specular", specular);
+    let parallax = () => {
+      let replaceString = "";
+      if (this.inputValues?.textures?.parallax != undefined) {
+        replaceString = `
+    let uv_parallax = parallax_occlusion(fsInput.uv.xy, viewDir, parallaxScale ,u_parallaxTexture, u_Sampler);//parallax 纹理
+    //判断使用uv的来源
+    if(u_bulinphong.has_color_texture == 2 && u_bulinphong.has_parallax_texture == 1 && u_bulinphong.has_normal_texture == 1)  {
+        uv = uv_parallax;
+    }
+        `;
+      }
+      return replaceString;
+    };
+    replaceList.set("$parallax", parallax);
+
+    if (this.inputValues?.textures?.parallax != undefined) {
+      template.material.owner += " parallax";
+    }
     return this.formatSHT(template, replaceList, startBinding);
   }
   getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {

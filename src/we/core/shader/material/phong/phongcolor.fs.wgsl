@@ -40,11 +40,13 @@ struct st_bulin_phong {
     let invertTBN=transpose(TBN );
     let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
     //处理parallax 纹理，无论是否使用，都需要进行处理一遍。
-    let uv_parallax = parallax_occlusion(fsInput.uv.xy, viewDir, parallaxScale ,u_parallaxTexture, u_Sampler);//parallax 纹理
-    //判断使用uv的来源
-    if(u_bulinphong.has_color_texture == 2 && u_bulinphong.has_parallax_texture == 1 && u_bulinphong.has_normal_texture == 1)  {
-        uv = uv_parallax;
-    }
+    $parallax   //还是使用选择性replace，因为parallax的计算比较占资源，没有必要在没有parallax texture的情况下也进行计算。
+    // let uv_parallax = parallax_occlusion(fsInput.uv.xy, viewDir, parallaxScale ,u_parallaxTexture, u_Sampler);//parallax 纹理
+    // //判断使用uv的来源
+    // if(u_bulinphong.has_color_texture == 2 && u_bulinphong.has_parallax_texture == 1 && u_bulinphong.has_normal_texture == 1)  {
+    //     uv = uv_parallax;
+    // }
+
     //读取color texture
     materialColor = textureSample(u_colorTexture, u_Sampler, uv);
     // 判断是否为uniform颜色

@@ -8,8 +8,14 @@ export async function initWe() {
     let input: IV_Scene = {
         canvas: "render",
         backgroudColor: [0, 0., 0., 0.],
-        // reversedZ:true,
+        reversedZ:true,
+        // AA:{
+        //     MSAA: {
+        //         enable: true,
+        //     }
+        // }
         // toneMapping:"linear"
+        deferRender:"color"
     };
     let scene = await initScene({ initConfig: input, });
     window.scene = scene;

@@ -417,10 +417,10 @@ export class DrawCommandGenerator {
                 let UUID = this.checkUUID(values);
                 if (UUID) {
                     if (this.MSAA) {
-                        if (values.system.MSAA != undefined)
+                        // if (values.system.MSAA != undefined)
                             renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
-                        else
-                            throw new Error("MSAA渲染,需要在system中指定MSAA");
+                        // else
+                        //     throw new Error("MSAA渲染,需要在system中指定MSAA");
                     }
                     else
                         renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type);

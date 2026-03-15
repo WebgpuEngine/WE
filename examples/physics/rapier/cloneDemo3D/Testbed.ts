@@ -4,6 +4,7 @@ import type { DebugInfos } from "./Gui";
 import { xxhash128 } from "hash-wasm";
 import type * as RAPIER from "@dimforge/rapier3d";
 import { Scene } from "../../../../src/we/core/scene/scene";
+import { eventOfScene, userDefineEventCall } from "../../../../src/we/core/scene/base";
 
 
 type RAPIER_API = typeof import("@dimforge/rapier3d");
@@ -213,6 +214,9 @@ export class Testbed {
         this.graphics.render(this.world, this.parameters.debugRender);
         this.gui.stats.end();
 
-        requestAnimationFrame(() => this.run());
+        // requestAnimationFrame(() => this.run());
+         setTimeout( ()=>this.run(), 16.667);
+
+
     }
 }
