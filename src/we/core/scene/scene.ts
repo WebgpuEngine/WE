@@ -1,4 +1,6 @@
-import { IV_Node, IV_NodeSpace, NodeObject } from "../organization/root";
+import { IV_NodeSpace } from "../organization/nodeSpace";
+import { IV_Node, NodeObject } from "../organization/nodeObject";
+import { Texture } from "../texture/texture";
 import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
@@ -18,19 +20,18 @@ import { pickupManager } from "../pickup/pickupManager";
 import { PostProcessManager } from "../postprocess/postProcessManager";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
-import { Texture } from "../texture/texture";
-import { TextureManager } from "../texture/textureManager";
 import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
 import { Clock } from "./clock";
 import { RenderManager } from "./renderManager";
-import { RootManager } from "./rootManager";
 import { BaseEntity } from "../entity/baseEntity";
-import { DefaultTexture } from "../texture/defaultTexture";
 import { AnimationManager } from "../animation/animationManager";
 import { AnimationGroupManager } from "../animation/animationGroupManager";
 import { SkinsManager } from "../animation/skinsManager";
 import { CommonResource } from "../resources/commonResource";
+import { RootManager } from "./rootManager";
+import { DefaultTexture } from "../texture/defaultTexture";
+import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
+import { TextureManager } from "../texture/textureManager";
 
 
 

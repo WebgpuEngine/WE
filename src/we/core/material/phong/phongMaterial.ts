@@ -1,4 +1,4 @@
-import { E_lifeState, weColor4 } from "../../base/coreDefine";
+import { E_lifeState, weColor4, weColorToColorOfF32, weHexColor, weHexColorToColor3 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_uniformArrayBufferEntry, T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
@@ -12,7 +12,7 @@ import { BaseMaterial } from "../baseMaterial";
 
 
 export interface IV_PhongMaterial extends IV_BaseMaterial {
-  color?: weColor4;
+  color?: weColor4 | weHexColor;
   textures?: {
     [E_TextureType.color]?: I_BaseTexture | Texture,
     [E_TextureType.normal]?: I_BaseTexture | Texture,
@@ -85,7 +85,16 @@ export class PhongMaterial extends BaseMaterial {
       this.unifromCPUBufferViews.roughness[0] = this.inputValues.roughness;
     }
     if (this.inputValues.color) {
-      this.color = this.inputValues.color;
+      if (typeof this.inputValues.color == "string" || typeof this.inputValues.color == "number") {
+        this.color = [...weHexColorToColor3(this.inputValues.color), 1];
+      }
+      else if (typeof this.inputValues.color == "object" && this.inputValues.color.length == 4) {
+        this.color = weColorToColorOfF32(this.inputValues.color);
+      }
+      else {
+        console.warn(`PhongMaterial color:${this.inputValues.color} is not a valid color. use [1,1,1,1] instead`);
+        this.color = [1, 1, 1, 1];
+      }
       this.unifromCPUBufferViews.color.set(this.color);
       this.unifromCPUBufferViews.has_color_texture[0] = 1;//0=vs color，1=color 数据，2= texture
     }
@@ -170,7 +179,7 @@ export class PhongMaterial extends BaseMaterial {
     //+1
     binding++;
 
- {
+    {
       ////group bindgin sampler 字符串
       groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
       //uniform sampler
@@ -338,4 +347,8 @@ export class PhongMaterial extends BaseMaterial {
     throw new Error("Method not implemented.");
   }
 
+}
+
+function weHexColorToColorOfF32(color: string): import("../../base/coreDefine").weVec4 {
+  throw new Error("Function not implemented.");
 }

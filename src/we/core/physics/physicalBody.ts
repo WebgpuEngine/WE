@@ -34,7 +34,7 @@
 //     }
 // };
 
-export abstract class PhysicalBody {
+export abstract class PhysicBody {
 
     constructor() {
     }

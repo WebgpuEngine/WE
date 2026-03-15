@@ -52,6 +52,42 @@ export type weColor4 = weVec4;
 /**RGBA四个数值的颜色interface，0--255 */
 export type weColor3 = weVec3;
 
+/** 十六进制的颜色值，例如 #FFFFFF 或 0xFFFFFF */
+export type weHexColor = string | number;
+/** 将十六进制颜色值转换为 RGB 颜色值 */
+export function weHexColorToColor3(hex: weHexColor): weColor3 {
+    if (typeof hex === "number") {
+        let hexStr = hex.toString(16);
+        if (parseInt(hexStr, 16) !== hex) {
+            console.warn(`weHexColorToColor3() hex:${hex} is not a 6 digits hex color. use #FFFFFF instead`);
+            return [1, 1, 1];
+        }
+    }
+    if (typeof hex === "string") {
+        hex = hex.replace("#", "");
+        if (hex.length !== 6) {
+            console.warn(`weHexColorToColor3() hex:${hex} is not a 6 digits hex color, use #FFFFFF instead`);
+            return [1, 1, 1];
+        }
+        hex = parseInt(hex, 16);
+    }
+    return [
+        ((hex >> 16) & 255) / 255,
+        ((hex >> 8) & 255) / 255,
+        (hex & 255) / 255,
+    ];
+}
+
+/**将weColor3或weColor4的数值转换为0--1的float数值 */
+export function weColorToColorOfF32<T extends weColor3 | weColor4>(color: T): T {
+    for (let i of color) {
+        if (i > 255) {
+            color[i] = color[i] / 255.0;
+        }
+    }
+    return color;
+}
+
 
 /**texture的alphaT为0的float的zero值 */
 export var V_textureAlphaZero = 0.001

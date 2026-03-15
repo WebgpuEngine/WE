@@ -18,17 +18,17 @@ import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { IV_NodeSpace, NodeSpace } from "./nodeSpace";
 import { RootGPU } from "./root";
-import { PhysicalBody } from "../physical/physicalBody";
+import { PhysicBody } from "../physics/physicalBody";
 
 /** 空间类型
  * 1、BVH使用instance Mesh 的AABB信息
  * 2、物理引擎驱动需要刚体和碰撞器的类型
  */
 export enum E_BVHSpaceType {
-    /** 无空间 ,非instance mesh 节点*/
+    /** 无空间属性 ,非instance mesh 节点或可忽略*/
     none = "none",
 
-    /** 固定空间，不移动 
+    /** 固定空间，不移动 。一般为：创建后就不改变位置的节点（WE和物理引擎都是）。
      * 1、不考虑物理引擎，固定位置，只供BVH使用
      * 2、WE空间中，固定位置，不会移动。
      *     A、root ECS及自身将忽略位置更新；
@@ -37,14 +37,14 @@ export enum E_BVHSpaceType {
     */
     fixed = "fixed",
 
-    /** 动态空间，会移动
+    /** 动态空间位置。we程序驱动。一般为：从WE传递到物理引擎。
      * 1、不考虑物理碰撞，位置可变。只供BVH使用。
      * 2、WE空间中，动态移动，一般为程序控制或者动画控制。
      * 3、物理引擎中没有刚体，碰撞体类型为sensor。
      */
     dynamic = "dynamic",
 
-    /** 物理引擎属性 
+    /** 物理引擎驱动，位置受物理引擎控制。 一般为：从物理引擎传递到WE。
      * 1、若具有物理引擎属性，则NodeObject的更新位置了信息，不受parent的影响（也不再使用parent的matrixWorld矩阵）。
      * 2、NodeObject位置受物理引擎控制，同时必须具有physics属性。
      * 3、初始化的position等信息为世界坐标下的。
@@ -95,7 +95,7 @@ export interface IV_Node extends IV_NodeSpace {
 
     entity?: BaseEntity,
 
-    physicalBody?: PhysicalBody,
+    physicalBody?: PhysicBody,
 
     /** 实例化的节点对象,延迟，目前没有必须要实现，
      * 实例化nodeObject时，需要进行整体的clone和数据的深度copy。
@@ -420,6 +420,9 @@ export abstract class NodeObject extends NodeSpace {
      * 7、需要注销BVH和物理引擎中的相关数据
      */
     destroy(): void {
+        if (this.Parent) {
+            this.Parent.removeChild(this);
+        }
         //递归销毁所有子节点
         if (this.children.length > 0) {
             for (let child of this.children) {

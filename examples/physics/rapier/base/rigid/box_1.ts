@@ -31,7 +31,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [0, 3, 6],
+  position: [0, 6, 16],
   lookAt: [0, 0, 0],
   controlType: "arcball",
 });
@@ -86,7 +86,7 @@ let planeGeometry = new PlaneGeometry({
   height: 10
 });
 let groundMaterial = new PhongMaterial({
-  color: [1, 1, 1, 1],
+  color: [0.5, 0.5, 0.5, 1],
   roughness: 1,
   metalness: 0.1,
   shininess: 32
@@ -116,8 +116,9 @@ console.log("The ground collider", groundCollider, "is created");
 
 // Create a dynamic rigid-body.
 let rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
-  .setTranslation(0.0, 3.0, 0.0);
+  .setTranslation(0.0, 3.0, 0.0);                               //如果都是设置了，以rigid为主
 let rigidBody = world.createRigidBody(rigidBodyDesc);
+rigidBody.setTranslation({ x: 0.0, y: 10.0, z: 0.0 },true);     //如果都是设置了，以rigid为主
 
 // Create a cuboid collider attached to the dynamic rigidBody.
 let colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5);
@@ -135,7 +136,7 @@ let gameLoop = () => {
   // Get and print the rigid-body's position.
   let position = rigidBody.translation();
   instanceBox.Position = [position.x, position.y, position.z];
-  // console.log("Rigid-body position: ", position.x, position.y, position.z);
+  // console.log("Rigid-body position: ", position.x, position.y, position.z,"collider position:",collider.translation());   //数据是相同的
 
 
   // 检查是否与地面相交，如果使用传感器
