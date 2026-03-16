@@ -113,7 +113,7 @@ let inputMesh: IV_LinesEntity = {
         weights,
         joints,
       },
-      indexes: indices,
+      indices: indices,
       // vertexStepMode: "vertex"
     },
   },

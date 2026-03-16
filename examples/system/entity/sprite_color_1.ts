@@ -142,7 +142,7 @@ let position = [
   -0.5,
   -0.5
 ];
-let indexes
+let indices
   = [
     2, 0,
     5, 7,
@@ -156,7 +156,7 @@ let inputline: IV_LinesEntity = {
       vertices: {
         position
       },
-      indexes,
+      indices,
       // vertexStepMode: "vertex"
     },
   },

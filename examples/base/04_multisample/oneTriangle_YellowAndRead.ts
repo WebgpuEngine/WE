@@ -161,7 +161,7 @@ const observer = new ResizeObserver(entries => {
           position: oneTriangleVertexArray,
           color: oneTriangleColorArray
         },
-        indexes: oneTriangleIndexArray,
+        indices: oneTriangleIndexArray,
         uniforms: [[unifrom1]],
       },
       render: {

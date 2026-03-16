@@ -33,9 +33,9 @@ export class Lines extends EntityBundleMaterial {
             for (let key in attributes) {
                 this.attributes.vertices[key]= attributes[key];
             }
-            let indexes = input.attributes.geometry.getWireFrameIndeices();
-            if (indexes) {
-                this.attributes.indexes = indexes;
+            let indices = input.attributes.geometry.getWireFrameIndeices();
+            if (indices) {
+                this.attributes.indices = indices;
             }
         }
         else if (input.attributes.data) {
@@ -43,8 +43,8 @@ export class Lines extends EntityBundleMaterial {
             for (let key in attributes) {
                 this.attributes.vertices[key]= attributes[key];
             }
-            if (input.attributes.data.indexes) {
-                this.attributes.indexes = input.attributes.data.indexes;
+            if (input.attributes.data.indices) {
+                this.attributes.indices = input.attributes.data.indices;
             }
             if (input.attributes.data.vertexStepMode) {
                 this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;

@@ -369,9 +369,9 @@ export type GLTF_EXT_structural_metadata_PropertyAttribute = {
  * @see https://github.com/CesiumGS/glTF/blob/3d-tiles-next/extensions/2.0/Vendor/EXT_structural_metadata/schema/mesh.primitive.EXT_structural_metadata.schema.json
  */
 export type GLTF_EXT_structural_metadata_Primitive = {
-  /** An array of indexes of property textures in the root `EXT_structural_metadata` object. */
+  /** An array of indices of property textures in the root `EXT_structural_metadata` object. */
   propertyTextures?: number[];
-  /** An array of indexes of property attributes in the root `EXT_structural_metadata` object. */
+  /** An array of indices of property attributes in the root `EXT_structural_metadata` object. */
   propertyAttributes?: number[];
   extensions?: Record<string, unknown>;
   extras?: unknown;

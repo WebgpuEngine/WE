@@ -36,7 +36,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     attributes: I_EntityAttributes = {
         vertices: {},
         vertexStepMode: "vertex",
-        indexes: [],
+        indices: [],
     };
     checkMorphTargetCount(count: number): boolean {
         // throw new Error("EntityBundleMaterial: checkMorphTargetCount not implemented");
@@ -57,7 +57,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         // this._geometry?.destroy();
         this._geometry = undefined;
         this.attributes.vertices = {};
-        this.attributes.indexes = [];
+        this.attributes.indices = [];
     }
     /**
      * 状态检查，是否已经完成初始化。updateSelf()中调用
@@ -245,7 +245,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 shaderTemplateFinal.entity = {
                     templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
                     groupAndBindingString: '',//@group(1) @binding(x)  在shader code 中
-                    owner: this,
+                    owner: this.type,
                 };
             }
         }
@@ -279,21 +279,21 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     instanceCount: 1,
                 };
                 let drawModeIndexMesh: I_drawModeIndexed = {
-                    indexCount: 0,//this.attributes.indexes.length,
+                    indexCount: 0,//this.attributes.indices.length,
                     instanceCount: 1,
                     firstIndex: 0,
                     baseVertex: 0,
                     firstInstance: 0,
                 }
                 //index mode
-                // if (scope.attributes.indexes) {
-                if (Array.isArray(this.attributes.indexes) && this.attributes.indexes.length > 0) {
-                    drawModeIndexMesh.indexCount = this.attributes.indexes.length;
+                // if (scope.attributes.indices) {
+                if (Array.isArray(this.attributes.indices) && this.attributes.indices.length > 0) {
+                    drawModeIndexMesh.indexCount = this.attributes.indices.length;
                     drawModeIndexMesh.instanceCount = this.instance.numInstances;
                     drawMode = drawModeIndexMesh;
                 }
-                else if (this.attributes.indexes && isIndexGPUBufferBundle(this.attributes.indexes)) {
-                    drawModeIndexMesh.indexCount = this.attributes.indexes.count;
+                else if (this.attributes.indices && isIndexGPUBufferBundle(this.attributes.indices)) {
+                    drawModeIndexMesh.indexCount = this.attributes.indices.count;
                     drawModeIndexMesh.instanceCount = this.instance.numInstances;
                     drawMode = drawModeIndexMesh;
                 }
@@ -477,7 +477,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             data: {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
-                indexes: scope.attributes.indexes,
+                indices: scope.attributes.indices,
                 uniforms,
             },
             render: {
@@ -502,7 +502,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             IDS: {
                 UUID: scope.UUID,
                 ID: scope.ID,
-                renderID: scope.renderID,
+                renderID: scope.ID,
             }
         }
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group

@@ -89,7 +89,7 @@ let valueDC: IV_DC = {
       position: oneTriangleVertexArray,
       color: oneTriangleColorArray
     },
-    indexes: oneTriangleIndexArray,
+    indices: oneTriangleIndexArray,
     uniforms: [[unifrom1]],
   },
   render: {

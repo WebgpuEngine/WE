@@ -19,7 +19,7 @@ export class ResourceManagerOfGPU {
     /**顶点资源管理器 */
     vertices: Map<any, GPUBuffer> = new Map();
     /**索引资源管理器 */
-    indexes: Map<any, GPUBuffer> = new Map();//GPUBuffer默认使用uint32的格式。
+    indices: Map<any, GPUBuffer> = new Map();//GPUBuffer默认使用uint32的格式。
     /**单个uniform的ArrayBuffer 对应的GPUBuffer 资源管理器 */
     uniformBuffer: Map<any, GPUBuffer> = new Map();
 
@@ -110,7 +110,7 @@ export class ResourceManagerOfGPU {
     has(key: any, _kind?: string) {
         if (_kind) {
             if (_kind == E_resourceKind.vertices) return this.vertices.has(key);
-            else if (_kind == E_resourceKind.indexes) return this.indexes.has(key);
+            else if (_kind == E_resourceKind.indices) return this.indices.has(key);
             else if (_kind == E_resourceKind.uniformBuffer) return this.uniformBuffer.has(key);
             else if (_kind == E_resourceKind.textureOfString) return this.textureOfString.has(key);
             else if (_kind == E_resourceKind.samplerOfString) return this.samplerOfString.has(key);
@@ -141,7 +141,7 @@ export class ResourceManagerOfGPU {
     get(key: any, _kind?: string) {
         if (_kind) {
             if (_kind == E_resourceKind.vertices) return this.vertices.get(key);
-            else if (_kind == E_resourceKind.indexes) return this.indexes.get(key);
+            else if (_kind == E_resourceKind.indices) return this.indices.get(key);
             else if (_kind == E_resourceKind.uniformBuffer) return this.uniformBuffer.get(key);
             else if (_kind == E_resourceKind.textureOfString) return this.textureOfString.get(key);
             else if (_kind == E_resourceKind.samplerOfString) return this.samplerOfString.get(key);
@@ -178,7 +178,7 @@ export class ResourceManagerOfGPU {
     set(key: any, value: any, _kind?: string) {
         if (_kind) {
             if (_kind == E_resourceKind.vertices) this.vertices.set(key, value);
-            else if (_kind == E_resourceKind.indexes) this.indexes.set(key, value);
+            else if (_kind == E_resourceKind.indices) this.indices.set(key, value);
             else if (_kind == E_resourceKind.uniformBuffer) this.uniformBuffer.set(key, value);
             else if (_kind == E_resourceKind.textureOfString) {
                 this.textureOfString.set(key, value);
@@ -277,7 +277,7 @@ export class ResourceManagerOfGPU {
     delete(key: any, _kind?: string) {
         if (_kind) {
             // if (_kind == E_resourceKind.vertices) this.vertices.delete(key);
-            // else if (_kind == E_resourceKind.indexes) this.indexes.delete(key);
+            // else if (_kind == E_resourceKind.indices) this.indices.delete(key);
             // else if (_kind == E_resourceKind.uniformBuffer) this.uniformBuffer.delete(key);
 
             // else if (_kind == E_resourceKind.textureOfString) {
@@ -346,7 +346,7 @@ export class ResourceManagerOfGPU {
      */
     clean() {
         this.check(this.vertices);
-        this.check(this.indexes);
+        this.check(this.indices);
         this.check(this.uniformBuffer);
         this.check(this.entriesToEntriesLayout);
         this.check(this.uniformGroupToBindGroup);
@@ -394,7 +394,7 @@ export class ResourceManagerOfGPU {
 
 export enum E_resourceKind {
     vertices = "vertices",
-    indexes = "indexes",
+    indices = "indices",
     uniformBuffer = "uniformBuffer",
     entriesToEntriesLayout = "entriesToEntriesLayout",
     uniformGroupToBindGroup = "uniformGroupToBindGroup",

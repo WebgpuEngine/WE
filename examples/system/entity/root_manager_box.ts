@@ -258,7 +258,7 @@ let position=[
     -0.5,
     -0.5
 ];
-let       indexes
+let       indices
 =[
     0,
     2,
@@ -304,7 +304,7 @@ let inputMesh: IV_MeshEntity = {
       vertices: {
         position
       },
-      indexes,
+      indices,
       // vertexStepMode: "vertex"
     },
   },

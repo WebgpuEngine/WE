@@ -153,7 +153,7 @@ export interface I_EntityBundleMaterial extends IV_BaseEntity {
             vertices: {
                 [name: string]: T_vsAttribute;
             },
-            indexes?: T_indexAttribute,
+            indices?: T_indexAttribute,
             vertexStepMode?: GPUVertexStepMode,
         },
     }
@@ -205,7 +205,7 @@ export interface I_EntityAttributes {
     // vertices: Map<string, T_vsAttribute>,
     vertices: { [name in string]: T_vsAttribute },
     vertexStepMode: GPUVertexStepMode,
-    indexes?: T_indexAttribute,//number[],
+    indices?: T_indexAttribute,//number[],
 }
 
 /**

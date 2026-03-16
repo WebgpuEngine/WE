@@ -30,7 +30,7 @@ export class Sprite extends EntityBundleMaterial {
         vertices: [-0.5, 0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, -0.5, 0],
         uv: [0, 1, 1, 1, 0, 0, 1, 0],
         normal: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
-        indexes: [0, 2, 1, 2, 3, 1],
+        indices: [0, 2, 1, 2, 3, 1],
     };
     vertices: Map<string, number[]> = new Map();
     constructor(input: IV_Sprite) {
@@ -51,7 +51,7 @@ export class Sprite extends EntityBundleMaterial {
         this.attributes.vertices["position"] = this.sprite.vertices;
         this.attributes.vertices["uv"] = this.sprite.uv;
         this.attributes.vertices["normal"] = this.sprite.normal;
-        this.attributes.indexes = this.sprite.indexes;
+        this.attributes.indices = this.sprite.indices;
 
     }
     _destroy() {

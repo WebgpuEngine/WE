@@ -115,7 +115,7 @@ let valueDC: IV_DC = {
       position: oneTriangleVertexArray,
       color: oneTriangleColorArray
     },
-    indexes: oneTriangleIndexArray,
+    indices: oneTriangleIndexArray,
     uniforms: [[unifrom0, unifrom1]],                                                                       //一个子数组内
     unifromLayout: [[uniform00Layout, uniform01Layout]],                                                    //一个子数组内
   },

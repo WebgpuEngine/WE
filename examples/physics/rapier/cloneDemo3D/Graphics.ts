@@ -350,7 +350,7 @@ export class Graphics {
                         attributes: {
                             data: {
                                 vertices: { positions },
-                                indexes: index
+                                indices: index
                             }
                         }
                     }

@@ -210,7 +210,7 @@ export interface IV_DC {
         vertices?: { [name in string]: T_vsAttribute },
         // vertices?: Map<string, T_vsAttribute>,
         vertexStepMode?: GPUVertexStepMode,
-        indexes?: T_indexAttribute,//number[] | I_indexGPUBufferBundle,
+        indices?: T_indexAttribute,//number[] | I_indexGPUBufferBundle,
         /**
          * 1、最多4个bind group；
          * 2、如果有system，system的bindGroup是0，还剩3个；
@@ -490,8 +490,8 @@ export class DrawCommandGenerator {
         //5.6 indexBuffer
         if (DC_indexBuffer) {
             commandOption.indexBuffer = DC_indexBuffer;
-            if ("buffer" in values.data.indexes!) {
-                commandOption.indexFormat = values.data.indexes.format;
+            if ("buffer" in values.data.indices!) {
+                commandOption.indexFormat = values.data.indices.format;
             }
         }
         //5.7 parent 
@@ -1078,22 +1078,22 @@ export class DrawCommandGenerator {
                 location_i++;
             }
             //1.2、索引资源
-            if (values.data.indexes)
-                if (Array.isArray(values.data.indexes)) {
-                    if (values.data.indexes && values.data.indexes.length > 0) {
-                        let u32Buffer = new Uint32Array(values.data.indexes);
-                        if (!this.resources.has(values.data.indexes, "indexes")) {
+            if (values.data.indices)
+                if (Array.isArray(values.data.indices)) {
+                    if (values.data.indices && values.data.indices.length > 0) {
+                        let u32Buffer = new Uint32Array(values.data.indices);
+                        if (!this.resources.has(values.data.indices, "indices")) {
                             let _indexBuffer = createIndexBuffer(this.device, values.label + " index GPUBuffer", u32Buffer.buffer);
-                            this.resources.set(values.data.indexes, _indexBuffer, "indexes");
+                            this.resources.set(values.data.indices, _indexBuffer, "indices");
                         }
-                        let index = this.resources.get(values.data.indexes, "indexes");
+                        let index = this.resources.get(values.data.indices, "indices");
                         if (index) {
                             DC_indexBuffer = index;
                         }
                     }
                 }
                 else {
-                    let indexBundle = values.data.indexes as I_indexGPUBufferBundle;
+                    let indexBundle = values.data.indices as I_indexGPUBufferBundle;
                     if (indexBundle) {
                         DC_indexBuffer = indexBundle.buffer;
                     }

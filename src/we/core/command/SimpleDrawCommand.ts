@@ -43,13 +43,13 @@ export interface IV_SimpleDrawCommand extends IV_BaseDrawCommand {
     ColorTargetStat: GPUColorTargetState[],
     uniforms?: T_uniformGroupsEntryOfSimple[][];
     /**
-     * 绘制数据，position,uv,normal,color,indexes
+     * 绘制数据，position,uv,normal,color,indices
      * 非必须，比如quad
      * 1、position ,xyz
      * 2、uv,xy
      * 3、normal,xyz
      * 4、color, rgb
-     * 5、indexes, 索引数组
+     * 5、indices, 索引数组
      */
     data?: {
         position?: number[],
@@ -57,7 +57,7 @@ export interface IV_SimpleDrawCommand extends IV_BaseDrawCommand {
         normal?: number[],
         color?: number[],
         // vertices?: Map<string, T_vsAttribute>,
-        indexes?: number[],
+        indices?: number[],
     }
 
 }
@@ -100,7 +100,7 @@ export class SimpleDrawCommand extends BaseDrawCommand {
                 let data = new Float32Array(perOne! as number[]);
                 let gpuBuffer = createVerticesBuffer(this.device, this.label + " position vertex GPUBuffer", data.buffer);
 
-                if (i == "indexes") {
+                if (i == "indices") {
                     this.indexBuffer = gpuBuffer;
                 }
                 else {

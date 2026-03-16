@@ -838,7 +838,7 @@ export class GLTFModel extends BaseModel {
                     //gpubuffer of index and draw mode   part
                     let indecis = await this.getIndecisOfPrimitive(primitive, i, j);
                     let drawMode = indecis.drawMode;
-                    let indexesOfDataOfEntity = indecis.indecis;
+                    let indicesOfDataOfEntity = indecis.indecis;
                     let stripIndexFormat = indecis.stripIndexFormat;
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     // primitive of render
@@ -906,8 +906,8 @@ export class GLTFModel extends BaseModel {
                         attributes: {
                             data: {
                                 vertices: verticesOfDataOfEntity,
-                                // indexes: [0, 1, 2],
-                                indexes: indexesOfDataOfEntity,//索引缓冲区，可以为undefined(无index)
+                                // indices: [0, 1, 2],
+                                indices: indicesOfDataOfEntity,//索引缓冲区，可以为undefined(无index)
                             },
                         },
                         primitive: primitiveOfDataOfRender,
@@ -1056,7 +1056,7 @@ export class GLTFModel extends BaseModel {
             stripIndexFormat: GPUIndexFormat,
         }> {
         //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
-        let indexesOfDataOfEntity: T_indexAttribute | undefined;
+        let indicesOfDataOfEntity: T_indexAttribute | undefined;
         let stripIndexFormat: GPUIndexFormat = "uint16";//gltf中一般默认uint16
         //index accessor 转义we interface，可以为undefined(无index)
         let drawMode: I_drawMode | I_drawModeIndexed;
@@ -1091,7 +1091,7 @@ export class GLTFModel extends BaseModel {
             let indexAttribute = await this.getAccessor(idOfaccessors, useFor);
             stripIndexFormat = (indexAttribute as I_indexGPUBufferBundle).format;//重置 stripIndexFormat 为索引缓冲区的格式
 
-            indexesOfDataOfEntity = indexAttribute as I_indexGPUBufferBundle;
+            indicesOfDataOfEntity = indexAttribute as I_indexGPUBufferBundle;
             drawMode = {
                 indexCount: (indexAttribute as I_indexGPUBufferBundle).count,
             }
@@ -1112,7 +1112,7 @@ export class GLTFModel extends BaseModel {
                 vertexCount: count,
             }
         }
-        return { indecis: indexesOfDataOfEntity, drawMode, stripIndexFormat };
+        return { indecis: indicesOfDataOfEntity, drawMode, stripIndexFormat };
     }
     /** 获取accessor */
     getAccessor(idOfaccessors: any, useFor: E_accessorUseFor) {

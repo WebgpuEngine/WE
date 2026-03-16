@@ -58,5 +58,6 @@ let inputMesh: IV_MeshEntity = {
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
-await scene.add(mesh);
+window.mesh=mesh;
+window.instanceMash=await scene.add(mesh);
 

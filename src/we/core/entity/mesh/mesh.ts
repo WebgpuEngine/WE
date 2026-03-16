@@ -35,7 +35,7 @@ export interface IV_MeshEntity extends I_EntityBundleMaterial {
          * FS计算公式在shader/material/wireframe/wireframe.fs.wgsl
         */
         offset?: number,
-        indexes?: number[],
+        indices?: number[],
     }
 
 }
@@ -56,7 +56,7 @@ export class Mesh extends EntityBundleMaterial {
         */
         wireFrameColor?: weColor4,
         enable: boolean,
-        indexes: number[],
+        indices: number[],
         indexCount: number,
         offset: number,
     } = {
@@ -64,14 +64,14 @@ export class Mesh extends EntityBundleMaterial {
             wireFrameColor: [0, 0, 0, 1],
             enable: false,
             offset: 1,
-            indexes: [],
+            indices: [],
             indexCount: 0,
         };
     /** 顶点数据 */
     attributes: I_EntityAttributes = {
         vertices: {},
         vertexStepMode: "vertex",
-        // indexes: [],
+        // indices: [],
     };
 
 
@@ -85,9 +85,9 @@ export class Mesh extends EntityBundleMaterial {
             for (let key in attributes) {
                 this.attributes.vertices[key] = attributes[key];
             }
-            let indexes = input.attributes.geometry.getIndeices();
-            if (indexes) {
-                this.attributes.indexes = indexes;
+            let indices = input.attributes.geometry.getIndeices();
+            if (indices) {
+                this.attributes.indices = indices;
             }
         }
         else if (input.attributes.data) {
@@ -95,8 +95,8 @@ export class Mesh extends EntityBundleMaterial {
             for (let key in attributes) {
                 this.attributes.vertices[key] = attributes[key];
             }
-            if (input.attributes.data.indexes) {
-                this.attributes.indexes = input.attributes.data.indexes;
+            if (input.attributes.data.indices) {
+                this.attributes.indices = input.attributes.data.indices;
             }
             if (input.attributes.data.vertexStepMode) {
                 this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;
@@ -105,7 +105,7 @@ export class Mesh extends EntityBundleMaterial {
         else {
             throw new Error("Mesh must have geometry or attribute data");
         }
-        if (input.wireFrame && (input.attributes.geometry || Array.isArray(input.attributes.data?.indexes))) {//不考虑输入的indexes是GPUBuffer的情况，比如gltf，也就是说只有number[]的情况，可以使用wireframe
+        if (input.wireFrame && (input.attributes.geometry || Array.isArray(input.attributes.data?.indices))) {//不考虑输入的indices是GPUBuffer的情况，比如gltf，也就是说只有number[]的情况，可以使用wireframe
             this._wireframe.enable = input.wireFrame.enable;
             if (input.wireFrame.wireFrameOnly) {
                 this._wireframe.wireFrameOnly = true;
@@ -117,12 +117,12 @@ export class Mesh extends EntityBundleMaterial {
                 this._wireframe.offset = input.wireFrame.offset;
             }
             if (input.attributes.geometry) {//如果有几何体，就创建线框
-                this._wireframe.indexes = input.attributes.geometry.getWireFrameIndeices();
+                this._wireframe.indices = input.attributes.geometry.getWireFrameIndeices();
                 this._wireframe.indexCount = input.attributes.geometry.getWireFrameDrawCount();
             }
             else if (input.attributes.data) {
-                if (input.attributes.data.indexes) {
-                    this._wireframe.indexes = this.createWrieFrame([], input.attributes.data.indexes as number[]);
+                if (input.attributes.data.indices) {
+                    this._wireframe.indices = this.createWrieFrame([], input.attributes.data.indices as number[]);
                 }
                 else {
                     let positionTemp;
@@ -160,16 +160,16 @@ export class Mesh extends EntityBundleMaterial {
                     else {//数组
                         position = positionTemp as number[];
                     }
-                    this._wireframe.indexes = this.createWrieFrame(position, []);
+                    this._wireframe.indices = this.createWrieFrame(position, []);
                 }
-                this._wireframe.indexCount = this._wireframe.indexes.length;
+                this._wireframe.indexCount = this._wireframe.indices.length;
             }
             else {
                 throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
             }
         }
         else {
-            this._wireframe.enable = false;//如果没有indexes不是number[]，就不创建线框
+            this._wireframe.enable = false;//如果没有indices不是number[]，就不创建线框
         }
         if (input.material == undefined) {
             console.warn("Mesh constructor: material is undefined");
@@ -234,7 +234,7 @@ export class Mesh extends EntityBundleMaterial {
             baseVertex: 0,
             firstInstance: 0,
         }
-        if (scope._wireframe.indexes) {
+        if (scope._wireframe.indices) {
             drawMode.indexCount = scope._wireframe.indexCount;
             drawMode.instanceCount = scope.instance.numInstances;
         }
@@ -250,7 +250,7 @@ export class Mesh extends EntityBundleMaterial {
             data: {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
-                indexes: scope._wireframe.indexes,
+                indices: scope._wireframe.indices,
                 uniforms: uniforms,
             },
             render: {
@@ -281,7 +281,7 @@ export class Mesh extends EntityBundleMaterial {
             IDS: {
                 UUID: scope.UUID,
                 ID: scope.ID,
-                renderID: scope.renderID,
+                renderID: scope.ID,
             }
         }
         return valueDC;

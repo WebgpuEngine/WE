@@ -191,7 +191,7 @@ let inputMesh: IV_MeshEntity = {
         "position": oneTriangleVertexArray,
         "color": oneTriangleColorArray,
       },
-      indexes: [0, 1, 2],
+      indices: [0, 1, 2],
       // vertexStepMode: "vertex"
     },
   },

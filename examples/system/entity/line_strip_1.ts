@@ -41,7 +41,7 @@ let position = [-0.50, -0.5, 0,
   0.5, -0.5, 0,
 -0.5, 0.5, 0,
   0.5, 0.5, 0,];
-let indexes
+let indices
   = [
     0, 1, 3, 2, 0
   ]
@@ -52,7 +52,7 @@ let inputMesh: IV_LinesEntity = {
       vertices: {
         position
       },
-      indexes,
+      indices,
       // vertexStepMode: "vertex"
     },
   },
