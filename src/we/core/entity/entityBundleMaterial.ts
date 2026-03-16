@@ -41,6 +41,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         indices: [],
     };
 
+    _vertexAndIndexBuffersUpdated: boolean = false;
     /**
      * 更新顶点数据，
      * 1、如果是数组形式，直接更新
@@ -97,7 +98,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
             //2.2 创建新的vertexBuffer
             let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
-             this.resourcesGPU.vertices.set(this.attributes.vertices[name], vertexBufferNew);
+            this.resourcesGPU.vertices.set(this.attributes.vertices[name], vertexBufferNew);
 
 
             //3.1  更新cameraDC队列
@@ -130,6 +131,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
 
         }
+        this._vertexAndIndexBuffersUpdated = true;
     }
     setIndexBuffer(data: number[], option?: { stride?: number, wireFrame?: boolean }) {
         let wireFrame = "wireframe";
@@ -196,6 +198,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 return;
             }
         }
+        this._vertexAndIndexBuffersUpdated = true;
     }
 
 
@@ -422,7 +425,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @returns I_drawMode | I_drawModeIndexed 
      */
     getDrawModeTemplate(): I_drawMode | I_drawModeIndexed {
-        if (this._drawModeTemplate == undefined) {
+        if (this._drawModeTemplate == undefined || this._vertexAndIndexBuffersUpdated == true) {
+            this._vertexAndIndexBuffersUpdated = false;
             let drawMode: I_drawMode | I_drawModeIndexed;
             if (this.inputValues.drawMode != undefined) {
                 // if (isDrawModeIndexed(this.inputValues.drawMode)) {

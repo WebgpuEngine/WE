@@ -664,6 +664,19 @@ export abstract class BaseCamera extends NodeObject {
   directUpdateCameraPosition() {
     this.updateByPositionDirection(this._position, this._lookAt, false);
   }
-
-
+  override get Position(): Vec3 {
+    return this._position;
+  }
+  override set Position(pos: Vec3 | weVec3) {
+    // this._position = pos;
+    // return;
+    if (isWeVec3(pos)) {
+      vec3.copy(vec3.fromValues(...pos), this._position);
+    }
+    else {
+      vec3.copy(pos, this._position);
+    }
+    if (this._lookAt)
+      this.updateByPositionDirection(this._position, this._lookAt, false);
+  }
 }

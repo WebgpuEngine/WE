@@ -117,7 +117,7 @@ export class Testbed {
         this.scene.defaultCamera.Position = [option.eye.x, option.eye.y, option.eye.z];
         this.scene.defaultCamera.LookAt = [option.target.x, option.target.y, option.target.z];
         // this.scene.defaultCamera.updateByPositionDirection(this.scene.defaultCamera.Position, this.scene.defaultCamera.LookAt, false);//这里需要是world position
-        this.scene.defaultCamera.directUpdateCameraPosition();
+        // this.scene.defaultCamera.directUpdateCameraPosition();
 
 
     }

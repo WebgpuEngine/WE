@@ -172,6 +172,9 @@ export class OrbitCameraControl extends ArcballCameraControl {
                                         position = MathFun.rotate(position, vec3.create(0, 1, 0), radianX);
                                     }
                                 }
+                                else {
+                                    // console.log("position================", position,upDotCameraZ,sinCosCameraZ,radianX,radianY);
+                                }
                             }
                             {//（二）、是否超过有设定top和bottom的角度限制，如果超过，重置到限定角度的position
                                 let sinOfTop = Math.sin(this.upAxisAngle.top);
@@ -203,6 +206,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
                     let positionOfLookat = vec3.add(position, this.camera.LookAt);//在现有位置上增加lookat位的增量。camera和lookat的坐标系在xyz的三个向量上保持一致，只有position不同（no zoom情况下）。
                     //3.4 更新摄像机的position和lookAt
                     this.camera.updateByPositionDirection(positionOfLookat, dir, true, true);//第二、三个参数，在控制器情况下，不使用，无意义。具体参见camera.updateByPositionDirection
+                    // console.log("position", positionOfLookat,dir);
                     return true;
                 }
                 //2.2、鼠标右键（次键）

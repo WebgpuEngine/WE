@@ -335,13 +335,13 @@ export class Graphics {
             case RAPIER.ShapeType.Cylinder:
             case RAPIER.ShapeType.RoundCylinder:
                 let cyl_rad = collider.radius();
-                let cyl_height = collider.halfHeight() * 2.0;
+                let cyl_height = collider.halfHeight() * 1.0;
                 scale = [cyl_rad, cyl_height, cyl_rad,];
                 meshIndex = CYLINDER_INSTANCE_INDEX as number;
                 break;
             case RAPIER.ShapeType.Cone:
                 let cone_rad = collider.radius();
-                let cone_height = collider.halfHeight() * 2.0;
+                let cone_height = collider.halfHeight() * 1.0;
                 scale = [cone_rad, cone_height, cone_rad,];
                 meshIndex = CONE_INSTANCE_INDEX as number;
                 break;
