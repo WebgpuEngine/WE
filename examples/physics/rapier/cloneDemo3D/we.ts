@@ -9,13 +9,13 @@ export async function initWe() {
         canvas: "render",
         backgroudColor: [0, 0., 0., 0.],
         reversedZ:true,
-        AA:{
-            MSAA: {
-                enable: true,
-            }
-        },
+        // AA:{
+        //     MSAA: {
+        //         enable: true,
+        //     }
+        // },
         toneMapping:E_ToneMappingType.linearToSRGB,
-        // deferRender:"color",
+        deferRender:"color",
     };
     let scene = await initScene({ initConfig: input, });
     window.scene = scene;
@@ -23,8 +23,8 @@ export async function initWe() {
     let camera = new PerspectiveCamera({
         fov: (2 * Math.PI) / 5,
         aspect: scene.aspect,
-        near: 0.01,
-        far: 100,
+        near: 0.1,
+        far: 300,
         position: [3, 3, 3],
         lookAt: [0, 0, 0],
         controlType: "orbit",

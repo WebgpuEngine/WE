@@ -155,12 +155,14 @@ export abstract class BaseCamera extends NodeObject {
   _lookAt: Vec3 = vec3.create();
   set LookAt(value: Vec3 | weVec3) {
     if (isWeVec3(value)) {
-      this.LookAt = vec3.fromValues(...value);
+      this._lookAt = vec3.fromValues(...value);
     }
     else {
       vec3.copy(value, this._lookAt);
     }
+    // this.updateByPositionDirection(this._position, this._lookAt, false);
   }
+
   get LookAt(): Vec3 { return this._lookAt; }
 
   /**
@@ -654,7 +656,14 @@ export abstract class BaseCamera extends NodeObject {
     return true;
   }
 
-
+  /**
+   * 直接更新相机的位置和方向
+   * 1、手工更新Position和LookAt之后执行。
+   * 2、如果有控制器，需要更新Position和LookAt执行，否则控制器不会检查变化（从而无法更新位置和方向）。
+   */
+  directUpdateCameraPosition() {
+    this.updateByPositionDirection(this._position, this._lookAt, false);
+  }
 
 
 }

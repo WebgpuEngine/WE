@@ -96,7 +96,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 arrayBuffer = new Float32Array(data);
             }
             //2.2 创建新的vertexBuffer
-            vertexBuffer = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
+            let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
+             this.resourcesGPU.vertices.set(this.attributes.vertices[name], vertexBufferNew);
+
 
             //3.1  更新cameraDC队列
             for (let i in this.cameraDC) {
@@ -106,7 +108,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     for (let perDC of perArrayDC) {
                         for (let perVertexBuffer of perDC.vertexBuffers) {
                             if (perVertexBuffer.name == name) {
-                                perVertexBuffer.buffer = vertexBuffer;
+                                perVertexBuffer.buffer = vertexBufferNew;
                             }
                         }
                     }
@@ -120,7 +122,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     for (let perDC of perArrayDC) {
                         for (let perVertexBuffer of perDC.vertexBuffers) {
                             if (perVertexBuffer.name == name) {
-                                perVertexBuffer.buffer = vertexBuffer;
+                                perVertexBuffer.buffer = vertexBufferNew;
                             }
                         }
                     }

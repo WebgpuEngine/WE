@@ -107,12 +107,19 @@ export class Testbed {
         this.lastMessageTime = new Date().getTime();
     }
 
-    lookAt(pos: Parameters<Graphics["lookAt"]>[0]) {
+    // lookAt(pos: Parameters<Graphics["lookAt"]>[0]) {
+    lookAt(option: { eye: { x: number; y: number; z: number }; target: { x: number; y: number; z: number } }) {
         // if (!this.inhibitLookAt) {
         //     this.graphics.lookAt(pos);
         // }
 
         // this.inhibitLookAt = false;
+        this.scene.defaultCamera.Position = [option.eye.x, option.eye.y, option.eye.z];
+        this.scene.defaultCamera.LookAt = [option.target.x, option.target.y, option.target.z];
+        // this.scene.defaultCamera.updateByPositionDirection(this.scene.defaultCamera.Position, this.scene.defaultCamera.LookAt, false);//这里需要是world position
+        this.scene.defaultCamera.directUpdateCameraPosition();
+
+
     }
 
     // 切换到指定的演示场景
@@ -215,7 +222,7 @@ export class Testbed {
         this.gui.stats.end();
 
         // requestAnimationFrame(() => this.run());
-         setTimeout( ()=>this.run(), 16.667);
+        setTimeout(() => this.run(), 16.667);
 
 
     }

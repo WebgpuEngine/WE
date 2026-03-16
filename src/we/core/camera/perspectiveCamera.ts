@@ -114,4 +114,5 @@ export class PerspectiveCamera extends BaseCamera {
         // this.boundingSphere = computeBoundingSphere(positionsForAABB);
         this.boundingSphere = generateSphereFromBox3(this.boundingBox );
     }
+    
 }

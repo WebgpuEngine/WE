@@ -238,6 +238,11 @@ export class OrbitCameraControl extends ArcballCameraControl {
                     return true;
                 }
             }
+            // //没有变化的更新。比如：通过程序改变了camera的positio等.这里会出现，如果lookat不是0，0，0的情况下，camera会一直拉远。
+            // else {
+            //     this.camera.updateByPositionDirection(position, this.camera.back, false);
+            //     return true;
+            // }
             return false;
         }
         else {
