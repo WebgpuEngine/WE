@@ -131,29 +131,30 @@ export abstract class NodeSpace extends RootGPU {
         if (worldSpace !== this._rodriguesRotation[3]) {
             return;
         }
-        let matOrigin = mat4.create();
-        let matTraget = mat4.create();
-        if (this._rodriguesRotation[3]) {
+        let matOrigin = mat4.create();//创建原始矩阵
+        let matTraget = mat4.create();//创建目标矩阵
+        if (this._rodriguesRotation[3]) {//在世界坐标下
             mat4.copy(this.matrixWorld, matOrigin);
         }
-        else {
+        else {  //在本地坐标下
             mat4.copy(this.matrix, matOrigin);
         }
-        let zeroPoint = vec3.fromValues(this._rodriguesRotation[0][0], this._rodriguesRotation[0][1], this._rodriguesRotation[0][2]);
-        let zeroMat = mat4.translation(zeroPoint);
-        let zeroMatInv = mat4.invert(zeroMat);
-        mat4.multiply(zeroMat, matOrigin, matTraget);//将零点旋转到原点
+        let zeroPoint = vec3.fromValues(this._rodriguesRotation[0][0], this._rodriguesRotation[0][1], this._rodriguesRotation[0][2]);//零点=旋转点
+        let zeroMat = mat4.translation(zeroPoint);//创建零点矩阵
+        let zeroMatInv = mat4.invert(zeroMat);//创建零点矩阵的逆矩阵
 
-        let pos: Vec3 = mat4.getTranslation(matOrigin);
+        mat4.multiply(zeroMat, matOrigin, matTraget);//将零点移动到原点
+
+        let pos: Vec3 = mat4.getTranslation(matOrigin);     //获取原始矩阵的位置
         // console.log(pos[0], pos[1], pos[2]);
-        let posMat = mat4.translation(vec3.fromValues(-pos[0], -pos[1], -pos[2]));
-        let posMatInv = mat4.invert(posMat);
-        mat4.multiply(posMat, matTraget, matTraget);//将位置旋转到原点
+        let posMat = mat4.translation(vec3.fromValues(-pos[0], -pos[1], -pos[2]));      //创建当前对象的原始位置矩阵
+        let posMatInv = mat4.invert(posMat);                                            //创建当前对象的原始位置矩阵的逆矩阵
+        mat4.multiply(posMat, matTraget, matTraget);                                    //将对象位置移动到原点
 
-        mat4.axisRotate(matTraget, this._rodriguesRotation[1], this._rodriguesRotation[2], matTraget);//旋转
+        mat4.axisRotate(matTraget, this._rodriguesRotation[1], this._rodriguesRotation[2], matTraget);    //对象在原点实现旋转
 
-        mat4.multiply(matTraget, posMatInv, matTraget);//将位置旋转回原位置
-        mat4.multiply(matTraget, zeroMatInv, matTraget);//将零点旋转回原位置
+        mat4.multiply(matTraget, posMatInv, matTraget);                 //将对象位置复原回对象原位置
+        mat4.multiply(matTraget, zeroMatInv, matTraget);                //将零点复原回零点原位置
 
         if (this._rodriguesRotation[3]) {
             mat4.copy(matTraget, this.matrixWorld);
@@ -170,6 +171,7 @@ export abstract class NodeSpace extends RootGPU {
         else {
             vec4.copy(quaternion, this._quaternion);
         }
+        // this._quaternion =vec4.normalize(this._quaternion!) as Quat;
     }
     get Quaternion(): Vec4 | undefined {
         return this._quaternion;
@@ -213,7 +215,12 @@ export abstract class NodeSpace extends RootGPU {
         // 1. 四元数转4×4矩阵
         const rotationMatrix = mat4.fromQuat(this._quaternion!);
         //2 矩阵相乘
-        this.matrix = mat4.multiply(this.matrix, rotationMatrix);
+        // this.matrix = mat4.multiply(this.matrix, rotationMatrix);//错误
+
+        //正确，这么看，webGPU-matrix是列优先（即左乘），与数学中的行优先不同。
+        // //但其在内部进行变换后，还应该是右乘的顺序，比较奇怪
+        this.matrix = mat4.multiply(rotationMatrix, this.matrix);
+        
     }
     /** 绕任意轴旋转 */
     rotate = this.rotateAxis;
