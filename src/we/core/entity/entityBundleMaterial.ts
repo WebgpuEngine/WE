@@ -8,10 +8,11 @@
  * 2、无功能性扩展，只是共性收集与处理
  * 3、非共性或功能不相同的，各自实现
  */
+import { TypedArray } from "webgpu-utils";
 import { E_lifeState, E_renderForDC } from "../base/coreDefine";
 import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed, isDrawModeVertex } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
-import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC } from "../command/DrawCommandGenerator";
+import { isIndexGPUBufferBundle, isVsAttributeMerge, isVSGPUBufferBundle, IV_DC, vsAttribute } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { BaseLight } from "../light/baseLight";
 import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/base";
@@ -21,6 +22,7 @@ import { E_renderPassName } from "../scene/renderManager";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOutput, I_vsfsBundle } from "./base";
 import { BaseEntity } from "./baseEntity";
+import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
 
 
 
@@ -38,6 +40,163 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         vertexStepMode: "vertex",
         indices: [],
     };
+
+    /**
+     * 更新顶点数据，
+     * 1、如果是数组形式，直接更新
+     * 2、如果是vsAttribute，更新data   
+     * 3、其他暂时不支持，没有必要
+     * @param name 顶点数据的名称
+     * @param data 顶点数据
+     * @param option 顶点数据的类型和步长
+     * @returns 
+     */
+    setVertexBuffer(name: string, data: number[], option?: { type?: "float32" | "int32" | "uint32", stride?: number }) {
+        let replaceTarget = this.attributes.vertices[name];
+        if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isVsAttributeMerge(replaceTarget)) {
+            console.warn("EntityBundleMaterial: setVertexAndIndexBuffers, merge attribute and gpu buffer attribute, not support set data");
+            return;
+        }
+        else {
+            /*
+             * 一、更新this.attributes.vertices[name]
+             * 1、是数组形式
+             * 2、是vsAttribute： if ("format" in value && "data" in value)
+             *
+             * 二、GPUBuffer
+             * 1、删除旧的vertexBuffer，
+             * 2、创建新的vertexBuffer
+             *  
+             * 三、更新this.cameraDC
+             *  
+             * 四、更新shadowmapDC
+             * 
+             */
+            //1.1 更新this.attributes.vertices[name]
+            if ("format" in replaceTarget && "data" in replaceTarget) {
+                (this.attributes.vertices[name] as vsAttribute).data = data;
+            }
+            else {
+                this.attributes.vertices[name] = data;
+            }
+
+            //2.1 删除旧的vertexBuffer
+            let vertexBuffer = this.resourcesGPU.vertices.get(replaceTarget);
+            this.resourcesGPU.vertices.delete(replaceTarget);
+            vertexBuffer?.destroy();
+
+            let arrayBuffer;
+            if (option?.type == "int32") {
+                arrayBuffer = new Int32Array(data);
+            }
+            else if (option?.type == "uint32") {
+                arrayBuffer = new Uint32Array(data);
+            }
+            else {
+                arrayBuffer = new Float32Array(data);
+            }
+            //2.2 创建新的vertexBuffer
+            vertexBuffer = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
+
+            //3.1  更新cameraDC队列
+            for (let i in this.cameraDC) {
+                let perGroupDC = this.cameraDC[i];
+                const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
+                for (let perArrayDC of dcGroups) {
+                    for (let perDC of perArrayDC) {
+                        for (let perVertexBuffer of perDC.vertexBuffers) {
+                            if (perVertexBuffer.name == name) {
+                                perVertexBuffer.buffer = vertexBuffer;
+                            }
+                        }
+                    }
+                }
+            }
+            //3.2 更新shadowmapDC队列
+            for (let i in this.shadowmapDC) {
+                let perGroupDC = this.shadowmapDC[i];
+                const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
+                for (let perArrayDC of dcGroups) {
+                    for (let perDC of perArrayDC) {
+                        for (let perVertexBuffer of perDC.vertexBuffers) {
+                            if (perVertexBuffer.name == name) {
+                                perVertexBuffer.buffer = vertexBuffer;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+    setIndexBuffer(data: number[], option?: { stride?: number, wireFrame?: boolean }) {
+        let wireFrame = "wireframe";
+        let isWireFrame = false;
+        if (option?.wireFrame == true) {
+            isWireFrame = true;
+        }
+        if (this.attributes.indices) {
+            /**
+             * 一、更新this.attributes.indices
+             * 1、是数组形式
+             *
+             * 二、GPUBuffer
+             * 1、删除旧的vertexBuffer，
+             * 2、创建新的vertexBuffer
+             *  
+             * 三、更新this.cameraDC
+             *  
+             * 四、更新shadowmapDC
+             * 
+             */
+
+
+            let replaceTarget = this.attributes.indices;
+            if (Array.isArray(replaceTarget) && data.length > 0) {
+                //1.1 更新this.attributes.indices
+                this.attributes.indices = data;
+                //2.1 删除旧的indexBuffer
+                let indexBuffer = this.resourcesGPU.indices.get(replaceTarget);
+                this.resourcesGPU.indices.delete(replaceTarget);
+                indexBuffer?.destroy();
+                //2.2 创建新的indexBuffer
+                indexBuffer = createIndexBuffer(this.device, `${this.ID} rebuild indices `, new Uint32Array(data));
+                //3.1 更新cameraDC队列
+                for (let i in this.cameraDC) {
+                    let perGroupDC = this.cameraDC[i];
+                    const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
+                    for (let perArrayDC of dcGroups) {
+                        for (let perDC of perArrayDC) {
+                            if (perDC.label.includes(wireFrame) && isWireFrame === false) {
+                                continue;
+                            }
+                            perDC.indexBuffer = indexBuffer;
+                        }
+                    }
+                }
+                //3.2 更新shadowmapDC队列
+                for (let i in this.shadowmapDC) {
+                    let perGroupDC = this.shadowmapDC[i];
+                    const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
+                    for (let perArrayDC of dcGroups) {
+                        for (let perDC of perArrayDC) {
+                            if (perDC.label.includes(wireFrame) && isWireFrame === false) {
+                                continue;
+                            }
+                            perDC.indexBuffer = indexBuffer;
+                        }
+                    }
+                }
+
+            }
+            else {
+                console.warn("EntityBundleMaterial: setIndexBuffer, only array type, not support set data");
+                return;
+            }
+        }
+    }
+
+
     checkMorphTargetCount(count: number): boolean {
         // throw new Error("EntityBundleMaterial: checkMorphTargetCount not implemented");
         let countFromAttribute = 0;

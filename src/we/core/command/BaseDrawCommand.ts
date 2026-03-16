@@ -27,6 +27,10 @@ export interface IV_BaseDrawCommand extends IV_BaseCommand {
  * 3、size：顶点缓冲区中的数据大小
  */
 export interface I_VertexBufferEntry {
+    /** 顶点缓冲区名称
+     * 20260316增加，目的动态更新vertex GPUBuffer使用。不推荐使用动态更新vertex GPUBuffer，有写入成本。之后会建立dynamicMesh 类。
+     */
+    name?: string,
     buffer: GPUBuffer,
     offset?: number,
     size?: number,

@@ -1,7 +1,7 @@
 import { AmbientLight } from "../../../../src/we/core/light/ambientLight";
 import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
 import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight";
-import { IV_Scene } from "../../../../src/we/core/scene/base";
+import { E_ToneMappingType, IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
 
 export async function initWe() {
@@ -9,13 +9,13 @@ export async function initWe() {
         canvas: "render",
         backgroudColor: [0, 0., 0., 0.],
         reversedZ:true,
-        // AA:{
-        //     MSAA: {
-        //         enable: true,
-        //     }
-        // }
-        // toneMapping:"linear"
-        deferRender:"color"
+        AA:{
+            MSAA: {
+                enable: true,
+            }
+        },
+        toneMapping:E_ToneMappingType.linearToSRGB,
+        // deferRender:"color",
     };
     let scene = await initScene({ initConfig: input, });
     window.scene = scene;
@@ -34,7 +34,7 @@ export async function initWe() {
     let onelight = new DirectionalLight({
         color: [1, 1, 1],
         direction: [0, 1, 1],
-        intensity: 1,
+        intensity: 0.8,
         shadow: true,
     });
     await scene.add(onelight);
@@ -42,7 +42,7 @@ export async function initWe() {
     let ambientLight = new AmbientLight(
         {
             color: [1, 1, 1],
-            intensity: 0.025
+            intensity: 0.05
         }
     )
     await scene.add(ambientLight);

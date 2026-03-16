@@ -139,12 +139,12 @@ export abstract class NodeObject extends NodeSpace {
         return this._spaceType;
     }
     /** 物理体对象 physical body object */
-    _physicalBody: PhysicalBody | undefined;
+    _physicalBody: PhysicBody | undefined;
 
-    set PhysicalBody(value: PhysicalBody) {
+    set PhysicalBody(value: PhysicBody) {
         this._physicalBody = value;
     }
-    get PhysicalBody(): PhysicalBody | undefined {
+    get PhysicalBody(): PhysicBody | undefined {
         return this._physicalBody;
     }
 
@@ -354,7 +354,7 @@ export abstract class NodeObject extends NodeSpace {
         }
     }
 
-    enable: boolean = true;
+    // enable: boolean = true;
     set Enable(value: boolean) {
         if (value === this.enable) return;
         else {
@@ -753,7 +753,7 @@ export abstract class NodeObject extends NodeSpace {
      */
     updateSelfAttribute() {
         //更新包围盒
-        if (this.Entity && this.Entity.boundingBox) {
+        if (this.Entity && this.Entity.boundingBox && this.scene) {
             let box = this.Entity.boundingBox;
             const min = vec3.transformMat4(box.min, this.matrixWorld);
             const max = vec3.transformMat4(box.max, this.matrixWorld);

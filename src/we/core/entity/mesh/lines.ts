@@ -1,8 +1,9 @@
-import {  E_renderForDC } from "../../base/coreDefine";
+import { E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
+import { mergeLightUUID } from "../../light/lightsManager";
 import { E_renderPassName } from "../../scene/renderManager";
-import {  SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import {  E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput,  I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
+import { E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -31,7 +32,7 @@ export class Lines extends EntityBundleMaterial {
             this._geometry = input.attributes.geometry;
             let attributes = input.attributes.geometry.getAttribute();
             for (let key in attributes) {
-                this.attributes.vertices[key]= attributes[key];
+                this.attributes.vertices[key] = attributes[key];
             }
             let indices = input.attributes.geometry.getWireFrameIndeices();
             if (indices) {
@@ -41,7 +42,7 @@ export class Lines extends EntityBundleMaterial {
         else if (input.attributes.data) {
             let attributes = input.attributes.data.vertices;
             for (let key in attributes) {
-                this.attributes.vertices[key]= attributes[key];
+                this.attributes.vertices[key] = attributes[key];
             }
             if (input.attributes.data.indices) {
                 this.attributes.indices = input.attributes.data.indices;
@@ -114,7 +115,17 @@ export class Lines extends EntityBundleMaterial {
         throw new Error("Method not implemented.");
     }
     createShadowMapDC(input: I_ShadowMapValueOfDC): void {
-        throw new Error("Method not implemented.");
+        if (this.inputValues.shadow?.generate === false) {
+            return;
+        }
+        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
+        //mesh VS 模板输出
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
+
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
+        valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
+        let dc = this.DCG.generateDrawCommand(valueDC);
+        this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
     }
     createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
         throw new Error("Method not implemented.");

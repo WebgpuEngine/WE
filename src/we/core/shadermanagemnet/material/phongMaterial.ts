@@ -209,9 +209,9 @@ export var SHT_materialPhongFS_MSAA_info: I_ShaderTemplate = {
 
             },
             {
-                name: "materialColor",
-                replace: "$materialColor",           //
-                replaceType: E_shaderTemplateReplaceType.replaceCode,                //   var materialColor = $materialColor              //颜色或纹理颜色
+                name: "mainColorCode",
+                replace: "$mainColorCode",
+                replaceType: E_shaderTemplateReplaceType.replaceCode,
                 replaceCode: "",
             },
             SHT_replace_Phong_LightAndShadow_encode,

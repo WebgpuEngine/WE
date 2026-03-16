@@ -96,7 +96,8 @@ export interface I_vsGPUBufferBundle {
     max: weVec3,
 }
 export function isVSGPUBufferBundle(attr: T_vsAttribute): attr is I_vsGPUBufferBundle {
-    return (attr as I_vsGPUBufferBundle).buffer && (attr as I_vsGPUBufferBundle).min !== undefined && (attr as I_vsGPUBufferBundle).max !== undefined;
+    // return (attr as I_vsGPUBufferBundle).buffer && (attr as I_vsGPUBufferBundle).min !== undefined && (attr as I_vsGPUBufferBundle).max !== undefined;
+    return "format" in attr && "buffer" in attr && attr.buffer instanceof GPUBuffer;
 }
 /**
  * 索引buffer的bundle，用于绑定到DC的index buffer 。GLTF使用
@@ -418,7 +419,7 @@ export class DrawCommandGenerator {
                 if (UUID) {
                     if (this.MSAA) {
                         // if (values.system.MSAA != undefined)
-                            renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
+                        renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
                         // else
                         //     throw new Error("MSAA渲染,需要在system中指定MSAA");
                     }
@@ -900,6 +901,7 @@ export class DrawCommandGenerator {
                         vertexBuffer = this.resources.get(value, "vertices");
                     }
                     vertexBufferEntry = {
+                        name: lowKey,
                         buffer: vertexBuffer,
                         // offset: 0,
                         // size:data.byteLength,
@@ -915,7 +917,7 @@ export class DrawCommandGenerator {
                     };
 
                 }
-                //有更多详细的数据说明，来约定顶点数据，例如format,arrayStride,offset等
+                //vsAttribute格式。有更多详细的数据说明，来约定顶点数据，例如format,arrayStride,offset等
                 else if ("format" in value && "data" in value) {
                     let format: GPUVertexFormat = value.format;
                     let data;//默认:float32
@@ -985,6 +987,7 @@ export class DrawCommandGenerator {
                         vertexBuffer = this.resources.get(value, "vertices");
                     }
                     vertexBufferEntry = {
+                        name: lowKey,
                         buffer: vertexBuffer,
                         // offset: 0,
                         // size:data.byteLength,
@@ -999,7 +1002,7 @@ export class DrawCommandGenerator {
                         }],
                     }
                 }
-                //合并属性，例如position和normal合并到一个顶点属性中
+                //vsAttributeMerge合并属性，例如position和normal合并到一个顶点属性中
                 else if (isVsAttributeMerge(value)) {
                     let mergeAttribute = value.mergeAttribute
                     let arrayStride = value.arrayStride;
@@ -1023,7 +1026,9 @@ export class DrawCommandGenerator {
                     else {
                         vertexBuffer = this.resources.get(value, "vertices");
                     }
+                    //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
                     vertexBufferEntry = {
+                        name: lowKey,
                         buffer: vertexBuffer,
                         // offset: 0,
                         // size:data.byteLength,
@@ -1034,13 +1039,16 @@ export class DrawCommandGenerator {
                     }
                 }
                 //顶点数据是GPUBuffer数据的
-                else if ("format" in value && value.buffer instanceof GPUBuffer) {
+                // else if ("format" in value && value.buffer instanceof GPUBuffer) {
+                else if (isVSGPUBufferBundle(value)) {
                     let format = value.format;
                     let arrayStride = value.arrayStride;
                     let wgsl_value_format = this.getWgslValueFormat(format);
                     locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
                     vertexBuffer = value.buffer;
+                    //GPUBuffer属性暂时不支持动态更新vertex GPUBuffer。（可以支持，但需要重新绑定GPUBuffer，GPUBuffer内部还有stride组合的比较复杂，不考虑）
                     vertexBufferEntry = {
+                        name: lowKey,
                         buffer: vertexBuffer,//GPUBuffer
                         offset: value.offset,//当前vertex 数据在GPUBuffer的offset，默认从0开始读取
                         size: value.byteSize,//当前vertex 数据在GPUBuffer的size，默认是全部
@@ -1376,7 +1384,7 @@ export class DrawCommandGenerator {
                 }
                 //不进行缓存，每次都需要创建ShaderModule。比如自定义shader 材质
                 else if (values.render.fragment.code?.material?.cache === false) {
-                    moduleFS=this.createShaderModule(values);
+                    moduleFS = this.createShaderModule(values);
                 }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
@@ -1398,7 +1406,7 @@ export class DrawCommandGenerator {
                         //     label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
                         //     code: codeFS,
                         // })
-                        moduleFS=this.createShaderModule(values);
+                        moduleFS = this.createShaderModule(values);
                         this.resources.shaderModuleOfString.set(nameOfMaterial, moduleFS);
                     }
                 }

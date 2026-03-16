@@ -19,6 +19,20 @@ export interface IV_NodeSpace extends I_Update {
     matrix?: weMat4,
 }
 export abstract class NodeSpace extends RootGPU {
+    enable: boolean = true;
+    set Enable(value: boolean) {
+        this.enable = value;
+    }
+    get Enable(): boolean {
+        return this.enable;
+    }
+    visible: boolean = true;
+    set Visible(value: boolean) {
+        this.visible = value;
+    }
+    get Visible(): boolean {
+        return this.visible;
+    }
 
     /**是否需要更新本地矩阵 */
     needUpdateLocalMatrix: boolean = true;

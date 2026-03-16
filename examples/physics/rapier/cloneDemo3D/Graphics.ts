@@ -9,6 +9,8 @@ import { ConeGeometry } from "../../../../src/we/core/geometry/coneGeometry";
 import { PhongMaterial } from "../../../../src/we/core/material/phong/phongMaterial";
 import { Mesh } from "../../../../src/we/core/entity/mesh/mesh";
 import { IV_Node, NodeObject } from "../../../../src/we/core/organization/nodeObject";
+import { IV_LinesEntity, Lines } from "../../../../src/we/core/entity/mesh/lines";
+import { VertexColorMaterial } from "../../../../src/we/core/material/standard/vertexColorMaterial";
 
 const BOX_INSTANCE_INDEX = 0;
 const BALL_INSTANCE_INDEX = 1;
@@ -129,6 +131,9 @@ export class Graphics {
     listOfColliderToNodeObject: Map<number, NodeObject> = new Map(); // collider to node object
     listOfMaterial: PhongMaterial[] = [];
 
+    linesOfDebug!: Lines;
+    instanceLinesOfDebug!: NodeObject;
+
     constructor(scene: Scene) {
         this.highlightedCollider = null;
         this.colorIndex = 0;
@@ -139,6 +144,27 @@ export class Graphics {
     }
 
     initInstances() {
+
+        let lineColorMaterial = new VertexColorMaterial();
+
+        let inputMesh: IV_LinesEntity = {
+            attributes: {
+                data: {
+                    vertices: {
+                        position: [0, 0, 0, 1, 1, 1],
+                        color: [1, 0, 0, 1, 0, 0],
+                    },
+                },
+            },
+            shadow: {
+                generate: false,
+                accept: false,
+            },
+            material: lineColorMaterial,
+        }
+        this.linesOfDebug = new Lines(inputMesh);
+        window.lines=this.linesOfDebug;
+
         this.instanceGroups = [];
         let boxGeometry = new BoxGeometry({ width: 2.0, height: 2.0, depth: 2.0 });
         let sphereGeometry = new SphereGeometry({ radius: 1.0 });
@@ -153,7 +179,8 @@ export class Graphics {
                 });
             });
         this.listOfMaterial = materials;
-
+        // this.instanceLinesOfDebug = await 
+        this.scene.add(this.linesOfDebug);
 
         this.instanceGroups.push(
             materials.map((material) => {
@@ -200,20 +227,20 @@ export class Graphics {
 
     render(world: RAPIER.World, debugRender: boolean) {
 
-        // if (debugRender) {
-        //     let buffers = world.debugRender();
-        //     this.lines.visible = true;
-        //     this.lines.geometry.setAttribute(
-        //         "position",
-        //         new THREE.BufferAttribute(buffers.vertices, 3),
-        //     );
-        //     this.lines.geometry.setAttribute(
-        //         "color",
-        //         new THREE.BufferAttribute(buffers.colors, 4),
-        //     );
-        // } else {
-        //     this.lines.visible = false;
-        // }
+        if (debugRender) {
+            let buffers = world.debugRender();
+            let abc = 1;
+            this.linesOfDebug.Visible = true;
+            this.linesOfDebug.setVertexBuffer("position", Array.from(buffers.vertices));
+            let colors:number[]=[];
+            for(let i=0;i<buffers.colors.length;i+=4){
+                colors.push(buffers.colors[i],buffers.colors[i+1],buffers.colors[i+2]);
+            }
+            this.linesOfDebug.setVertexBuffer("color", colors);
+        } else {
+            // this.lines.visible = false;
+            this.linesOfDebug.Visible = false;
+        }
 
         this.updatePositions(world);
     }
@@ -387,48 +414,5 @@ export class Graphics {
         instance.Quaternion = [r.x, r.y, r.z, r.w];
     }
 
-    // rayAtMousePosition(pos: { x: number; y: number }) {
-    //     this.raycaster.setFromCamera(pos, this.camera);
-    //     return this.raycaster.ray;
-    // }
 
-    // lookAt(pos: {
-    //     target: { x: number; y: number; z: number };
-    //     eye: { x: number; y: number; z: number };
-    // }) {
-    //     this.camera.position.set(pos.eye.x, pos.eye.y, pos.eye.z);
-    //     this.controls.target.set(pos.target.x, pos.target.y, pos.target.z);
-    //     this.controls.update();
-    // }
-
-    // highlightInstanceId() {
-    //     return this.colorPalette.length - 1;
-    // }
-
-    // highlightCollider(handle: number) {
-    //     if (handle == this.highlightedCollider)
-    //         // Avoid flickering when moving the mouse on a single collider.
-    //         return;
-
-    //     if (this.highlightedCollider != null) {
-    //         let desc = this.coll2instance.get(this.highlightedCollider);
-
-    //         if (!!desc) {
-    //             desc.highlighted = false;
-    //             this.instanceGroups[desc.groupId][
-    //                 this.highlightInstanceId()
-    //             ].count = 0;
-    //         }
-    //     }
-    //     if (handle != null) {
-    //         let desc = this.coll2instance.get(handle);
-
-    //         if (!!desc) {
-    //             if (desc.instanceId != 0)
-    //                 // Don't highlight static/kinematic bodies.
-    //                 desc.highlighted = true;
-    //         }
-    //     }
-    //     this.highlightedCollider = handle;
-    // }
 }

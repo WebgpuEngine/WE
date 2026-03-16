@@ -65,6 +65,8 @@ export function weHexColorToColor3(hex: weHexColor): weColor3 {
     }
     if (typeof hex === "string") {
         hex = hex.replace("#", "");
+        hex = hex.replace("0X", "");
+        hex = hex.replace("0x", "");
         if (hex.length !== 6) {
             console.warn(`weHexColorToColor3() hex:${hex} is not a 6 digits hex color, use #FFFFFF instead`);
             return [1, 1, 1];

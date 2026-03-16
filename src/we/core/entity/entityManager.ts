@@ -1,5 +1,5 @@
 import { ECSManager } from "../organization/manager";
-import { NodeObject } from "../organization/root";
+import { NodeObject } from "../organization/nodeObject";
 import { pickupTargetOfIDs } from "../pickup/base";
 import { Clock } from "../scene/clock";
 import { RenderManager, E_renderPassName } from "../scene/renderManager";
@@ -35,7 +35,11 @@ export class EntityManager extends ECSManager<BaseEntity> {
     update(clock: Clock) {
         this.checkDestroy();
         for (let entity of this.list) {//所有entity
-            if (entity.isDestroy() === false) {//&& entity.enable === true && entity.visible === true
+            if (entity.isDestroy() === false &&
+                entity.getInstancesCount(true) > 0 && 
+                entity.enable === true && 
+                entity.visible === true
+            ) {//&& entity.enable === true && entity.visible === true
                 //更新entity bindGroup
                 entity.update(clock);
                 //camera

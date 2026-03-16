@@ -500,7 +500,7 @@ export abstract class BaseEntity extends NodeSpace {
         this.updateJointMatrixBuffer();
 
         this.transparent = this.getTransparent();
-        this.DCG = new DrawCommandGenerator({ scene: this.scene ,parent: this});
+        this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this });
         this._state = E_lifeState.finished;
         // return this.renderID + 1;
     }
@@ -836,9 +836,12 @@ export abstract class BaseEntity extends NodeSpace {
      * 获取instance总数量：内部instance*外部instance
      * @returns number
      */
-    getInstancesCount(): number {
+    getInstancesCount(outside: boolean = false): number {
         let outsideInstanceCount = this.outSideInstance.length;
-        if (outsideInstanceCount === 0) outsideInstanceCount = 1;
+        if (outside) {
+            return outsideInstanceCount;
+        }
+        // if (outsideInstanceCount === 0) outsideInstanceCount = 1;
         return this.instance.numInstances * outsideInstanceCount
     }
 
