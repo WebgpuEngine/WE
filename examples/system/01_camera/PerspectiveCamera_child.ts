@@ -7,7 +7,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { RootManager } from "../../../src/we/core/scene/rootManager";
-import { NodeInstance } from "../../../src/we/core/organization/root";
+import { NodeInstance, NodeObject } from "../../../src/we/core/organization/nodeObject";
 
 declare global {
   interface Window {

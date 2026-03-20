@@ -164,16 +164,31 @@ export class PhongMaterial extends BaseMaterial {
       label: "Bulinn Phong uniform ",
     };
     //uniform texture layout
-    let unifromCPUBufferLayout: GPUBindGroupLayoutEntry = {
-      binding: binding,
-      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-      buffer: {
-        type: "uniform"
+    let nameOfUniformLayout = "Phong Material Uniform Layout";
+    let unifromCPUBufferLayout: GPUBindGroupLayoutEntry
+    let cacheFlagOfUniformLayout = false;
+    if (this.scene.resourcesGPU.has(nameOfUniformLayout)) {
+      let uniformLayout = this.scene.resourcesGPU.stringOfEntryLayout.get(nameOfUniformLayout);
+      if (uniformLayout) {
+        unifromCPUBufferLayout = uniformLayout;
+        cacheFlagOfUniformLayout = true;
       }
-    };
-    //添加到resourcesGPU的Map中
-    this.scene.resourcesGPU.set(unifromCPUBuffer, unifromCPUBufferLayout);
-    this.mapList.push({ key: unifromCPUBuffer, type: "uniformBuffer" });
+
+    }
+    if (!cacheFlagOfUniformLayout) {
+      unifromCPUBufferLayout = {
+        binding: binding,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        buffer: {
+          type: "uniform"
+        }
+      };
+      this.scene.resourcesGPU.stringOfEntryLayout.set(nameOfUniformLayout, unifromCPUBufferLayout);
+    }
+    //push entry and entry's layout for DCG
+    this.scene.resourcesGPU.set(unifromCPUBuffer, unifromCPUBufferLayout!);
+    //添加到resourcesGPU的Map中//20260320 在cache保存为phong默认的，phong材质通用
+    // this.mapList.push({ key: unifromCPUBuffer, type: "uniformBuffer" });
     //push到uniform1队列
     uniform1.push(unifromCPUBuffer);
     //+1

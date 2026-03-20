@@ -207,9 +207,9 @@ export abstract class BaseLight extends NodeObject {
     constructor(input: I_optionBaseLight, kind: E_lightType) {
         super(input);
         this.type = "Light";
-        this.ID = WeGenerateID();
+        // this.ID = WeGenerateID();
 
-        this.UUID = WeGenerateUUID();
+        // this.UUID = WeGenerateUUID();
         this.enable = false;
         this.inputValues = input;
         this.MVP = [];

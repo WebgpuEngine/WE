@@ -513,7 +513,7 @@ export class RenderManager {
         // let cameraRendered: {
         //     [name: string]: number
         // } = {};
-        await this.device.queue.onSubmittedWorkDone();
+        // await this.device.queue.onSubmittedWorkDone();
         for (let i in list) {//camera UUID
             // let submitCommand: GPUCommandBuffer[] = [];
             let perOne = list[i];
@@ -752,6 +752,8 @@ export class RenderManager {
         }
     }
 
+    _performanceCount: number = 100;
+    __outputCountOfRun: number = 0;
     /**
      * 渲染
      * 1、按照渲染属性进行，按照各自通道的规则执行
@@ -765,6 +767,12 @@ export class RenderManager {
      * 
      */
     async render() {
+        let outputFlage = true;
+        if (this.__outputCountOfRun++ > this._performanceCount) {
+            outputFlage = false;
+        }
+        let timerNow = Date.now();
+        let timerLast = timerNow;
 
         for (let onePass of this.listCommandType) {
             // let submitCommand: GPUCommandBuffer[] = [];
@@ -774,35 +782,49 @@ export class RenderManager {
             // this.device.queue.submit(submitCommand);
             this.doCommand(onePass);
         }
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->4in1:", timerNow - timerLast);
+
         //不透明shadowmap
         this.renderTimelineDC(this.RC[E_renderPassName.shadowmapOpacity]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->shadowmapOpacity :", timerNow - timerLast);
+
         //透明shadowmap
         this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->shadowmapTransparent :", timerNow - timerLast);
         //defer render Of depth
         this.renderForwaredDC(this.RC[E_renderPassName.depth]);
-
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->depth :", timerNow - timerLast);
         //不透明enity
         if (this.scene.MSAA === true)//开启MSAA，forward
         {        //MSAA,未开启MSAA
             // this.doCommand(this.RC[E_renderPassName.MSAA]);
             this.renderForwaredDC(this.RC[E_renderPassName.MSAA], "MSAA");
             this.renderForwaredDC(this.RC[E_renderPassName.forward], "MSAAinfo");
+            // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->forward :", timerNow - timerLast);
         }
-        else
+        else{
             this.renderForwaredDC(this.RC[E_renderPassName.forward]);
+            // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->forward :", timerNow - timerLast);
+        }
         //defer render
         await this.renderDeferDC(this.RC[E_renderPassName.defer]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->defer :", timerNow - timerLast);
         //透明enity
         await this.renderTransParentDC(this.RC[E_renderPassName.transparent]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->transparent :", timerNow - timerLast);
         //sprite
         await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->sprite :", timerNow - timerLast);
         //透明sprite
         await this.renderTimelineDC(this.RC[E_renderPassName.spriteTransparent]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->spriteTransparent :", timerNow - timerLast);
 
         //toneMapping
         await this.doCommand(this.RC[E_renderPassName.toneMapping]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->toneMapping :", timerNow - timerLast);
         //pp
         await this.doCommand(this.RC[E_renderPassName.postprocess]);
+        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->postprocess :", timerNow - timerLast);
         //stage1
         await this.doCommand(this.RC[E_renderPassName.stage1]);
         //stage2

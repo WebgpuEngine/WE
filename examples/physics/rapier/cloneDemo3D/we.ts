@@ -21,7 +21,7 @@ export async function initWe() {
     window.scene = scene;
 
     let camera = new PerspectiveCamera({
-        fov: (2 * Math.PI) / 5,
+        fov: ( Math.PI) / 4,
         aspect: scene.aspect,
         near: 0.1,
         far: 300,
@@ -35,7 +35,7 @@ export async function initWe() {
         color: [1, 1, 1],
         direction: [0, 1, 1],
         intensity: 0.8,
-        shadow: true,
+        shadow: false,
     });
     await scene.add(onelight);
 

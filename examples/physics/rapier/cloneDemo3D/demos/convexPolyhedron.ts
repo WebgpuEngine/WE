@@ -88,7 +88,7 @@ export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
                     z,
                 );
                 body = world.createRigidBody(bodyDesc);
-                colliderDesc = RAPIER.ColliderDesc.roundConvexHull(
+                let colliderDesc = RAPIER.ColliderDesc.roundConvexHull(
                     v,
                     border_rad,
                 );

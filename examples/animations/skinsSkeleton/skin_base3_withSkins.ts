@@ -3,7 +3,7 @@ import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
-import { NodeInstance } from "../../../src/we/core/organization/root";
+import { NodeInstance, NodeObject } from "../../../src/we/core/organization/nodeObject";
 import { Mat4, mat4, vec3 } from "wgpu-matrix";
 import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
 import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";

@@ -72,7 +72,7 @@ export interface I_singleShaderTemplate {
     add?: I_shaderTemplateAdd[],
     replace?: I_shaderTemplateReplace[],
     groupAndBinding?: I_shaderTemplateReplaceAndAdd[],
-    owner?: any,
+    owner: string,
 }
 
 /**

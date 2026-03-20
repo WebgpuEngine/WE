@@ -4,7 +4,7 @@ import { initWe } from "./we";
 import { Testbed } from "./Testbed";
 import * as CollisionGroups from "./demos/collisionGroups";
 import * as CharacterController from "./demos/characterController";
-// import * as ConvexPolyhedron from "./demos/convexPolyhedron";
+import * as ConvexPolyhedron from "./demos/convexPolyhedron";
 import * as CCD from "./demos/ccd";
 import * as Damping from "./demos/damping";
 import * as Fountain from "./demos/fountain";
@@ -33,9 +33,11 @@ type RAPIER_API = typeof RAPIER;
 // type RAPIER_API = typeof import("@dimforge/rapier3d");
 
 let builders = new Map([
+    ["convex polyhedron", ConvexPolyhedron.initWorld],
+
     ["collision groups", CollisionGroups.initWorld],
     ["character controller", CharacterController.initWorld],
-    // ["convex polyhedron", ConvexPolyhedron.initWorld],
+    ["convex polyhedron", ConvexPolyhedron.initWorld],
     ["CCD", CCD.initWorld],
     ["damping", Damping.initWorld],
     ["fountain", Fountain.initWorld],

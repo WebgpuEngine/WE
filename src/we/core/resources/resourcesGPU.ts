@@ -1,6 +1,11 @@
 import type { I_dynamicTextureEntryForExternal, I_dynamicTextureEntryForView, I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../command/base";
+import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseMaterial } from "../material/baseMaterial";
+import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
+import { Scene } from "../scene/scene";
+import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
+import { DefaultTexture } from "../texture/defaultTexture";
 import { Texture } from "../texture/texture";
 
 
@@ -10,7 +15,8 @@ export class ResourceManagerOfGPU {
     //计数器
 
     /////////////////////////////////////////////////////////////////////////////////////////
-    device!: GPUDevice;
+    device: GPUDevice;
+    scene: Scene;
     //所有为分类的,未定义，未分类，分类失败
     resources: Map<any, any> = new Map();
 
@@ -27,7 +33,12 @@ export class ResourceManagerOfGPU {
     // 单个（每个binding）uniform-->GPUBindGroupLayoutEntry
     /**一个bind group 内的对应的layout */
     entriesToEntriesLayout: Map<T_uniformEntries, GPUBindGroupLayoutEntry> = new Map();//需要人工释放资源
-
+    /**
+     * 保存通用的Entry GPUBindGroupLayoutEntry
+     * 1、比如：
+     *     材质的uniform的layout
+     */
+    stringOfEntryLayout: Map<string, GPUBindGroupLayoutEntry> = new Map();
     /////////////////////////////////////////////////////////////////////////////////////////
     // uniform[]-->BindGroup-->BindGroupLayout,DCG使用，目的：同一个MESH的DrawCommand使用同一个BindGroup
     /**uniformGrpu 对应的 BindGrouop */
@@ -57,7 +68,7 @@ export class ResourceManagerOfGPU {
 
     //目前此部分的其他没有用的，render的pipeline在renderMnanger中
     // /**pipeline 对应的 descriptor */
-    // ValueToPipeline: Map<any, GPURenderPipeline | GPUComputePipeline> = new Map();
+    pipeline: Map<string, GPURenderPipeline> = new Map();
     // pipeline: Map<GPURenderPipeline | GPUComputePipeline, any[]> = new Map();
 
     /////////////////////////////////////////////////////////////////////////////////////////
@@ -107,6 +118,88 @@ export class ResourceManagerOfGPU {
     /**string 可以是buffer的名称等 */
     storageBuffer: Map<any, GPUBuffer> = new Map();
 
+
+    constructor(scene: Scene) {
+        this.scene = scene;
+        this.device = scene.device;
+        this.createSampler();
+        this.createDefaultTexture();
+        this.createEntryOfDefaultTexture();
+
+    }
+    createDefaultTexture() {
+        let textureDefault = new DefaultTexture(this.device);
+        this.textureOfString.set("default", textureDefault.texture);
+        this.weTextureOfString.set("default", textureDefault);
+        let cubeTextureDefault = new DefaultCubeTexture(this.device);
+        this.textureOfString.set("defaultCube", cubeTextureDefault.texture);
+        this.weTextureOfString.set("defaultCube", cubeTextureDefault);
+        let baseInputPBR: IV_PBRMaterial = {
+            textures: {
+                albedo: { value: [1, 1, 1, 1] },
+                metallic: { value: 1 },
+                roughness: { value: 1 },
+            }
+        }
+        let defaultMaterial = new PBRMaterial(baseInputPBR);//gltf 默认材质
+        this.weMaterialOfString.set("defaultPBR", defaultMaterial);
+        let oneMatrixStorageBuffer = createEmptyGPUBuffer(this.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
+        this.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
+    }
+    createSampler() {
+        let linear = this.device.createSampler({
+            label: "linear",
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear",
+            addressModeU: "repeat",
+            addressModeV: "repeat"
+        });
+        this.samplerOfString.set("linear", linear);
+        let nearest = this.device.createSampler({
+            label: "nearest",
+            magFilter: "nearest",
+            minFilter: "nearest",
+            mipmapFilter: "nearest",
+            addressModeU: "repeat",
+            addressModeV: "repeat"
+        });
+        this.samplerOfString.set("nearest", nearest);
+        let cube = this.device.createSampler({
+            label: "cube",
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear", // 预滤波贴图需要 mipmap 线性过滤
+            addressModeU: "clamp-to-edge",
+            addressModeV: "clamp-to-edge",
+            addressModeW: "clamp-to-edge" // 立方体贴图的 W 轴
+        });
+        this.samplerOfString.set("cube", cube);
+    }
+    getSampler(key: string): GPUSampler | undefined {
+        if (this.samplerOfString.has(key)) {
+            return this.samplerOfString.get(key);
+        }
+        else {
+            if (key == "linear") {
+                return this.samplerOfString.get(key);
+            }
+            else if (key == "nearest") {
+                return this.samplerOfString.get(key);
+            }
+            else if (key == "cube") {
+                return this.samplerOfString.get(key);
+            }
+            else {
+                return undefined;
+            }
+        }
+    }
+    createEntryOfDefaultTexture() {
+    }
+    getEntriesOfDefaultTexture(textureName: string): GPUBindGroupEntry | undefined {
+        return this.entriesToEntriesLayout.get(key);
+    }
     has(key: any, _kind?: string) {
         if (_kind) {
             if (_kind == E_resourceKind.vertices) return this.vertices.has(key);
@@ -218,62 +311,7 @@ export class ResourceManagerOfGPU {
             }
         }
     }
-    getSampler(key: string): GPUSampler | undefined {
-        if (this.samplerOfString.has(key)) {
-            return this.samplerOfString.get(key);
-        }
-        else {
-            if (key == "linear") {
-                if (this.samplerOfString.has(key)) {
-                    return this.samplerOfString.get(key);
-                }
-                let linear = this.device.createSampler({
-                    label: "linear",
-                    magFilter: "linear",
-                    minFilter: "linear",
-                    mipmapFilter: "linear",
-                    addressModeU: "repeat",
-                    addressModeV: "repeat"
-                });
-                this.samplerOfString.set(key, linear);
-                return linear;
-            }
-            else if (key == "nearest") {
-                if (this.samplerOfString.has(key)) {
-                    return this.samplerOfString.get(key);
-                }
-                let nearest = this.device.createSampler({
-                    label: "nearest",
-                    magFilter: "nearest",
-                    minFilter: "nearest",
-                    mipmapFilter: "nearest",
-                    addressModeU: "repeat",
-                    addressModeV: "repeat"
-                });
-                this.samplerOfString.set(key, nearest);
-                return nearest;
-            }
-            else if (key == "cube") {
-                if (this.samplerOfString.has(key)) {
-                    return this.samplerOfString.get(key);
-                }
-                let cube = this.device.createSampler({
-                    label: "cube",
-                    magFilter: "linear",
-                    minFilter: "linear",
-                    mipmapFilter: "linear", // 预滤波贴图需要 mipmap 线性过滤
-                    addressModeU: "clamp-to-edge",
-                    addressModeV: "clamp-to-edge",
-                    addressModeW: "clamp-to-edge" // 立方体贴图的 W 轴
-                });
-                this.samplerOfString.set(key, cube);
-                return cube;
-            }
-            else {
-                return undefined;
-            }
-        }
-    }
+
     delete(key: any, _kind?: string) {
         if (_kind) {
             // if (_kind == E_resourceKind.vertices) this.vertices.delete(key);
@@ -368,7 +406,6 @@ export class ResourceManagerOfGPU {
 
         this.check(this.shaderModuleOfString);
         this.check(this.weTextureOfString);
-
 
         this.check(this.resources);
     }

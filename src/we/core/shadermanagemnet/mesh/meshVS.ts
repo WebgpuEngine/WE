@@ -16,6 +16,7 @@ var replace_meshoutput = replace_meshoutputWGSL.toString();
 export var SHT_MeshVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
+        owner:"mesh",
         add: [
             {
                 name: "st_output",
@@ -61,6 +62,7 @@ export var SHT_MeshVS: I_ShaderTemplate = {
 export var SHT_MeshShadowMapVS: I_ShaderTemplate = {
    
     entity: {
+        owner:"mesh",
         add: [
             SHT_addSystemOfLight,
             {
@@ -111,6 +113,7 @@ var wireFrameMain = wireFrameWGSL.toString();
 export var SHT_MeshWireframeVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
+        owner:"wireframe",
         add: [
             {
                 name: "st_output",
@@ -156,6 +159,7 @@ var lineMain = lineMainWGSL.toString();
 export var SHT_LineVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
+        owner:"line",
         add: [
             {
                 name: "st_output",
@@ -201,6 +205,7 @@ export var SHT_LineVS: I_ShaderTemplate = {
 export var SHT_PointVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
+        owner:"point",
         add: [
             {
                 name: "st_output",
@@ -248,6 +253,7 @@ var pointEmuSpriteMain = pointEmuSpriteWGSL.toString();
 export var SHT_PointEmuSpriteVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
+        owner:"point",
         add: [
             {
                 name: "st_output",
@@ -295,6 +301,7 @@ var oneCubeColor = oneCubeColorWGSL.toString();
 export var SHT_OneCubeColorVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
+        owner:"oneCubeColor",
         add: [
             {
                 name: "st_output",

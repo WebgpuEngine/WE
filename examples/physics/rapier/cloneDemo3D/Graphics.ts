@@ -376,7 +376,7 @@ export class Graphics {
                         material: material,
                         attributes: {
                             data: {
-                                vertices: { positions },
+                                vertices: { position: positions },
                                 indices: index
                             }
                         }

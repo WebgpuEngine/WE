@@ -392,10 +392,10 @@ export class DrawCommandGenerator {
 
         //3、shadermodel 编译
 
-        let { vertex, fragment } = this.initShaderModel(values, DC_vertexNames, DC_localtions, DC_verticesBufferLayout);
+        let { vertex, fragment, vertexName, fragmentName } = this.initShaderModel(values, DC_vertexNames, DC_localtions, DC_verticesBufferLayout);
 
         //4、pipeline 部分
-        let pipeline = this.initPipeLine(values, vertex, fragment, DC_bindGroupLayouts);
+        let pipeline = this.initPipeLine(values, { vs: vertex, name: vertexName }, { fs: fragment, name: fragmentName }, DC_bindGroupLayouts);
 
         //4、GPURenderPassDescriptor
         let renderPassDescriptor = () => {
@@ -1315,14 +1315,21 @@ export class DrawCommandGenerator {
     initShaderModel(values: IV_DC, DC_vertexNames: string[], DC_localtions: string[], DC_verticesBufferLayout: GPUVertexBufferLayout[]): {
         vertex: GPUVertexState,
         fragment: GPUFragmentState | undefined,
+        vertexName: string,
+        fragmentName: string,
     } {
         // 3.1 反射顶点名称到shader code的顶点属性的占位符中
         //vertex shader
         let moduleVS: GPUShaderModule
         let shadercode: string;
-        if (typeof values.render.vertex.code === "string")
+        let vsCacheShaderModelName = values.label;
+
+        if (typeof values.render.vertex.code === "string") {
+            vsCacheShaderModelName = values.render.vertex.code as string;
             shadercode = values.render.vertex.code;
+        }
         else {
+            vsCacheShaderModelName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString();
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
         // 测试输出
@@ -1330,18 +1337,6 @@ export class DrawCommandGenerator {
         //     console.log(shadercode);
 
         //3.2、VS shadermodel 编译
-        let vsCacheShaderModelName = values.label;
-        if (values.render?.fragment?.code && typeof values.render?.fragment?.code !== "string") {
-            let name = values.render.fragment?.code?.material?.owner;
-            // console.log(name);
-            if (name.includes("WireFrameMaterial")) {
-                let id = this.parent?.Name || (values.IDS?.ID || values.label);
-                vsCacheShaderModelName = `${id} wireFrame`;
-            }
-            else {
-                vsCacheShaderModelName = values.IDS!.ID.toString();
-            }
-        }
         if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
             moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
         }
@@ -1352,8 +1347,8 @@ export class DrawCommandGenerator {
                 code: shadercode,
             });
             this.resources.shaderModuleOfString.set(vsCacheShaderModelName, moduleVS);
-
         }
+
         //3.3 GPURenderPipelineDescriptor.vertex部分
         let constansVS = {};
         if (values.render.vertex.constants) { constansVS = values.render.vertex.constants; }
@@ -1366,6 +1361,7 @@ export class DrawCommandGenerator {
         //3.4 GPURenderPipelineDescriptor.fragment部分
         let moduleFS: GPUShaderModule;
         let fragment: GPUFragmentState | undefined;
+        let nameOfMaterial = "";
         if (values.render.fragment) {
             // 3.4.1 判断是否是混合shader
             if (values.render.fragment.code == undefined) {
@@ -1376,6 +1372,7 @@ export class DrawCommandGenerator {
                 let flagFS = "fsCode";
                 //如果是字符串,则直接赋值,并创建ShaderModule
                 if (typeof values.render.fragment.code === "string") {
+                    nameOfMaterial = values.render.fragment.code as string;
                     codeFS = values.render.fragment.code;
                     moduleFS = this.device.createShaderModule({
                         label: `${flagFS} ${values.label},// @${this.clock.now}`,
@@ -1388,7 +1385,7 @@ export class DrawCommandGenerator {
                 }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
-                    let nameOfMaterial = values.render.fragment.code.material.owner;
+                    nameOfMaterial = values.render.fragment.code.material.owner;
                     //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
                     if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;
@@ -1465,7 +1462,7 @@ export class DrawCommandGenerator {
                 constants: constansFS,
             }
         }
-        return { vertex, fragment };
+        return { vertex, fragment, vertexName: vsCacheShaderModelName, fragmentName: nameOfMaterial };
     }
     createShaderModule(values: IV_DC): GPUShaderModule {
         let nameOfMaterial = (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner;
@@ -1484,7 +1481,12 @@ export class DrawCommandGenerator {
         })
         return moduleFS;
     }
-    initPipeLine(values: IV_DC, vertex: GPUVertexState, fragment: GPUFragmentState | undefined, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
+    initPipeLine(values: IV_DC, vertex: { vs: GPUVertexState, name: string }, fragment: { fs: GPUFragmentState | undefined, name: string }, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
+
+        //0、创建cacheFlag
+        let multisampleFlag = "";
+        let depthStencilFlag = "";
+        let cacheFlag: string[] = [];
         //1、创建GPURenderPipelineDescriptor
         let pipelineLayoutDescriptor: GPUPipelineLayoutDescriptor = {
             label: values.label,
@@ -1495,50 +1497,78 @@ export class DrawCommandGenerator {
         let pipelineLayout = this.device.createPipelineLayout(pipelineLayoutDescriptor);
         let descriptor: GPURenderPipelineDescriptor = {
             label: values.label,
-            vertex,
+            vertex: vertex.vs,
             layout: pipelineLayout,
         }
         //3、GPURenderPipelineDescriptor.其他部分
-        if (fragment) descriptor.fragment = fragment;
+        if (fragment.fs) descriptor.fragment = fragment.fs;
         if (values.render.primitive) descriptor.primitive = values.render.primitive;
         if (this.MSAA && values.system && values.system.MSAA == "MSAA") {
             descriptor.multisample = {
                 count: 4,
             }
+            multisampleFlag = "4";
         }
         //4、TTP 没有使用depth，因为需要copy深度纹理或多一个深度纹理；TTPF,目前不使用depthStencil
         if (values.render.depthStencil !== false) {
             //如果有depthStencil输入，就使用它
             if (values.render.depthStencil) {
                 descriptor.depthStencil = values.render.depthStencil;
+                depthStencilFlag = "values.render.depthStencil";        //这里可能会有问题，如果depthStencil传入的是不同的depthStencil，会导致缓存错误
             }
             else {
-                if (values.transparent)//透明渲染，使用透明模板
+                if (values.transparent) {//透明渲染，使用透明模板
                     descriptor.depthStencil = this.scene.depthMode.depthStencilTT;
+                    depthStencilFlag = "this.scene.depthMode.depthStencilTT";
+                }
                 else {
                     //MSAA渲染，分成两种情况
                     if (this.MSAA) {
                         //MSAAinfo 渲染，使用深度模板(开启测试，不写入) 
                         if (values.system && values.system.MSAA == "MSAAinfo") {
                             descriptor.depthStencil = this.scene.depthMode.depthStencilMSAAinfo;
+                            depthStencilFlag = "this.scene.depthMode.depthStencilMSAAinfo";
                         }
                         //MSAA 渲染，使用深度模板(开启测试，写入) 
                         else {
                             descriptor.depthStencil = this.scene.depthMode.depthStencilMSAA;
+                            depthStencilFlag = "this.scene.depthMode.depthStencilMSAA";
                         }
                     }
                     //非MSAA渲染，使用深度模板(开启测试，写入) 
                     else {
                         descriptor.depthStencil = this.scene.depthMode.depthStencil;
+                        depthStencilFlag = "this.scene.depthMode.depthStencil";
                     }
                 }
             }
         }
 
+        /**
+         * 缓存标志,将descriptor: GPURenderPipelineDescriptor的内容，转化为string，使其与当前创建的描述松耦（与对象无关化）
+         */
+        cacheFlag = [
+            vertex.name,
+            fragment.name,
+            //primitive
+            values.render.primitive?.topology as string,
+            values.render.primitive?.cullMode as string,
+            values.render.primitive?.stripIndexFormat as string,
+            values.render.primitive?.frontFace as string,
+            // unclipped:values.render.primitive?.unclipped
+            //depthStencil
+            depthStencilFlag,
+            //multisample
+            multisampleFlag,
+        ]
+        let nameOfCacheFlag = cacheFlag.toString();
+        if (this.resources.pipeline.has(nameOfCacheFlag)) {
+            return this.resources.pipeline.get(nameOfCacheFlag)!;
+        }
 
         //3.6 生产pipeline
         let pipeline: GPURenderPipeline = this.device.createRenderPipeline(descriptor);
-
+        this.resources.pipeline.set(nameOfCacheFlag, pipeline);
         return pipeline;
     }
 
