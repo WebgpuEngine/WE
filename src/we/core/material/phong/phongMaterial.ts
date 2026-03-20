@@ -38,7 +38,8 @@ export class PhongMaterial extends BaseMaterial {
   /** 材质的phong参数，ArrayBuffer 
    * size: 64,取决于WGSL 结构体大小
   */
-  unifromCPUBuffer = new ArrayBuffer(64);
+  uniformGPUBufferSize = 64;
+  unifromCPUBuffer = new ArrayBuffer(this.uniformGPUBufferSize);
   /** 材质的phong参数，Float32Array视图 */
   unifromCPUBufferViews = {
     shininess: new Float32Array(this.unifromCPUBuffer, 0, 1),
@@ -155,88 +156,126 @@ export class PhongMaterial extends BaseMaterial {
     let uniform1: T_uniformOneGroup = [];
     ///////////group binding
     ////group binding  texture 字符串
-    groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
-    //uniform texture
-    let unifromCPUBuffer: I_uniformArrayBufferEntry = {
-      binding: binding,
-      size: 4 * 4,
-      data: this.unifromCPUBuffer,
-      label: "Bulinn Phong uniform ",
-    };
-    //uniform texture layout
-    let nameOfUniformLayout = "Phong Material Uniform Layout";
-    let unifromCPUBufferLayout: GPUBindGroupLayoutEntry
-    let cacheFlagOfUniformLayout = false;
-    if (this.scene.resourcesGPU.has(nameOfUniformLayout)) {
-      let uniformLayout = this.scene.resourcesGPU.stringOfEntryLayout.get(nameOfUniformLayout);
-      if (uniformLayout) {
-        unifromCPUBufferLayout = uniformLayout;
-        cacheFlagOfUniformLayout = true;
-      }
-
-    }
-    if (!cacheFlagOfUniformLayout) {
-      unifromCPUBufferLayout = {
-        binding: binding,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: {
-          type: "uniform"
-        }
-      };
-      this.scene.resourcesGPU.stringOfEntryLayout.set(nameOfUniformLayout, unifromCPUBufferLayout);
-    }
-    //push entry and entry's layout for DCG
-    this.scene.resourcesGPU.set(unifromCPUBuffer, unifromCPUBufferLayout!);
-    //添加到resourcesGPU的Map中//20260320 在cache保存为phong默认的，phong材质通用
-    // this.mapList.push({ key: unifromCPUBuffer, type: "uniformBuffer" });
-    //push到uniform1队列
-    uniform1.push(unifromCPUBuffer);
-    //+1
-    binding++;
-
     {
-      ////group bindgin sampler 字符串
-      groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-      //uniform sampler
-      let uniformSampler: GPUBindGroupEntry = {
+      groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
+      //uniform buffer
+      let unifromCPUBuffer: I_uniformArrayBufferEntry = {
         binding: binding,
-        resource: this.defaultSampler,
+        size: this.uniformGPUBufferSize,
+        data: this.unifromCPUBuffer,
+        label: "Bulinn Phong uniform ",
       };
-      //uniform sampler layout
-      let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-        binding: binding,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        sampler: {
-          type: this.defaultSamplerBindingType,
-        },
-      };
-      //添加到resourcesGPU的Map中
-      this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout);
-      this.mapList.push({ key: uniformSampler, type: "GPUBindGroupLayoutEntry" });
-      //push到uniform1队列
-      uniform1.push(uniformSampler);
-      //+1
-      binding++;
+      //uniform buffer layout
+      let nameOfUniformLayout = "Phong Material base uniform Layout";
+      let unifromCPUBufferLayout: GPUBindGroupLayoutEntry
+      let cacheFlagOfUniformLayout = false;
+      if (this.scene.resourcesGPU.has(nameOfUniformLayout)) {
+        let uniformLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfUniformLayout);
+        if (uniformLayout) {
+          unifromCPUBufferLayout = uniformLayout;
+          cacheFlagOfUniformLayout = true;
+        }
 
-      //循环绑定纹理
-      for (let i in this.textures) {
-
-        //uniform texture
-        let uniformTexture: GPUBindGroupEntry = {
-          binding: binding,
-          resource: this.textures[i].texture.createView(),
-        };
-        //uniform texture layout
-        let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+      }
+      if (!cacheFlagOfUniformLayout) {
+        unifromCPUBufferLayout = {
           binding: binding,
           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          texture: this.textures[i].defaultTextureLayout(),
+          buffer: {
+            type: "uniform"
+          }
         };
-        //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
-        this.mapList.push({ key: uniformTexture, type: "GPUBindGroupLayoutEntry" });
+        this.scene.resourcesGPU.entryLayoutOfGroup.set(nameOfUniformLayout, unifromCPUBufferLayout);
+      }
+      //push entry and entry's layout for DCG
+      this.scene.resourcesGPU.entriesToEntriesLayout.set(unifromCPUBuffer, unifromCPUBufferLayout!);
+      //添加到resourcesGPU的Map中//20260320 在cache保存为phong默认的，phong材质通用
+      // this.mapList.push({ key: unifromCPUBuffer, type: "uniformBuffer" });
+      //push到uniform1队列
+      uniform1.push(unifromCPUBuffer);
+      //+1
+      binding++;
+    }
+    ////group bindgin sampler 字符串
+    {
+
+      groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
+      //uniform sampler
+      let uniformSampler: GPUBindGroupEntry;
+      let uniformSamplerLayout: GPUBindGroupLayoutEntry
+      let nameOfSamplerLayout = "Phong Material sampler Layout";
+      let nameOfSampler = "Phong Material sampler";
+      let cacheFlagOfSamplerLayout = false;
+      if (this.scene.resourcesGPU.entryLayoutOfGroup.has(nameOfSamplerLayout) && this.scene.resourcesGPU.entryOfGroup.has(nameOfSampler)) {
+        let samplerLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfSamplerLayout);
+        let sampler = this.scene.resourcesGPU.entryOfGroup.get(nameOfSampler);
+        if (samplerLayout && sampler) {
+          uniformSamplerLayout = samplerLayout;
+          uniformSampler = sampler;
+          cacheFlagOfSamplerLayout = true;
+        }
+      }
+      if (!cacheFlagOfSamplerLayout) {
+        uniformSampler = {
+          binding: binding,
+          resource: this.defaultSampler,
+        };
+        //uniform sampler layout
+        uniformSamplerLayout = {
+          binding: binding,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          sampler: {
+            type: this.defaultSamplerBindingType,
+          },
+        };
+        this.scene.resourcesGPU.entriesToEntriesLayout.set(uniformSampler, uniformSamplerLayout);
+        this.scene.resourcesGPU.entryOfGroup.set(nameOfSampler, uniformSampler);
+        this.scene.resourcesGPU.entryLayoutOfGroup.set(nameOfSamplerLayout, uniformSamplerLayout);
+        // this.mapList.push({ key: uniformSampler, type: "GPUBindGroupLayoutEntry" });
+      }
+      //添加到resourcesGPU的Map中
+      //push到uniform1队列
+      uniform1.push(uniformSampler!);
+      //+1
+      binding++;
+    }
+    //循环绑定纹理
+    {
+      for (let i in this.textures) {
+        let uniformTexture: GPUBindGroupEntry;
+        let uniformTextureLayout: GPUBindGroupLayoutEntry;
+        let nameOfTexture = `phong material ${i}`;
+        let nameOfTextureLayout = nameOfTexture + " Layout";
+        let cacheFlagOfTextureLayout = false;
+        if (this.textures[i] == this.defaultTexture2D) {
+          let textureLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfTextureLayout);
+          let texture = this.scene.resourcesGPU.entryOfGroup.get(nameOfTexture);
+          if (textureLayout && texture) {
+            uniformTextureLayout = textureLayout;
+            uniformTexture = texture;
+            cacheFlagOfTextureLayout = true;
+          }
+        }
+        if (!cacheFlagOfTextureLayout) {
+          //uniform texture
+          uniformTexture = {
+            binding: binding,
+            resource: this.textures[i].texture.createView(),
+          };
+          //uniform texture layout
+          uniformTextureLayout = {
+            binding: binding,
+            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            texture: this.textures[i].defaultTextureLayout(),
+          };
+          //添加到resourcesGPU的Map中
+          this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
+          this.mapList.push({ key: uniformTexture, type: "GPUBindGroupLayoutEntry" });
+          this.scene.resourcesGPU.entryOfGroup.set(nameOfTexture, uniformTexture);
+          this.scene.resourcesGPU.entryLayoutOfGroup.set(nameOfTextureLayout, uniformTextureLayout);
+        }
         //push到uniform1队列
-        uniform1.push(uniformTexture);
+        uniform1.push(uniformTexture!);
 
         groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
         binding++;
@@ -324,7 +363,7 @@ export class PhongMaterial extends BaseMaterial {
       return replaceString;
     };
     replaceList.set("$parallax", parallax);
-
+    //parallax 纹理需要的计算量多，单独进行cache
     if (this.inputValues?.textures?.parallax != undefined) {
       template.material.owner += " parallax";
     }

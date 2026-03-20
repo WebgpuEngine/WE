@@ -446,7 +446,7 @@ export class Scene {
         this.renderManager = new RenderManager(this);//需要在entityManager等需要push DC 的ECS之前初始化
 
         this.resourcesGPU = new ResourceManagerOfGPU(this);
-        {
+        // {
             // this.resourcesGPU.device = device;
             // let textureDefault = new DefaultTexture(device);
             // this.resourcesGPU.textureOfString.set("default", textureDefault.texture);
@@ -465,7 +465,7 @@ export class Scene {
             // this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
             // let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
             // this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
-        }
+        // }
         this.commonResource = new CommonResource(device);
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);

@@ -31,57 +31,24 @@ export class ResourceManagerOfGPU {
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // 单个（每个binding）uniform-->GPUBindGroupLayoutEntry
-    /**一个bind group 内的对应的layout */
+    /**一个bind group的entries对应的group layout */
     entriesToEntriesLayout: Map<T_uniformEntries, GPUBindGroupLayoutEntry> = new Map();//需要人工释放资源
     /**
      * 保存通用的Entry GPUBindGroupLayoutEntry
-     * 1、比如：
-     *     材质的uniform的layout
+     * 1、警告
+     *      A、必须是固定位置的binding才可以使用。
+     *      B、phong、PBR的固定位置的binding，可以使用。使用者写入。
+     * 2、比如：
+     *     材质的uniform的layout，是固定的GPUBindGroupLayoutEntry，这里使用名称："Phong Material base uniform Layout"进行缓存
      */
-    stringOfEntryLayout: Map<string, GPUBindGroupLayoutEntry> = new Map();
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // uniform[]-->BindGroup-->BindGroupLayout,DCG使用，目的：同一个MESH的DrawCommand使用同一个BindGroup
-    /**uniformGrpu 对应的 BindGrouop */
-    uniformGroupToBindGroup: Map<T_uniformGroups, GPUBindGroup> = new Map();//需要人工释放资源
+    entryLayoutOfGroup: Map<string, GPUBindGroupLayoutEntry> = new Map();
+    /**
+     * 同entryLayoutOfGroup，只是缓存的是GPUBindGroupLayoutEntry
+     */
+    entryOfGroup: Map<string, GPUBindGroupEntry> = new Map();
+
     /** bindGroup 对应的layout */
     bindGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();//需要人工释放资源
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    //透明渲染相关
-    /**
-     * 20251208 谨慎使用，由于uniform biding的数量与顺序不同，会产生GPU错误
-     */
-    // cameraToEntryOfDepthTT: Map<string, T_uniformEntries> = new Map();//baseMaterial中使用，value=uniform（内容是function，返回depthTexture，不影响GC）
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // pipeline,按照pipeline进行归类，高效渲染使用
-    // 取消（20251124），会造成GPU资源的无法释放。即使重资源buffer，texture也无法查询有效性，需要人工保障。
-
-    // /**renderPipelineDescriptor 对应的 GPURenderPipeline
-    //  * DCG使用
-    //  */
-    // renderPipelineDescriptor: Map<GPURenderPipelineDescriptor, GPURenderPipeline> = new Map();
-    // /**computePipelineDescriptor 对应的 GPUComputePipeline 
-    //  * 预计会用：20250918
-    // */
-    // computePipelineDescriptor: Map<GPUComputePipelineDescriptor, GPUComputePipeline> = new Map();
-
-    //目前此部分的其他没有用的，render的pipeline在renderMnanger中
-    // /**pipeline 对应的 descriptor */
-    pipeline: Map<string, GPURenderPipeline> = new Map();
-    // pipeline: Map<GPURenderPipeline | GPUComputePipeline, any[]> = new Map();
-
-    /////////////////////////////////////////////////////////////////////////////////////////
-    //sytem Group0 
-    /**camera UUID -> GPUBindGroup */
-    systemGroup0ByID: Map<string, GPUBindGroup> = new Map();
-    /**systemGroup0 对应的 GPUBindGroupLayout */
-    systemGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
-
-    cleanSystemUniform() {
-        this.systemGroup0ByID.clear();
-        this.systemGroupToGroupLayout.clear();
-    }
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //shadowmap
@@ -91,17 +58,10 @@ export class ResourceManagerOfGPU {
     shadowmapOfBindGroup2Layout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
 
     //////////////////////////////////////////////////////////////////////////////////////////
-    //texture 
-    /**string 可以是URL或texture的名称等 */
-    textureOfString: Map<any, GPUTexture> = new Map();
-    textureToBindGroupLayoutEntry: Map<GPUTexture, GPUTextureBindingLayout> = new Map();
-    weTextureOfString: Map<string, Texture> = new Map();
-    weMaterialOfString: Map<string, BaseMaterial> = new Map();
-
-    //////////////////////////////////////////////////////////////////////////////////////////
     //sampler
-    /**string 可以是sampler的名称等，比如通用的 linear,nearest ,也可以是定制的，linear-mipmap*/
-    samplerOfString: Map<string | GPUSamplerDescriptor, GPUSampler> = new Map();
+    /**
+     * 1、scene.getSystemBindGroupAndBindGroupLayoutForZero() 中使用
+     */
     samplerToBindGroupLayoutEntry: Map<GPUSampler, GPUSamplerBindingLayout> = new Map();
 
     //////////////////////////////////////////////////////////////////////////////////////////
@@ -111,8 +71,10 @@ export class ResourceManagerOfGPU {
 
     //////////////////////////////////////////////////////////////////////////////////////////
     //shaderModule
+    /**  */
     shaderModuleOfString: Map<string, GPUShaderModule> = new Map();
-
+    /**pipeline 对应的 descriptor */
+    pipeline: Map<string, GPURenderPipeline> = new Map();
     //////////////////////////////////////////////////////////////////////////////////////////
     //stroge buffer
     /**string 可以是buffer的名称等 */
@@ -124,9 +86,15 @@ export class ResourceManagerOfGPU {
         this.device = scene.device;
         this.createSampler();
         this.createDefaultTexture();
-        this.createEntryOfDefaultTexture();
 
     }
+    //////////////////////////////////////////////////////////////////////////////////////////
+    //texture 
+    /**string 可以是URL或texture的名称等 */
+    textureOfString: Map<any, GPUTexture> = new Map();
+    textureToBindGroupLayoutEntry: Map<GPUTexture, GPUTextureBindingLayout> = new Map();
+    weTextureOfString: Map<string, Texture> = new Map();
+    weMaterialOfString: Map<string, BaseMaterial> = new Map();
     createDefaultTexture() {
         let textureDefault = new DefaultTexture(this.device);
         this.textureOfString.set("default", textureDefault.texture);
@@ -146,6 +114,8 @@ export class ResourceManagerOfGPU {
         let oneMatrixStorageBuffer = createEmptyGPUBuffer(this.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
         this.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
     }
+    /**string 可以是sampler的名称等，比如通用的 linear,nearest ,也可以是定制的，linear-mipmap*/
+    samplerOfString: Map<string | GPUSamplerDescriptor, GPUSampler> = new Map();
     createSampler() {
         let linear = this.device.createSampler({
             label: "linear",
@@ -195,11 +165,18 @@ export class ResourceManagerOfGPU {
             }
         }
     }
-    createEntryOfDefaultTexture() {
+    /////////////////////////////////////////////////////////////////////////////////////////
+    //sytem Group0 
+    /**camera UUID -> GPUBindGroup */
+    systemGroup0ByID: Map<string, GPUBindGroup> = new Map();
+    /**systemGroup0 对应的 GPUBindGroupLayout */
+    systemGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();
+
+    cleanSystemUniform() {
+        this.systemGroup0ByID.clear();
+        this.systemGroupToGroupLayout.clear();
     }
-    getEntriesOfDefaultTexture(textureName: string): GPUBindGroupEntry | undefined {
-        return this.entriesToEntriesLayout.get(key);
-    }
+
     has(key: any, _kind?: string) {
         if (_kind) {
             if (_kind == E_resourceKind.vertices) return this.vertices.has(key);
@@ -240,16 +217,17 @@ export class ResourceManagerOfGPU {
             else if (_kind == E_resourceKind.samplerOfString) return this.samplerOfString.get(key);
         }
         else {
-            if (key instanceof GPUBindGroup) {
-                return this.bindGroupToGroupLayout.get(key as GPUBindGroup);
-            }
-            else if (isUniformGroup(key)) {
-                return this.uniformGroupToBindGroup.get(key);
-            }
-            // else if (key instanceof GPUBindGroupEntryImpl || key instanceof I_uniformArrayBufferEntryImpl) {
-            //     return this.entriesToEntriesLayout.get(key);
+            // if (key instanceof GPUBindGroup) {
+            //     return this.bindGroupToGroupLayout.get(key as GPUBindGroup);
             // }
-            else if (isGPUBindGroupEntry(key)) {
+            // else if (isUniformGroup(key)) {
+            //     return this.uniformGroupToBindGroup.get(key);
+            // }
+            // // else if (key instanceof GPUBindGroupEntryImpl || key instanceof I_uniformArrayBufferEntryImpl) {
+            // //     return this.entriesToEntriesLayout.get(key);
+            // // }
+            // else 
+                if (isGPUBindGroupEntry(key)) {
                 return this.entriesToEntriesLayout.get(key);
             }
             else if (isUniformBufferPart(key)) {
@@ -281,20 +259,21 @@ export class ResourceManagerOfGPU {
             }
         }
         else {
-            if (key instanceof GPUBindGroup) {
-                this.bindGroupToGroupLayout.set(key as GPUBindGroup, value);
-            }
-            else if (isUniformGroup(key)) {
-                this.uniformGroupToBindGroup.set(key, value);
-            }
-            //ok
-            // else if (key instanceof GPUBindGroupEntryImpl) {
-            //     this.entriesToEntriesLayout.set(key, value);
+            // if (key instanceof GPUBindGroup) {
+            //     this.bindGroupToGroupLayout.set(key as GPUBindGroup, value);
             // }
-            // else if (key instanceof I_uniformArrayBufferEntryImpl) {
-            //     this.entriesToEntriesLayout.set(key, value);
+            // else if (isUniformGroup(key)) {
+            //     this.uniformGroupToBindGroup.set(key, value);
             // }
-            else if (isGPUBindGroupEntry(key)) {
+            // //ok
+            // // else if (key instanceof GPUBindGroupEntryImpl) {
+            // //     this.entriesToEntriesLayout.set(key, value);
+            // // }
+            // // else if (key instanceof I_uniformArrayBufferEntryImpl) {
+            // //     this.entriesToEntriesLayout.set(key, value);
+            // // }
+            // else 
+                if (isGPUBindGroupEntry(key)) {
                 this.entriesToEntriesLayout.set(key, value);
             }
             else if (isUniformBufferPart(key)) {
@@ -329,13 +308,14 @@ export class ResourceManagerOfGPU {
                 map.delete(key);
         }
         else {
-            if (key instanceof GPUBindGroup) {
-                this.bindGroupToGroupLayout.delete(key as GPUBindGroup);
-            }
-            else if (isUniformGroup(key)) {
-                this.uniformGroupToBindGroup.delete(key);
-            }
-            else if (isGPUBindGroupEntry(key)) {
+            // if (key instanceof GPUBindGroup) {
+            //     this.bindGroupToGroupLayout.delete(key as GPUBindGroup);
+            // }
+            // else if (isUniformGroup(key)) {
+            //     this.uniformGroupToBindGroup.delete(key);
+            // }
+            // else 
+                if (isGPUBindGroupEntry(key)) {
                 this.entriesToEntriesLayout.delete(key);
             }
             else if (isUniformBufferPart(key)) {
@@ -387,9 +367,8 @@ export class ResourceManagerOfGPU {
         this.check(this.indices);
         this.check(this.uniformBuffer);
         this.check(this.entriesToEntriesLayout);
-        this.check(this.uniformGroupToBindGroup);
-        this.check(this.bindGroupToGroupLayout);
-        // this.check(this.cameraToEntryOfDepthTT);
+        // this.check(this.uniformGroupToBindGroup);
+        // this.check(this.bindGroupToGroupLayout);
 
         this.check(this.systemGroup0ByID);
         this.check(this.systemGroupToGroupLayout);

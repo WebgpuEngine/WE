@@ -1182,34 +1182,43 @@ export class DrawCommandGenerator {
                 //如果是GPUBindGroup，就直接使用
                 if (isGPUBindGroup(perGroup)) {
                     bindGroup = perGroup;
-                    let bindGroupLayoutGet = this.resources.get(bindGroup)!;//是否有对应的layout
-                    if (bindGroupLayoutGet) {
-                        bindGroupLayout = bindGroupLayoutGet;
+                    //如果有layout，就直接使用
+                    if (values.data.unifromLayout &&
+                        values.data.unifromLayout[i] != undefined &&
+                        values.data.unifromLayout[i] instanceof GPUBindGroupLayout) {
+                        bindGroupLayout = values.data.unifromLayout[i];
                     }
+                    //如果没有layout，就从resources中获取
                     else {
-                        throw new Error("bindGroupLayout 不存在");
-                    };
-                }
-                else if (!values.dynamic && this.resources.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
-                    let bindGroupGet = this.resources.get(perGroup);
-                    if (bindGroupGet) {
-                        bindGroup = bindGroupGet;
-                        let bindGroupLayoutGet = this.resources.get(bindGroup)!;//这里没有进行判断，稍后补上
+                        let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//是否有对应的layout
                         if (bindGroupLayoutGet) {
                             bindGroupLayout = bindGroupLayoutGet;
                         }
                         else {
                             throw new Error("bindGroupLayout 不存在");
-                            // console.error("bindGroupLayout 不存在");
-                        }
+                        };
                     }
-                    else {
-                        throw new Error("bindGroup 不存在");
-                        // console.error("bindGroup 不存在");
-                    }
-
                 }
-                else {//不在BindGroup 和BindGroupLayout的记录，创建
+                //20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
+                // else if (!values.dynamic && this.resources.uniformGroupToBindGroup.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
+                //     let bindGroupGet = this.resources.uniformGroupToBindGroup.get(perGroup);
+                //     if (bindGroupGet) {
+                //         bindGroup = bindGroupGet;
+                //         let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//这里没有进行判断，稍后补上
+                //         if (bindGroupLayoutGet) {
+                //             bindGroupLayout = bindGroupLayoutGet;
+                //         }
+                //         else {
+                //             throw new Error("bindGroupLayout 不存在");
+                //             // console.error("bindGroupLayout 不存在");
+                //         }
+                //     }
+                //     else {
+                //         throw new Error("bindGroup 不存在");
+                //         // console.error("bindGroup 不存在");
+                //     }
+                // }
+                else {//创建
                     for (let j in perGroup) {
                         let perEntry = perGroup[j];
                         let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
@@ -1285,7 +1294,7 @@ export class DrawCommandGenerator {
                     //初始化BindGroup描述
                     bindGroupDesc = {
                         // label: values.label + " BGD:" + layoutNumber + " time:"+this.clock.now,
-                        label: `BGD(${layoutNumber})@${this.clock.now} ${values.label}`,
+                        label: `BGD(${layoutNumber}) ${values.label}`,
                         layout: bindGroupLayout,
                         entries: bindGroupEntry,
                     }
@@ -1293,8 +1302,8 @@ export class DrawCommandGenerator {
                     bindGroup = this.device.createBindGroup(bindGroupDesc);
                     ///////////////////
                     //增加到资源
-                    this.resources.set(perGroup, bindGroup,);
-                    this.resources.set(bindGroup, bindGroupLayout);
+                    // this.resources.uniformGroupToBindGroup.set(perGroup, bindGroup,);//20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
+                    // this.resources.bindGroupToGroupLayout.set(bindGroup, bindGroupLayout);//20260320，如果是动态绑定的uniform资源，显示push到参数中。这个基本不需要
                 }
                 DC_bindGroups.push(bindGroup);
                 DC_bindGroupLayouts.push(bindGroupLayout);

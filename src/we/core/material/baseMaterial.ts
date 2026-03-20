@@ -5,7 +5,7 @@ import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
 import { commmandType, I_dynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace } from "../shadermanagemnet/base";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
 import { E_resourceKind } from "../resources/resourcesGPU";
@@ -358,13 +358,13 @@ export abstract class BaseMaterial extends RootGPU {
         // // TT = this.getFS_TT(renderObject, startBinding);
         // // TTP = this.getFS_TTP(renderObject, startBinding);
         let TTTT: {
-             TT: I_materialBundleOutput, TO?: I_materialBundleOutput, 
-             TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput 
-            } = 
-            { 
-                TT, 
-                TTP, TTPF
-             };
+            TT: I_materialBundleOutput, TO?: I_materialBundleOutput,
+            TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput
+        } =
+        {
+            TT,
+            TTP, TTPF
+        };
         if (this.hasOpaqueOfTransparent) {
             TO = this.getFS_TO(startBinding);
             TTTT.TO = TO;
@@ -822,7 +822,7 @@ export abstract class BaseMaterial extends RootGPU {
         //     uniformBundle = this.getUniformEntryBundleOfCommon(startBinding);
         // }
         for (let i in template) {
-            let perPartSHT = template[i] as I_ShaderTemplate;
+            let perPartSHT = template[i] as I_singleShaderTemplate;
             if (i == "scene") {
                 let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
                 shaderTemplateFinal[i] = shader.scene;
@@ -868,11 +868,13 @@ export abstract class BaseMaterial extends RootGPU {
                          * 2、DCG的动态注入中还是有selectCode，影响VS的动画部分（morphtarget，skins）；
                          */
                         else if (perOne.replaceType == E_shaderTemplateReplaceType.selectCode) {
-                            if (code.indexOf(perOne.check!) != -1) {
-                                code = code.replace(perOne.replace, perOne.selectCode![1]);
-                            }
-                            else {
-                                code = code.replace(perOne.replace, perOne.selectCode![0]);
+                            if (typeof perOne.check == "string") {
+                                if (code.indexOf(perOne.check!) != -1) {
+                                    code = code.replace(perOne.replace, perOne.selectCode![1]);
+                                }
+                                else {
+                                    code = code.replace(perOne.replace, perOne.selectCode![0]);
+                                }
                             }
                         }
                     }
