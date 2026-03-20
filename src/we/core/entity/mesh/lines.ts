@@ -2,8 +2,9 @@ import { E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { mergeLightUUID } from "../../light/lightsManager";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { SHT_LineVS } from "../../shadermanagemnet/mesh/linesVS";
+// import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
+import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -92,7 +93,7 @@ export class Lines extends EntityBundleMaterial {
      */
     createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
-        let dc = this.generateOpacityDC(UUID, SHT_MeshVS);
+        let dc = this.generateOpacityDC(UUID, SHT_LineVS);
         this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         // //mesh 前向渲染
         // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_LineVS);
@@ -120,7 +121,7 @@ export class Lines extends EntityBundleMaterial {
         }
         let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
         //mesh VS 模板输出
-        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_LineVS);
 
         let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
         valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。

@@ -13,9 +13,7 @@ attributes: st_location,
   $color
   var vsOutput : VertexShaderOutput;  
   $vsOutput
-  $userCodeVS
-  $skinSkeleton
-  $morphTarget
+
 
 
   return vsOutput;

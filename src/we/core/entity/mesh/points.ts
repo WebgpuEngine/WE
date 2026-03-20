@@ -5,8 +5,9 @@ import { IV_DC } from "../../command/DrawCommandGenerator";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { ColorMaterial } from "../../material/standard/colorMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_PointEmuSpriteVS, SHT_PointVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, I_EntityBundleMaterial, I_EntityBundleOutput, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { SHT_PointVS } from "../../shadermanagemnet/mesh/pointsVS";
+import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
+import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 

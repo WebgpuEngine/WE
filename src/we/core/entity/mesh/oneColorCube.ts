@@ -1,10 +1,8 @@
-import { I_uniformArrayBufferEntry, T_uniformGroups, T_uniformOneGroup } from "../../command/base";
 import { VertexColorMaterial } from "../../material/standard/vertexColorMaterial";
-import { I_ShaderTemplate, I_ShaderTemplate_Final } from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_MeshEntity, Mesh } from "./mesh";
-import { SHT_OneCubeColorVS } from "../../shadermanagemnet/mesh/meshVS";
-import { BaseCamera } from "../../camera/baseCamera";
 import { E_entityType, I_EntityBundleOutput } from "../base";
+import { SHT_OneCubeColorVS } from "../../shadermanagemnet/mesh/oneCubeColorVS";
 
 
 

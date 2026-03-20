@@ -62,35 +62,38 @@ export interface I_vsAttribute {
      */
     offset?: 0,
 }
-/**
- * 顶点属性的bundle，用于绑定到DC的vertex buffer
- * 1、gltf使用
- */
-export interface I_vsGPUBufferBundle {
+export interface I_baseGPUBufferBundle{
+    name:string,
     buffer: GPUBuffer,
-    format: GPUVertexFormat,
-    wgslFormat: string,
-    name: string,
-    arrayStride: number,
     /**
-     * 顶点数据在arrayStride中的offset
-     * todo: 20260115 在gltf中未实现
-     */
-    offsetInStride?: number,
-    count: number,
-
-    /**
+     * bytesize
+     * 读取数据的大小，默认=count*arrayStride
+     * default: count*arrayStride
+     */    
+    byteSize: number,
+     /**
      * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
      *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
      * default: 0
      */
     offset: number,
+}
+/**
+ * 顶点属性的bundle，用于绑定到DC的vertex buffer
+ * 1、gltf使用
+ */
+export interface I_vsGPUBufferBundle extends I_baseGPUBufferBundle {
+    // buffer: GPUBuffer,
+    format: GPUVertexFormat,
+    wgslFormat: string,
     /**
-     * bytesize
-     * 读取数据的大小，默认=count*arrayStride
-     * default: count*arrayStride
+     * 顶点数据在arrayStride中的offset
+     * todo: 20260115 在gltf中未实现
      */
-    byteSize?: number,
+    offsetInStride?: number,
+    arrayStride: number,
+    count: number,
+
     /**计算包围盒用 */
     min: weVec3,
     max: weVec3,
@@ -103,17 +106,9 @@ export function isVSGPUBufferBundle(attr: T_vsAttribute): attr is I_vsGPUBufferB
  * 索引buffer的bundle，用于绑定到DC的index buffer 。GLTF使用
  * index buffer bundle , used for bind index buffer to DC .gltf use
  */
-export interface I_indexGPUBufferBundle {
-    buffer: GPUBuffer,
+export interface I_indexGPUBufferBundle extends I_baseGPUBufferBundle {
     format: GPUIndexFormat,
-    name: string,
     count: number,
-    /**
-     * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-     *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-     * default: 0
-     */
-    byteSize: number,
     /**
      * 读取数据的大小，默认=count*arrayStride
      * default: count*arrayStride

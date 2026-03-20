@@ -27,7 +27,7 @@ export function WERandomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
-const weIDs = new Set();
+const weIDs : Set<number> = new Set();
 const weUUIDs = new Set();
 const weNodeIDs = new Set();
 /**

@@ -5,7 +5,7 @@
 import { BaseCamera } from "../../camera/baseCamera";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/meshVS";
+import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
 import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 

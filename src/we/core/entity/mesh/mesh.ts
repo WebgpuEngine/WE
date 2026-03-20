@@ -1,6 +1,6 @@
 import { E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_drawModeIndexed, I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../../command/base";
+import { I_drawModeIndexed, T_uniformEntries, T_uniformGroups } from "../../command/base";
 import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { mergeLightUUID } from "../../light/lightsManager";
@@ -8,7 +8,8 @@ import { I_TransparentOptionOfMaterial } from "../../material/base";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshShadowMapVS, SHT_MeshVS, SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/meshVS";
+import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
+import { SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/wireFrameVS";
 import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
@@ -393,7 +394,7 @@ export class Mesh extends EntityBundleMaterial {
                     };
                     let uniformTTPF_Layout: GPUBindGroupLayoutEntry = {
                         binding: bindingNumber,
-                        visibility:  GPUShaderStage.FRAGMENT,
+                        visibility: GPUShaderStage.FRAGMENT,
                         buffer: {
                             type: "uniform",
                         },
