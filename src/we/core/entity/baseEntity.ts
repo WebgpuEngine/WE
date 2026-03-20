@@ -500,7 +500,7 @@ export abstract class BaseEntity extends NodeSpace {
         this.updateJointMatrixBuffer();
 
         this.transparent = this.getTransparent();
-        this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this });
+        this.DCG = this.scene.DCG;//new DrawCommandGenerator({ scene: this.scene, parent: this });
         this._state = E_lifeState.finished;
         // return this.renderID + 1;
     }

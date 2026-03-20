@@ -1,5 +1,6 @@
 import { WeGenerateUUID } from "../math/baseFunction";
-import { I_UUID, NodeObject } from "../organization/root";
+import { NodeObject } from "../organization/nodeObject";
+import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { AnimationManager } from "./animationManager";

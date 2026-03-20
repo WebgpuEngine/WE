@@ -390,9 +390,9 @@ export class DrawCommandGenerator {
         //2、bindgroup部分
         let { DC_bindGroups, DC_bindGroupLayouts } = this.initUniformPart(values);
 
-        //3、shadermodel 编译
+        //3、shaderModule 编译
 
-        let { vertex, fragment, vertexName, fragmentName } = this.initShaderModel(values, DC_vertexNames, DC_localtions, DC_verticesBufferLayout);
+        let { vertex, fragment, vertexName, fragmentName } = this.initShaderModule(values, DC_vertexNames, DC_localtions, DC_verticesBufferLayout);
 
         //4、pipeline 部分
         let pipeline = this.initPipeLine(values, { vs: vertex, name: vertexName }, { fs: fragment, name: fragmentName }, DC_bindGroupLayouts);
@@ -1312,7 +1312,7 @@ export class DrawCommandGenerator {
         }
         return { DC_bindGroups, DC_bindGroupLayouts };
     }
-    /**shadermodel 编译
+    /**shaderModule 编译
      * 1、反射顶点名称到shader code的顶点属性的占位符中
      * 2、编译VS shader code 到 shader module
      * 3、如果有fragment shader，编译shader module
@@ -1321,7 +1321,7 @@ export class DrawCommandGenerator {
      * @param DC_vertexNames 
      * @param DC_localtions 
      */
-    initShaderModel(values: IV_DC, DC_vertexNames: string[], DC_localtions: string[], DC_verticesBufferLayout: GPUVertexBufferLayout[]): {
+    initShaderModule(values: IV_DC, DC_vertexNames: string[], DC_localtions: string[], DC_verticesBufferLayout: GPUVertexBufferLayout[]): {
         vertex: GPUVertexState,
         fragment: GPUFragmentState | undefined,
         vertexName: string,
@@ -1331,23 +1331,23 @@ export class DrawCommandGenerator {
         //vertex shader
         let moduleVS: GPUShaderModule
         let shadercode: string;
-        let vsCacheShaderModelName = values.label;
+        let vsCacheShaderModuleName = values.label;
 
         if (typeof values.render.vertex.code === "string") {
-            vsCacheShaderModelName = values.render.vertex.code as string;
+            vsCacheShaderModuleName = values.render.vertex.code as string;
             shadercode = values.render.vertex.code;
         }
         else {
-            vsCacheShaderModelName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString();
+            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString();
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
         // 测试输出
         // if (values.transparent)
         //     console.log(shadercode);
 
-        //3.2、VS shadermodel 编译
-        if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
-            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
+        //3.2、VS shaderModule 编译
+        if (this.resources.shaderModuleOfString.has(vsCacheShaderModuleName)) {
+            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModuleName)!;
         }
         else//可以缓存透明材质的VS shader model
         {
@@ -1355,7 +1355,7 @@ export class DrawCommandGenerator {
                 label: `vs ${this.parent?.Name || values.IDS?.ID}`, //@${this.clock.now} 
                 code: shadercode,
             });
-            this.resources.shaderModuleOfString.set(vsCacheShaderModelName, moduleVS);
+            this.resources.shaderModuleOfString.set(vsCacheShaderModuleName, moduleVS);
         }
 
         //3.3 GPURenderPipelineDescriptor.vertex部分
@@ -1471,7 +1471,7 @@ export class DrawCommandGenerator {
                 constants: constansFS,
             }
         }
-        return { vertex, fragment, vertexName: vsCacheShaderModelName, fragmentName: nameOfMaterial };
+        return { vertex, fragment, vertexName: vsCacheShaderModuleName, fragmentName: nameOfMaterial };
     }
     createShaderModule(values: IV_DC): GPUShaderModule {
         let nameOfMaterial = (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner;

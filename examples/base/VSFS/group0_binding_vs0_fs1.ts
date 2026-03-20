@@ -108,7 +108,6 @@ const oneTriangleIndexArray = [
 ];
 
 let valueDC: IV_DC = {
-  ShaderModelCompileSplit: false,
   label: "dc1",
   data: {
     vertices: {

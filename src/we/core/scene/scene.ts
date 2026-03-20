@@ -32,6 +32,7 @@ import { RootManager } from "./rootManager";
 import { DefaultTexture } from "../texture/defaultTexture";
 import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
 import { TextureManager } from "../texture/textureManager";
+import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 
 
 
@@ -301,6 +302,9 @@ export class Scene {
     /**动画组管理器 */
     animationGroupManager!: AnimationGroupManager;
 
+    DCG!: DrawCommandGenerator;
+    
+
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -480,6 +484,7 @@ export class Scene {
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
         this.inputManager = new InputManager(this);
+        this.DCG = new DrawCommandGenerator({ scene: this, parent: this });
     }
     getResourceDefaultPBR(): PBRMaterial {
         let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");
