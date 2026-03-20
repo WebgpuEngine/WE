@@ -1,7 +1,7 @@
 /**
  * 使用 顶点属性中vertexStepMode的instance模式，绘制三个四边形
  */
-import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC, vsAttributeMerge } from "../../../src/we/core/command/DrawCommandGenerator";
+import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC, I_vsAttributeMerge } from "../../../src/we/core/command/DrawCommandGenerator";
 import type { IV_Scene } from "../../../src/we/core/scene/base";
 import { Scene } from "../../../src/we/core/scene/scene";
 
@@ -73,7 +73,7 @@ let DCManager = new DrawCommandGenerator(inputDC);
 
 
 
-let mergeAttribute :vsAttributeMerge = {
+let mergeAttribute :I_vsAttributeMerge = {
   data: oneTriangleVertexArray,
   mergeAttribute: [
     {

@@ -1,4 +1,4 @@
-import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC, type vsAttribute } from "../../../src/we/core/command/DrawCommandGenerator";
+import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC, type I_vsAttribute } from "../../../src/we/core/command/DrawCommandGenerator";
 import type { IV_Scene } from "../../../src/we/core/scene/base";
 import { Scene } from "../../../src/we/core/scene/scene";
 
@@ -57,14 +57,14 @@ let inputDC: IV_DrawCommandGenerator = {
 let DCManager = new DrawCommandGenerator(inputDC);
 
 
-let att1: vsAttribute = {
+let att1: I_vsAttribute = {
   data: oneTriangleVertexArray,
   format: "float32x3",
   arrayStride: 4 * 3,
   offset: 0,
   count: 3
 }
-let att2: vsAttribute = {
+let att2: I_vsAttribute = {
   data: oneTriangleColorArray,
   format: "float32x3",
   arrayStride: 4 * 3,
@@ -75,7 +75,7 @@ let valueDC: IV_DC = {
   label: "dc1",
   data: {
     vertices: {
-      "vsAttribute1": att1,
+      "I_vsAttribute1": att1,
       "color1": att2
     }
   },

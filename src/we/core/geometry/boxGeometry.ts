@@ -287,8 +287,8 @@ export class BoxGeometry extends BaseGeometry {
     // /***
     //  * 返回顶点属性，索引模式
     //  */
-    // getWireFrame(): vsAttributes[] {
-    //     let position: vsAttributes = {
+    // getWireFrame(): I_vsAttributes[] {
+    //     let position: I_vsAttributes = {
     //         vertexArray: new Float32Array(this.buffer.position),
     //         type: "Float32Array",
     //         arrayStride: 4 * 3,
@@ -300,7 +300,7 @@ export class BoxGeometry extends BaseGeometry {
     //             }
     //         ]
     //     };
-    //     let vsa: vsAttributes[] = [position];
+    //     let vsa: I_vsAttributes[] = [position];
     //     return vsa;
     // }
 
@@ -335,9 +335,9 @@ export class BoxGeometry extends BaseGeometry {
     //  * 输出顶点信息
     //  * @returns sAttributes[]
     //  */
-    // getAttribute(): vsAttributes[] {
+    // getAttribute(): I_vsAttributes[] {
 
-    //     let position: vsAttributes = {
+    //     let position: I_vsAttributes = {
     //         vertexArray: new Float32Array(this.buffer.position),
     //         type: "Float32Array",
     //         arrayStride: 4 * 3,
@@ -349,7 +349,7 @@ export class BoxGeometry extends BaseGeometry {
     //             }
     //         ]
     //     };
-    //     let uv: vsAttributes = {
+    //     let uv: I_vsAttributes = {
     //         vertexArray: new Float32Array(this.buffer.uv),
     //         type: "Float32Array",
     //         arrayStride: 4 * 2,
@@ -361,7 +361,7 @@ export class BoxGeometry extends BaseGeometry {
     //             }
     //         ]
     //     };
-    //     let normal: vsAttributes = {
+    //     let normal: I_vsAttributes = {
     //         vertexArray: new Float32Array(this.buffer.normal),
     //         type: "Float32Array",
     //         arrayStride: 4 * 3,
@@ -373,7 +373,7 @@ export class BoxGeometry extends BaseGeometry {
     //             }
     //         ]
     //     }
-    //     let vsa: vsAttributes[] = [position, uv, normal];
+    //     let vsa: I_vsAttributes[] = [position, uv, normal];
     //     return vsa;
     // }
 

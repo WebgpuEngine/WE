@@ -67,7 +67,7 @@ export abstract class BaseGeometry {
     // abstract destroy(): any
 
     //线框
-    // abstract getWireFrame(): vsAttributes[]
+    // abstract getWireFrame(): I_vsAttributes[]
     // abstract getWireFrameDrawCount(): number;
     // abstract getWireFrameIndeices(): indexBuffer | boolean
     // abstract getWireFrameShdaerCode(color: color3U): string;
@@ -82,7 +82,7 @@ export abstract class BaseGeometry {
     /**
      * 输出顶点信息
      */
-    // abstract getAttribute(): vsAttributes[]
+    // abstract getAttribute(): I_vsAttributes[]
     // abstract getIndeices(): indexBuffer | boolean
     // abstract getDrawCount(): number
 

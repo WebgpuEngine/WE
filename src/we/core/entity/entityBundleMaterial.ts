@@ -12,7 +12,7 @@ import { TypedArray } from "webgpu-utils";
 import { E_lifeState, E_renderForDC } from "../base/coreDefine";
 import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed, isDrawModeVertex } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
-import { isIndexGPUBufferBundle, isVsAttributeMerge, isVSGPUBufferBundle, IV_DC, vsAttribute } from "../command/DrawCommandGenerator";
+import { isIndexGPUBufferBundle, isI_vsAttributeMerge, isVSGPUBufferBundle, IV_DC, I_vsAttribute } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { BaseLight } from "../light/baseLight";
 import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/base";
@@ -45,7 +45,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     /**
      * 更新顶点数据，
      * 1、如果是数组形式，直接更新
-     * 2、如果是vsAttribute，更新data   
+     * 2、如果是I_vsAttribute，更新data   
      * 3、其他暂时不支持，没有必要
      * @param name 顶点数据的名称
      * @param data 顶点数据
@@ -54,7 +54,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      */
     setVertexBuffer(name: string, data: number[], option?: { type?: "float32" | "int32" | "uint32", stride?: number }) {
         let replaceTarget = this.attributes.vertices[name];
-        if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isVsAttributeMerge(replaceTarget)) {
+        if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isI_vsAttributeMerge(replaceTarget)) {
             console.warn("EntityBundleMaterial: setVertexAndIndexBuffers, merge attribute and gpu buffer attribute, not support set data");
             return;
         }
@@ -62,7 +62,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             /*
              * 一、更新this.attributes.vertices[name]
              * 1、是数组形式
-             * 2、是vsAttribute： if ("format" in value && "data" in value)
+             * 2、是I_vsAttribute： if ("format" in value && "data" in value)
              *
              * 二、GPUBuffer
              * 1、删除旧的vertexBuffer，
@@ -75,7 +75,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
              */
             //1.1 更新this.attributes.vertices[name]
             if ("format" in replaceTarget && "data" in replaceTarget) {
-                (this.attributes.vertices[name] as vsAttribute).data = data;
+                (this.attributes.vertices[name] as I_vsAttribute).data = data;
             }
             else {
                 this.attributes.vertices[name] = data;
@@ -469,7 +469,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                         if (isVSGPUBufferBundle(pos)) {
                             drawModeMesh.vertexCount = pos.count;
                         }
-                        else if ("count" in pos) {//vsAttribute | vsAttributeMerge |I_vsGPUBufferBundle
+                        else if ("count" in pos) {//I_vsAttribute | I_vsAttributeMerge |I_vsGPUBufferBundle
                             drawModeMesh.vertexCount = pos.count;
                         }
                         else if (Array.isArray(pos)) {// array[]

@@ -141,11 +141,11 @@ export class Mesh extends EntityBundleMaterial {
                     if (positionTemp === undefined) {
                         throw new Error("Mesh constructor: wireFrame must have position attribute");
                     }
-                    if ("format" in positionTemp && "data" in positionTemp) {//vsAttribute
+                    if ("format" in positionTemp && "data" in positionTemp) {//I_vsAttribute
                         position = positionTemp.data as number[];
                     }
                     //如果有mergeAttribute属性
-                    else if ("mergeAttribute" in positionTemp) {//vsAttributeMerge
+                    else if ("mergeAttribute" in positionTemp) {//I_vsAttributeMerge
                         let positionIndex = -1;
                         for (let mergeNameI in positionTemp.mergeAttribute) {
                             if (positionTemp.mergeAttribute[mergeNameI].name == "position") {

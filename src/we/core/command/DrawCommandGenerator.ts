@@ -5,7 +5,7 @@
  */
 
 import type { Scene } from "../scene/scene";
-import type { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_drawMode, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
+import type { I_DrawCommandIDs, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_drawMode, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
 import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, weVec3 } from "../base/coreDefine";
@@ -27,7 +27,7 @@ export interface IV_DrawCommandGenerator {
 /**
  * 顶点属性的bundle（有更加详细的数据说明），用于绑定到DC的vertex buffer
  */
-export interface vsAttribute {
+export interface I_vsAttribute {
     // shaderLocation: 0,//这个在function，自动增加计算
     /**
      * 顶点相关的各类数据
@@ -132,7 +132,7 @@ export function isIndexGPUBufferBundle(attr: T_indexAttribute): attr is I_indexG
  * 2、可以有多个map的，需要保持结构与数量同步，未测试
  * 2, map, exp: {position:0,uv:1,normal:2}
  */
-export interface vsAttributeMerge {
+export interface I_vsAttributeMerge {
     /**单个vertex的多个属性的大数组 
      * attributes in array, exp: position ,uv ,normal ...
     */
@@ -149,7 +149,7 @@ export interface vsAttributeMerge {
      * 单个vertex属性的合并格式
      * merge attribute format
      */
-    mergeAttribute: vsAttributeMergeAttribute[],
+    mergeAttribute: I_vsAttributeMergeAttribute[],
     // /**每个vertex的属性的格式 */
     // format: GPUVertexFormat[],
 
@@ -158,14 +158,14 @@ export interface vsAttributeMerge {
     // /**每个vertex属性的名称 */
     // names: string[]
 }
-export function isVsAttributeMerge(attr: T_vsAttribute): attr is vsAttributeMerge {
-    return (attr as vsAttributeMerge).mergeAttribute !== undefined;
+export function isI_vsAttributeMerge(attr: T_vsAttribute): attr is I_vsAttributeMerge {
+    return (attr as I_vsAttributeMerge).mergeAttribute !== undefined;
 }
 /**
  * 单个vertex属性的合并格式
  * per one attribute format and offset in merge attribute
  */
-export interface vsAttributeMergeAttribute {
+export interface I_vsAttributeMergeAttribute {
     name: string,
     format: GPUVertexFormat,
     offset: number
@@ -174,7 +174,7 @@ export interface vsAttributeMergeAttribute {
 /**
  * 顶点属性的类型:三种类型
  */
-export type T_vsAttribute = vsAttribute | vsAttributeMerge | number[] | I_vsGPUBufferBundle
+export type T_vsAttribute = I_vsAttribute | I_vsAttributeMerge | number[] | I_vsGPUBufferBundle
 
 export type T_indexAttribute = number[] | I_indexGPUBufferBundle
 /**
@@ -917,7 +917,7 @@ export class DrawCommandGenerator {
                     };
 
                 }
-                //vsAttribute格式。有更多详细的数据说明，来约定顶点数据，例如format,arrayStride,offset等
+                //I_vsAttribute格式。有更多详细的数据说明，来约定顶点数据，例如format,arrayStride,offset等
                 else if ("format" in value && "data" in value) {
                     let format: GPUVertexFormat = value.format;
                     let data;//默认:float32
@@ -1002,8 +1002,8 @@ export class DrawCommandGenerator {
                         }],
                     }
                 }
-                //vsAttributeMerge合并属性，例如position和normal合并到一个顶点属性中
-                else if (isVsAttributeMerge(value)) {
+                //I_vsAttributeMerge合并属性，例如position和normal合并到一个顶点属性中
+                else if (isI_vsAttributeMerge(value)) {
                     let mergeAttribute = value.mergeAttribute
                     let arrayStride = value.arrayStride;
                     let data = new Float32Array(value.data);

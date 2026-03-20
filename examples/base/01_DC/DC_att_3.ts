@@ -1,4 +1,4 @@
-import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC, vsAttributeMerge } from "../../../src/we/core/command/DrawCommandGenerator";
+import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC, I_vsAttributeMerge } from "../../../src/we/core/command/DrawCommandGenerator";
 import type { IV_Scene } from "../../../src/we/core/scene/base";
 import { Scene } from "../../../src/we/core/scene/scene";
 
@@ -52,7 +52,7 @@ let inputDC: IV_DrawCommandGenerator = {
 }
 let DCManager = new DrawCommandGenerator(inputDC);
 
- let  mergeAttribute: vsAttributeMerge={
+ let  mergeAttribute: I_vsAttributeMerge={
    data: oneTriangleVertexArray,
    mergeAttribute: [
      {

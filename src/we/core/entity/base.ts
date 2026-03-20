@@ -1,9 +1,7 @@
-import { Mat4, Vec3 } from "wgpu-matrix";
-import { I_Update, E_renderForDC, weVec4 } from "../base/coreDefine";
+import { E_renderForDC } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
-import { Rotation, RotationArray } from "../math/baseDefine";
-import { T_indexAttribute, T_vsAttribute, vsAttribute, vsAttributeMerge } from "../command/DrawCommandGenerator";
-import { I_drawMode, I_drawModeIndexed, T_uniformGroups, T_uniformOneGroup } from "../command/base";
+import { T_indexAttribute, T_vsAttribute } from "../command/DrawCommandGenerator";
+import { I_drawMode, I_drawModeIndexed, T_uniformOneGroup } from "../command/base";
 import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
 import { BaseLight } from "../light/baseLight";
 import { BaseMaterial } from "../material/baseMaterial";
@@ -101,7 +99,7 @@ export interface IV_BaseEntity extends IV_NodeSpace {
 
     /**实例化数量，默认为当前entity，无其他实例化 */
     instance?: I_entityInstance,
-    
+
     /**自定义shader代码，包括VS和FS */
     shaderCode?: string,
 
