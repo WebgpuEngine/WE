@@ -39,7 +39,7 @@ await scene.add(camera);
 
 
 
-let size = 2 * 1024 * 1024;//2MB
+let size = 128 * 1024 * 1024;//2MB
 let cpuMemList: ArrayBuffer[] = [];
 let gpuMemList: GPUBuffer[] = [];
 window.gpuMemList = gpuMemList;
@@ -52,16 +52,14 @@ for (let i = 0; i < count; i++) {
 let writeGPUBuffer = () => {
   let cpuMem = new ArrayBuffer(size);
   for (let i = 0; i < count; i++) {
-    // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
+    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
     // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,1024);
-    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,512);
+    // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,512);
   }
 }
 
 /**
- * 1、2MB/全部写入/每帧，内核写入GPUBuffer的CPU占有率10%
- * 2、2MB/50%写入/每帧，内核写入GPUBuffer的CPU占有率5%
- * 3、2MB/25%写入/每帧，内核写入GPUBuffer的CPU占有率也是5%
+ * 1、128MB*1 GPUBuffer(静态资源),单次写入大约60ms,内核CPU占满
  */
 let oneCall: userDefineEventCall = {
   call: (scope: Scene) => {

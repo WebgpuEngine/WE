@@ -1,10 +1,12 @@
 
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../src/we/core/scene/base";
+import { eventOfScene, IV_Scene, userDefineEventCall } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
+import { createEmptyGPUBuffer } from "../../../src/we/core/command/baseFunction";
+import { Scene } from "../../../src/we/core/scene/scene";
 
 declare global {
   interface Window {
@@ -31,13 +33,43 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
 
 
 
-let cpuMemList:ArrayBuffer[]=[];
-let gpuMemList:GPUBuffer[]=[];
+let size = 16*4*10;//640KB
+let cpuMemList: ArrayBuffer[] = [];
+let gpuMemList: GPUBuffer[] = [];
+window.gpuMemList = gpuMemList;
+let count = 3300; //3300个640KB的GPUBuffer，约等于2MB
+for (let i = 0; i < count; i++) {
+  let gpuMem = createEmptyGPUBuffer(scene.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, size, i.toString());
+  gpuMemList.push(gpuMem);
+}
 
+let writeGPUBuffer = () => {
+  let cpuMem = new ArrayBuffer(size);
+  for (let i = 0; i < count; i++) {
+    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
+  }
+}
+
+/**
+ * 内核写入GPUBuffer的CPU占有率99.9%
+ */
+let oneCall: userDefineEventCall = {
+  call: (scope: Scene) => {
+    let timerNow = Date.now();
+    let timerLast = timerNow;
+    writeGPUBuffer();
+    timerNow = Date.now();
+    console.log("timer :", timerNow - timerLast);
+  },
+  name: "",
+  state: true,
+  event: eventOfScene.onUpdate
+}
+await scene.addUserDefineEvent(oneCall);

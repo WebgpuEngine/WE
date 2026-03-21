@@ -39,11 +39,11 @@ await scene.add(camera);
 
 
 
-let size = 2 * 1024 * 1024;//2MB
+let size = 0.5 * 1024 * 1024;//0.5MB
 let cpuMemList: ArrayBuffer[] = [];
 let gpuMemList: GPUBuffer[] = [];
 window.gpuMemList = gpuMemList;
-let count = 1;
+let count = 5;
 for (let i = 0; i < count; i++) {
   let gpuMem = createEmptyGPUBuffer(scene.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, size, i.toString());
   gpuMemList.push(gpuMem);
@@ -52,9 +52,9 @@ for (let i = 0; i < count; i++) {
 let writeGPUBuffer = () => {
   let cpuMem = new ArrayBuffer(size);
   for (let i = 0; i < count; i++) {
-    // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
+    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
     // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,1024);
-    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,512);
+    // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,512);
   }
 }
 

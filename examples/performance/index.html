@@ -1,20 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
+
 <body>
     <h1>webGPU 基础 性能测试</h1>
     <ul>
-        <li><a href="./GPUBuffer_lotsof_small.html">GPUBuffer_lotsof_small</a></li>
-        <li><a href="./GPUBuffer_big.html">GPUBuffer_big</a></li>
-        <li><a href=""></a></li>
-        <li><a href=""></a></li>
+        <P>
+            1、* maxStorageBufferBindingSize: 默认:128M 可更改: 2147483644 (2gb)。<br>
+            * maxStorageBuffersPerShaderStage: 默认:8 可更改: 10
+            <br>
+            2、 maxUniformBufferBindingSize: 65536 (64k),<br>
+            maxUniformBuffersPerShaderStage: 12
+        </P>
+        <li><a href="./GPU/GPUBuffer_lotsof_small.html">GPUBuffer_lotsof_small: 3300个640Byte GPUBuffer,内核CPU 99.9%</a>
+        </li>
+        <li><a href="./GPU/GPUBuffer_big.html">GPUBuffer_big: 2MB*1 GPUBuffer,内核CPU 10%</a></li>
+        <li><a href="./GPU/GPUBuffer_big_N.html">GPUBuffer_big_N: 0.5MB*5 GPUBuffer,内核CPU 8%</a></li>
+        <li><a href="./GPU/GPUBuffer_big_static.html">GPUBuffer_big_static: 128MB*1
+                GPUBuffer(静态资源),单次写入大约60ms,内核CPU占满</a></li>
         <li><a href=""></a></li>
         <li><a href=""></a></li>
     </ul>
     <h1>...</h1>
 </body>
+
 </html>
