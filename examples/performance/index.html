@@ -17,12 +17,28 @@
             2、 maxUniformBufferBindingSize: 65536 (64k),<br>
             maxUniformBuffersPerShaderStage: 12
         </P>
-        <li><a href="./GPU/GPUBuffer_lotsof_small.html">GPUBuffer_lotsof_small: 3300个640Byte GPUBuffer,内核CPU 99.9%</a>
+        <li><a href="./GPU/GPUBuffer_lotsof_small.html">GPUBuffer_lotsof_small:<br>
+                * 1、32个64KB的GPUBuffer，内核写入GPUBuffer的CPU占有率 6%<br>
+                * 2、1000个64KB的GPUBuffer，内核写入GPUBuffer的CPU占有率 60%<br>
+                * 3、3300个640Byte GPUBuffer,内核CPU 99.9%<br></a>
         </li>
-        <li><a href="./GPU/GPUBuffer_big.html">GPUBuffer_big: 2MB*1 GPUBuffer,内核CPU 10%</a></li>
-        <li><a href="./GPU/GPUBuffer_big_N.html">GPUBuffer_big_N: 0.5MB*5 GPUBuffer,内核CPU 8%</a></li>
-        <li><a href="./GPU/GPUBuffer_big_static.html">GPUBuffer_big_static: 128MB*1
-                GPUBuffer(静态资源),单次写入大约60ms,内核CPU占满</a></li>
+        <li><a href="./GPU/GPUBuffer_lotsof_small_uniform.html">GPUBuffer_lotsof_small_uniform: <br>
+                * 1、32个64KB的GPUBuffer，内核写入GPUBuffer的CPU占有率 6%<br>
+                * 2、1000个64KB的GPUBuffer，内核写入GPUBuffer的CPU占有率 60%<br>
+                * 3、3300个640Byte GPUBuffer,内核CPU 99.9%<br>
+            </a>
+        <li><a href="./GPU/GPUBuffer_big.html">GPUBuffer_big: <br>
+                * 1、2MB*1 GPUBuffer,内核CPU 10%<br>
+                * 2、对比上面的测试,2MB*1 VS 32*64KB, 内核CPU 反而多了4%。也就是说webGPU设计时的uniform 64KB是最优值。<br>
+
+            </a></li>
+        <li><a href="./GPU/GPUBuffer_big_N.html">GPUBuffer_big_N: <br>
+                * 1、0.5MB*5 GPUBuffer,内核CPU 8%
+            </a></li>
+        <li><a href="./GPU/GPUBuffer_big_static.html">GPUBuffer_big_static: 128MB*1<br>
+                * 1、GPUBuffer(静态资源),单次写入大约60ms,内核CPU占满<br>
+                * 2、只适合静态资源（初始化）,不适合动态资源的大规模写入。<br>
+            </a></li>
         <li><a href=""></a></li>
         <li><a href=""></a></li>
     </ul>

@@ -52,9 +52,9 @@ for (let i = 0; i < count; i++) {
 let writeGPUBuffer = () => {
   let cpuMem = new ArrayBuffer(size);
   for (let i = 0; i < count; i++) {
-    // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
+    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem);
     // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,1024);
-    scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,512);
+    // scene.device.queue.writeBuffer(gpuMemList[i], 0, cpuMem,0,512);
   }
 }
 
@@ -69,7 +69,7 @@ let oneCall: userDefineEventCall = {
     let timerLast = timerNow;
     writeGPUBuffer();
     timerNow = Date.now();
-    console.log("timer :", timerNow - timerLast);
+    // console.log("timer :", timerNow - timerLast);
   },
   name: "",
   state: true,
