@@ -409,7 +409,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 shaderTemplateFinal.entity = {
                     templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
                     groupAndBindingString: '',//@group(1) @binding(x)  在shader code 中
-                    owner: this.type,
+                    // owner: this.type,
+                    owner: SHT_VS[i].owner,
                 };
             }
         }
@@ -603,6 +604,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     }
     /**
      * mesh 生成DrawCommand的input value
+     * 1、透明材质的entity使用
+     * 2、shadowmap的entity使用
      * @param type 渲染类型
      * @param UUID camera UUID or light merge UUID
      * @param vsBundle 实体的uniform和shader模板

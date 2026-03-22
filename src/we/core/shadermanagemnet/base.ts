@@ -72,6 +72,10 @@ export interface I_singleShaderTemplate {
     add?: I_shaderTemplateAdd[],
     replace?: I_shaderTemplateReplace[],
     groupAndBinding?: I_shaderTemplateReplaceAndAdd[],
+    /**
+     * VS、FS的owner是必须的，进行cache使用
+     * scene等中的owner会被忽略，仅起到名称作用
+     */
     owner: string,
 }
 
@@ -280,7 +284,9 @@ export var SHT_addEncodeDecodeFunction: I_shaderTemplateAdd = {
 import systemOfCameraWGSL from "../shader/system/system.wgsl?raw"
 var systemOfCamera = systemOfCameraWGSL.toString();
 //场景相机的系统变量
+/**VS部分系统变量模板 */
 export var SHT_ScenOfCamera: I_singleShaderTemplate = {
+    owner:"scene",
     add: [
         {
             name: "system",
@@ -307,7 +313,17 @@ export var SHT_ScenOfCamera: I_singleShaderTemplate = {
 
     ],
 };
+/**VS部分系统变量模板 */
+export var SHT_ScenOfLight: I_singleShaderTemplate = {
+    owner:"scene",
+    add: [
+       SHT_addSystemOfLight
+    ],
+    replace:[]
+};
+/**FS部分系统变量模板 */
 export var SHT_ScenOfCamera_FS: I_singleShaderTemplate = {
+    owner:"scene",
     add: [
         {
             name: "system",
@@ -335,7 +351,9 @@ export var SHT_ScenOfCamera_FS: I_singleShaderTemplate = {
     ],
 };
 //ref DCG 反射location
+/**DCG反射location模板 */
 export var SHT_refDCG: I_singleShaderTemplate = {
+    owner:"DCG",
     replace: [
         {
             name: "refName",                    //创建的反射的其他location，使用entity的DCG的反射location

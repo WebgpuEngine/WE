@@ -8,7 +8,8 @@ import { I_TransparentOptionOfMaterial } from "../../material/base";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
+import { SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
+import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 import { SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/wireFrameVS";
 import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
@@ -287,7 +288,20 @@ export class Mesh extends EntityBundleMaterial {
         }
         return valueDC;
     }
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh) {
+    /**
+     * 生成DrawCommand的input value
+     * 1、透明材质的entity使用
+     * 2、shadowmap的entity使用
+     * @param type 渲染类型
+     * @param UUID camera UUID or light merge UUID
+     * @param bundle 实体的uniform和shader模板
+     * @param vsOnly 是否只生成VS shaderModule
+     * @param scope this
+     * @returns IV_DC
+     *    注意：
+     *          1、IV_DC中render.vertex.code中只包含entity部分，scene部分已经合并。与generateOpacityDC（）不同。
+     */
+    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh): IV_DC {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
         return valueDC;

@@ -5,7 +5,7 @@
  */
 
 import type { Scene } from "../scene/scene";
-import type { I_DrawCommandIDs, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_drawMode, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
+import type { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_drawMode, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
 import { createIndexBuffer, createUniformBuffer, createVerticesBuffer, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, weVec3 } from "../base/coreDefine";
@@ -62,43 +62,40 @@ export interface I_vsAttribute {
      */
     offset?: 0,
 }
-export interface I_baseGPUBufferBundle {
-    name: string,
-    buffer: GPUBuffer,
-    /**
-     * bytesize
-     * 读取数据的大小，默认=count*arrayStride
-     * default: count*arrayStride
-     */
-    byteSize: number,
-    /**
-    * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-    *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-    * default: 0
-    */
-    offset: number,
-}
 /**
  * 顶点属性的bundle，用于绑定到DC的vertex buffer
  * 1、gltf使用
  */
-export interface I_vsGPUBufferBundle extends I_baseGPUBufferBundle {
-    // buffer: GPUBuffer,
+export interface I_vsGPUBufferBundle {
+    buffer: GPUBuffer,
     format: GPUVertexFormat,
     wgslFormat: string,
+    name: string,
+    arrayStride: number,
     /**
      * 顶点数据在arrayStride中的offset
      * todo: 20260115 在gltf中未实现
      */
     offsetInStride?: number,
-    arrayStride: number,
     count: number,
 
+    /**
+     * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
+     *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
+     * default: 0
+     */
+    offset: number,
+    /**
+     * bytesize
+     * 读取数据的大小，默认=count*arrayStride
+     * default: count*arrayStride
+     */
+    byteSize?: number,
     /**计算包围盒用 */
     min: weVec3,
     max: weVec3,
 }
-export function isVSGPUBufferBundle(attr: T_vsAttribute): attr is I_vsGPUBufferBundle {
+export function isVSGPUBufferBundle(attr: T_I_vsAttribute): attr is I_vsGPUBufferBundle {
     // return (attr as I_vsGPUBufferBundle).buffer && (attr as I_vsGPUBufferBundle).min !== undefined && (attr as I_vsGPUBufferBundle).max !== undefined;
     return "format" in attr && "buffer" in attr && attr.buffer instanceof GPUBuffer;
 }
@@ -106,9 +103,17 @@ export function isVSGPUBufferBundle(attr: T_vsAttribute): attr is I_vsGPUBufferB
  * 索引buffer的bundle，用于绑定到DC的index buffer 。GLTF使用
  * index buffer bundle , used for bind index buffer to DC .gltf use
  */
-export interface I_indexGPUBufferBundle extends I_baseGPUBufferBundle {
+export interface I_indexGPUBufferBundle {
+    buffer: GPUBuffer,
     format: GPUIndexFormat,
+    name: string,
     count: number,
+    /**
+     * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
+     *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
+     * default: 0
+     */
+    byteSize: number,
     /**
      * 读取数据的大小，默认=count*arrayStride
      * default: count*arrayStride
@@ -153,7 +158,7 @@ export interface I_vsAttributeMerge {
     // /**每个vertex属性的名称 */
     // names: string[]
 }
-export function isI_vsAttributeMerge(attr: T_vsAttribute): attr is I_vsAttributeMerge {
+export function isI_vsAttributeMerge(attr: T_I_vsAttribute): attr is I_vsAttributeMerge {
     return (attr as I_vsAttributeMerge).mergeAttribute !== undefined;
 }
 /**
@@ -169,7 +174,7 @@ export interface I_vsAttributeMergeAttribute {
 /**
  * 顶点属性的类型:三种类型
  */
-export type T_vsAttribute = I_vsAttribute | I_vsAttributeMerge | number[] | I_vsGPUBufferBundle
+export type T_I_vsAttribute = I_vsAttribute | I_vsAttributeMerge | number[] | I_vsGPUBufferBundle
 
 export type T_indexAttribute = number[] | I_indexGPUBufferBundle
 /**
@@ -203,8 +208,8 @@ export interface IV_DC {
      */
     IDS?: I_DrawCommandIDs,
     data: {
-        vertices?: { [name in string]: T_vsAttribute },
-        // vertices?: Map<string, T_vsAttribute>,
+        vertices?: { [name in string]: T_I_vsAttribute },
+        // vertices?: Map<string, T_I_vsAttribute>,
         vertexStepMode?: GPUVertexStepMode,
         indices?: T_indexAttribute,//number[] | I_indexGPUBufferBundle,
         /**
@@ -385,12 +390,12 @@ export class DrawCommandGenerator {
         //2、bindgroup部分
         let { DC_bindGroups, DC_bindGroupLayouts } = this.initUniformPart(values);
 
-        //3、shaderModule 编译
+        //3、shadermodel 编译
 
-        let { vertex, fragment, vertexName, fragmentName } = this.initShaderModule(values, DC_vertexNames, DC_localtions, DC_verticesBufferLayout);
+        let { vertex, fragment } = this.initShaderModel(values, DC_vertexNames, DC_localtions, DC_verticesBufferLayout);
 
         //4、pipeline 部分
-        let pipeline = this.initPipeLine(values, { vs: vertex, name: vertexName }, { fs: fragment, name: fragmentName }, DC_bindGroupLayouts);
+        let pipeline = this.initPipeLine(values, vertex, fragment, DC_bindGroupLayouts);
 
         //4、GPURenderPassDescriptor
         let renderPassDescriptor = () => {
@@ -998,7 +1003,7 @@ export class DrawCommandGenerator {
                     }
                 }
                 //I_vsAttributeMerge合并属性，例如position和normal合并到一个顶点属性中
-                else if (isI_vsAttributeMerge(value)) {
+                else if (isVsAttributeMerge(value)) {
                     let mergeAttribute = value.mergeAttribute
                     let arrayStride = value.arrayStride;
                     let data = new Float32Array(value.data);
@@ -1177,43 +1182,34 @@ export class DrawCommandGenerator {
                 //如果是GPUBindGroup，就直接使用
                 if (isGPUBindGroup(perGroup)) {
                     bindGroup = perGroup;
-                    //如果有layout，就直接使用
-                    if (values.data.unifromLayout &&
-                        values.data.unifromLayout[i] != undefined &&
-                        values.data.unifromLayout[i] instanceof GPUBindGroupLayout) {
-                        bindGroupLayout = values.data.unifromLayout[i];
+                    let bindGroupLayoutGet = this.resources.get(bindGroup)!;//是否有对应的layout
+                    if (bindGroupLayoutGet) {
+                        bindGroupLayout = bindGroupLayoutGet;
                     }
-                    //如果没有layout，就从resources中获取
                     else {
-                        let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//是否有对应的layout
+                        throw new Error("bindGroupLayout 不存在");
+                    };
+                }
+                else if (!values.dynamic && this.resources.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
+                    let bindGroupGet = this.resources.get(perGroup);
+                    if (bindGroupGet) {
+                        bindGroup = bindGroupGet;
+                        let bindGroupLayoutGet = this.resources.get(bindGroup)!;//这里没有进行判断，稍后补上
                         if (bindGroupLayoutGet) {
                             bindGroupLayout = bindGroupLayoutGet;
                         }
                         else {
                             throw new Error("bindGroupLayout 不存在");
-                        };
+                            // console.error("bindGroupLayout 不存在");
+                        }
                     }
+                    else {
+                        throw new Error("bindGroup 不存在");
+                        // console.error("bindGroup 不存在");
+                    }
+
                 }
-                //20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
-                // else if (!values.dynamic && this.resources.uniformGroupToBindGroup.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
-                //     let bindGroupGet = this.resources.uniformGroupToBindGroup.get(perGroup);
-                //     if (bindGroupGet) {
-                //         bindGroup = bindGroupGet;
-                //         let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//这里没有进行判断，稍后补上
-                //         if (bindGroupLayoutGet) {
-                //             bindGroupLayout = bindGroupLayoutGet;
-                //         }
-                //         else {
-                //             throw new Error("bindGroupLayout 不存在");
-                //             // console.error("bindGroupLayout 不存在");
-                //         }
-                //     }
-                //     else {
-                //         throw new Error("bindGroup 不存在");
-                //         // console.error("bindGroup 不存在");
-                //     }
-                // }
-                else {//创建
+                else {//不在BindGroup 和BindGroupLayout的记录，创建
                     for (let j in perGroup) {
                         let perEntry = perGroup[j];
                         let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
@@ -1289,7 +1285,7 @@ export class DrawCommandGenerator {
                     //初始化BindGroup描述
                     bindGroupDesc = {
                         // label: values.label + " BGD:" + layoutNumber + " time:"+this.clock.now,
-                        label: `BGD(${layoutNumber}) ${values.label}`,
+                        label: `BGD(${layoutNumber})@${this.clock.now} ${values.label}`,
                         layout: bindGroupLayout,
                         entries: bindGroupEntry,
                     }
@@ -1297,8 +1293,8 @@ export class DrawCommandGenerator {
                     bindGroup = this.device.createBindGroup(bindGroupDesc);
                     ///////////////////
                     //增加到资源
-                    // this.resources.uniformGroupToBindGroup.set(perGroup, bindGroup,);//20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
-                    // this.resources.bindGroupToGroupLayout.set(bindGroup, bindGroupLayout);//20260320，如果是动态绑定的uniform资源，显示push到参数中。这个基本不需要
+                    this.resources.set(perGroup, bindGroup,);
+                    this.resources.set(bindGroup, bindGroupLayout);
                 }
                 DC_bindGroups.push(bindGroup);
                 DC_bindGroupLayouts.push(bindGroupLayout);
@@ -1307,7 +1303,7 @@ export class DrawCommandGenerator {
         }
         return { DC_bindGroups, DC_bindGroupLayouts };
     }
-    /**shaderModule 编译
+    /**shadermodel 编译
      * 1、反射顶点名称到shader code的顶点属性的占位符中
      * 2、编译VS shader code 到 shader module
      * 3、如果有fragment shader，编译shader module
@@ -1316,44 +1312,48 @@ export class DrawCommandGenerator {
      * @param DC_vertexNames 
      * @param DC_localtions 
      */
-    initShaderModule(values: IV_DC, DC_vertexNames: string[], DC_localtions: string[], DC_verticesBufferLayout: GPUVertexBufferLayout[]): {
+    initShaderModel(values: IV_DC, DC_vertexNames: string[], DC_localtions: string[], DC_verticesBufferLayout: GPUVertexBufferLayout[]): {
         vertex: GPUVertexState,
         fragment: GPUFragmentState | undefined,
-        vertexName: string,
-        fragmentName: string,
     } {
         // 3.1 反射顶点名称到shader code的顶点属性的占位符中
         //vertex shader
         let moduleVS: GPUShaderModule
         let shadercode: string;
-        let vsCacheShaderModuleName = values.label;
-
-        if (typeof values.render.vertex.code === "string") {
-            vsCacheShaderModuleName = values.render.vertex.code as string;
+        if (typeof values.render.vertex.code === "string")
             shadercode = values.render.vertex.code;
-        }
         else {
-            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString();
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
         // 测试输出
         // if (values.transparent)
         //     console.log(shadercode);
 
-        //3.2、VS shaderModule 编译
-        if (this.resources.shaderModuleOfString.has(vsCacheShaderModuleName)) {
-            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModuleName)!;
+        //3.2、VS shadermodel 编译
+        let vsCacheShaderModelName = values.label;
+        if (values.render?.fragment?.code && typeof values.render?.fragment?.code !== "string") {
+            let name = values.render.fragment?.code?.material?.owner;
+            // console.log(name);
+            if (name.includes("WireFrameMaterial")) {
+                let id = this.parent?.Name || (values.IDS?.ID || values.label);
+                vsCacheShaderModelName = `${id} wireFrame`;
+            }
+            else {
+                vsCacheShaderModelName = values.IDS!.ID.toString();
+            }
+        }
+        if (this.resources.shaderModuleOfString.has(vsCacheShaderModelName)) {
+            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModelName)!;
         }
         else//可以缓存透明材质的VS shader model
         {
             moduleVS = this.device.createShaderModule({
-                // label: `vs ${this.parent?.Name || values.IDS?.ID}`, //@${this.clock.now} 
-                label: vsCacheShaderModuleName,
+                label: `vs ${this.parent?.Name || values.IDS?.ID}`, //@${this.clock.now} 
                 code: shadercode,
             });
-            this.resources.shaderModuleOfString.set(vsCacheShaderModuleName, moduleVS);
-        }
+            this.resources.shaderModuleOfString.set(vsCacheShaderModelName, moduleVS);
 
+        }
         //3.3 GPURenderPipelineDescriptor.vertex部分
         let constansVS = {};
         if (values.render.vertex.constants) { constansVS = values.render.vertex.constants; }
@@ -1366,7 +1366,6 @@ export class DrawCommandGenerator {
         //3.4 GPURenderPipelineDescriptor.fragment部分
         let moduleFS: GPUShaderModule;
         let fragment: GPUFragmentState | undefined;
-        let nameOfMaterial = "";
         if (values.render.fragment) {
             // 3.4.1 判断是否是混合shader
             if (values.render.fragment.code == undefined) {
@@ -1377,7 +1376,6 @@ export class DrawCommandGenerator {
                 let flagFS = "fsCode";
                 //如果是字符串,则直接赋值,并创建ShaderModule
                 if (typeof values.render.fragment.code === "string") {
-                    nameOfMaterial = values.render.fragment.code as string;
                     codeFS = values.render.fragment.code;
                     moduleFS = this.device.createShaderModule({
                         label: `${flagFS} ${values.label},// @${this.clock.now}`,
@@ -1390,7 +1388,7 @@ export class DrawCommandGenerator {
                 }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
-                    nameOfMaterial = values.render.fragment.code.material.owner;
+                    let nameOfMaterial = values.render.fragment.code.material.owner;
                     //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
                     if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;
@@ -1467,10 +1465,7 @@ export class DrawCommandGenerator {
                 constants: constansFS,
             }
         }
-        else {
-            let abc = 1;
-        }
-        return { vertex, fragment, vertexName: vsCacheShaderModuleName, fragmentName: nameOfMaterial };
+        return { vertex, fragment };
     }
     createShaderModule(values: IV_DC): GPUShaderModule {
         let nameOfMaterial = (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner;
@@ -1489,12 +1484,7 @@ export class DrawCommandGenerator {
         })
         return moduleFS;
     }
-    initPipeLine(values: IV_DC, vertex: { vs: GPUVertexState, name: string }, fragment: { fs: GPUFragmentState | undefined, name: string }, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
-
-        //0、创建cacheFlag
-        let multisampleFlag = "";
-        let depthStencilFlag = "";
-        let cacheFlag: string[] = [];
+    initPipeLine(values: IV_DC, vertex: GPUVertexState, fragment: GPUFragmentState | undefined, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
         //1、创建GPURenderPipelineDescriptor
         let pipelineLayoutDescriptor: GPUPipelineLayoutDescriptor = {
             label: values.label,
@@ -1505,78 +1495,50 @@ export class DrawCommandGenerator {
         let pipelineLayout = this.device.createPipelineLayout(pipelineLayoutDescriptor);
         let descriptor: GPURenderPipelineDescriptor = {
             label: values.label,
-            vertex: vertex.vs,
+            vertex,
             layout: pipelineLayout,
         }
         //3、GPURenderPipelineDescriptor.其他部分
-        if (fragment.fs) descriptor.fragment = fragment.fs;
+        if (fragment) descriptor.fragment = fragment;
         if (values.render.primitive) descriptor.primitive = values.render.primitive;
         if (this.MSAA && values.system && values.system.MSAA == "MSAA") {
             descriptor.multisample = {
                 count: 4,
             }
-            multisampleFlag = "4";
         }
         //4、TTP 没有使用depth，因为需要copy深度纹理或多一个深度纹理；TTPF,目前不使用depthStencil
         if (values.render.depthStencil !== false) {
             //如果有depthStencil输入，就使用它
             if (values.render.depthStencil) {
                 descriptor.depthStencil = values.render.depthStencil;
-                depthStencilFlag = "values.render.depthStencil";        //这里可能会有问题，如果depthStencil传入的是不同的depthStencil，会导致缓存错误
             }
             else {
-                if (values.transparent) {//透明渲染，使用透明模板
+                if (values.transparent)//透明渲染，使用透明模板
                     descriptor.depthStencil = this.scene.depthMode.depthStencilTT;
-                    depthStencilFlag = "this.scene.depthMode.depthStencilTT";
-                }
                 else {
                     //MSAA渲染，分成两种情况
                     if (this.MSAA) {
                         //MSAAinfo 渲染，使用深度模板(开启测试，不写入) 
                         if (values.system && values.system.MSAA == "MSAAinfo") {
                             descriptor.depthStencil = this.scene.depthMode.depthStencilMSAAinfo;
-                            depthStencilFlag = "this.scene.depthMode.depthStencilMSAAinfo";
                         }
                         //MSAA 渲染，使用深度模板(开启测试，写入) 
                         else {
                             descriptor.depthStencil = this.scene.depthMode.depthStencilMSAA;
-                            depthStencilFlag = "this.scene.depthMode.depthStencilMSAA";
                         }
                     }
                     //非MSAA渲染，使用深度模板(开启测试，写入) 
                     else {
                         descriptor.depthStencil = this.scene.depthMode.depthStencil;
-                        depthStencilFlag = "this.scene.depthMode.depthStencil";
                     }
                 }
             }
         }
 
-        /**
-         * 缓存标志,将descriptor: GPURenderPipelineDescriptor的内容，转化为string，使其与当前创建的描述松耦（与对象无关化）
-         */
-        cacheFlag = [
-            vertex.name,
-            fragment.name,
-            //primitive
-            values.render.primitive?.topology as string,
-            values.render.primitive?.cullMode as string,
-            values.render.primitive?.stripIndexFormat as string,
-            values.render.primitive?.frontFace as string,
-            // unclipped:values.render.primitive?.unclipped
-            //depthStencil
-            depthStencilFlag,
-            //multisample
-            multisampleFlag,
-        ]
-        let nameOfCacheFlag = cacheFlag.toString();
-        // if (this.resources.pipeline.has(nameOfCacheFlag)) {
-        //     return this.resources.pipeline.get(nameOfCacheFlag)!;
-        // }
 
         //3.6 生产pipeline
         let pipeline: GPURenderPipeline = this.device.createRenderPipeline(descriptor);
-        this.resources.pipeline.set(nameOfCacheFlag, pipeline);
+
         return pipeline;
     }
 

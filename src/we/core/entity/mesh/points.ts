@@ -2,10 +2,12 @@ import { weColor3, E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
+import { mergeLightUUID } from "../../light/lightsManager";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { ColorMaterial } from "../../material/standard/colorMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_PointVS } from "../../shadermanagemnet/mesh/pointsVS";
+import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
 import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
@@ -183,7 +185,7 @@ export class Points extends EntityBundleMaterial {
         throw new Error("Method not implemented.");
     }
 
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope: Points): IV_DC {
+    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
         valueDC.render.primitive = {
@@ -225,12 +227,42 @@ export class Points extends EntityBundleMaterial {
 
     createDeferDepthDC(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
+
     }
     createTransparent(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
+    /**
+     * 20260322 代码未测试
+     * 为每个camera创建阴影映射的DrawCommand
+     * @param input 
+     * @returns 
+     */
     createShadowMapDC(input: I_ShadowMapValueOfDC): void {
-        throw new Error("Method not implemented.");
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
+        if (this.inputValues.shadow?.generate === false) {
+            return;
+        }
+        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
+        //mesh VS 模板输出
+
+
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
+        valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
+        let dc = this.DCG.generateDrawCommand(valueDC);
+        if (this.emulate == "none") {
+            valueDC.render.primitive = {
+                topology: "point-list",
+                cullMode: this._cullMode
+            }
+        }
+        else {
+            valueDC.render.primitive = {
+                topology: "triangle-list",
+                cullMode: this._cullMode
+            }
+        }
+        this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
     }
     createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
         throw new Error("Method not implemented.");
