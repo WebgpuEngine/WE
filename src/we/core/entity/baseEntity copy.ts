@@ -48,7 +48,8 @@ export abstract class BaseEntity extends NodeSpace {
      */
     deferColor!: boolean;
 
-
+    /**顶点数量 */
+    vertexCount: number = 0;
 
     /** uv动画使用 */
     _uv: weVec2 = [0, 0];
@@ -77,7 +78,33 @@ export abstract class BaseEntity extends NodeSpace {
      * 2、instance数量
      */
     _instanceWorldMatrixByteSize = 16 * 4;
-
+    /**storage array(初始化默认一个矩阵，以适配没有joint的通用情况；)
+     * 每个instance的joint matrix size
+     * 1、matrix以16*4 byte一个单位计算
+     * 2、当前entity的jonit数组数量：N=1(不使用时),N=关节数量
+     * 3、instance 数量（M=1，动态，程序中）
+     * 4、size= M*(N*16*4)
+     */
+    _instanceJointMatrixByteSize = 16 * 4;
+    set JointMatrixByteSize(value: number) {
+        this._instanceJointMatrixByteSize = value;
+    }
+    get JointMatrixByteSize(): number {
+        return this._instanceJointMatrixByteSize;
+    }
+    /**storage array(初始化默认一个矩阵，以适配没有morph target的通用情况；)
+     * 1、不使用的默认大小（为了在内没有morph target的情况下，使用default one storage buffer，最小以16计算 ）
+     * 2、size计算= M*(N*4)
+     *  A、instance 数量（M=1，动态，程序中）
+     *  B、一个顶点的morphTarget数量N ;一般情况为4个，即大小=N*f32Size=4*4=16 byte
+     */
+    _instanceMorphTargetByteSize = 16 * 4;
+    set MorphTargetByteSize(value: number) {
+        this._instanceMorphTargetByteSize = value;
+    }
+    get MorphTargetByteSize(): number {
+        return this._instanceMorphTargetByteSize;
+    }
     ///////////////////////////////////////////////////////////////////
     //uniform
     /** 实例化数组最后重新的时间 */
@@ -90,6 +117,10 @@ export abstract class BaseEntity extends NodeSpace {
         instances?: ArrayBuffer;
         /** 世界矩阵数组@group(1) @binding(2)*/
         wolrdMatrix?: ArrayBuffer;
+        /** 变形矩阵数组@group(1) @binding(3)*/
+        morphMatrix?: ArrayBuffer;
+        /** 骨骼矩阵数组@group(1) @binding(4)*/
+        jointMatrix?: ArrayBuffer;
     } = {};
     /**Buffer(uniform and storage )在GPU端的 GPUBuffer */
     bufferGPU: {
@@ -99,6 +130,10 @@ export abstract class BaseEntity extends NodeSpace {
         instances?: GPUBuffer;
         /** 世界矩阵数组@group(1) @binding(2)*/
         wolrdMatrix?: GPUBuffer;
+        /** 变形矩阵数组@group(1) @binding(3)*/
+        morphMatrix?: GPUBuffer;
+        /** 骨骼矩阵数组@group(1) @binding(4)*/
+        jointMatrix?: GPUBuffer;
     } = {};
     /**
      * 外部实例化数组
@@ -170,8 +205,29 @@ export abstract class BaseEntity extends NodeSpace {
     isSkeletonAnimation(): boolean {
         return this.getAnimationKind() == E_AnimationType.skeleton || this.getAnimationKind() as number == 6;
     }
+    /** 变形目标数量 
+     * 1、由checkMorphTargetCount() 检查并设置
+     * 2、checkMorphTargetCount()由class MorphTargetAnimation 调用
+    */
+    _morphTargetWeightsCount: number = 0;
+    /** 获取变形目标数量 */
+    get MorphtTargetCount(): number {
+        return this._morphTargetWeightsCount;
+    }
+    set MorphtTargetCount(count: number) {
+        this._morphTargetWeightsCount = count;
+    }
+    /** 检查变形目标数量是否匹配,检查attribute中position*的数量 ,并设置_morphTargetWeightsCount*/
+    abstract checkMorphTargetCount(count: number): boolean;
 
-
+    _jointsMattricesCount: number = 0;
+    /** 获取骨骼动画数量 */
+    get JointsMatCount(): number {
+        return this._jointsMattricesCount;
+    }
+    set JointsMatCount(count: number) {
+        this._jointsMattricesCount = count;
+    }
     ///////////////////////////////////////////////////////////////////
     //状态属性
 
@@ -291,6 +347,24 @@ export abstract class BaseEntity extends NodeSpace {
         this.type = "entity";
         this._state = E_lifeState.constructing;
         this.input = input;
+
+        // //是否每帧更新矩阵等
+        // if (input.updatePerFrame !== undefined) {
+        //     this.updatePerFrame = input.updatePerFrame;
+        // }
+        // else if (input.dynamicMesh !== undefined) {
+        //     this.updatePerFrame = input.dynamicMesh;
+        // }
+        // else if (input.dynamicPostion !== undefined) {
+        //     this.updatePerFrame = input.dynamicPostion;
+        // }
+        // else if (input.update !== undefined) {
+        //     this.updatePerFrame = true;
+        // }
+        // else {
+        //     this.updatePerFrame = false;
+        // }
+
         if (input.instance) {
             this.instance = input.instance;
             this.checkInstance();
@@ -299,6 +373,14 @@ export abstract class BaseEntity extends NodeSpace {
         if (input.cullmode) {
             this._cullMode = input.cullmode;
         }
+        // if (input.position) this._position = vec3.fromValues(input.position[0], input.position[1], input.position[2]);
+        // if (input.scale) this._scale = vec3.fromValues(input.scale[0], input.scale[1], input.scale[2]);
+        // if (input.rotate) this._rotate = {
+        //     axis: vec3.fromValues(input.rotate[0], input.rotate[1], input.rotate[2]),
+        //     angleInRadians: input.rotate[3],
+        // };
+        // if (input.name) this.Name = input.name;
+
         //////////////////
         //about shader
         if (input.shadow) {
@@ -414,7 +496,8 @@ export abstract class BaseEntity extends NodeSpace {
         this.intUniformCommonEntity();
         this.updateInstanceBuffer();
         this.updateWorldMatrixBuffer();
-        // this.updateJointMatrixBuffer();
+        this.updateWorldMatrixBuffer();
+        this.updateJointMatrixBuffer();
 
         this.transparent = this.getTransparent();
         this.DCG = this.scene.DCG;//new DrawCommandGenerator({ scene: this.scene, parent: this });
@@ -423,10 +506,46 @@ export abstract class BaseEntity extends NodeSpace {
     }
 
 
+    /**顶点数量，morph target 使用 */
+    getVertexCount(): number {
+        if (this.vertexCount === 0) {
+            // console.warn("vertexCount 没有计算");
+        }
+        return this.vertexCount;
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //20260322,todo:确认是否使用，因为BaseEntity继承自NodeSpace，没有worldPosition的abstract定义
+    /** 
+     * 更新世界矩阵，
+     * 1、更新局部矩阵，不更新entity的世界矩阵（entity是instance化后使用，使用使用实例化nodeInstance的世界矩阵）
+     * 2、entity的matrixWorld 是单位矩阵
+     * 3、这里只返回局部矩阵
+     * @param parentMatrixWorld 父矩阵
+     * @returns 世界矩阵
+     */
+    // updateMatrixWorld(_parentMatrixWorld?: Mat4): Mat4 {
+    //     this.updateMatrix();
+    //     return this.matrix;
+    // }
+
+    // /**
+    //  * 更新世界位置,entity无worldPosition，只有position在本地坐标系下的位置
+    //  * 1、entity需要实例化，并使用实例的世界坐标。
+    //  * 2、由于entity的worldPosition是在本地坐标系下的位置，worldPostion=(0,0,0)
+    //  * 3、每个instance的世界矩阵不同而不同，所以这里的更新世界位置=返回世界坐标系（不更新entity的worldPosition）
+    //  * 4、如果没有提供世界矩阵，默认使用entity的matrixWorld，并返回entity的position在世界坐标系下的位置（0,0,0）
+    //  * @param _matrixWorld 世界矩阵
+    //  * @returns 世界位置
+    //  */
+    // updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
+    //     if (_matrixWorld) {
+    //         return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
+    //     }
+    //     else {
+    //         return vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);//（0,0,0）
+    //     }
+    // }
     updateWorldPosition(_matrixWorld?: Mat4): Vec3 {
         return this.worldPosition;
     }
@@ -451,19 +570,24 @@ export abstract class BaseEntity extends NodeSpace {
         let _matrixWorld = this.getMatrixWorldOfInstance(instance);
         return vec3.fromValues(_matrixWorld[12], _matrixWorld[13], _matrixWorld[14]);
     }
-    /** 设置entity的包围盒
-     * @param box 包围盒min,max坐标
-     */
     setBoundingBox(box: boundingBox) {
         this.boundingBox = box;
         this.boundingSphere = this.generateSphere(box);
     }
-    /** 根据顶点位置生成世界坐标的Box，当前entity的原始包围盒，不涉及变换 */
-    generateBox(position: number[]): boundingBox | undefined {
-        if (position) {
-            let box = generateBox3(position);
-            return box;
-        }
+
+
+    /** 生成世界坐标的Box，当前entity的原始包围盒，不涉及变换 */
+    generateBox(position: number[]): boundingBox {
+        let box = generateBox3(position);
+        // const min = vec3.transformMat4(box.min, instance.matrixWorld);
+        // const max = vec3.transformMat4(box.max, instance.matrixWorld);
+        // box.max[0] = max[0];
+        // box.max[1] = max[1];
+        // box.max[2] = max[2];
+        // box.min[0] = min[0];
+        // box.min[1] = min[1];
+        // box.min[2] = min[2];
+        return box;
     }
     /** 生成世界坐标的sphere，基于当前entity的原始包围球，不涉及变换 */
     generateSphere(box: boundingBox): boundingSphere {
@@ -479,9 +603,7 @@ export abstract class BaseEntity extends NodeSpace {
         return this.bufferCPU.uniformCommonEntity;
     }
 
-    /**
-     * 20260322，todo，取消cameraDC中的按照id排序
-     * 检查camear的id在commands中是否已经存在 */
+    /**检查camear的id在commands中是否已经存在 */
     checkIdOfCommands(id: string, commands: Object): boolean {
         for (let i in commands) {
             if (i == id) return true;
@@ -492,19 +614,19 @@ export abstract class BaseEntity extends NodeSpace {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 阴影相关部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // /**是否产生阴影
-    //  * @returns boolean
-    //  */
-    // getShadwoMapGenerate(): boolean {
-    //     return this._shadow.generate;
-    // }
-    // /**
-    //  * 是否接受阴影
-    //  * @returns boolean
-    //  */
-    // getShadowmAccept() {
-    //     return this._shadow.accept;
-    // }
+    /**是否产生阴影
+     * @returns boolean
+     */
+    getShadwoMapGenerate(): boolean {
+        return this._shadow.generate;
+    }
+    /**
+     * 是否接受阴影
+     * @returns boolean
+     */
+    getShadowmAccept() {
+        return this._shadow.accept;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //// update 部分
@@ -540,40 +662,38 @@ export abstract class BaseEntity extends NodeSpace {
         this.updateUniformCommonEntity(clock);  //更新vs、fs的uniform
         this.updateInstanceBuffer();            //更新instance buffer
         this.updateWorldMatrixBuffer(clock);    //更新world matrix buffer
-        // this.updateMorphtTargetBuffer();        //更新morphtarget buffer
-        // this.updateJointMatrixBuffer();         //更新joint matrix buffer
+        this.updateMorphtTargetBuffer();        //更新morphtarget buffer
+        this.updateJointMatrixBuffer();         //更新joint matrix buffer
 
         //检查是否有新摄像机，有进行更新
         this.checkUpgradeCameras();
         //检查是否有新光源，有进行更新
         this.checkUpgradeLights();
-        // this.DCG.upadate();//20260322,取消DCG的uniform更新,DCG已经迁移到scene，不在保存当前entity的uniform
+
+        this.DCG.upadate();
     }
-
-    // /** 获取当前状态（是否可以进行update）*/
-    // getStateus(): boolean {
-    //     if (this.checkStatus()) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
+    /** 获取当前状态（是否可以进行update）*/
+    getStateus(): boolean {
+        if (this.checkStatus()) {
+            return true;
+        }
+        return false;
+    }
     /** 清除DCC 渲染队列*/
     clearDC() {
         this.cameraDC = {};
         this.shadowmapDC = {};
     }
-    // /**
-    //  * 透明的实体由于使用了camera的GBUffer，所以需要处理onSize
-    //  */
-    // onResize(): void {
-    //     for (let i in this.cameraDC) {
-    //         let perCameraDC = this.cameraDC[i];
-    //         // perCameraDC.transparent = [];
-    //     }
-    //     // this.upgradeCameras();
-    // }
-
+    /**
+     * 透明的实体由于使用了camera的GBUffer，所以需要处理onSize
+     */
+    onResize(): void {
+        for (let i in this.cameraDC) {
+            let perCameraDC = this.cameraDC[i];
+            // perCameraDC.transparent = [];
+        }
+        // this.upgradeCameras();
+    }
     /**更新(创建)关于cameras的DCCC commands
      * 
      * @param parent 
@@ -607,6 +727,9 @@ export abstract class BaseEntity extends NodeSpace {
                     this.createTransparent(camera);
                 }
                 else {
+                    // if (this.scene.deferRender.enable && this.scene.deferRender.deferRenderDepth) {
+                    //     this.createDeferDepthDC(camera);
+                    // }
                     this.createForwardDC(camera);
                 }
             }
@@ -682,7 +805,7 @@ export abstract class BaseEntity extends NodeSpace {
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    updateUniformCommonEntity(clock: Clock, write: boolean = true): void {
+    updateUniformCommonEntity(clock: Clock): void {
         if (this.bufferCPU.uniformCommonEntity !== undefined) {
 
             const st_entityValues = this.bufferCPU.uniformCommonEntity;
@@ -701,11 +824,12 @@ export abstract class BaseEntity extends NodeSpace {
             st_entityViews.instance_count[0] = this.getInstancesCount();
             st_entityViews.vs_offset[0] = this.vsOffset;
             st_entityViews.animation_kind[0] = this.getAnimationKind();
-            st_entityViews.morpht_target_count[0] = 0;//this.MorphtTargetCount;
-            st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
-            st_entityViews.joint_matrix_count[0] = 0;// this.JointsMatCount;
-            if (write)
-                this.device.queue.writeBuffer(this.bufferGPU.uniformCommonEntity!, 0, this.bufferCPU.uniformCommonEntity);
+            st_entityViews.morpht_target_count[0] = this.MorphtTargetCount;
+            st_entityViews.vertex_count[0] = this.getVertexCount();
+            st_entityViews.joint_matrix_count[0] = this.JointsMatCount;
+            // console.log("joint_matrix_count", st_entityViews.joint_matrix_count[0]);
+            // console.log("animation_kind", st_entityViews.animation_kind[0]);
+            this.device.queue.writeBuffer(this.bufferGPU.uniformCommonEntity!, 0, this.bufferCPU.uniformCommonEntity);
         }
     }
     /**
@@ -760,6 +884,41 @@ export abstract class BaseEntity extends NodeSpace {
                 reNew = true;
             }
         }
+        //morph target 
+        else if (name == "morphMatrix") {//如果是变形目标
+            //如果有morph target动画
+            // if (this.getAnimationKind() == E_AnimationType.morphTarget||this.getAnimationKind() as number == 6) {
+            if (this.isMorphTargetAnimation()) {
+                //没有
+                if (this.bufferCPU[nameCPU] == undefined) {
+                    reNew = true;
+                }
+                //长度不相等
+                else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceMorphTargetByteSize) {
+                    reNew = true;
+                }
+            }
+            else {
+                return false;//不存在
+            }
+        }
+        //骨骼动画
+        else if (name == "jointMatrix") {
+            //如果有骨骼动画
+            if (this.isSkeletonAnimation()) {
+                //没有
+                if (this.bufferCPU[nameCPU] == undefined) {
+                    reNew = true;
+                }
+                //长度不相等,默认是四个关联矩阵
+                else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceJointMatrixByteSize) {
+                    reNew = true;
+                }
+            }
+            else {
+                return false;//不存在
+            }
+        }
         //new or renew :cpu and gpu
         if (reNew) {
             this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
@@ -769,6 +928,16 @@ export abstract class BaseEntity extends NodeSpace {
             }
             else if (name == "wolrdMatrix") {
                 size = this._instanceWorldMatrixByteSize;
+            }
+            else if (name == "jointMatrix") {
+                size = this._instanceJointMatrixByteSize;
+            }
+            else if (name == "morphMatrix") {
+                this.MorphTargetByteSize = 4 * 4;//this.MorphTargetByteSize;
+                if (this.MorphtTargetCount > 4) {
+                    this.MorphTargetByteSize = this.MorphtTargetCount * 4;
+                }
+                size = this.MorphTargetByteSize;
             }
             else {
                 throw new Error("checkStorageBuffer: unknown name:" + name);
@@ -851,8 +1020,61 @@ export abstract class BaseEntity extends NodeSpace {
             throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
         }
     }
-
-
+    /**
+     * morph target update 
+     * 如果没有morph target，使用默认的storage buffer占位
+     */
+    updateMorphtTargetBuffer() {
+        let state = this.checkStorageBuffer("morphMatrix");
+        if (state == false && this.bufferGPU.morphMatrix == undefined) {
+            this.bufferGPU.morphMatrix = this.scene.getResourceOneStorageMatrix();
+        }
+        else if (this.bufferGPU.morphMatrix != this.scene.getResourceOneStorageMatrix()) {
+            // throw new Error("未完成")
+            //update：cpu and gpu
+            if (this.bufferGPU.morphMatrix && this.bufferCPU.morphMatrix) {
+                for (let i in this.outSideInstance) {
+                    let perNode = this.outSideInstance[i];
+                    let instanceIndex = parseInt(i);
+                    for (let j = 0; j < this.instance.numInstances; j++) {
+                        let offset = (instanceIndex * this.instance.numInstances + j) * this.MorphTargetByteSize;    //内外部instance的偏移量加上内部instance的偏移量
+                        this.device.queue.writeBuffer(this.bufferGPU.morphMatrix, offset, perNode.MorphTarget!);//写入每个instance的矩阵,内部instance写入相同的矩阵
+                    }
+                }
+            }
+            else {
+                throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
+            }
+        }
+    }
+    /**
+     * 骨骼动画 update 
+     * 如果没有morph target，使用默认的storage buffer占位
+     */
+    updateJointMatrixBuffer() {
+        let state = this.checkStorageBuffer("jointMatrix");
+        // 如果没有jointMatrix，且GPU没有jointMatrix，使用默认的storage buffer占位
+        if (state == false && this.bufferGPU.jointMatrix == undefined) {
+            this.bufferGPU.jointMatrix = this.scene.getResourceOneStorageMatrix();
+        }
+        else if (this.bufferGPU.jointMatrix != this.scene.getResourceOneStorageMatrix()) {
+            // throw new Error("未完成")
+            //update：cpu and gpu
+            if (this.bufferGPU.jointMatrix && this.bufferCPU.jointMatrix) {
+                for (let i in this.outSideInstance) {
+                    let perNode = this.outSideInstance[i];
+                    let instanceIndex = parseInt(i);
+                    for (let j = 0; j < this.instance.numInstances; j++) {
+                        let offset = (instanceIndex * this.instance.numInstances + j) * this.JointMatrixByteSize;    //内外部instance的偏移量加上内部instance的偏移量
+                        this.device.queue.writeBuffer(this.bufferGPU.jointMatrix, offset, perNode.JointsMat!);//写入每个instance的矩阵,内部instance写入相同的矩阵
+                    }
+                }
+            }
+            else {
+                throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
+            }
+        }
+    }
 
     /**
      * 获取用户自定义的shader代码
@@ -891,41 +1113,41 @@ export abstract class BaseEntity extends NodeSpace {
             let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
                 label: `entity:${this.ID} @ ${this.scene.clock.now}`,
                 entries: [
-                    {//@group(1) @binding(0) var<uniform> u_entity_base:st_entity;
+                    {
                         binding: 0,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {
                             type: "uniform"
                         }
                     },
-                    {//@group(1) @binding(1) var<storage> u_entity_instances: array<st_instance_info>;      //length=instance count
+                    {
                         binding: 1,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {
                             type: "read-only-storage"
                         }
                     },
-                    {//@group(1) @binding(2) var<storage> world_matrix: array<mat4x4f>;          //length=instance count;
+                    {
                         binding: 2,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {
                             type: "read-only-storage"
                         }
                     },
-                    // {//@group(1) @binding(3) var<storage> morph_matrix: array<f32>;              //length=instance count * morph target count * vertex count
-                    //     binding: 3,
-                    //     visibility: GPUShaderStage.VERTEX,
-                    //     buffer: {
-                    //         type: "read-only-storage"
-                    //     }
-                    // },
-                    // {//@group(1) @binding(4) var<storage> joint_matrix: array<mat4x4f>;           //length=instance count * joint matrix count
-                    //     binding: 4,
-                    //     visibility: GPUShaderStage.VERTEX,
-                    //     buffer: {
-                    //         type: "read-only-storage"
-                    //     }
-                    // },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "read-only-storage"
+                        }
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {
+                            type: "read-only-storage"
+                        }
+                    },
                 ]
             }
             this.bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);;
@@ -956,7 +1178,6 @@ export abstract class BaseEntity extends NodeSpace {
         }
     }
     /**
-     * todo:20260322,这里需要BOL改造
      * 生成bind group 的entries
      * @returns GPUBindGroupEntry[]
      */
@@ -997,7 +1218,39 @@ export abstract class BaseEntity extends NodeSpace {
         }
         throw new Error(`未找到绑定${name}`);
     }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //TTPF 相关部分
+    //20260313 作废，使用公共的TTPF
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // /**
+    //  * 透明材质的TTPF的uniform layer 
+    //  */
+    // uniformOfTTPFSize: number = 16;//需要确保 uniform 缓冲区的大小至少等于管线要求的最小大小，且是 16 字节的倍数。
+    // /**
+    //  * TTPF使用的uniform的ArrayBuffer
+    //  */
+    // uniformOfTTPF: ArrayBuffer = new ArrayBuffer(this.uniformOfTTPFSize);
+    // /**TTPF 是使用的 uniform: 主要是目的是更新entity所在的TTP的层数（0-3） 
+    //  * I_uniformArrayBufferEntry结构使用在createTransparent（）中的TTPF代码部分
+    // */
+    // unifromTTPF!: I_uniformArrayBufferEntry;
+    // /**
+    //  * 设置透明材质的TTPF的uniform
+    //  * @param layer  对应RGBA四层
+    //  */
+    // setUniformLayerOfTTPF(layer: number) {
+    //     let view = new Uint32Array(this.uniformOfTTPF);
+    //     view[0] = layer;
+    //     view[1] = this.ID;
+    //     // console.log(layer, this.ID);
+    //     this.updateUniformLayerOfTTPF();
+    //     // console.log(view)
+    // }
 
+    // /**
+    //  * 
+    //  */
+    // abstract updateUniformLayerOfTTPF(): void
 
 }
 

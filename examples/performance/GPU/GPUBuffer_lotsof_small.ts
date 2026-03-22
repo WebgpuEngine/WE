@@ -40,12 +40,12 @@ await scene.add(camera);
 
 
 
-let size = 16*4*1024;//640B
+let size = 16*4;//640B
 let cpuMemList: ArrayBuffer[] = [];
 let gpuMemList: GPUBuffer[] = [];
 window.gpuMemList = gpuMemList;
 //3300个640B的GPUBuffer，约等于2MB
-let count = 32; 
+let count = 2264; //3300，32，1000
 for (let i = 0; i < count; i++) {
   let gpuMem = createEmptyGPUBuffer(scene.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, size, i.toString());
   gpuMemList.push(gpuMem);
@@ -61,6 +61,7 @@ let writeGPUBuffer = () => {
 /**
  * 1、3300个640B的GPUBuffer，内核写入GPUBuffer的CPU占有率99.9%
  * 2、32个64KB的GPUBuffer，内核写入GPUBuffer的CPU占有率 6%
+ * 3、2264个（者是rapier demo中未使用BOL之前的uniform数量）64Byte，内核写入GPUBuffer的CPU占有率 50%
  */
 let oneCall: userDefineEventCall = {
   call: (scope: Scene) => {

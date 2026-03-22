@@ -201,6 +201,19 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         this._vertexAndIndexBuffersUpdated = true;
     }
 
+
+    checkMorphTargetCount(count: number): boolean {
+        // throw new Error("EntityBundleMaterial: checkMorphTargetCount not implemented");
+        let countFromAttribute = 0;
+        for (let key in this.attributes.vertices) {
+            if (key.indexOf("position_") == 0) {
+                countFromAttribute++;
+            }
+        }
+        this._morphTargetWeightsCount = countFromAttribute;
+        return countFromAttribute == count;
+    }
+
     detachData(): void {
         this.inputValues.attributes.geometry = undefined;
         this.inputValues.attributes.data = undefined;
@@ -229,6 +242,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
         return readyForMaterial;
     }
+
+
     /**
      * 获取blend状态
      * 20251008，目前获取blend的状态不在使用此function
@@ -245,12 +260,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         return this._material.getTransparent();
     }
     /** 生成原始包围盒，基于当前entity的原始包围盒，不涉及变换 */
-    override generateBox(position?: number[]): boundingBox | undefined {
-        if (position) {
-            return super.generateBox(position);
-        }
+    generateBox(position: number[]): boundingBox {
         //gltf 模型的box，需要从模型中获取
-        else if (this.inputValues.attributes &&
+        if (this.inputValues.attributes &&
             this.inputValues.attributes.data &&
             this.inputValues.attributes.data.vertices &&
             this.inputValues.attributes.data.vertices.position &&
@@ -261,8 +273,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             };
             return box;
         }
+        //其他情况，使用父类的方法
         else {
-            console.warn("EntityBundleMaterial: generateBox, position is empty");
+            return super.generateBox(position);
         }
     }
     /**
@@ -278,10 +291,23 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     this.boundingBox = this.generateBox(position);
                     this.boundingSphere = this.generateSphere(this.boundingBox);
                 }
+                // else {
+                //     console.warn("Mesh generateBoxAndSphere: position is empty");
+                // }
             }
+            // else if (this.inputValues.position) {
+            //     this.boundingBox = this.generateBox(this.inputValues.position);
+            //     this.boundingSphere = this.generateSphere(this.boundingBox);
+            // }
+            // else {
+            //     this.boundingBox = {
+            //         min: [0, 0, 0],
+            //         max: [0, 0, 0]
+            //     };
+            //     this.boundingSphere = this.generateSphere(this.boundingBox);
+            // }
         }
     }
-    /** 获取当前entity的原始包围盒的最大尺寸 ,cubeUV使用*/
     getBoundingBoxMaxSize(): number {
         if (this.boundingBox == undefined)
             this.generateBoxAndSphere();
@@ -371,12 +397,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         // }
         // return { bindingNumber: bindingNumber, uniformGroup: uniform1, shaderTemplateFinal };
 
-        /**
-         * 1、VS与FS分离后，startBinding已经时VS自己的，没有变化；
-         * 2、startBinding在entity细分之后，bindingNumber每种shader会不同，而且时固定的；不用后续的进行绑定
-         * 3、继续绑定的情况，有userCodeVS，需要在userCodeVS中使用bindingNumber，todo：20260322
-         */
-        let bindingNumber = startBinding;
+        let bindingNumber = 5;
         //scene 和 entity 的shader模板部分
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
         for (let i in SHT_VS) {
@@ -401,14 +422,20 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      */
     _drawModeTemplate!: I_drawMode | I_drawModeIndexed;
     /**
-     * 获取drawMode 格式化的模板,如果没有则创建一个
+     * 获取drawMode 模板,如果没有则创建一个
      * @returns I_drawMode | I_drawModeIndexed 
      */
     getDrawModeTemplate(): I_drawMode | I_drawModeIndexed {
         if (this._drawModeTemplate == undefined || this._vertexAndIndexBuffersUpdated == true) {
             this._vertexAndIndexBuffersUpdated = false;
             let drawMode: I_drawMode | I_drawModeIndexed;
-            if (this.inputValues.drawMode != undefined) {//这个drawMode 是用户输入的drawMode，基本不会使用，只有在手工设置drawMode时才会使用（比如：单项内容测试）
+            if (this.inputValues.drawMode != undefined) {
+                // if (isDrawModeIndexed(this.inputValues.drawMode)) {
+                //     (drawMode as I_drawModeIndexed[]).push(this.inputValues.drawMode);
+                // }
+                // else if (isDrawModeVertex(this.inputValues.drawMode)) {
+                //     (drawMode as I_drawMode[]).push(this.inputValues.drawMode);
+                // }
                 drawMode = this.inputValues.drawMode;
             }
             else {
@@ -425,6 +452,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     firstInstance: 0,
                 }
                 //index mode
+                // if (scope.attributes.indices) {
                 if (Array.isArray(this.attributes.indices) && this.attributes.indices.length > 0) {
                     drawModeIndexMesh.indexCount = this.attributes.indices.length;
                     drawModeIndexMesh.instanceCount = this.instance.numInstances;
@@ -497,7 +525,6 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         // 可见的实例ID数组
         let visibleInstanceIDArray: number[] = [];
         // 遍历所有实例ID：可见性可用性判断
-                // if (scope.attributes.indices) {
         for (let i in this.outSideInstance) {
             let visibleOfNode = true;
             let enableOfNode = true;
@@ -715,6 +742,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO MSAA:" + valueDC.label;
                 else
                     valueDC.label = "opacity MSAA:" + valueDC.label;
+                // valueDC.label = this.ID.toString();
                 let dc = this.DCG.generateDrawCommand(valueDC);
                 this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
             }
@@ -725,6 +753,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO MSAA info:" + valueDC.label;
                 else
                     valueDC.label = "opacity MSAA info:" + valueDC.label;
+                // valueDC.label = this.ID.toString();
                 dc = this.DCG.generateDrawCommand(valueDC);
             }
         }
@@ -757,7 +786,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO:" + valueDC.label;
                 else
                     valueDC.label = "opacity:" + valueDC.label;
+                // if (valueDC.label == undefined)
+                //     valueDC.label = this.ID.toString();
                 dc = this.DCG.generateDrawCommand(valueDC);
+                // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
             }
         }
         return dc;

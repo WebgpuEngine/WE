@@ -1570,9 +1570,9 @@ export class DrawCommandGenerator {
             multisampleFlag,
         ]
         let nameOfCacheFlag = cacheFlag.toString();
-        // if (this.resources.pipeline.has(nameOfCacheFlag)) {
-        //     return this.resources.pipeline.get(nameOfCacheFlag)!;
-        // }
+        if (this.resources.pipeline.has(nameOfCacheFlag)) {
+            return this.resources.pipeline.get(nameOfCacheFlag)!;
+        }
 
         //3.6 生产pipeline
         let pipeline: GPURenderPipeline = this.device.createRenderPipeline(descriptor);
