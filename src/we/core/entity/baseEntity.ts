@@ -175,7 +175,7 @@ export abstract class BaseEntity extends NodeSpace {
      */
     cameraDC: {
         [name: string]: {
-            [E_renderPassName.depth]: DrawCommand[],
+            // [E_renderPassName.depth]: DrawCommand[],
             [E_renderPassName.MSAA]: DrawCommand[],
             [E_renderPassName.forward]: DrawCommand[],
             [E_renderPassName.transparent]: DrawCommand[],
