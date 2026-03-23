@@ -5,12 +5,12 @@ import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_LineVS } from "../../shadermanagemnet/mesh/linesVS";
 import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 // import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
 /**mesh的顶点结构与材质，各有一个，一一对应 */
-export interface IV_LinesEntity extends I_EntityBundleMaterial {
+export interface IV_LinesEntity extends IV_BaseEntity {
     /**
      * 代替GPUPrimitiveState.topology
      */
@@ -30,84 +30,32 @@ export class Lines extends EntityBundleMaterial {
         this.inputValues = input;
 
         if (input.lineMode) this.lineMode = input.lineMode;
-        if (input.attributes.geometry) {
-            this._geometry = input.attributes.geometry;
-            let attributes = input.attributes.geometry.getAttribute();
-            for (let key in attributes) {
-                this.attributes.vertices[key] = attributes[key];
-            }
-            let indices = input.attributes.geometry.getWireFrameIndeices();
-            if (indices) {
-                this.attributes.indices = indices;
-            }
-        }
-        else if (input.attributes.data) {
-            let attributes = input.attributes.data.vertices;
-            for (let key in attributes) {
-                this.attributes.vertices[key] = attributes[key];
-            }
-            if (input.attributes.data.indices) {
-                this.attributes.indices = input.attributes.data.indices;
-            }
-            if (input.attributes.data.vertexStepMode) {
-                this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;
-            }
+
+        if (input.primitive) {
+            this._primitive = input.primitive;
         }
         else {
-            throw new Error("Line must have geometry or attribute data");
+            if (this.lineMode == "line-strip") {
+                this._primitive = {
+                    topology: "line-strip",
+                };
+            }
+            else {
+                this._primitive = {
+                    topology: "line-list",
+                };
+            }
         }
-        if (input.material == undefined) {
-            console.warn("Line constructor: material is undefined");
+        // 如果是line-strip，需要设置stripIndexFormat为uint32|uint16
+        if (this._primitive.topology == "line-strip") {
+            this._primitive.stripIndexFormat = "uint32"
         }
-        if (input.material)
-            this._material = input.material;
-        else
-            throw new Error("Mesh constructor: material is undefined");
-
-
+        this._primitive = {
+            topology: this.lineMode,
+        };
     }
-    /**三段式初始化的第三段
-     * 覆写 Root的function,因为材料类需要GPUDevice */
-    async readyForGPU() {
-        await this._material.init(this.scene);
-        if (this._material.getTransparent() === true) {
-            this._cullMode = "none";
-        }
-    }
+
     _destroy(): void {
-        throw new Error("Method not implemented.");
-    }
-
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Lines) {
-        if (scope == undefined) scope = this;
-        let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
-        valueDC.render.primitive!.topology = scope.lineMode;
-        if (scope.lineMode == "line-strip") {
-            valueDC.render.primitive!.stripIndexFormat = "uint32"
-        }
-        return valueDC;
-    }
-
-    /**
-     * 为每个camera创建前向渲染的DrawCommand
-     * @param camera 
-     */
-    createForwardDC(camera: BaseCamera): void {
-        let UUID = camera.UUID;
-        let dc = this.generateOpacityDC(UUID, SHT_LineVS);
-        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
-        // //mesh 前向渲染
-        // let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_LineVS);
-        // let uniformsMaterial = this._material.getOpacity_Forward(bundle.bindingNumber);
-        // if (uniformsMaterial) {
-        //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
-        //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-        // }
-        // let valueDC = this.generateInputValeOfDC(E_renderForDC.camera, UUID, bundle);
-        // let dc = this.DCG.generateDrawCommand(valueDC);
-        // this.cameraDC[UUID].forward.push(dc);
-    }
-    createDeferDepthDC(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
     /**
@@ -116,33 +64,12 @@ export class Lines extends EntityBundleMaterial {
     createTransparent(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
-    createShadowMapDC(input: I_ShadowMapValueOfDC): void {
-        if (this.inputValues.shadow?.generate === false) {
-            return;
-        }
-        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
-        //mesh VS 模板输出
-        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
-        
 
-        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
-        valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
-        let dc = this.DCG.generateDrawCommand(valueDC);
-        this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
-    }
-    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
-        throw new Error("Method not implemented.");
-    }
     saveJSON() {
         throw new Error("Method not implemented.");
     }
     loadJSON(json: any): void {
         throw new Error("Method not implemented.");
     }
-    /**
-     * 20251021,lines目前不考虑透明问题
-     */
-    updateUniformLayerOfTTPF(): void {
-        throw new Error("Method not implemented.");
-    }
+
 }

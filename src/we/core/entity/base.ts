@@ -27,52 +27,44 @@ export interface meshConstantsVS {
  * createDCCC的参数
  * 
  */
-export interface valuesForCreateDCCC {
-    parent: any,
-    id: string,//camera id or light id 
-    kind: E_renderForDC,//enmu 
-    matrixIndex?: number,//matrix of light MVP[]
-}
-
-
-export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
-
-
-export interface geometryBufferOfEntity {
-    /**索引buffer
-     * 非必须 
-     * 索引模型应该有2的256次方的大小限制，todo(webGPU 是否相同，20240813)
-     */
-    index?: Uint32Array,
-    /** 
-     * 可以是一个，也可以是多个属性合一的buffer
-           三角形：多属性合一的概念示例
-                position: positionArray,float32x3          
-                normal?: Float32Array,float32x3
-                uv?: Float32Array,     float32x2
-                color?: Uint8Array,    Uint8x4
-            线段：
-                position
-                color?
-                uv?
-            点：
-                position
-                color?
-     */
-    position: positionArray,
-    /** 单个数据宽度 */
-    arrayStride: number,
-    /**
-     * 多种primitive 模式
-     *  数据匹配性与正确性由具体调用负责保障
-     */
-    type: "triangles" | "lines" | "points",
-}
-
-
-export type entityID = number;
-
-
+// export interface valuesForCreateDCCC {
+//     parent: any,
+//     id: string,//camera id or light id 
+//     kind: E_renderForDC,//enmu 
+//     matrixIndex?: number,//matrix of light MVP[]
+// }
+// export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
+// export interface geometryBufferOfEntity {
+//     /**索引buffer
+//      * 非必须 
+//      * 索引模型应该有2的256次方的大小限制，todo(webGPU 是否相同，20240813)
+//      */
+//     index?: Uint32Array,
+//     /** 
+//      * 可以是一个，也可以是多个属性合一的buffer
+//            三角形：多属性合一的概念示例
+//                 position: positionArray,float32x3          
+//                 normal?: Float32Array,float32x3
+//                 uv?: Float32Array,     float32x2
+//                 color?: Uint8Array,    Uint8x4
+//             线段：
+//                 position
+//                 color?
+//                 uv?
+//             点：
+//                 position
+//                 color?
+//      */
+//     position: positionArray,
+//     /** 单个数据宽度 */
+//     arrayStride: number,
+//     /**
+//      * 多种primitive 模式
+//      *  数据匹配性与正确性由具体调用负责保障
+//      */
+//     type: "triangles" | "lines" | "points",
+// }
+// export type entityID = number;
 
 /**
  * 阴影选项
@@ -95,63 +87,30 @@ export interface IV_BaseEntity extends IV_NodeSpace {
     /**剔除面  :    "front" | "back" | "all"
      * side,显示的面，默认:front，剔除的是 ：back
     */
-    cullmode?: GPUCullMode,
+    // cullmode?: GPUCullMode,//20260323 取消，与primitive重复
 
-    /**实例化数量，默认为当前entity，无其他实例化 */
+    /**内部实例化参数，默认为只有当前entity，无其实例化 */
     instance?: I_entityInstance,
 
     /**自定义shader代码，包括VS和FS */
     shaderCode?: string,
 
-
-    // /**
-    //  * 实体是否为动态，boolean
-    //  * 默认=false
-    //  */
-    // dynamicPostion?: boolean,
-    // /**
-    //  * 是否未动态形变物体
-    //  * 默认=false
-    //  */
-    // dynamicMesh?: boolean,
-    /**初始化的参数matrix  ，这个mesh的   */
-    // matrix?: Mat4,
-    // /**初始化的参数scale     */
-    // scale?: [number, number, number],
-    // /**初始化的参数position     */
-    // position?: [number, number, number],
-    // /**初始化的参数rotatae     */
-    // rotate?: weVec4,
-
-    // /**是否每帧更新Matrix，默认=false */
-    // updatePerFrame?: boolean,
-    // name?: string,
-    /**
- * 两种情况：
- * 
- * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
- * 
- * 2、代码实时构建，可以显示的带入scene，则不用等待
- * 
- * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
- * 
- * 20241129,类型从any 改为BaseStage
- */
-    // parent?: any,
-
-}
-
-export interface I_EntityBundleMaterial extends IV_BaseEntity {
     /** 顶点属性 和几何体二选一*/
     attributes: {
-        /**几何体 */
+        /**几何体 与顶点数据二选一 */
         geometry?: BaseGeometry,
-        /** 顶点数据 */
+        /** 顶点数据 与几何体二选一 */
         data?: {
+            /** 顶点数据 */
             vertices: {
+                /** 顶点属性 
+                 * 一般包括position,normal,uv,uv1,color等
+                */
                 [name: string]: T_vsAttribute;
             },
+            /** 索引数据 */
             indices?: T_indexAttribute,
+            /** 顶点步长模式 */
             vertexStepMode?: GPUVertexStepMode,
         },
     }
@@ -162,6 +121,8 @@ export interface I_EntityBundleMaterial extends IV_BaseEntity {
     /**材质 */
     material?: BaseMaterial, //| BaseMaterial[],  
 }
+
+
 
 /**
  * 实例化参数
@@ -183,13 +144,13 @@ export interface I_entityInstance {
     index?: number[],
 }
 
-/**三段式初始化的第二步：init */
-export interface I_BaseEntityStep2 {
-    // stage: BaseStage,
-    /**render id */
-    renderID: number,
-    scene: Scene,
-}
+// /**三段式初始化的第二步：init */
+// export interface I_BaseEntityStep2 {
+//     // stage: BaseStage,
+//     /**render id */
+//     renderID: number,
+//     scene: Scene,
+// }
 
 ///////////////////////////////////////////////////////////////////////
 //

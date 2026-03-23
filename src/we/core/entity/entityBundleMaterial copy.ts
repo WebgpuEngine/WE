@@ -20,14 +20,14 @@ import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOutput, I_vsfsBundle } from "./base";
+import { I_EntityAttributes, IV_BaseEntity, I_EntityBundleOutput, I_vsfsBundle } from "./base";
 import { BaseEntity } from "./baseEntity";
 import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
 
 
 
 export abstract class EntityBundleMaterial extends BaseEntity {
-    declare inputValues: I_EntityBundleMaterial;
+    declare inputValues: IV_BaseEntity;
     /**mesh的geometry内部对象，获取attribute使用 */
     _geometry: BaseGeometry | undefined;
     /**

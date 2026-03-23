@@ -20,14 +20,19 @@ import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_EntityAttributes, I_EntityBundleMaterial, I_EntityBundleOutput, I_vsfsBundle } from "./base";
+import { I_EntityAttributes, IV_BaseEntity, I_EntityBundleOutput, I_vsfsBundle, I_ShadowMapValueOfDC, E_entityType } from "./base";
 import { BaseEntity } from "./baseEntity";
 import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
+import { BaseCamera } from "../camera/baseCamera";
+import { SHT_MeshVS } from "../shadermanagemnet/mesh/meshVS";
+import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
+import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
+import { mergeLightUUID } from "../light/lightsManager";
+import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
 
-
+type pologyMode = "triangle" | "line" | "point";
 
 export abstract class EntityBundleMaterial extends BaseEntity {
-    declare inputValues: I_EntityBundleMaterial;
     /**mesh的geometry内部对象，获取attribute使用 */
     _geometry: BaseGeometry | undefined;
     /**
@@ -38,8 +43,54 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     attributes: I_EntityAttributes = {
         vertices: {},
         vertexStepMode: "vertex",
-        indices: [],
+        // indices: [],
     };
+    // _pologyMode: pologyMode = "triangle";
+    _primitive!: GPUPrimitiveState;
+    constructor(input: IV_BaseEntity) {
+        super(input);
+        //顶点数据源处理
+        if (input.attributes.geometry) {
+            this._geometry = input.attributes.geometry;
+            let attributes = input.attributes.geometry.getAttribute();
+            for (let key in attributes) {
+                this.attributes.vertices[key] = attributes[key];
+            }
+            let indices = input.attributes.geometry.getIndeices();
+            if (indices) {
+                this.attributes.indices = indices;
+            }
+        }
+        else if (input.attributes.data) {
+            let attributes = input.attributes.data.vertices;
+            for (let key in attributes) {
+                this.attributes.vertices[key] = attributes[key];
+            }
+            if (input.attributes.data.indices) {
+                this.attributes.indices = input.attributes.data.indices;
+            }
+            if (input.attributes.data.vertexStepMode) {
+                this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;
+            }
+        }
+        else {
+            throw new Error("Mesh must have geometry or attribute data");
+        }
+        if (input.material == undefined) {
+            console.warn("Mesh constructor: material is undefined");
+        }
+        else
+            this._material = input.material;
+    }
+    /**三段式初始化的第三段
+    * 覆写 Root的function,因为材料类需要GPUDevice 
+    */
+    async readyForGPU() {
+        await this._material.init(this.scene);
+        if (this._material.getTransparent() === true) {
+            this._cullMode = "none";//透明具有双面性
+        }
+    }
 
     _vertexAndIndexBuffersUpdated: boolean = false;
     /**
@@ -472,7 +523,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param wireFrameDrawModeTemplate  wireFrame 模式的drawMode模板
      * @returns I_drawMode[] | I_drawModeIndexed[]
      */
-    getDrawModeArrayOfInstances(UUID: string, kind: E_renderForDC, wireFrameDrawModeTemplate?: I_drawMode | I_drawModeIndexed): I_drawMode[] | I_drawModeIndexed[] {
+    getDrawModeArrayOfInstances(
+        UUID: string,
+        kind: E_renderForDC,
+        wireFrameDrawModeTemplate?: I_drawMode | I_drawModeIndexed
+    ): I_drawMode[] | I_drawModeIndexed[] {
         /**步骤
          * 1、获取entity drawMode模板
          * 2、可见性
@@ -497,7 +552,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         // 可见的实例ID数组
         let visibleInstanceIDArray: number[] = [];
         // 遍历所有实例ID：可见性可用性判断
-                // if (scope.attributes.indices) {
+        // if (scope.attributes.indices) {
         for (let i in this.outSideInstance) {
             let visibleOfNode = true;
             let enableOfNode = true;
@@ -631,9 +686,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 },
                 fragment,
                 drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind) },
-                primitive: {
-                    cullMode: scope._cullMode,
-                }
+                primitive: scope._primitive,
             },
             system: {
                 UUID,
@@ -646,6 +699,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 renderID: scope.ID,
             }
         }
+
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
         if (bundle.fsBundle && bundle.fsBundle.shaderTemplateFinal.material?.dynamic === true) {
             valueDC.dynamic = true;
@@ -653,6 +707,12 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         if (scope.inputValues.primitive) {
             valueDC.render.primitive = scope.inputValues.primitive;
         }
+        else {
+            if (scope.kind == E_entityType.lines) {
+                valueDC.render.primitive!.topology = "line-list";
+            }
+        }
+
         if (vsOnly)
             delete valueDC.render.fragment;
         return valueDC;
@@ -763,5 +823,42 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         return dc;
     }
 
+    /**
+     * 为每个camera创建前向渲染的DrawCommand
+     * @param camera 
+     */
+    createForwardDC(camera: BaseCamera): void {
+        let UUID = camera.UUID;
+        let SHT_VS = SHT_MeshVS;
+        if (this.kind === E_entityType.lines) {
+            SHT_VS = SHT_LineVS;
+        }
+        else if (this.kind === E_entityType.points) {
+            SHT_VS = SHT_PointVS;
+        }
+        let dc = this.generateOpacityDC(UUID, SHT_VS);
+        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+    }
+    /**
+     * 为每个light创建阴影映射的DrawCommand
+     * 注意：
+     *      1、目前VS的SHT，只使用了一个通用的SHT_MeshShadowMapVS
+     * @param input 
+     */
+    createShadowMapDC(input: I_ShadowMapValueOfDC): void {
+        if (this.inputValues.shadow?.generate === false) {
+            return;
+        }
+        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
+        //mesh VS 模板输出
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
 
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
+        valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
+        let dc = this.DCG.generateDrawCommand(valueDC);
+        this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
+    }
+    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
+        throw new Error("Method not implemented.");
+    }
 }

@@ -1,3 +1,4 @@
+import { sup } from "../../../../@loaders.gl/draco/dist/draco-worker-node";
 import { weColor3, E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { DrawCommand } from "../../command/DrawCommand";
@@ -9,12 +10,12 @@ import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_PointVS } from "../../shadermanagemnet/mesh/pointsVS";
 import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
-import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
 /**mesh的顶点结构与材质，各有一个，一一对应 */
-export interface IV_PointsEntity extends I_EntityBundleMaterial {
+export interface IV_PointsEntity extends IV_BaseEntity {
 
     /** 顶点属性 和几何体二选一*/
     attributes: {
@@ -51,7 +52,7 @@ export type T_PointEmulate = "none" | "square" | "circular" | "sphere" | "cube" 
 export class Points extends EntityBundleMaterial {
 
 
-    declare inputValues: IV_PointsEntity;
+    override inputValues: IV_PointsEntity;
 
     size: number = 1;
     color: weColor3 = [1, 1, 1];
@@ -73,13 +74,6 @@ export class Points extends EntityBundleMaterial {
         }
     }
     constructor(input: IV_PointsEntity) {
-        // if (input.instance == undefined && input.emulate && input.emulate != "none") {
-        //     input.instance = {
-        //         numInstances: input.attributes.data.vertices.position.length / 3,
-        //         position: input.attributes.data.vertices.position,
-        //         index:this.emulateData[this.emulate].indices
-        //     }
-        // }
         super(input);
         this.kind = E_entityType.points;
         this.inputValues = input;
@@ -133,7 +127,15 @@ export class Points extends EntityBundleMaterial {
                     this.instance.scale = new Array(this.instance.position.length).fill(this.size);
                 }
             }
-
+            if (input.primitive) {
+                this._primitive = input.primitive;
+            }
+            else {
+                this._primitive = {
+                    topology: "triangle-list",
+                    cullMode: this._cullMode
+                }
+            }
         }
         else {//非模拟模式
             //属性数据
@@ -155,6 +157,14 @@ export class Points extends EntityBundleMaterial {
                 if (input.attributes.data.vertexStepMode) {
                     this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;
                 }
+                if (input.primitive) {
+                    this._primitive = input.primitive;
+                }
+                else {
+                    this._primitive = {
+                        topology: "point-list",
+                    }
+                }
             }
             else {
                 throw new Error("Points must have  attribute data");
@@ -167,32 +177,27 @@ export class Points extends EntityBundleMaterial {
     }
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
-    async readyForGPU() {
+    override async readyForGPU() {
         if (this.inputValues.material == undefined || this.inputValues.color != undefined) {
             this._material = new ColorMaterial({
                 color: [...this.color, 1],
             });
-            await this._material.init(this.scene);
         }
-        else {
-            await this._material.init(this.scene);
-        }
-        if (this._material.getTransparent() === true) {
-            this._cullMode = "none";
-        }
+        await super.readyForGPU();
     }
     _destroy(): void {
         throw new Error("Method not implemented.");
     }
 
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
-        if (scope == undefined) scope = this;
-        let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
-        valueDC.render.primitive = {
-            topology: "point-list"
-        }
-        return valueDC;
-    }
+    /**
+     * 生成模拟点的DrawCommand参数
+     * @param type 渲染类型
+     * @param UUID camera UUID or light merge UUID
+     * @param vsBundle 实体的uniform和shader模板
+     * @param vsOnly 是否只渲染顶点
+     * @param scope this
+     * @returns IV_DrawCommand
+     */
     generateEmuInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
         if (scope == undefined) scope = this;
         let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
@@ -208,11 +213,11 @@ export class Points extends EntityBundleMaterial {
      * emulate points 是以instance方式绘制
      * @param camera 
      */
-    createForwardDC(camera: BaseCamera): void {
+    override createForwardDC(camera: BaseCamera): void {
         let UUID = camera.UUID;
         let dc: DrawCommand;
         if (this.emulate == "none") {
-            dc = this.generateOpacityDC(UUID, SHT_PointVS);
+            super.createForwardDC(camera);
         }
         else {
             if (this.emulate == "sprite") {
@@ -221,14 +226,11 @@ export class Points extends EntityBundleMaterial {
             else {
                 dc = this.generateOpacityDC(UUID, SHT_PointVS, undefined, undefined, this.generateEmuInputValueOfDC);
             }
+            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+
         }
-        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
     }
 
-    createDeferDepthDC(camera: BaseCamera): void {
-        throw new Error("Method not implemented.");
-
-    }
     createTransparent(camera: BaseCamera): void {
         throw new Error("Method not implemented.");
     }
@@ -238,7 +240,7 @@ export class Points extends EntityBundleMaterial {
      * @param input 
      * @returns 
      */
-    createShadowMapDC(input: I_ShadowMapValueOfDC): void {
+    override createShadowMapDC(input: I_ShadowMapValueOfDC): void {
         let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
         if (this.inputValues.shadow?.generate === false) {
             return;
@@ -249,7 +251,6 @@ export class Points extends EntityBundleMaterial {
 
         let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
         valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
-        let dc = this.DCG.generateDrawCommand(valueDC);
         if (this.emulate == "none") {
             valueDC.render.primitive = {
                 topology: "point-list",
@@ -262,6 +263,7 @@ export class Points extends EntityBundleMaterial {
                 cullMode: this._cullMode
             }
         }
+        let dc = this.DCG.generateDrawCommand(valueDC);
         this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
     }
     createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {

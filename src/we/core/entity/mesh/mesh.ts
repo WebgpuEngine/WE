@@ -11,12 +11,12 @@ import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
 import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 import { SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/wireFrameVS";
-import { E_entityType, I_EntityAttributes, I_EntityBundleMaterial, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { E_entityType, I_EntityAttributes, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
 /**mesh的顶点结构与材质，各有一个，一一对应 */
-export interface IV_MeshEntity extends I_EntityBundleMaterial {
+export interface IV_MeshEntity extends IV_BaseEntity {
 
     /**线框 wireframe    */
     wireFrame?: {
@@ -43,7 +43,7 @@ export interface IV_MeshEntity extends I_EntityBundleMaterial {
 }
 
 export class Mesh extends EntityBundleMaterial {
-    declare inputValues: IV_MeshEntity;
+    override inputValues: IV_MeshEntity;
 
     /**
      * mesh的wireframe材质内部对象，获取uniform、bindingroup字符串、SHT等使用
@@ -69,44 +69,12 @@ export class Mesh extends EntityBundleMaterial {
             indices: [],
             indexCount: 0,
         };
-    /** 顶点数据 */
-    attributes: I_EntityAttributes = {
-        vertices: {},
-        vertexStepMode: "vertex",
-        // indices: [],
-    };
 
 
     constructor(input: IV_MeshEntity) {
         super(input);
         this.kind = E_entityType.mesh;
         this.inputValues = input;
-        if (input.attributes.geometry) {
-            this._geometry = input.attributes.geometry;
-            let attributes = input.attributes.geometry.getAttribute();
-            for (let key in attributes) {
-                this.attributes.vertices[key] = attributes[key];
-            }
-            let indices = input.attributes.geometry.getIndeices();
-            if (indices) {
-                this.attributes.indices = indices;
-            }
-        }
-        else if (input.attributes.data) {
-            let attributes = input.attributes.data.vertices;
-            for (let key in attributes) {
-                this.attributes.vertices[key] = attributes[key];
-            }
-            if (input.attributes.data.indices) {
-                this.attributes.indices = input.attributes.data.indices;
-            }
-            if (input.attributes.data.vertexStepMode) {
-                this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;
-            }
-        }
-        else {
-            throw new Error("Mesh must have geometry or attribute data");
-        }
         if (input.wireFrame && (input.attributes.geometry || Array.isArray(input.attributes.data?.indices))) {//不考虑输入的indices是GPUBuffer的情况，比如gltf，也就是说只有number[]的情况，可以使用wireframe
             this._wireframe.enable = input.wireFrame.enable;
             if (input.wireFrame.wireFrameOnly) {
@@ -173,11 +141,15 @@ export class Mesh extends EntityBundleMaterial {
         else {
             this._wireframe.enable = false;//如果没有indices不是number[]，就不创建线框
         }
-        if (input.material == undefined) {
-            console.warn("Mesh constructor: material is undefined");
+        if (input.primitive) {
+            this._primitive = input.primitive;
         }
-        else
-            this._material = input.material;
+        else {
+            this._primitive = {
+                topology: "triangle-list",
+                cullMode: this._cullMode,
+            };
+        }
     }
     _destroy(): void {
         // //1、删除所有的DrawCommand
@@ -191,16 +163,13 @@ export class Mesh extends EntityBundleMaterial {
     }
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
-    async readyForGPU() {
-        await this._material.init(this.scene);
+    override async readyForGPU() {
+        await super.readyForGPU();
         if (this._wireframe.enable) {
             this._materialWireframe = new WireFrameMaterial({
                 color: this._wireframe.wireFrameColor as weColor4,
             })
             await this._materialWireframe.init(this.scene);
-        }
-        if (this._material.getTransparent() === true) {
-            this._cullMode = "none";
         }
         // this._state = E_lifeState.finished;
     }
@@ -288,45 +257,24 @@ export class Mesh extends EntityBundleMaterial {
         }
         return valueDC;
     }
-    /**
-     * 生成DrawCommand的input value
-     * 1、透明材质的entity使用
-     * 2、shadowmap的entity使用
-     * @param type 渲染类型
-     * @param UUID camera UUID or light merge UUID
-     * @param bundle 实体的uniform和shader模板
-     * @param vsOnly 是否只生成VS shaderModule
-     * @param scope this
-     * @returns IV_DC
-     *    注意：
-     *          1、IV_DC中render.vertex.code中只包含entity部分，scene部分已经合并。与generateOpacityDC（）不同。
-     */
-    generateInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh): IV_DC {
-        if (scope == undefined) scope = this;
-        let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
-        return valueDC;
-    }
 
     /**
      * 为每个camera创建前向渲染的DrawCommand
      * @param camera 
      */
-    createForwardDC(camera: BaseCamera): void {
-        let UUID = camera.UUID;
-        if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
-            let dc = this.generateOpacityDC(UUID, SHT_MeshVS);
-            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+    override createForwardDC(camera: BaseCamera): void {
+        if (this._wireframe.wireFrameOnly !== true) {
+            super.createForwardDC(camera);
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
+            let UUID = camera.UUID;
             let dc = this.generateOpacityDC(UUID, SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
             this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         }
     }
 
-    createDeferDepthDC(camera: BaseCamera): void {
-        throw new Error("Method not implemented.");
-    }
+
     createTransparent(camera: BaseCamera): void {
         let UUID = camera.UUID;
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
@@ -464,34 +412,6 @@ export class Mesh extends EntityBundleMaterial {
             this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         }
     }
-
-    createShadowMapDC(input: I_ShadowMapValueOfDC): void {
-        if (this.inputValues.shadow?.generate === false) {
-            return;
-        }
-        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
-        if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
-            //mesh VS 模板输出
-            let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
-
-            let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
-            valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
-            let dc = this.DCG.generateDrawCommand(valueDC);
-            this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
-        }
-
-
-    }
-    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
-        throw new Error("Method not implemented.");
-    }
-    saveJSON() {
-        throw new Error("Method not implemented.");
-    }
-    loadJSON(json: any): void {
-        throw new Error("Method not implemented.");
-    }
-
     /**
      * 生成线框的索引
      * @param position 顶点位置数组
@@ -529,11 +449,10 @@ export class Mesh extends EntityBundleMaterial {
         }
         return indeicesWireframe;
     }
-    /**
-     * 20260313 作废，使用公共的TTPF
-     * 更新TTPF的uniform
-     */
-    // updateUniformLayerOfTTPF(): void {
-    //     this.DCG.updateUniformOfGPUBuffer(this.unifromTTPF);
-    // }
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
 }

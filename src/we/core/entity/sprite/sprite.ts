@@ -6,11 +6,11 @@ import { BaseCamera } from "../../camera/baseCamera";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
-import { E_entityType, I_EntityBundleMaterial, I_ShadowMapValueOfDC } from "../base";
+import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
-export interface IV_Sprite extends I_EntityBundleMaterial {
+export interface IV_Sprite extends IV_BaseEntity {
     width: number;
     height: number;
     material: BaseMaterial, //| BaseMaterial[], 

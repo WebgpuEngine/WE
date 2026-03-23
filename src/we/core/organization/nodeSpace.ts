@@ -10,6 +10,14 @@ import { isWeVec3, isWeVec4, isWeMat4 } from "../base/coreFunction";
 import { Clock } from "../scene/clock";
 import { RootGPU } from "./root";
 
+/**
+ * 世界坐标关系传递模式，默认all
+ * all：传递所有坐标关系
+ * none：不传递任何坐标关系
+ * position：传递位置坐标关系
+ * withOutScale：传递位置坐标关系，不传递缩放坐标关系
+ * */
+export type T_worldRelationTransmit = "all" | "none" | "position" | "withOutScale";
 
 export interface IV_NodeSpace extends I_Update {
     position?: weVec3,
@@ -17,6 +25,7 @@ export interface IV_NodeSpace extends I_Update {
     rotate?: weVec4,
     quaternion?: weVec4,
     matrix?: weMat4,
+    relation?: T_worldRelationTransmit,
 }
 export abstract class NodeSpace extends RootGPU {
     enable: boolean = true;
@@ -220,7 +229,7 @@ export abstract class NodeSpace extends RootGPU {
         //正确，这么看，webGPU-matrix是列优先（即左乘），与数学中的行优先不同。
         // //但其在内部进行变换后，还应该是右乘的顺序，比较奇怪
         this.matrix = mat4.multiply(rotationMatrix, this.matrix);
-        
+
     }
     /** 绕任意轴旋转 */
     rotate = this.rotateAxis;

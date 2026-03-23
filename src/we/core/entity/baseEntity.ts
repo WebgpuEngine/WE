@@ -17,7 +17,7 @@ import { Clock } from "../scene/clock";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { I_bindGroupAndGroupLayout, I_uniformArrayBufferEntry } from "../command/base";
+import { I_bindGroupAndGroupLayout } from "../command/base";
 import { I_ShaderTemplate } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
@@ -47,9 +47,6 @@ export abstract class BaseEntity extends NodeSpace {
      * 这里指的是颜色前向，光影延迟
      */
     deferColor!: boolean;
-
-
-
     /** uv动画使用 */
     _uv: weVec2 = [0, 0];
     ///////////////////////////////////////////
@@ -265,7 +262,7 @@ export abstract class BaseEntity extends NodeSpace {
     abstract getTransparent(): boolean;
 
     /**延迟渲染的深度渲染：单像素模延迟 ，不透明*/
-    abstract createDeferDepthDC(camera: BaseCamera): void
+    // abstract createDeferDepthDC(camera: BaseCamera): void
     /**前向渲染 不透明 */
     abstract createForwardDC(camera: BaseCamera): void
     /**透明渲染 */
@@ -286,8 +283,12 @@ export abstract class BaseEntity extends NodeSpace {
      */
     abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput
 
+
+    inputValues: IV_BaseEntity;
+
     constructor(input: IV_BaseEntity) {
         super(input);
+        this.inputValues = input;
         this.type = "entity";
         this._state = E_lifeState.constructing;
         this.input = input;
@@ -295,26 +296,23 @@ export abstract class BaseEntity extends NodeSpace {
             this.instance = input.instance;
             this.checkInstance();
         }
-
-        if (input.cullmode) {
-            this._cullMode = input.cullmode;
+        if (input.primitive?.cullMode) {
+            this._cullMode = input.primitive.cullMode;
         }
         //////////////////
         //about shader
         if (input.shadow) {
             if (input.shadow.accept === false) this._shadow.accept = false;
-            if (input.shadow.generate === false) {
-                this._shadow.generate = false;
-            }
+            if (input.shadow.generate === false) this._shadow.generate = false;
         }
         // console.log(this.ID);
         this._state = E_lifeState.constructed;
 
     }
     abstract detachData(): void;
-    // /**
-    //  * 检查内部instance是否合法
-    //  */
+    /**
+     * 检查内部instance是否合法
+     */
     checkInstance() {
         if (this.instance.index) {
             if (this.instance.index.length < this.instance.numInstances) {
@@ -990,10 +988,10 @@ export abstract class BaseEntity extends NodeSpace {
                 return 1;
             case "wolrdMatrix":
                 return 2;
-            case "morphMatrix":
-                return 3;
-            case "jointMatrix":
-                return 4;
+            // case "morphMatrix":
+            //     return 3;
+            // case "jointMatrix":
+            //     return 4;
         }
         throw new Error(`未找到绑定${name}`);
     }
