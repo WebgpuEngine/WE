@@ -11,6 +11,7 @@ import { weVec4 } from "../../../src/we/core/base/coreDefine";
 import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
 import { E_AnimationType } from "../../../src/we/core/animation/base";
 import { VertexColorMaterial } from "../../../src/we/core/material/standard/vertexColorMaterial";
+import { LinesSkins } from "../../../src/we/core/entity/animationEntity/linesOfSkins";
 
 declare global {
   interface Window {
@@ -119,7 +120,7 @@ let inputMesh: IV_LinesEntity = {
   material: colorMaterial,
 
 }
-let lines = new Lines(inputMesh);
+let lines = new LinesSkins(inputMesh);
 
 const numBones = 4;//只用到了前3个骨骼
 const boneArray = new ArrayBuffer(numBones * 16 * 4);      //世界矩阵*逆绑定矩阵

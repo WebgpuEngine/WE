@@ -36,15 +36,16 @@
  *  B、skinAnimation.stop()由AnimationGroup.stop()触发。
  * 
  */
-import { Mat4 } from "wgpu-matrix";
 import { WeGenerateUUID } from "../math/baseFunction";
-import { I_UUID, NodeObject } from "../organization/root";
+import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { E_AnimationType, E_PlayState, I_AnimationPlayParams } from "./base";
+import { E_AnimationType, E_PlayState } from "./base";
 import { SkinsManager } from "./skinsManager";
 import { BaseEntity } from "../entity/baseEntity";
 import { IV_Skeleton, Skeleton } from "./skeleton";
+import { NodeObject } from "../organization/nodeObject";
+import { SkinsEntity } from "../entity/animationEntity/skinsEntity";
 
 export interface IV_SkinAnimationValue {
     parent: NodeObject;
@@ -53,7 +54,7 @@ export interface IV_SkinAnimationValue {
     /** entity 实体,必须是parent之下的entity
      * 这个可以忽略
      */
-    entity?: BaseEntity;
+    entity?: SkinsEntity;
 }
 export class SkinAnimation implements I_UUID {
     UUID: string;
@@ -67,6 +68,7 @@ export class SkinAnimation implements I_UUID {
     skeleton: Skeleton | undefined;
 
     playOnce: boolean = false;
+    entity: SkinsEntity | undefined;
 
     constructor(values: IV_SkinAnimationValue) {
         this.parent = values.parent;
@@ -79,29 +81,30 @@ export class SkinAnimation implements I_UUID {
         if (this.parent.Entity == undefined) {
             throw new Error("SkinAnimation: parent entity is undefined");
         }
+        this.entity = this.parent.Entity as SkinsEntity;
 
 
         if (values.skeleton instanceof Skeleton) {
             this.skeleton = values.skeleton;
-            if (this.parent.Entity.JointsMatCount === 0) {
+            if (this.entity.JointsMatCount === 0) {
                 //设置JointsMatCount
-                this.parent.Entity.JointsMatCount = this.skeleton.joints.length;
+                this.entity.JointsMatCount = this.skeleton.joints.length;
             }
         }
-        else if (values.skeleton.joints.length != this.parent.Entity.JointsMatCount) {
-            if (this.parent.Entity.JointsMatCount === 0) {
+        else if (values.skeleton.joints.length != this.entity.JointsMatCount) {
+            if (this.entity.JointsMatCount === 0) {
                 //设置JointsMatCount
-                this.parent.Entity.JointsMatCount = values.skeleton.joints.length;
+                this.entity.JointsMatCount = values.skeleton.joints.length;
             }
             this.skeleton = new Skeleton(values.skeleton);
         }
         else {
             throw new Error("SkinAnimation: skeleton joints length is not equal to parent entity JointsMatCount");
         }
-        this.parent.Entity.JointsMatCount = this.skeleton.joints.length;
-        this.parent.Entity.JointMatrixByteSize = 16 * 4 * this.skeleton.joints.length;
-        // this.parent.Entity.AnimationType=E_AnimationType.skeleton;
-        this.parent.Entity._animationType.add(E_AnimationType.skeleton);
+        this.entity.JointsMatCount = this.skeleton.joints.length;
+        this.entity.JointMatrixByteSize = 16 * 4 * this.skeleton.joints.length;
+        // this.entity.AnimationType=E_AnimationType.skeleton;
+        this.entity._animationType.add(E_AnimationType.skeleton);
         this.parent._skinAnimation.push(this);
         this.parent._jointsMat = this.skeleton.output;
         this.manager = this.scene.skinsManager;

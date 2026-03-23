@@ -10,6 +10,7 @@ import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_Interpol
 import { Skeleton } from "../../../src/we/core/animation/skeleton";
 import { SkinAnimation } from "../../../src/we/core/animation/skin";
 import { AnimationGroup } from "../../../src/we/core/animation/animationGroup";
+import { LinesSkins } from "../../../src/we/core/entity/animationEntity/linesOfSkins";
 
 declare global {
   interface Window {
@@ -120,7 +121,7 @@ let inputMesh: IV_LinesEntity = {
   material: colorMaterial,
 
 }
-let lines = new Lines(inputMesh);
+let lines = new LinesSkins(inputMesh);
 window.mesh = lines;
 
 const numBones = 4;//只用到了前3个骨骼

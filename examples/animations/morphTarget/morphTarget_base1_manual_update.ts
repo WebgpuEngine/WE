@@ -12,6 +12,7 @@ import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
 import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
 import { VertexColorMaterial } from "../../../src/we/core/material/standard/vertexColorMaterial";
 import { Interpolator, IV_Interpolator } from "../../../src/we/core/animation/interpolator";
+import { LinesMorphTarget } from "../../../src/we/core/entity/animationEntity/linesOfMorphTarget";
 
 declare global {
   interface Window {
@@ -89,7 +90,7 @@ let inputMesh: IV_LinesEntity = {
   material: colorMaterial,
 
 }
-let lines = new Lines(inputMesh);
+let lines = new LinesMorphTarget(inputMesh);
 
 
 
@@ -122,6 +123,8 @@ let linesEntity = await scene.add(
     }
   }
 );
+linesEntity.MorphTarget = morphTargetArray;
+
 interpolationMorphTarget.play(
   {
     mode:
@@ -130,7 +133,6 @@ interpolationMorphTarget.play(
     }
   }
 );
-linesEntity.MorphTarget = morphTargetArray;
 
 window.mesh = linesEntity;
 

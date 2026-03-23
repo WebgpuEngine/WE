@@ -1,27 +1,11 @@
-import { E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { mergeLightUUID } from "../../light/lightsManager";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_LineVS } from "../../shadermanagemnet/mesh/linesVS";
-import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
-// import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
-import { EntityBundleMaterial } from "../entityBundleMaterial";
+import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
+import { E_entityType } from "../base";
+import { IV_LinesEntity } from "../mesh/lines";
+import { SkinsEntity } from "./skinsEntity";
 
-
-/**mesh的顶点结构与材质，各有一个，一一对应 */
-export interface IV_LinesEntity extends IV_BaseEntity {
-    /**
-     * 代替GPUPrimitiveState.topology
-     */
-    lineMode?: "line-list" | "line-strip",
-}
-
-export class Lines extends EntityBundleMaterial {
-
-    override inputValues: IV_LinesEntity;
-
-
+export class LinesSkins extends SkinsEntity {
     lineMode: "line-list" | "line-strip" = "line-list";
 
     constructor(input: IV_LinesEntity) {
@@ -58,18 +42,12 @@ export class Lines extends EntityBundleMaterial {
     _destroy(): void {
         throw new Error("Method not implemented.");
     }
-    /**
-     * 20251021,lines目前不考虑透明问题,还是输出不透明
-     */
+    override createForwardDC(camera: BaseCamera): void {
+        let UUID = camera.UUID;
+        let dc = this.generateOpacityDC(UUID, SHT_MeshSkinsVS);
+        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+    }
     override createTransparent(camera: BaseCamera): void {
         this.createForwardDC(camera);
     }
-
-    saveJSON() {
-        throw new Error("Method not implemented.");
-    }
-    loadJSON(json: any): void {
-        throw new Error("Method not implemented.");
-    }
-
 }

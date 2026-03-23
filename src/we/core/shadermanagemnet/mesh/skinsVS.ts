@@ -2,9 +2,11 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_ScenOfCamera, WGSL_s
 import { st_entity, replace_meshoutput } from "./common";
 
 //entity
-import meshMainWGSL from "../../shader/entity/mesh/main.vs.wgsl?raw"
-var meshMain = meshMainWGSL.toString();
+import meshSkinsMainWGSL from "../../shader/entity/skins/skins.vs.wgsl?raw"
+var meshSkinsMain = meshSkinsMainWGSL.toString();
 
+import  st_entityOfSkinsWGSL from "../../shader/entity/skins/st_entity_instances_skins.vs.wgsl?raw";
+var st_entitySkins = st_entityOfSkinsWGSL.toString();   
 
 /** Mesh SHT */
 export var SHT_MeshSkinsVS: I_ShaderTemplate = {
@@ -22,11 +24,11 @@ export var SHT_MeshSkinsVS: I_ShaderTemplate = {
             },
             {
                 name: "st_entity",
-                code: st_entity,
+                code: st_entitySkins,
             },
             {
                 name: "vs",
-                code: meshMain,
+                code: meshSkinsMain,
             },
 
         ],

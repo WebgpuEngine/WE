@@ -2,9 +2,9 @@ import { I_bindGroupAndGroupLayout } from "../../command/base";
 import { createEmptyGPUBuffer } from "../../command/baseFunction";
 import { Clock } from "../../scene/clock";
 import { IV_BaseEntity } from "../base";
-import { EntityBundleMaterial } from "../entityBundleMaterial";
+import { AnimationEntity } from "./animationEntity";
 
-export abstract class MorphTargetEntity extends EntityBundleMaterial {
+export abstract class MorphTargetEntity extends AnimationEntity {
     /**顶点数量 */
     vertexCount: number = 0;
 
@@ -83,34 +83,24 @@ export abstract class MorphTargetEntity extends EntityBundleMaterial {
         this._morphTargetWeightsCount = countFromAttribute;
         return countFromAttribute == count;
     }
-    /** 更新entity的自定义属性
-     * 1、更新entity的uniform 通用
-     * 2、更新entity的instance buffer
-     * 3、更新entity的world matrix buffer
-     * 4、更新entity的morphtarget buffer
-     * 5、更新entity的joint matrix buffer
-     * 6、检查是否有新摄像机，有进行更新
-     * 7、检查是否有新光源，有进行更新
-     * 8、DCG的uniform更新
-     * @param clock 时钟
-     */
-    override updateSelf(clock: Clock) {
-        super.updateSelf(clock);
-        this.updateMorphtTargetBuffer();        //更新morphtarget buffer
+    async updateAnimationBuffer() {
+        this.updateMorphtTargetBuffer();
     }
     /**
      * 被update调用，更新vs、fs的uniform
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    override updateUniformCommonEntity(clock: Clock, write: boolean = true): void {
+    override updateUniformCommonEntity(clock: Clock, _write: boolean = true): void {
         super.updateUniformCommonEntity(clock, false);
         if (this.bufferCPU.uniformCommonEntity !== undefined) {
             const st_entityValues = this.bufferCPU.uniformCommonEntity;
             const st_entityViews = {
+                animation_kind: new Uint32Array(st_entityValues, 16, 1),
                 morpht_target_count: new Uint32Array(st_entityValues, 20, 1),
                 vertex_count: new Uint32Array(st_entityValues, 24, 1),
             };
+            st_entityViews.animation_kind[0] = this.getAnimationKind();
             st_entityViews.morpht_target_count[0] = this.MorphtTargetCount;
             st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
             this.device.queue.writeBuffer(this.bufferGPU.uniformCommonEntity!, 0, this.bufferCPU.uniformCommonEntity);

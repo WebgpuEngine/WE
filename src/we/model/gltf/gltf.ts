@@ -42,6 +42,10 @@ import { Skeleton } from "../../core/animation/skeleton";
 import { NodeObject, NodeInstanceModel } from "../../core/organization/nodeObject";
 import { IV_NodeSpace } from "../../core/organization/nodeSpace";
 import { RootGPU } from "../../core/organization/root";
+import { MeshMorphTarget } from "../../core/entity/animationEntity/meshOfMorphTarget";
+import { LinesMorphTarget } from "../../core/entity/animationEntity/linesOfMorphTarget";
+import { LinesSkins } from "../../core/entity/animationEntity/linesOfSkins";
+import { MeshSkins } from "../../core/entity/animationEntity/meshOfSkins";
 
 
 export interface I_gltfInstanceResource {
@@ -92,6 +96,9 @@ export class GLTFModel extends BaseModel {
             "animation": new Map<any, any>(),
         };
     instanceNodes: Map<any, I_gltfInstanceResource> = new Map();
+    /** gltf模型中的mesh和skin的绑定 
+     * 1、在initScene()中使用addNode()时，根据node的mesh和skin，push到meshAndSkinBundle中.
+    */
     meshAndSkinBundle: { meshID: number, skinID: number, nodeID: number }[] = [];
 
     constructor(input: I_Model) {
@@ -126,7 +133,7 @@ export class GLTFModel extends BaseModel {
     }
 
     /**
-     * 初始化场景，主入口。
+     * 初始化场景入口。
      * 1、gltf会新建一个node object作为场景节点，并返回
      * 2、根据场景索引，初始化场景中的节点
      * 3、初始化节点是递归操作（包括camera）
@@ -794,7 +801,10 @@ export class GLTFModel extends BaseModel {
             // console.log("meshes.count ", meshes.length);
             for (let i in meshes) {
                 let meshSource = meshes[i];
+                let flagSkins: boolean = this.meshHasSkins(parseInt(i));
+
                 for (let j in meshSource.primitives) {
+                    let flagMorphTarget: boolean = this.meshHasMorphTarget(meshSource.primitives[j]);
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //base  part
                     let primitive = meshSource.primitives[j];       //mesh的primitive
@@ -802,7 +812,7 @@ export class GLTFModel extends BaseModel {
                     if (primitiveMode == undefined) {               //设置primitiveMode为默认值4，GL_TRIANGLES
                         primitiveMode = 4;
                     }
-                    let name = meshSource.name ?? i;
+                    let name = (meshSource.name ?? i) + ` ${j}`;
                     let inputEntity: IV_MeshEntity | IV_PointsEntity | IV_LinesEntity;  //enity 属性
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //material part
@@ -915,15 +925,31 @@ export class GLTFModel extends BaseModel {
                         material: materialOfPerEntity,
                     };
 
-                    let entity: Mesh | Points | Lines;
+                    let entity: Mesh | Points | Lines | MeshMorphTarget | MeshSkins | LinesMorphTarget | LinesSkins;
                     if (primitiveMode == 4 || primitiveMode == 5 || primitiveMode == 6) {
-                        entity = new Mesh(inputEntity as IV_MeshEntity);
+                        if (flagMorphTarget) {
+                            entity = new MeshMorphTarget(inputEntity as IV_MeshEntity);
+                        }
+                        else if (flagSkins) {
+                            entity = new MeshSkins(inputEntity as IV_MeshEntity);
+                        }
+                        else {
+                            entity = new Mesh(inputEntity as IV_MeshEntity);
+                        }
                     }
                     else if (primitiveMode == 0) {
                         entity = new Points(inputEntity as IV_PointsEntity);
                     }
                     else if (primitiveMode == 1 || primitiveMode == 2 || primitiveMode == 3) {
-                        entity = new Lines(inputEntity as IV_LinesEntity);
+                        if (flagMorphTarget) {
+                            entity = new LinesMorphTarget(inputEntity as IV_LinesEntity);
+                        }
+                        else if (flagSkins) {
+                            entity = new LinesSkins(inputEntity as IV_LinesEntity);
+                        }
+                        else {
+                            entity = new Lines(inputEntity as IV_LinesEntity);
+                        }
                     }
                     else {
                         throw new Error("primitiveMode not support");
@@ -942,7 +968,12 @@ export class GLTFModel extends BaseModel {
      * @param primitiveID primitiveID
      * @returns 顶点数据集合
     */
-    async getVerticesOfPrimitive(primitive: any, meshID: string, primitiveID: string): Promise<{ [name: string]: I_vsGPUBufferBundle }> {
+    async getVerticesOfPrimitive(primitive: any, meshID: string, primitiveID: string)
+        : Promise<
+            {
+                [name: string]: I_vsGPUBufferBundle
+            }
+        > {
         let verticesOfDataOfEntity: {
             [name: string]: I_vsGPUBufferBundle
         } = {};
@@ -1042,6 +1073,30 @@ export class GLTFModel extends BaseModel {
                 verticesOfDataOfEntity["position_" + index] = accessor as I_vsGPUBufferBundle;
             }
         return verticesOfDataOfEntity;
+    }
+    /** 判断primitive是否有morph target
+     * @param primitive primitive
+     * @returns boolean 是否有morph target
+    */
+    meshHasMorphTarget(primitive: any): boolean {
+        if (primitive.targets) {
+            return true;
+        }
+        return false;
+    }
+    meshAndSkin: Map<number, number> | undefined;
+
+    meshHasSkins(meshID: number): boolean {
+        if (this.meshAndSkin === undefined) {
+            this.meshAndSkin = new Map();
+            let nodes = this.DataLoader.getNodes()!;
+            for (let i of nodes) {
+                if ("skin" in i && "mesh" in i) {
+                    this.meshAndSkin.set(i.mesh, i.skin);
+                }
+            }
+        }
+        return this.meshAndSkin.has(meshID);
     }
     /** 获取primitive的索引缓冲区和drawMode 
      * @param primitive primitive

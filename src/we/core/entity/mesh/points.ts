@@ -231,8 +231,8 @@ export class Points extends EntityBundleMaterial {
         }
     }
 
-    createTransparent(camera: BaseCamera): void {
-        throw new Error("Method not implemented.");
+    override createTransparent(camera: BaseCamera): void {
+        this.createForwardDC(camera);
     }
     /**
      * 20260322 代码未测试

@@ -3,9 +3,9 @@ import { createEmptyGPUBuffer } from "../../command/baseFunction";
 import { Clock } from "../../scene/clock";
 import { Scene } from "../../scene/scene";
 import { IV_BaseEntity } from "../base";
-import { EntityBundleMaterial } from "../entityBundleMaterial";
+import { AnimationEntity } from "./animationEntity";
 
-export abstract class SkinsEntity extends EntityBundleMaterial {
+export abstract class SkinsEntity extends AnimationEntity {
     /**storage array(初始化默认一个矩阵，以适配没有joint的通用情况；)
      * 每个instance的joint matrix size
      * 1、matrix以16*4 byte一个单位计算
@@ -63,22 +63,21 @@ export abstract class SkinsEntity extends EntityBundleMaterial {
     set JointsMatCount(count: number) {
         this._jointsMattricesCount = count;
     }
-    override updateSelf(clock: Clock) {
-        super.updateSelf(clock);
-        this.updateJointMatrixBuffer();         //更新joint matrix buffer
-    }
+
     /**
      * 被update调用，更新vs、fs的uniform
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    override updateUniformCommonEntity(clock: Clock, write: boolean = true): void {
+    override updateUniformCommonEntity(clock: Clock, _write: boolean = true): void {
         super.updateUniformCommonEntity(clock, false);
         if (this.bufferCPU.uniformCommonEntity !== undefined) {
             const st_entityValues = this.bufferCPU.uniformCommonEntity;
             const st_entityViews = {
+                animation_kind: new Uint32Array(st_entityValues, 16, 1),
                 joint_matrix_count: new Uint32Array(st_entityValues, 28, 1),
             };
+            st_entityViews.animation_kind[0] = this.getAnimationKind();
             st_entityViews.joint_matrix_count[0] = this.JointsMatCount;
             this.device.queue.writeBuffer(this.bufferGPU.uniformCommonEntity!, 0, this.bufferCPU.uniformCommonEntity);
         }
@@ -145,6 +144,10 @@ export abstract class SkinsEntity extends EntityBundleMaterial {
             return this.bufferCPU[nameCPU] != undefined;
         }
         return super.checkStorageBuffer(name);
+    }
+
+    async updateAnimationBuffer() {
+        this.updateJointMatrixBuffer();
     }
     /**
      * 骨骼动画 update 
@@ -281,11 +284,10 @@ export abstract class SkinsEntity extends EntityBundleMaterial {
                 return 1;
             case "wolrdMatrix":
                 return 2;
-            case "morphMatrix":
+ 
+            case "jointMatrix":
                 return 3;
-            // case "jointMatrix":
-            //     return 4;
         }
         throw new Error(`未找到绑定${name}`);
-    }    
+    }
 }

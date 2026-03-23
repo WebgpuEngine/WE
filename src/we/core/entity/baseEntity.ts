@@ -26,7 +26,6 @@ import { E_renderPassName } from "../scene/renderManager";
 import { mergeLightUUID } from "../light/lightsManager";
 import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFunction";
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
-import { E_AnimationType } from "../animation/base";
 import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
 
@@ -126,47 +125,7 @@ export abstract class BaseEntity extends NodeSpace {
     //     max: [0, 0, 0],
     // };//initDCC中赋值
     boundingSphere!: boundingSphere | undefined;
-    //////////////////////////////////////////////////////////////////
-    //动画相关
-    /** 动画类型 :Set<E_AnimationType>*/
-    _animationType: Set<E_AnimationType> = new Set([E_AnimationType.none]);
-    // _animationType: number = E_AnimationType.none;
-    get AnimationType(): number {
-        let total: number = 0;
-        for (let item of this._animationType) {
-            total += item;
-        }
-        return total;
-    }
-    set AnimationType(animationType: E_AnimationType) {
-        this._animationType.add(animationType);
-    }
-    /** todo :20260209
-     * 需要适配动画复合类型：124的权限组合（shader也需要适配） 
-     * 获取动画类型 */
-    getAnimationKind(): E_AnimationType {
-        return this.AnimationType;
-    }
-    /** 是否是变形目标动画 
-     * 说明：
-     * 1、不太可能同时有变形目标动画和骨骼动画，仅作为可能判断
-     * 2、keyFrame动画:目前共用了MatrixWorld进行，故不设置：1的动画类型
-     * 3、其他类型，目前未开始，暂时不设置(GPU shader相同)。
-    */
-    isMorphTargetAnimation(): boolean {
-        return this.getAnimationKind() == E_AnimationType.morphTarget || this.getAnimationKind() as number == 6;
-    }
-    /**
-     * 是否是骨骼动画 
-     * 说明：
-     * 1、不太可能同时有变形目标动画和骨骼动画，仅作为可能判断
-     * 2、keyFrame动画:目前共用了MatrixWorld进行，故不设置：1的动画类型
-     * 3、其他类型，目前未开始，暂时不设置(GPU shader相同)。
-     * @returns 
-     */
-    isSkeletonAnimation(): boolean {
-        return this.getAnimationKind() == E_AnimationType.skeleton || this.getAnimationKind() as number == 6;
-    }
+
 
 
     ///////////////////////////////////////////////////////////////////
@@ -401,7 +360,7 @@ export abstract class BaseEntity extends NodeSpace {
      * 三段式初始化的第二步：init
      * @param values
      */
-    async init(scene: Scene): Promise<any> {
+    override async init(scene: Scene): Promise<any> {
         this._state = E_lifeState.initializing;
         this.MSAA = scene.MSAA;
         this.deferColor = scene.deferRender.deferRenderColor;
@@ -698,7 +657,7 @@ export abstract class BaseEntity extends NodeSpace {
             st_entityViews.last_time[0] = clock.last;
             st_entityViews.instance_count[0] = this.getInstancesCount();
             st_entityViews.vs_offset[0] = this.vsOffset;
-            st_entityViews.animation_kind[0] = this.getAnimationKind();
+            st_entityViews.animation_kind[0] = 0;//this.getAnimationKind();
             st_entityViews.morpht_target_count[0] = 0;//this.MorphtTargetCount;
             st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
             st_entityViews.joint_matrix_count[0] = 0;// this.JointsMatCount;
@@ -711,7 +670,7 @@ export abstract class BaseEntity extends NodeSpace {
      * @returns number
      */
     getInstancesCount(outside: boolean = false): number {
-        let outsideInstanceCount = this.outSideInstance.length;
+        let outsideInstanceCount = this.outSideInstance.length||1;
         if (outside) {
             return outsideInstanceCount;
         }

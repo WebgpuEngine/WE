@@ -1,4 +1,4 @@
-//start : mesh/main.vs.wgsl
+//start : morphTarget/morphTarget.vs.wgsl
 override boundingBoxMaxSize : f32 = 1.0;
 
 @vertex fn vs(
@@ -51,4 +51,4 @@ attributes: st_location,
   //  }
   return vsOutput;
 }
-//end : mesh/main.vs.wgsl
+//end : morphTarget/morphTarget.vs.wgsl
