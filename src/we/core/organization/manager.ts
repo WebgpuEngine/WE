@@ -1,6 +1,6 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { I_UUID, NodeObject } from "./root";
+import { I_UUID } from "./root";
 
 export abstract class ECSManager<T extends I_UUID> {
     scene: Scene;

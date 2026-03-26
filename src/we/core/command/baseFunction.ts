@@ -1,8 +1,14 @@
 import { T_uniformOneGroup } from "./base";
 
-function isArrayBuffer(v: any): v is ArrayBuffer {
-    // 严格判断是否为 ArrayBuffer 实例
-    return v instanceof ArrayBuffer;
+//跨窗口/iframe 会失效
+// function isArrayBuffer(v: any): v is ArrayBuffer {
+//     // 严格判断是否为 ArrayBuffer 实例
+//     return v instanceof ArrayBuffer;
+// }
+
+/** 判断是否为ArrayBuffer */
+export function isArrayBuffer(value: any) {
+  return Object.prototype.toString.call(value) === '[object ArrayBuffer]';
 }
 
 function isArrayBufferView(v: any): v is ArrayBufferView {
@@ -164,7 +170,4 @@ export function updataOneUniformBuffer(device: GPUDevice, uniformBuffer: GPUBuff
         // data.byteLength
     );
 }
-
-
-
 

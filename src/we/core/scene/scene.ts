@@ -6,14 +6,13 @@ import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "../command/base";
-import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { CamreaControl } from "../control/cameracControl";
 import { EntityManager } from "../entity/entityManager";
 import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
 import { LightsManager } from "../light/lightsManager";
 import { MaterialManager } from "../material/materialManager";
-import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
+import { PBRMaterial } from "../material/PBR/PBRMaterial";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
 import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { pickupManager } from "../pickup/pickupManager";
@@ -29,10 +28,11 @@ import { AnimationGroupManager } from "../animation/animationGroupManager";
 import { SkinsManager } from "../animation/skinsManager";
 import { CommonResource } from "../resources/commonResource";
 import { RootManager } from "./rootManager";
-import { DefaultTexture } from "../texture/defaultTexture";
-import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
 import { TextureManager } from "../texture/textureManager";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
+import { MemoryBlockManager } from "../bufferBlock/MBM";
+import { Pointers } from "../bufferBlock/pointer";
+import { BlockPointerCoordinator } from "../bufferBlock/BPC";
 
 
 
@@ -301,10 +301,14 @@ export class Scene {
     skinsManager!: SkinsManager;
     /**动画组管理器 */
     animationGroupManager!: AnimationGroupManager;
-
+    /**绘制命令生成器器 */
     DCG!: DrawCommandGenerator;
-    
-
+    /**内存块管理器 */
+    memoryBlockManager!: MemoryBlockManager;
+    /**指针管理器 */
+    pointers!: Pointers;
+    /**BPC */
+    BPC!: BlockPointerCoordinator;
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -447,29 +451,11 @@ export class Scene {
         this.canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
         this.reSize(this.canvas.clientWidth * devicePixelRatio, this.canvas.clientHeight * devicePixelRatio);
 
+        this.memoryBlockManager = new MemoryBlockManager(this);
+        this.BPC = new BlockPointerCoordinator(this);
+        this.pointers = this.BPC.pointers;
         this.renderManager = new RenderManager(this);//需要在entityManager等需要push DC 的ECS之前初始化
-
         this.resourcesGPU = new ResourceManagerOfGPU(this);
-        // {
-            // this.resourcesGPU.device = device;
-            // let textureDefault = new DefaultTexture(device);
-            // this.resourcesGPU.textureOfString.set("default", textureDefault.texture);
-            // this.resourcesGPU.weTextureOfString.set("default", textureDefault);
-            // let cubeTextureDefault = new DefaultCubeTexture(device);
-            // this.resourcesGPU.textureOfString.set("defaultCube", cubeTextureDefault.texture);
-            // this.resourcesGPU.weTextureOfString.set("defaultCube", cubeTextureDefault);
-            // let baseInputPBR: IV_PBRMaterial = {
-            //     textures: {
-            //         albedo: { value: [1, 1, 1, 1] },
-            //         metallic: { value: 1 },
-            //         roughness: { value: 1 },
-            //     }
-            // }
-            // let defaultMaterial = new PBRMaterial(baseInputPBR);//gltf 默认材质
-            // this.resourcesGPU.weMaterialOfString.set("defaultPBR", defaultMaterial);
-            // let oneMatrixStorageBuffer = createEmptyGPUBuffer(device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, 16 * 4, "oneStorageMatrix");
-            // this.resourcesGPU.storageBuffer.set("oneStorageMatrix", oneMatrixStorageBuffer);
-        // }
         this.commonResource = new CommonResource(device);
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);
@@ -723,16 +709,7 @@ export class Scene {
         this.updateUserDefineEvent(eventOfScene.onUpdate);
     }
 
-    _performanceCount: number = 300;
-    __outputCountOfRunOfUpdate: number = 0;
     async update() {
-        let outputFlage = false;
-        if (this.__outputCountOfRunOfUpdate++ > this._performanceCount) {
-            outputFlage = false;
-        }
-        let timerNow = Date.now();
-        let timerLast = timerNow;
-
 
         this.onUpdate();
 
@@ -747,54 +724,26 @@ export class Scene {
         //animation manager update, 动画更新需要在entity更新之前
         this.animationManager.update(this.clock); //动画更新
         this.animationGroupManager.update(this.clock); //动画组更新,需要在动画更新之前
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update(): animation update :", timerNow - timerLast);
-        }
 
         //root update :entiy ,light,camera 共性基础（位置、旋转、缩放、矩阵）
         this.root.update(this.clock);
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update():  root update :", timerNow - timerLast);
-        }
 
         //skins manager update,更新全局的逆绑定矩阵
         //在root ECS之后更新。（在这里更新就是本镇同步的更新）
         this.skinsManager.update(this.clock);
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update():  skins update :", timerNow - timerLast);
-        }
 
         //entity 与 instance的更新（uniform，storage）
         this.entityManager.update(this.clock);
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update():  entity update :", timerNow - timerLast);
-        }
+
+        this.BPC.update(this.clock);
+        this.memoryBlockManager.update(this.clock);
 
         //lights(shadowmap) manager update
         this.lightsManager.update(this.clock);
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update():  lights update :", timerNow - timerLast);
-        }
-
         //push DC of MSAA,ToneMapping,Defer to render manager
         this.cameraManager.update(this.clock);
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update():  camera update :", timerNow - timerLast);
-        }
-
 
         this.postProcessManager.update(this.clock);//push command to render manager array
-        if (outputFlage) {
-            timerLast = timerNow; timerNow = Date.now();
-            console.log("      scene.update():  postProcess update :", timerNow - timerLast);
-        }
-
 
         //particle manager and update DCCC        
 
@@ -822,7 +771,6 @@ export class Scene {
         this.inputManager.clean();
     }
 
-    _outputCountOfRun: number = 0;
     run() {
         let scope = this;
         this.clock.update();
@@ -830,76 +778,20 @@ export class Scene {
             if (scope.flags.realTimeRender) {//是否开启实时更新
                 // console.log("Scene run()",scope.clock.last);
                 //时间更新
-                let outputFlage = false;
-                if (scope._outputCountOfRun++ > scope._performanceCount) {
-                    outputFlage = false;
-                }
                 let timerNow = Date.now();
                 let timerLast = timerNow;
                 scope.clock.update();
-                if (outputFlage) console.log("===============================================");
-
                 await scope.onBeforeUpdate();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.onBeforeUpdate() :", timerNow - timerLast);
-                }
-
                 await scope.pickup();//pickup 在当前帧的update开始之前
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.pickup() :", timerNow - timerLast);
-                }
-
                 await scope.update();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.update() :", timerNow - timerLast);
-                }
-
-
                 await scope.onAfterUpdate();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.onAfterUpdate() :", timerNow - timerLast);
-                }
-
                 await scope.onBeforeRender();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.onBeforeRender() :", timerNow - timerLast);
-                }
-
                 await scope.render();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.render() :", timerNow - timerLast);
-                }
-
                 await scope.onAfterRender();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.onAfterRender() :", timerNow - timerLast);
-                }
-
                 // await scope.renderToneMappingAndMSAA();//test 
                 await scope.showGBuffersVisualize();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.showGBuffersVisualize() :", timerNow - timerLast);
-                }
-
                 await scope.renderToSurface();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.renderToSurface() :", timerNow - timerLast);
-                }
-
                 await scope.cleanUp();
-                if (outputFlage) {
-                    timerLast = timerNow; timerNow = Date.now();
-                    console.log("run.cleanUp() :", timerNow - timerLast);
-                }
                 requestAnimationFrame(perFrameRun);
             }
         }
@@ -1423,8 +1315,27 @@ export class Scene {
     // render GBuffer to FinalTexture
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // debug performance
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    _performanceCount: number = 300;
+    _outputCountOfRun: number = 0;
+    _performanceFlag: boolean = false;
+    _performanceTimeNow: number = 0;
+    _performanceTimeLast: number = 0;
+    performanceLog(name: string, type: T_kindOfPerformanceLog) {
+        if (!this._performanceFlag) return;
+        if (this._performanceCount > this._outputCountOfRun) return;
+        if (type == "start") {
+            this._performanceTimeLast = Date.now();
+        }
+        else if (type == "output") {
+            this._performanceTimeNow = Date.now();
+            console.log(name, this._performanceTimeNow - this._performanceTimeLast);
+            this._performanceTimeLast = this._performanceTimeNow;
+            this._outputCountOfRun++;
+        }
+    }
 
 }
+type T_kindOfPerformanceLog = "start" | "output";
