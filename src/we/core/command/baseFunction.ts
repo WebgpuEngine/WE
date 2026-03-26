@@ -171,3 +171,8 @@ export function updataOneUniformBuffer(device: GPUDevice, uniformBuffer: GPUBuff
     );
 }
 
+
+export function getTypedArrayType(arr: any) {
+  if (!ArrayBuffer.isView(arr)) return null; // 不是 TypedArray 直接返回
+  return Object.prototype.toString.call(arr).slice(8, -1);
+}

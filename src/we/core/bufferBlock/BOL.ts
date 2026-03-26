@@ -21,6 +21,7 @@ export interface I_pointerInfoInBOL {
 }
 /** BOL创建参数 */
 export interface IV_BOL {
+    name: string;
     /** BOL大小，单位：字节。
      * 1、尺寸必须是4的倍数，webGPU的buffer必须是4的倍数。
      * 2、最小值为64K。
@@ -70,11 +71,13 @@ export class BlockOffsetLength implements I_UUID {
         used: number;
         free: number;
         released: number;
+        lastFree: number;
     } = {
             total: 64 * 1024,
             used: 0,
             free: 64 * 1024,
             released: 0,
+            lastFree: 64 * 1024,
         };
     /** release阈值，默认0.4，即40%的free值 */
     thresholdOfRelease: number = 0.4;
@@ -88,7 +91,7 @@ export class BlockOffsetLength implements I_UUID {
     UUID: string = '';
     _isDestroy: boolean = false;
 
-    _id: number = 0;
+    _id: number = 1;
     state: E_BOLState = E_BOLState.open;
 
     /** 最后一次分配的偏移量 
@@ -145,7 +148,7 @@ export class BlockOffsetLength implements I_UUID {
         this.device = parent.device;
         this.clock = parent.clock;
         this.thresholdOfMergeUpdateStrideSize = V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate];
-        this.name = 'BOL'
+        this.name = input.name;
         if (input.id != undefined) {
             this.ID = input.id!;
         }
@@ -166,11 +169,19 @@ export class BlockOffsetLength implements I_UUID {
             throw new Error("type not support");
         }
         this.type = input.type;
+        let size = this.inputValues.size;
+        let complementOfNumber = size % 4;
+        if (complementOfNumber !== 0) {
+            complementOfNumber = 4 - complementOfNumber;
+            console.warn(`BOL ${this.name} size is not 4's multiple, add ${complementOfNumber} bytes.`);
+        }
+        size += complementOfNumber;
         this.size = {
-            total: this.inputValues.size,
+            total: size,
             used: 0,
-            free: this.inputValues.size,
+            free: size,
             released: 0,
+            lastFree: size,
         }
         this.init();
     }
@@ -180,7 +191,7 @@ export class BlockOffsetLength implements I_UUID {
         // @ts-ignore
         this.cpuBuffer = null;
         this._isDestroy = true;
-        return this._isDestroy ;
+        return this._isDestroy;
     }
     set ID(id: number) {
         this._id = id;
@@ -194,7 +205,7 @@ export class BlockOffsetLength implements I_UUID {
     }
     init() {
         this.cpuBuffer = new ArrayBuffer(this.inputValues.size);
-        let label = `BOL ${this.UUID}`;
+        let label = `BOL ${this.name}`;
         this.gpuBuffer = createEmptyGPUBuffer(this.device, this.usage, this.inputValues.size, label);
         if (this.inputValues.data) {
             this.device.queue.writeBuffer(this.gpuBuffer, 0, this.inputValues.data.buffer);
@@ -247,9 +258,9 @@ export class BlockOffsetLength implements I_UUID {
             this.pointerOffsetMap.set(offset, oldPointerStruct.pointerID);
 
             //4.4 更新lastOffset和size
+            this.updateSizeOfUsed("add", oldPointerStruct.byteLength, offset);
             offset += oldPointerStruct.byteLength;
             this.lastOffset = offset;
-            this.updateSizeOfUsed("add", oldPointerStruct.byteLength);
         }
     }
     /** 生成更新偏移量和长度的映射表
@@ -343,13 +354,14 @@ export class BlockOffsetLength implements I_UUID {
         }
         this.pointerIdList.push(pointerID);     //添加指针ID到pointerIdList
         this.pointerOffsetMap.set(offset, pointerID);//更新pointer的Offse tMap的映射
-        this.updateSizeOfUsed("add", byteSize); //更新BOL的size使用量
+        this.updateSizeOfUsed("add", byteSize, offset); //更新BOL的size使用量
         return pointerInfo;
     }
     /** 释放指针
      * 1、从pointerIdList中移除指针ID
      * 2、从pointerOffsetMap中移除偏移量和指针ID的映射
      * 3、更新BOL的size使用量
+     * 4、不考虑聚合更新的Map的问题，不再这里处理（在update中调用 this.generateUpdateOffsetAndLenght(clock);）
      * @param pointerID 指针ID
      */
     releasePointer(pointerID: number) {
@@ -371,15 +383,27 @@ export class BlockOffsetLength implements I_UUID {
      * @param option add或remove
      * @param byteSize 指针大小，单位：字节
      */
-    updateSizeOfUsed(option: "add" | "remove", byteSize: number) {
+    updateSizeOfUsed(option: "add" | "remove", byteSize: number, offset?: number,) {
         if (option == "remove") {
-            this.size.released += byteSize;
             this.size.free += byteSize;
             this.size.used -= byteSize;
+            if (this.size.used > 0)
+                this.size.released += byteSize;
+            else {
+                this.size.released = 0;
+                this.size.lastFree = this.size.total;
+            }
+
         }
         else {
+
             this.size.used += byteSize;
             this.size.free -= byteSize;
+            if (offset == undefined) {
+                throw new Error("offset or byteLength is undefined");
+                return;
+            }
+            this.size.lastFree = this.size.total - (offset + byteSize);
         }
     }
 }

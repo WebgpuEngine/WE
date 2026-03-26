@@ -1,4 +1,5 @@
-import { isArrayBuffer } from "../command/baseFunction";
+import { get } from "../../../@loaders.gl/draco/dist/draco-worker-node";
+import { getTypedArrayType, isArrayBuffer } from "../command/baseFunction";
 import { Clock } from "../scene/clock";
 import { E_BufferType } from "./base";
 import { I_pointerInfoInBOL } from "./BOL";
@@ -7,7 +8,7 @@ import { BlockPointerCoordinator } from "./BPC";
 /** 指针数据视图类型 */
 export type T_pointerDataView = Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array;
 /** 指针数据类型 */
-export type T_pointerDataType = "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "f32" | "array";
+export type T_pointerDataType = "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "f32";//| "array";
 
 /** 指针结构 */
 export interface I_pointerStruct {
@@ -39,13 +40,20 @@ export interface I_pointerStruct {
 
 /** 指针数据参数 */
 export interface I_pointerDataParams {
-    type: T_pointerDataType;
+
     /** 指针数据视图或数组 */
-    buffer?: T_pointerDataView | number[] | ArrayBuffer;
-    // /** TypedArray.set()中的偏移量 */
-    // offset?: number;
-    // /** 指针数据长度 */
-    // byteLength?: number;
+    buffer?: {
+        data: T_pointerDataView | number[] | ArrayBuffer
+        offset?: number;
+        byteLength?: number;
+    };
+    /** 写入指针的偏移量 
+     * 1、默认值为0，从指针开始写入。
+     * 2、注意：offset以byte为单位。U32类型，每个元素占4个byte节。
+    */
+    offsetByteOfWriteToPointer?: number;
+    /** 写入指针的数据长度 */
+    byteLengthOfWriteToPointer?: number;
 }
 /** 创建指针参数 */
 export interface I_pointerCreateParams {
@@ -56,9 +64,11 @@ export interface I_pointerCreateParams {
     pointerID?: number;
     name: string;
     byteSize: number;
-    data: I_pointerDataParams;
+    data?: I_pointerDataParams;
     /** 指针数据类型，适配到相同类型的BOL的Block */
     type: E_BufferType;
+    /** 指针数据类型 */
+    viewType: T_pointerDataType;
 }
 /**
  * Pointer在scene中创建，全局唯一；
@@ -84,7 +94,7 @@ export class Pointers {
      */
     pointerID: Set<number> = new Set();
     /** 最后一个指针ID */
-    lastPointerID: number = 0;
+    lastPointerID: number = 1;
     clock: Clock;
 
     constructor(bpc: BlockPointerCoordinator) {
@@ -103,8 +113,54 @@ export class Pointers {
     getPointer(id: number): I_pointerStruct | undefined {
         return this.pointers.get(id);
     }
+    /** 检查TypedArray的byteSize是否符合要求 */
+    checkSizeOfTypedArray(byteSize: number, viewType: T_pointerDataType): number {
+        // let size = 0;
+        // let complementOfNumber = 0;
+        // switch (viewType) {
+        //     case "i8":
+        //     case "u8":
+        //         complementOfNumber = 0;
+        //         break;
+        //     case "i16":
+        //     case "u16":
+        //         complementOfNumber = byteSize % 2;
+        //         if (complementOfNumber !== 0) {
+        //             console.warn(`createPointer viewType ${viewType}, byteSize must be should be a multiple of 2`);
+        //         }
+        //         break;
+        //     case "i32":
+        //     case "u32":
+        //     case "f32":
+        //         complementOfNumber = byteSize % 4;
+        //         if (complementOfNumber !== 0) {
+        //             complementOfNumber = 4 - complementOfNumber;
+        //             console.warn(`createPointer viewType ${viewType}, byteSize must be should be a multiple of 4. Adjust to ${byteSize + complementOfNumber}`);
+        //         }
+        //         break;
+        //     default:
+        //         complementOfNumber = byteSize % 4;
+        //         if (complementOfNumber !== 0) {
+        //             complementOfNumber = 4 - complementOfNumber;
+        //             console.warn(`createPointer viewType ${viewType} is not supported, so the byteSize should be a multiple of 4. Adjust to ${byteSize + complementOfNumber}`);
+        //         }
+        //         break;
+        // }
+
+        /**
+         * webGPU writeBuffer 要求byteSize必须是4的倍数。
+         * 所以，所有TypedArray的byteSize都必须是4的倍数。否则聚合更新时，可能会出现数据对齐问题。
+         */
+        let complementOfNumber = byteSize % 4;
+        if (complementOfNumber !== 0) {
+            complementOfNumber = 4 - complementOfNumber;
+            console.warn(`createPointer viewType ${viewType}, byteSize(${byteSize}) must be should be a multiple of 4. Adjust to ${byteSize + complementOfNumber}`);
+        }
+        let size = byteSize + complementOfNumber;
+        return size;
+    }
     /** 创建指针 */
-    createPointer(params: I_pointerCreateParams): I_pointerStruct | false {
+    createPointer(params: I_pointerCreateParams): I_pointerStruct {
         /**
          * 1、创建pointerID；
          * 2、分配内存
@@ -121,12 +177,14 @@ export class Pointers {
         } else {
             pointerID = this.createPointerID();
         }
+        params.byteSize = this.checkSizeOfTypedArray(params.byteSize, params.viewType);
+
         //2.1、分配内存
         let pointerInfo = this.parent.allocatePointerBOL(pointerID, params);
 
         //2.2、创建view
         let cpuBufferView: T_pointerDataView;
-        switch (params.data.type) {
+        switch (params.viewType) {
             case "i8":
                 cpuBufferView = new Int8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
@@ -137,7 +195,7 @@ export class Pointers {
                 cpuBufferView = new Int16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
             case "u16":
-                cpuBufferView = new Uint16Array(pointerInfo.cpuBuffer);
+                cpuBufferView = new Uint16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
             case "i32":
                 cpuBufferView = new Int32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
@@ -149,6 +207,7 @@ export class Pointers {
                 cpuBufferView = new Float32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
             default:
+                console.warn("createPointer viewType not support, default use Uint8", params.viewType);
                 cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
         }
@@ -161,7 +220,7 @@ export class Pointers {
             pointerID,
             name: params.name,
             type: params.type,
-            viewType: params.data.type,
+            viewType: params.viewType,
 
             cpuBufferView,
             gpuBufferView,
@@ -169,7 +228,7 @@ export class Pointers {
             byteLength: pointerInfo.byteLength,
             offset: pointerInfo.offset,
             BolID: pointerInfo.BolID,
-            writeTime: this.clock.last,
+            writeTime: 0,//初始化时，写入时间为0
             cpuBuffer: pointerInfo.cpuBuffer,
             gpuBuffer: pointerInfo.gpuBuffer,
         };
@@ -177,38 +236,148 @@ export class Pointers {
         this.pointers.set(pointerID, perOnePointer);
 
         //4、如果有初始化数据，写入BOL
-        if (params.data.buffer) {
-            this.updatePointerData(pointerID, params.data);
+        if (params.data && params.data.buffer) {
+            this.updatePointerData(perOnePointer, params.data);
         }
 
         //5、返回指针信息；
         return perOnePointer;
     }
+    safeSet(
+        target: T_pointerDataView,
+        source: T_pointerDataView,
+        offset = 0,
+        byteLength: number | undefined,
+        sourceOffset: number | undefined,
+        sourceByteLength: number | undefined
+    ) {
+        const maxWrite = target.length - offset;
+        if (maxWrite <= 0) return;
+
+        // 截尾：只取能放下的长度
+        const truncated = source.slice(0, maxWrite);
+        target.set(truncated, offset);
+    }
     /** 更新指针数据 */
-    updatePointerData(pointerID: number, params: I_pointerDataParams) {
-        let pointer = this.pointers.get(pointerID);
+    updatePointerData(pointer: I_pointerStruct, params: I_pointerDataParams) {
         if (pointer) {
-            if (Array.isArray(params.buffer)) {
-                pointer.cpuBufferView.set(params.buffer);
+            if (!params.buffer?.data) {
+                console.warn("updatePointerData: buffer data is undefined");
+                return;
+            }
+            //数组
+            if (Array.isArray(params.buffer.data)) {
+                let offsetTarget = params.offsetByteOfWriteToPointer || 0;
+                let byteLengthTarget = params.byteLengthOfWriteToPointer || pointer.byteLength - offsetTarget;
+                let length = 0;
+                if (pointer.viewType == "i8" || pointer.viewType == "u8") {
+                    length = byteLengthTarget;                    
+                }
+                else if (pointer.viewType == "i16" || pointer.viewType == "u16") {
+                    length = byteLengthTarget / 2;
+                    offsetTarget = offsetTarget / 2;
+                }
+                else if (pointer.viewType == "i32" || pointer.viewType == "u32") {
+                    length = byteLengthTarget / 4;
+                    offsetTarget = offsetTarget / 4;
+                }
+                else {
+                    length = byteLengthTarget / 4;
+                    offsetTarget = offsetTarget / 4;
+                    console.warn("updatePointerData: viewType not support, default use as Uint32", pointer.viewType);
+                }
+                //如果源数据的长度小于等于指针的长度，直接写入
+                if (params.buffer.data.length <= length) {
+                    pointer.cpuBufferView.set(params.buffer.data, offsetTarget);
+                }
+                //如果源数据的长度大于指针的长度，只写入指针的长度
+                else {
+                    let slice = params.buffer.data.slice(0, length);
+                    pointer.cpuBufferView.set(slice, offsetTarget);
+                }
             }
             else {
-                if (ArrayBuffer.isView(params.buffer)) {
-                    pointer.cpuBufferView.set(params.buffer as ArrayBufferView as typeof pointer.cpuBufferView);
+                let byteLengthSource = params.buffer!.byteLength || (params.buffer?.data as ArrayBuffer).byteLength;
+                let offsetSource = params.buffer!.offset || 0;
+                byteLengthSource = byteLengthSource + offsetSource;
+
+                let offsetTarget = params.offsetByteOfWriteToPointer || 0;
+                let byteLengthTarget = params.byteLengthOfWriteToPointer || pointer.byteLength - offsetTarget;
+
+                //如果源数据的长度大于指针的长度，只写入指针的长度
+                if (byteLengthSource > byteLengthTarget) {
+                    byteLengthSource = byteLengthTarget;
+                    console.warn(`updatePointerData: offset(${offsetTarget})+ byteLength(${byteLengthSource}) > pointer's byteLength from ${offsetTarget})`);
+                    console.log("use byteLength:", byteLengthTarget);
                 }
-                else if (isArrayBuffer(params.buffer)) {
-                    let u8ViewOfCopyFrom = new Uint8Array(params.buffer as ArrayBuffer);
-                    let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, pointer.offset, pointer.byteLength);
+
+                if (ArrayBuffer.isView(params.buffer.data)) {
+                    let typedArraySource = getTypedArrayType(params.buffer.data);//获取源数据的TypedArray类型
+                    if (typedArraySource == null) {
+                        console.warn(`updatePointerData: params.buffer.data not match pointer viewType(${pointer.viewType})`);
+                        return false;
+                    }
+                    let typedArrayPointer = getTypedArrayType(pointer.cpuBufferView);
+                    if (typedArrayPointer != typedArraySource) {
+                        console.warn(`updatePointerData: params.buffer.data(${typedArraySource}) not match pointer (${typedArrayPointer})`);
+                        return false;
+                    }
+                    //没有offset，且源数据的长度小于等于指针的长度，直接写入
+                    if (
+                        (params.offsetByteOfWriteToPointer === undefined || params.offsetByteOfWriteToPointer === 0) &&
+                        (params.buffer.offset === undefined || params.buffer.offset === 0) &&
+                        (params.buffer.data.byteLength <= pointer.byteLength)
+                    ) {
+                        pointer.cpuBufferView.set(params.buffer.data, offsetTarget);
+                    }
+                    //大于，转化为Uint8Array，再写入指针
+                    else {
+                        let offsetSourceFromArrayBuffer = offsetSource + (params.buffer.data as ArrayBufferView).byteOffset;//再增加ArrayBufferView在arraybuffer的偏移量
+                        let u8ViewOfCopyFrom = new Uint8Array(params.buffer.data.buffer, offsetSourceFromArrayBuffer, byteLengthSource);
+                        let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, offsetTarget, byteLengthTarget);
+                        u8ViewOfCopyTo.set(u8ViewOfCopyFrom);
+                    }
+                }
+                else if (isArrayBuffer(params.buffer.data)) {
+                    /**
+                     * 如果是ArrayBuffer，以Uint8Array的形式写入指针
+                     */
+                    let u8ViewOfCopyFrom = new Uint8Array(params.buffer!.data as ArrayBuffer, offsetSource, byteLengthSource);
+                    let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, offsetTarget, byteLengthTarget);
                     u8ViewOfCopyTo.set(u8ViewOfCopyFrom);
                 }
+                else {
+                    console.warn(`updatePointerData: params.buffer not match pointer viewType`);
+                    return false;
+                }
             }
+            pointer.writeTime = this.clock.last;
         }
         else {
             console.error("指针不存在");
             return false;
         }
     }
+    updatePointerWriteTime(pointerID: number | I_pointerStruct): boolean {
+        //如果是number，需要从pointers中获取指针信息
+        if (typeof pointerID === "number") {
+            let pointer = this.pointers.get(pointerID);
+            if (pointer) {
+                pointer.writeTime = this.clock.last;
+            }
+            else {
+                console.warn("指针不存在");
+                return false;
+            }
+        }
+        //如果是I_pointerStruct，直接更新writeTime
+        else {
+            pointerID.writeTime = this.clock.last;
+        }
+        return true;
+    }
     /** 更新指针偏移量和BOLID */
-    updatePointerOffset(pointerID: number, offset: number, BolID: number) {
+    updatePointerOffset(pointerID: number, offset: number, BolID: number): void {
         let pointer = this.pointers.get(pointerID);
         if (pointer) {
             pointer.offset = offset;
@@ -216,12 +385,20 @@ export class Pointers {
         }
     }
     /** 释放指针 */
-    releasePointer(id: number) {
+    releasePointer(id: number): boolean {
         //1、释放BOL内存
-        this.parent.releasePointer(id);
+        let pointer = this.pointers.get(id);
+        if (!pointer) {
+            console.error("指针不存在");
+            return false;
+        }
+        if (pointer.BolID !== undefined) {
+            this.parent.releasePointer(id, pointer.BolID);
+        }
         //2、删除指针
         this.pointers.delete(id);
         this.pointerID.delete(id);
+        return true;
     }
     /** 获取指针的GPUBufferBinding */
     getGPUBufferBindingByPointerID(id: number): GPUBufferBinding | undefined {
@@ -232,19 +409,20 @@ export class Pointers {
         return this.pointers.get(id)?.cpuBufferView;
     }
     /** 重置指针大小 */
-    resizePointer(pointerID: number, byteLength: number) {
+    resizePointer(pointerID: number, byteLength: number): I_pointerStruct | false {
         let pointerOld = this.pointers.get(pointerID);
         let params: I_pointerCreateParams;
         if (!pointerOld) {
-            throw new Error("指针不存在");
+            console.warn("指针不存在");
+            return false;
         }
         params = {
             name: pointerOld.name,
             byteSize: byteLength,
             type: pointerOld.type,
-            data: {
-                type: pointerOld.viewType,
-            },
+            data: {},
+            viewType: pointerOld.viewType,
+            pointerID: pointerOld.pointerID,
         }
         this.releasePointer(pointerID);
         return this.createPointer(params);

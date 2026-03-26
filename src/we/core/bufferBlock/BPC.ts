@@ -47,7 +47,7 @@ export class BlockPointerCoordinator {
     /** BOLID集合 */
     BOLid: Set<number> = new Set();
     /** 最后一个BOLID */
-    lastBOLid: number = 0;
+    lastBOLid: number = 1;
     /** BOL大小定义 */
     sizeOfBOL: I_defineSizeOfBOL = {
         [E_BufferType.staticVS]: 1024 * 1024 * 20,//20MB
@@ -62,13 +62,15 @@ export class BlockPointerCoordinator {
         this.device = scene.device;
         this.clock = scene.clock;
         this.pointers = new Pointers(this);
+        this.init();
     }
     init() {
         for (let i of this.defaultBOL) {
             let params: IV_BOL = {
                 size: this.sizeOfBOL[i as E_BufferType],
                 type: i as E_BufferType,
-                id: this.createBolID(),
+                id: -1,
+                name: i,
             }
             this.createBOL(params);
         }
@@ -113,7 +115,8 @@ export class BlockPointerCoordinator {
                 if (bol.state == E_BOLState.released || bol.state == E_BOLState.close || bol.state == E_BOLState.rebuilding) {
                     continue;
                 }
-                if (bol.size.free >= byteSize) {
+                //这里需要考虑最后的连续byteSize是否足够分配
+                if (bol.size.lastFree >= byteSize) {
                     return bol;
                 }
             }
@@ -121,26 +124,38 @@ export class BlockPointerCoordinator {
                 size: this.sizeOfBOL[type] > byteSize ? this.sizeOfBOL[type] : byteSize,
                 type: type,
                 id: this.createBolID(),
+                name: ""
             }
             return this.createBOL(params);
         }
     }
     /** 创建BOL */
     createBOL(params: IV_BOL) {
+        if (params.id == undefined || params.id < 1 ) {
+            params.id = this.createBolID();
+        }
+        else if (this.BOLid.has(params.id)) {
+            console.warn(`BOL ${params.id} 已存在`);
+            params.id = this.createBolID();
+        }
         let bol = new BlockOffsetLength(params, this);
         this.BOLs.all.set(params.id, bol);
         this.BOLs[params.type].set(params.id, bol);
         return bol;
     }
     /** 释放指针 */
-    releasePointer(id: number) {
-        let bol = this.BOLs.all.get(id);
+    releasePointer(pointerID: number,BolID:number) {
+        let bol = this.BOLs.all.get(BolID);
         if (bol) {
-            bol.releasePointer(id);
+            bol.releasePointer(pointerID);
         }
     }
     /** 删除BOL */
-    deleteBOL(id: number) {
+    deleteBolByID(id: number) {
+        if(typeof id !== "number"){
+           console.warn("id必须是number类型");
+           return false;
+        }
         let bol = this.BOLs.all.get(id);
         if (bol) {
             let pointerCount = bol.pointerIdList.length;

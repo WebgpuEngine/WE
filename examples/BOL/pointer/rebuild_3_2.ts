@@ -1,0 +1,101 @@
+
+import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
+import { IV_Scene } from "../../../src/we/core/scene/base";
+import { initScene } from "../../../src/we/core/scene/fn";
+import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
+import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
+import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
+import { BlockOffsetLength, IV_BOL } from "../../../src/we/core/bufferBlock/BOL";
+import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
+import { I_pointerCreateParams } from "../../../src/we/core/bufferBlock/pointer";
+
+declare global {
+  interface Window {
+    scene: any
+    DC: any
+    BPC: any
+    pointers: any
+    mesh: any
+    instanceMash: any
+    pointer1: any
+    pointer2: any
+    pointer3: any
+  }
+}
+let input: IV_Scene = {
+  canvas: "render",
+  backgroudColor: [0, 0., 0., 0.],
+  // reversedZ:true,
+};
+let scene = await initScene({
+  initConfig: input,
+});
+window.scene = scene;
+
+let camera = new PerspectiveCamera({
+  fov: (2 * Math.PI) / 5,
+  aspect: scene.aspect,
+  near: 0.01,
+  far: 100,
+  position: [0, 0, 3],
+  lookAt: [0, 0, 0],
+  controlType:"arcball",
+});
+await scene.add(camera);
+
+
+//////////////////////////////////////////////////////
+
+
+window.BPC = scene.BPC;
+window.pointers = scene.BPC.pointers;
+
+let pointer1_params: I_pointerCreateParams = {
+  name: "pointer1",
+  byteSize: 10,
+  data: {
+    viewType: "u8",
+  },
+  type: E_BufferType.VS,
+}
+let pointer1 = scene.BPC.pointers.createPointer(pointer1_params)!;
+
+window.pointer1 = pointer1;
+let pointer2_params: I_pointerCreateParams = {
+  name: "pointer2",
+  byteSize: 20,
+  data: {
+    viewType: "u8",
+  },
+  type: E_BufferType.VS,
+}
+let pointer2 = scene.BPC.pointers.createPointer(pointer2_params)!;
+window.pointer2 = pointer2;
+
+let pointer3_params: I_pointerCreateParams = {
+  name: "pointer3",
+  byteSize: 30,
+  data: {
+    viewType: "u8",
+  },
+  type: E_BufferType.VS,
+}
+let pointer3 = scene.BPC.pointers.createPointer(pointer3_params)!;
+window.pointer3 = pointer3;
+
+
+
+let bolVS = window.BPC.BOLs.VS.get(pointer1.BolID);
+
+console.log("bol before release pointer 2", bolVS.size);
+window.pointers.releasePointer(pointer2.pointerID);
+console.log("bol  released pointer2");
+
+console.log("bol before rebuild ", bolVS.size);
+bolVS.rebuild();
+console.log("bol after rebuild ", bolVS.size);
+
+console.log("bolVS:", bolVS);
+
+
+
