@@ -667,10 +667,16 @@ export abstract class BaseEntity extends NodeSpace {
     }
     /**
      * 获取instance总数量：内部instance*外部instance
+     * @param outside 是否只获取外部instance数量
+     *      true表示只获取外部instance数量，
+     *      false表示获取内部instance数量*外部instance数量
      * @returns number
      */
     getInstancesCount(outside: boolean = false): number {
-        let outsideInstanceCount = this.outSideInstance.length||1;
+        let outsideInstanceCount = this.outSideInstance.length;
+        if (outsideInstanceCount === 0) {
+            // console.log(outsideInstanceCount);
+        }
         if (outside) {
             return outsideInstanceCount;
         }
