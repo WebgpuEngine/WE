@@ -1,17 +1,10 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { E_BOLState, E_BufferType } from "./base";
+import { E_BOLState, E_BufferType, I_BolSize, I_BolStrideSizeOfUpdate, V_BolBufferSize, V_BolStrideSizeOfUpdate } from "./base";
 import { BlockOffsetLength, I_pointerInfoInBOL, IV_BOL } from "./BOL";
-import { MemoryBlockManager } from "./MBM";
 import { I_pointerCreateParams, Pointers } from "./pointer";
 
-/** BOL大小定义接口 */
-export interface I_defineSizeOfBOL {
-    [E_BufferType.staticVS]: number;
-    [E_BufferType.VS]: number;
-    [E_BufferType.uniform]: number;
-    [E_BufferType.storage]: number;
-}
+
 /**
  * BPC（BOL Pointer Coordinator） 是BOL和pointer的协作管理器
  * 1、负责BOL的数量与类型管理
@@ -26,6 +19,8 @@ export class BlockPointerCoordinator {
     scene: Scene;
     device: GPUDevice;
     clock: Clock;
+    /** BOL合并更新间距阈值 */
+    thresholdMergeUpdateStrideSizeOfBOL: I_BolStrideSizeOfUpdate;
 
     /** 指针管理器 */
     pointers: Pointers;
@@ -49,18 +44,15 @@ export class BlockPointerCoordinator {
     /** 最后一个BOLID */
     lastBOLid: number = 1;
     /** BOL大小定义 */
-    sizeOfBOL: I_defineSizeOfBOL = {
-        [E_BufferType.staticVS]: 1024 * 1024 * 20,//20MB
-        [E_BufferType.VS]: 1024 * 1024 * 10,//10MB
-        [E_BufferType.uniform]: 1024 * 64,//64KB
-        [E_BufferType.storage]: 1024 * 1024 * 10,//10MB
-    };
+    sizeOfBOL: I_BolSize;
     /** 默认BOL类型 */
     defaultBOL: string[] = [E_BufferType.staticVS, E_BufferType.VS, E_BufferType.uniform, E_BufferType.storage];
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = scene.device;
         this.clock = scene.clock;
+        this.thresholdMergeUpdateStrideSizeOfBOL = scene.BOL_updateStrideSize || V_BolStrideSizeOfUpdate;
+        this.sizeOfBOL = scene.BOL_size || V_BolBufferSize;
         this.pointers = new Pointers(this);
         this.init();
     }
@@ -71,9 +63,29 @@ export class BlockPointerCoordinator {
                 type: i as E_BufferType,
                 id: -1,
                 name: i,
+                // thresholdOfMergeUpdateStrideSize: thresholdOfMergeUpdateStrideSize
             }
             this.createBOL(params);
         }
+    }
+    /** 创建BOL */
+    createBOL(params: IV_BOL) {
+        let key = params.type as keyof I_BolStrideSizeOfUpdate;
+        let thresholdOfMergeUpdateStrideSize = this.thresholdMergeUpdateStrideSizeOfBOL[key];
+        if (thresholdOfMergeUpdateStrideSize != undefined) {
+            params.thresholdOfMergeUpdateStrideSize = thresholdOfMergeUpdateStrideSize;
+        }
+        if (params.id == undefined || params.id < 1) {
+            params.id = this.createBolID();
+        }
+        else if (this.BOLid.has(params.id)) {
+            console.warn(`BOL ${params.id} 已存在`);
+            params.id = this.createBolID();
+        }
+        let bol = new BlockOffsetLength(params, this);
+        this.BOLs.all.set(params.id, bol);
+        this.BOLs[params.type].set(params.id, bol);
+        return bol;
     }
     /** 创建指针ID */
     createBolID() {
@@ -129,22 +141,9 @@ export class BlockPointerCoordinator {
             return this.createBOL(params);
         }
     }
-    /** 创建BOL */
-    createBOL(params: IV_BOL) {
-        if (params.id == undefined || params.id < 1 ) {
-            params.id = this.createBolID();
-        }
-        else if (this.BOLid.has(params.id)) {
-            console.warn(`BOL ${params.id} 已存在`);
-            params.id = this.createBolID();
-        }
-        let bol = new BlockOffsetLength(params, this);
-        this.BOLs.all.set(params.id, bol);
-        this.BOLs[params.type].set(params.id, bol);
-        return bol;
-    }
+
     /** 释放指针 */
-    releasePointer(pointerID: number,BolID:number) {
+    releasePointer(pointerID: number, BolID: number) {
         let bol = this.BOLs.all.get(BolID);
         if (bol) {
             bol.releasePointer(pointerID);
@@ -152,9 +151,9 @@ export class BlockPointerCoordinator {
     }
     /** 删除BOL */
     deleteBolByID(id: number) {
-        if(typeof id !== "number"){
-           console.warn("id必须是number类型");
-           return false;
+        if (typeof id !== "number") {
+            console.warn("id必须是number类型");
+            return false;
         }
         let bol = this.BOLs.all.get(id);
         if (bol) {

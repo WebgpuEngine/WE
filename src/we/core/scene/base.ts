@@ -1,3 +1,4 @@
+import { I_BolSize, I_BolStrideSizeOfUpdate } from "../bufferBlock/base"
 import { commmandType } from "../command/base"
 import { IV_DirectionalLight } from "../light/DirectionalLight"
 import { Scene } from "./scene"
@@ -41,7 +42,12 @@ export declare interface IV_Scene {
      * 色调映射，默认：acesToSRGB
      */
     toneMapping?: E_ToneMappingType,
+
+    /** BOL合并更新间距阈值*/
+    BOL_updateStrideSize?: I_BolStrideSizeOfUpdate
+    BOL_size?: I_BolSize
 }
+
 /**
  *  色调映射，默认：acesToSRGB
  * 

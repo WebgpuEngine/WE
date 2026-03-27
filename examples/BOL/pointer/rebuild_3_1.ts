@@ -39,7 +39,7 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
@@ -53,9 +53,7 @@ window.pointers = scene.BPC.pointers;
 let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 10,
-  data: {
-    viewType: "u8",
-  },
+  viewType: "u8",
   type: E_BufferType.VS,
 }
 let pointer1 = scene.BPC.pointers.createPointer(pointer1_params)!;
@@ -64,9 +62,7 @@ window.pointer1 = pointer1;
 let pointer2_params: I_pointerCreateParams = {
   name: "pointer2",
   byteSize: 20,
-  data: {
-    viewType: "u8",
-  },
+  viewType: "u8",
   type: E_BufferType.VS,
 }
 let pointer2 = scene.BPC.pointers.createPointer(pointer2_params)!;
@@ -75,9 +71,7 @@ window.pointer2 = pointer2;
 let pointer3_params: I_pointerCreateParams = {
   name: "pointer3",
   byteSize: 30,
-  data: {
-    viewType: "u8",
-  },
+  viewType: "u8",
   type: E_BufferType.VS,
 }
 let pointer3 = scene.BPC.pointers.createPointer(pointer3_params)!;

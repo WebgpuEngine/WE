@@ -48,6 +48,9 @@ export interface IV_BOL {
     /** BOL ID 、id由BPC生成    */
     id: number;
 
+    /** 合并更新间距阈值*/
+    thresholdOfMergeUpdateStrideSize?: number;
+
 }
 /**
  * BOL偏移量和长度映射类
@@ -147,7 +150,7 @@ export class BlockOffsetLength implements I_UUID {
         this.pointers = parent.pointers;
         this.device = parent.device;
         this.clock = parent.clock;
-        this.thresholdOfMergeUpdateStrideSize = V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate];
+        this.thresholdOfMergeUpdateStrideSize = input.thresholdOfMergeUpdateStrideSize || V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate];
         this.name = input.name;
         if (input.id != undefined) {
             this.ID = input.id!;

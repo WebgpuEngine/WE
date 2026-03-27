@@ -50,9 +50,7 @@ console.log(scene.BPC.pointers);
 let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 1024,
-  data: {
-    viewType: "u32",
-  },
+  viewType: "u32",
   type: E_BufferType.VS,
 }
 let pointer1 = scene.BPC.pointers.createPointer(pointer1_params);
@@ -67,6 +65,6 @@ setTimeout(() => {
   let bolID = pointer1.BolID;
   let pointer1New = pointers.resizePointer(pointer1.pointerID, 2048);
   console.log("pointer1 resized:", pointer1New);
-  console.log("bol size,lastFree 与free 不相等",BPC.BOLs.VS.get(bolID).size);
+  console.log("bol size,lastFree 与free 不相等", BPC.BOLs.VS.get(bolID).size);
 
 }, 4000)

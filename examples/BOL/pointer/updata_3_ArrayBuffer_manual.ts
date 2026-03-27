@@ -51,13 +51,25 @@ let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 1024,
   viewType: "u32",
-  data: {
-    sourceData: {
-      data: new Uint32Array([1, 2, 3, 4])
-    },
-  },
   type: E_BufferType.VS,
 }
 let pointer1 = scene.BPC.pointers.createPointer(pointer1_params);
 window.pointer1 = pointer1;
 console.log("pointer1:", pointer1);
+
+/////////////////使用cpuBufferView更新pointer1
+console.log(" update 12345678 with cpuBufferView by pointer.getCPUBufferViewByPointerID() ");
+let cpuBufferView = window.pointers.getCPUBufferViewByPointerID(pointer1.pointerID);
+cpuBufferView.set([1, 2, 3, 4]);
+cpuBufferView.set([5, 6, 7, 8], 4);
+console.log("pointer 1", pointer1);
+
+/////////////////使用cpuBuffer 更新pointer1
+console.log(" update 12345678 with cpuBuffer by pointer.getCPUBufferByPointerID() ");
+let cpuBuffer = window.pointers.getCPUBufferByPointerID(pointer1.pointerID);
+let u32View= new Uint32Array(cpuBuffer.buffer,cpuBuffer.offset,cpuBuffer.byteLength);
+// let u32View= new Uint32Array(pointer1.cpuBuffer,pointer1.offset,pointer1.byteLength);
+u32View.set([1, 2, 3, 4],8);
+u32View.set([5, 6, 7, 8], 12);
+// console.log(u32View);
+console.log("pointer 1", pointer1);

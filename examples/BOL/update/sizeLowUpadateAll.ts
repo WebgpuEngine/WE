@@ -46,6 +46,9 @@ console.log(scene.BPC);
 window.pointers = scene.BPC.pointers;
 console.log(scene.BPC.pointers);
 
+let oddNumberSize = 64;
+let evenNumberSize = 64;
+
 let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 1024,

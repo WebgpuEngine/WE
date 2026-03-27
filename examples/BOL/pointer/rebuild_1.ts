@@ -1,6 +1,6 @@
 
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../src/we/core/scene/base";
+import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
@@ -37,7 +37,7 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
@@ -54,9 +54,7 @@ window.pointers = scene.BPC.pointers;
 let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 1024,
-  data: {
-    viewType: "u32",
-  },
+  viewType: "u32",
   type: E_BufferType.VS,
 }
 
@@ -68,9 +66,9 @@ setTimeout(() => {
   let bolVS = window.BPC.BOLs.VS.get(bolID);
   let pointer1New = window.pointers.resizePointer(pointer1.pointerID, 2048);
   console.log("pointer1 resized:", pointer1New);
-  console.log("bol size,lastFree 与free 不相等",bolVS.size);
+  console.log("bol size,lastFree 与free 不相等", bolVS.size);
   bolVS.rebuild();
-  console.log("bol ",bolVS);
+  console.log("bol ", bolVS);
 
 
 }, 1000)

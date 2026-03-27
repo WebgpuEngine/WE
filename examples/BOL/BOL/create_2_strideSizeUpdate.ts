@@ -5,7 +5,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
-import { I_pointerCreateParams } from "../../../src/we/core/bufferBlock/pointer";
+import { IV_BOL } from "../../../src/we/core/bufferBlock/BOL";
 import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
 
 declare global {
@@ -17,7 +17,22 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
-  // reversedZ:true,
+  ///////////////////////////////
+  /** BOL 合并更新间距阈值 */
+  BOL_updateStrideSize: {
+    staticVS: 1024*2,
+    VS: 1024,
+    uniform: 100,
+    storage: 200
+  },
+  ///////////////////////////////
+  /** BOL Buffer 大小 */
+  BOL_size: {
+    "VS":256,
+    "uniform":64,
+    "storage": 128,
+    "staticVS": 1024,
+  },
 };
 let scene = await initScene({
   initConfig: input,
@@ -41,18 +56,36 @@ await scene.add(camera);
 
 
 
+let boxGeometry = new BoxGeometry();
+
+let colorMaterial = new ColorMaterial({
+  color: [0, 0.1, 0.2, 1]
+});
+
+let inputMesh: IV_MeshEntity = {
+  attributes: {
+    geometry: boxGeometry,
+  },
+  material: colorMaterial,
+    wireFrame: {
+    color: [1, 1, 1, 1],
+    enable: true,
+    // wireFrameOnly: true,
+  }
+}
+let mesh = new Mesh(inputMesh);
+console.log(mesh);
+window.mesh=mesh;
+window.instanceMash=await scene.add(mesh);
 
 window.BPC= scene.BPC;
-console.log(scene.BPC);
-window.pointers= scene.BPC.pointers;
-console.log(scene.BPC.pointers);
 
-let pointer1_params:I_pointerCreateParams={
-  name: "pointer1",
-  byteSize: 1024,
-  viewType: "u32",
-  type: E_BufferType.VS,
+
+let bolParams:IV_BOL={
+  name: "test1",
+  size: 1024*1024*10,
+  type: E_BufferType.staticVS,
+  id: undefined
 }
-let pointer1=scene.BPC.pointers.createPointer(pointer1_params);
-window.pointer1=pointer1;
-console.log("pointer1:",pointer1);
+let bol1 = BPC.createBOL(bolParams);
+console.log(bol1);
