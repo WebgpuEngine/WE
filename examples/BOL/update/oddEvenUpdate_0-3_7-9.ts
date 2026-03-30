@@ -22,14 +22,14 @@ let input: IV_Scene = {
   /** BOL 合并更新间距阈值 */
   BOL: {
     updateStrideSize: {
-      "VS": 64,
-      "uniform": 64,
-      "storage": 128,
+      // staticVS: 1024,
+      VS: 64,
+      dynamicVS: 64,
+      uniform: 128,
     },
     ///////////////////////////////
     /** BOL Buffer 大小 */
     size: {
-      staticVS: 1024 * 2,
       VS: 1024,
       uniform: 100,
       storage: 200

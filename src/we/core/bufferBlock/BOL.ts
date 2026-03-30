@@ -164,7 +164,7 @@ export class BlockOffsetLength implements I_UUID {
         this.pointers = parent.pointers;
         this.device = parent.device;
         this.clock = parent.clock;
-        this.updateStrideSize = input.updateStrideSize || V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate];
+        this.updateStrideSize = (input.updateStrideSize || V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate]) || 0;
         this.rebuildPecent = input.rebuildPecent || 0.3;
         this.name = input.name;
         if (input.id != undefined) {
@@ -184,7 +184,7 @@ export class BlockOffsetLength implements I_UUID {
             this.usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
         }
         else {
-            throw new Error("type not support");
+            //    this.usage 
         }
         this.type = input.type;
         let size = this.inputValues.size;

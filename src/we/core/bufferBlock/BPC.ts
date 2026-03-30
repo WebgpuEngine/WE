@@ -36,6 +36,7 @@ export class BlockPointerCoordinator {
             sizeOfBOL: V_BolBufferSize,
             rebuildPecent: {
                 VS: 0.3,
+                dynamicVS: 0.3,
                 uniform: 0.3,
                 storage: 0.3,
             },
@@ -48,12 +49,14 @@ export class BlockPointerCoordinator {
     BOLs: {
         [E_BOLBufferType.staticVS]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.VS]: Map<number, BlockOffsetLength>,
+        [E_BOLBufferType.dynamicVS]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.uniform]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.storage]: Map<number, BlockOffsetLength>,
         "all": Map<number, BlockOffsetLength>,
     } = {
             [E_BOLBufferType.staticVS]: new Map(),
             [E_BOLBufferType.VS]: new Map(),
+            [E_BOLBufferType.dynamicVS]: new Map(),
             [E_BOLBufferType.uniform]: new Map(),
             [E_BOLBufferType.storage]: new Map(),
             "all": new Map(),
@@ -64,7 +67,7 @@ export class BlockPointerCoordinator {
     lastBOLid: number = 0;
 
     /** 默认BOL类型 */
-    defaultBOL: string[] = [E_BOLBufferType.staticVS, E_BOLBufferType.VS, E_BOLBufferType.uniform, E_BOLBufferType.storage];
+    defaultBOL: E_BOLBufferType[] = [E_BOLBufferType.staticVS, E_BOLBufferType.VS, E_BOLBufferType.dynamicVS, E_BOLBufferType.uniform, E_BOLBufferType.storage];
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = scene.device;
@@ -72,32 +75,30 @@ export class BlockPointerCoordinator {
         if (scene.BOL !== undefined) {
             if (scene.BOL.updateStrideSize !== undefined) {
                 for (let i in scene.BOL.updateStrideSize) {
-                    {
-                        let complementOfNumber = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] % 4;
-                        if (complementOfNumber !== 0) {
-                            complementOfNumber = 4 - complementOfNumber;
-                            scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] += complementOfNumber;
-                            console.warn(`updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]}`);
-                        }
+                    let complementOfNumber = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! % 4;
+                    if (complementOfNumber !== 0) {
+                        complementOfNumber = 4 - complementOfNumber;
+                        scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! += complementOfNumber;
+                        console.warn(`updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]}`);
                     }
+                    this.BOL_params.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate];
                 }
-                this.BOL_params.updateStrideSize = scene.BOL.updateStrideSize
             }
             if (scene.BOL.size !== undefined) {
                 for (let i in scene.BOL.size) {
-                    {
-                        let complementOfNumber = scene.BOL.size[i as E_BOLBufferType] % 4;
-                        if (complementOfNumber !== 0) {
-                            complementOfNumber = 4 - complementOfNumber;
-                            scene.BOL.size[i as E_BOLBufferType] += complementOfNumber;
-                            console.warn(`size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.size[i as E_BOLBufferType]}`);
-                        }
+                    let complementOfNumber = scene.BOL.size[i as E_BOLBufferType]! % 4;
+                    if (complementOfNumber !== 0) {
+                        complementOfNumber = 4 - complementOfNumber;
+                        scene.BOL.size[i as E_BOLBufferType]! += complementOfNumber;
+                        console.warn(`size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.size[i as E_BOLBufferType]}`);
                     }
+                    this.BOL_params.sizeOfBOL[i as E_BOLBufferType] = scene.BOL.size[i as E_BOLBufferType];
                 }
-                this.BOL_params.sizeOfBOL = scene.BOL.size
             }
             if (scene.BOL.rebuildPecent !== undefined) {
-                this.BOL_params.rebuildPecent = scene.BOL.rebuildPecent;
+                for (let i in scene.BOL.rebuildPecent) {
+                    this.BOL_params.rebuildPecent[i as keyof I_BolRebulidPercent] = scene.BOL.rebuildPecent[i as keyof I_BolRebulidPercent];
+                }
             }
 
         }
@@ -108,7 +109,7 @@ export class BlockPointerCoordinator {
     init() {
         for (let i of this.defaultBOL) {
             let params: IV_BOL = {
-                size: this.BOL_params.sizeOfBOL[i as E_BOLBufferType],
+                size: this.BOL_params.sizeOfBOL[i as E_BOLBufferType]!,
                 type: i as E_BOLBufferType,
                 id: -1,
                 name: i,
@@ -180,7 +181,7 @@ export class BlockPointerCoordinator {
             throw new Error("staticVertex BOL 不能申请分配，只能通过createStaticVertexBolWithData创建，且必须有初始化数据，且不可更改");
         }
         else {
-            let sizeOfFourL = byteSize + (4 - byteSize%4);//BOL大小必须是4的倍数
+            let sizeOfFourL = byteSize + (4 - byteSize % 4);//BOL大小必须是4的倍数
             //匹配lastFree最大的BOL
             for (let [id, bol] of this.BOLs[type]) {
                 //rebuilding状态原则上不会和分配状态冲突，因为在不同的执行阶段。
@@ -194,7 +195,7 @@ export class BlockPointerCoordinator {
             }
             //不满足，创建一个新的BOL
             let params: IV_BOL = {
-                size: this.BOL_params.sizeOfBOL[type] > sizeOfFourL ? this.BOL_params.sizeOfBOL[type] : sizeOfFourL,//BOL大小不能小于需要分配的内存大小
+                size: this.BOL_params.sizeOfBOL[type]! > sizeOfFourL ? this.BOL_params.sizeOfBOL[type]! : sizeOfFourL,//BOL大小不能小于需要分配的内存大小
                 type: type,
                 id: this.createBolID(),
                 name: "",
