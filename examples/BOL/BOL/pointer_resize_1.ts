@@ -6,7 +6,7 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { BlockOffsetLength, IV_BOL } from "../../../src/we/core/bufferBlock/BOL";
-import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
+import { E_BOLBufferType } from "../../../src/we/core/bufferBlock/base";
 
 declare global {
   interface Window {
@@ -69,7 +69,7 @@ window.BPC= scene.BPC;
 let bolParams:IV_BOL={
   name: "test1",
   size: 1024*1024*10,
-  type: E_BufferType.staticVS,
+  type: E_BOLBufferType.staticVS,
   id: undefined
 }
 let bol1 :BlockOffsetLength = BPC.createBOL(bolParams);

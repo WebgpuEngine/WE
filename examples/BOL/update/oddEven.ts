@@ -3,7 +3,7 @@ import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { I_pointerCreateParams, I_pointerStruct } from "../../../src/we/core/bufferBlock/pointer";
-import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
+import { E_BOLBufferType } from "../../../src/we/core/bufferBlock/base";
 
 declare global {
   interface Window {
@@ -19,21 +19,21 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   ///////////////////////////////
-  /** BOL 合并更新间距阈值 */
-  BOL_updateStrideSize: {
-    "staticVS": 1024,
-    "VS": 64,
-    "uniform": 64,
-    "storage": 128,
-  },
-  ///////////////////////////////
-  /** BOL Buffer 大小 */
-  BOL_size: {
-    staticVS: 1024 * 2,
-    VS: 1024,
-    uniform: 100,
-    storage: 200
-  },
+  BOL: {  /** BOL 合并更新间距阈值 */
+    updateStrideSize: {
+      "VS": 64,
+      "uniform": 64,
+      "storage": 128,
+    },
+    ///////////////////////////////
+    /** BOL Buffer 大小 */
+    size: {
+      staticVS: 1024 * 2,
+      VS: 1024,
+      uniform: 100,
+      storage: 200
+    },
+  }
 };
 let scene = await initScene({
   initConfig: input,
@@ -76,7 +76,7 @@ for (let i = 0; i < 10; i++) {
       name: "pointer" + i,
       byteSize: 20,
       viewType: "u32",
-      type: E_BufferType.VS,
+      type: E_BOLBufferType.VS,
     }
   }
   else {
@@ -84,7 +84,7 @@ for (let i = 0; i < 10; i++) {
       name: "pointer" + i,
       byteSize: 80,
       viewType: "u32",
-      type: E_BufferType.VS,
+      type: E_BOLBufferType.VS,
     }
   }
   let pointer1 = scene.BPC.pointers.createPointer(pointer1_params);

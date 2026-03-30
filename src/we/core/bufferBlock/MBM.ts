@@ -1,5 +1,6 @@
 import { ECSManager } from "../organization/manager";
 import { Clock } from "../scene/clock";
+import { E_BOLBufferType, E_BOLState } from "./base";
 import { BlockOffsetLength } from "./BOL";
 
 /**
@@ -8,7 +9,7 @@ import { BlockOffsetLength } from "./BOL";
 export class MemoryBlockManager extends ECSManager<BlockOffsetLength> {
     update(clock: Clock): void {
         for (const bol of this.list) {
-            bol.update(clock);
+                bol.update(clock);
         }
     }
     name: string = 'MBM'

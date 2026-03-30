@@ -6,7 +6,7 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { BlockOffsetLength, IV_BOL } from "../../../src/we/core/bufferBlock/BOL";
-import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
+import { E_BOLBufferType } from "../../../src/we/core/bufferBlock/base";
 import { I_pointerCreateParams } from "../../../src/we/core/bufferBlock/pointer";
 
 declare global {
@@ -54,7 +54,7 @@ let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 10,
   viewType: "u8",
-  type: E_BufferType.VS,
+  type: E_BOLBufferType.VS,
 }
 let pointer1 = scene.BPC.pointers.createPointer(pointer1_params)!;
 
@@ -63,7 +63,7 @@ let pointer2_params: I_pointerCreateParams = {
   name: "pointer2",
   byteSize: 20,
   viewType: "u8",
-  type: E_BufferType.VS,
+  type: E_BOLBufferType.VS,
 }
 let pointer2 = scene.BPC.pointers.createPointer(pointer2_params)!;
 window.pointer2 = pointer2;
@@ -72,7 +72,7 @@ let pointer3_params: I_pointerCreateParams = {
   name: "pointer3",
   byteSize: 30,
   viewType: "u8",
-  type: E_BufferType.VS,
+  type: E_BOLBufferType.VS,
 }
 let pointer3 = scene.BPC.pointers.createPointer(pointer3_params)!;
 window.pointer3 = pointer3;

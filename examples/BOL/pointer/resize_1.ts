@@ -6,7 +6,7 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { I_pointerCreateParams, I_pointerStruct } from "../../../src/we/core/bufferBlock/pointer";
-import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
+import { E_BOLBufferType } from "../../../src/we/core/bufferBlock/base";
 
 declare global {
   interface Window {
@@ -51,7 +51,7 @@ let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 1024,
   viewType: "u32",
-  type: E_BufferType.VS,
+  type: E_BOLBufferType.VS,
 }
 let pointer1 = scene.BPC.pointers.createPointer(pointer1_params);
 

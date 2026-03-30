@@ -33,7 +33,7 @@ import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { MemoryBlockManager } from "../bufferBlock/MBM";
 import { Pointers } from "../bufferBlock/pointer";
 import { BlockPointerCoordinator } from "../bufferBlock/BPC";
-import { I_BolSize, I_BolStrideSizeOfUpdate } from "../bufferBlock/base";
+import { I_BolRebulidPercent, I_BolSize, I_BolStrideSizeOfUpdate } from "../bufferBlock/base";
 
 
 
@@ -313,11 +313,15 @@ export class Scene {
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
-    /** BOL合并更新间距阈值 */
-    BOL_updateStrideSize: I_BolStrideSizeOfUpdate | undefined;
-    /** BOL大小 */
-    BOL_size: I_BolSize | undefined;
-
+    /** BOL配置 */
+    BOL: {
+        /** BOL合并更新间距阈值*/
+        updateStrideSize?: I_BolStrideSizeOfUpdate,
+        /** BOL大小 */
+        size?: I_BolSize,
+        /** BOL重建百分比 */
+        rebuildPecent?: I_BolRebulidPercent,
+    }|undefined ;
 
     constructor(value: IV_Scene) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -337,11 +341,8 @@ export class Scene {
         }
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //input赋值
-        if (value.BOL_updateStrideSize) {
-            this.BOL_updateStrideSize = value.BOL_updateStrideSize;
-        }
-        if (value.BOL_size) {
-            this.BOL_size = value.BOL_size;
+        if (value.BOL) {
+            this.BOL = value.BOL;
         }
         if (value.AA) {
             this.AA = value.AA;

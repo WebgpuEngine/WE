@@ -1,6 +1,6 @@
 import { getTypedArrayType, isArrayBuffer } from "../command/baseFunction";
 import { Clock } from "../scene/clock";
-import { E_BufferType } from "./base";
+import { E_BOLBufferType } from "./base";
 import { BlockPointerCoordinator } from "./BPC";
 
 /** 指针数据视图类型 */
@@ -12,7 +12,7 @@ export type T_pointerDataType = "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "f
 export interface I_pointerStruct {
     ////////////////////////////指针数据//////////////////////////
     pointerID: number;
-    type: E_BufferType;
+    type: E_BOLBufferType;
     name: string;
     viewType: T_pointerDataType;
     /** 最后写入时间 
@@ -68,7 +68,7 @@ export interface I_pointerCreateParams {
     byteSize: number;
     data?: I_pointerDataParams;
     /** 指针数据类型，适配到相同类型的BOL的Block */
-    type: E_BufferType;
+    type: E_BOLBufferType;
     /** 指针数据类型 */
     viewType: T_pointerDataType;
 }

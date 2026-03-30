@@ -3,7 +3,7 @@ import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { I_pointerCreateParams } from "../../../src/we/core/bufferBlock/pointer";
-import { E_BufferType } from "../../../src/we/core/bufferBlock/base";
+import { E_BOLBufferType } from "../../../src/we/core/bufferBlock/base";
 
 declare global {
   interface Window {
@@ -50,7 +50,7 @@ let pointer1_params: I_pointerCreateParams = {
   name: "pointer1",
   byteSize: 1024,
   viewType: "u32",
-  type: E_BufferType.VS,
+  type: E_BOLBufferType.VS,
 }
 let pointer1 = scene.BPC.pointers.createPointer(pointer1_params);
 window.pointer1 = pointer1;

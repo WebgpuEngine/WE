@@ -1,9 +1,10 @@
+import { get } from "../../../@loaders.gl/draco/dist/draco-worker-node";
 import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { WeGenerateUUID } from "../math/baseFunction";
 import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { E_BOLState, V_BolStrideSizeOfUpdate, E_BufferType } from "./base";
+import { E_BOLState, V_BolStrideSizeOfUpdate, E_BOLBufferType } from "./base";
 import { BlockPointerCoordinator } from "./BPC";
 import { Pointers } from "./pointer";
 
@@ -44,12 +45,21 @@ export interface IV_BOL {
         released?: boolean;
     }
     /** buffer 类型 */
-    type: E_BufferType;
+    type: E_BOLBufferType;
     /** BOL ID 、id由BPC生成    */
     id: number;
 
-    /** 合并更新间距阈值*/
-    thresholdOfMergeUpdateStrideSize?: number;
+    /** 合并更新间距阈值
+     * 1、默认64K。
+     * 2、staticVS 没有合并更新间距阈值。
+     */
+    updateStrideSize?: number;
+
+    /** BOL重建触发阈值 
+     * 1、默认0.3 
+     * 2、staticVS 没有重建触发阈值。
+     */
+    rebuildPecent?: number;
 
 }
 /**
@@ -65,7 +75,7 @@ export class BlockOffsetLength implements I_UUID {
     /** 指针管理器 */
     pointers: Pointers;
     name: string = 'BOL';
-    type: E_BufferType;
+    type: E_BOLBufferType;
     /** BOL大小，单位：字节。 
      * 默认大小64K,也是最小值。
     */
@@ -76,17 +86,21 @@ export class BlockOffsetLength implements I_UUID {
         released: number;
         lastFree: number;
     } = {
-            total: 64 * 1024,
+            total: 2 * 1024 * 1024,
             used: 0,
             free: 64 * 1024,
             released: 0,
             lastFree: 64 * 1024,
         };
-    /** release阈值，默认0.4，即40%的free值 */
-    thresholdOfRelease: number = 0.4;
-    /** 合并更新间距阈值，默认64K
+    /** release阈值，默认0.3，
+     * 1、staticVS 没有重建触发阈值。
      */
-    thresholdOfMergeUpdateStrideSize: number;
+    rebuildPecent: number = 0.3;
+
+    /** 合并更新间距阈值，默认64K   。
+     * 1、staticVS 没有合并更新间距阈值。
+     */
+    updateStrideSize: number = 64 * 1024;
 
     /** GPUBufferUsageFlags类型 */
     usage: GPUBufferUsageFlags = GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.INDEX | GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
@@ -150,22 +164,23 @@ export class BlockOffsetLength implements I_UUID {
         this.pointers = parent.pointers;
         this.device = parent.device;
         this.clock = parent.clock;
-        this.thresholdOfMergeUpdateStrideSize = input.thresholdOfMergeUpdateStrideSize || V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate];
+        this.updateStrideSize = input.updateStrideSize || V_BolStrideSizeOfUpdate[this.type as keyof typeof V_BolStrideSizeOfUpdate];
+        this.rebuildPecent = input.rebuildPecent || 0.3;
         this.name = input.name;
         if (input.id != undefined) {
             this.ID = input.id!;
         }
         this.UUID = WeGenerateUUID();
-        if (input.type == E_BufferType.staticVS) {
+        if (input.type == E_BOLBufferType.staticVS) {
             this.usage = GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST;
         }
-        else if (input.type == E_BufferType.VS) {
+        else if (input.type == E_BOLBufferType.VS) {
             this.usage = GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST;
         }
-        else if (input.type == E_BufferType.uniform) {
+        else if (input.type == E_BOLBufferType.uniform) {
             this.usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
         }
-        else if (input.type == E_BufferType.storage) {
+        else if (input.type == E_BOLBufferType.storage) {
             this.usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
         }
         else {
@@ -204,7 +219,7 @@ export class BlockOffsetLength implements I_UUID {
     }
     /** 设置合并更新间距阈值 */
     setThresholdOfMergeUpdateStrideSize(size: number) {
-        this.thresholdOfMergeUpdateStrideSize = size;
+        this.updateStrideSize = size;
     }
     init() {
         this.cpuBuffer = new ArrayBuffer(this.inputValues.size);
@@ -233,6 +248,7 @@ export class BlockOffsetLength implements I_UUID {
          *      D、更新lastOffset和size，以及设置lastOffset为当前指针偏移量
          * 5、pointerList 不变；
          */
+        this.state = E_BOLState.rebuilding;
         //1、设置flagWriteAll为true，以及size重置
         this.flagWriteAll = true;
         let offset = 0;     //当前偏移量 
@@ -265,6 +281,7 @@ export class BlockOffsetLength implements I_UUID {
             offset += oldPointerStruct.byteLength;
             this.lastOffset = offset;
         }
+        this.state = E_BOLState.open;
     }
     /** 生成更新偏移量和长度的映射表
      */
@@ -277,48 +294,48 @@ export class BlockOffsetLength implements I_UUID {
         let lastAtEndOfPointer = 0;
         //两个指针之间的不更新byteLength间距
         let strideSize = 0;
-        // 上一个有效的长度+strideSize(未达到阈值时)
-        let lastAtEndOfPointer_add_strideSize = 0;
         for (let [offset, pointerID] of this.pointerOffsetMap) {
             let pointer = this.pointers.getPointer(pointerID)!;
 
-            //判断pointer 当前帧是否有写入数据。如果无，累计strideSize，
-            if (pointer.writeTime < lastUpdateTime) {
-                strideSize += pointer.byteLength;           //累计strideSize
-                //大于阈值，提交上次最后的lastOffset 和 lastAtEndOfPointer 之间的长度
-                if (strideSize >= this.thresholdOfMergeUpdateStrideSize && lastOffset != lastAtEndOfPointer) {
-                    // if (lastOffset != 0 && lastAtEndOfPointer != 0) {
-                    if (lastAtEndOfPointer != 0) {
-                        this.updateOffsetAndLenght.push([lastOffset, lastAtEndOfPointer]);
+            //无写入数据，累计strideSize，
+            if (pointer.writeTime < lastUpdateTime) {//判断pointer 当前帧是否有写入数据。
+                //累计strideSize
+                strideSize += pointer.byteLength;
+                //如果strideSize大于阈值，提交上次最后的lastOffset 和 lastAtEndOfPointer 之间的长度
+                if (strideSize >= this.updateStrideSize) {
+                    //如果lastOffset和lastAtEndOfPointer不相等，说明期间有数据写入，需要提交。如果相等，说明没有数据，有一个或多个stride，不需要提交。
+                    if (lastOffset != lastAtEndOfPointer) {
+                        // if (lastOffset != 0 && lastAtEndOfPointer != 0) {
+                        if (lastAtEndOfPointer != 0) {
+                            this.updateOffsetAndLenght.push([lastOffset, lastAtEndOfPointer]);
+                        }
+                        //重置strideSize，lastOffset，lastAtEndOfPointer
+                        strideSize = 0;
+                        lastOffset = lastAtEndOfPointer;
                     }
-                    //重置strideSize，lastOffset，lastAtEndOfPointer
-                    strideSize = 0;
-                    lastOffset = lastAtEndOfPointer;
-                    // lastAtEndOfPointer = 0;
-                    // lastAtEndOfPointer_add_strideSize = lastAtEndOfPointer;
                 }
-                else {
-                    lastAtEndOfPointer_add_strideSize = lastAtEndOfPointer + strideSize;
-                }
+                //否则，继续累计strideSize，else{}
             }
-            //否则，更新lastAtEndOfPointer
+            //有写入数据，更新lastAtEndOfPointer
             else {
-                let atEndOfPointer = offset + pointer.byteLength;       //当前指针的偏移量+当前指针的长度=当前指针的结束偏移量
-                //如果是第一个指针或重置，直接赋值
+                //当前指针的结束偏移量=当前指针的偏移量+当前指针的长度
+                let atEndOfPointer = offset + pointer.byteLength;
+                //如果是第一个指针，直接赋值
                 if (lastOffset === 0 && lastAtEndOfPointer === 0 && strideSize === 0) {
                     lastOffset = offset;
                     lastAtEndOfPointer = atEndOfPointer;
                     continue;
                 }
-                //上一个指针的结束偏移量等于当前指针的偏移量，直接赋值。中间存在stride
+                //上一个指针的结束偏移量等于其指针的偏移量，直接赋值。中间存在stride，意味着者是新的开始。
                 else if (lastAtEndOfPointer == lastOffset) {
                     lastOffset = offset;
                     lastAtEndOfPointer = atEndOfPointer;
                 }
+                //否则，只更新lastAtEndOfPointer。不需要更新lastOffset。
                 else {
                     //更新lastAtEndOfPointer
                     lastAtEndOfPointer = atEndOfPointer;
-                    //重置strideSize，无strideSize或strideSize小于阈值.
+                    //重置strideSize，无strideSize或之前的strideSize之和小于阈值.
                     strideSize = 0;
                 }
             }
@@ -330,23 +347,16 @@ export class BlockOffsetLength implements I_UUID {
     }
     /** 更新BOL     */
     update(clock: Clock) {
-        if (this.type == E_BufferType.staticVS) {
-            return;
-        }
-        if (this._isDestroy) {
-            return;
-        }
-        if (this.state == E_BOLState.rebuilding) {
-            return;
-        }
-        if (this.flagWriteAll === true) {
-            this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
-            this.flagWriteAll = false;
-        }
-        else {
-            this.generateUpdateOffsetAndLenght(clock);
-            for (let i of this.updateOffsetAndLenght) {
-                this.device.queue.writeBuffer(this.gpuBuffer, i[0], this.cpuBuffer, i[0], i[1]);
+        if (this.checkUpdate()) {
+            if (this.flagWriteAll === true) {
+                this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
+                this.flagWriteAll = false;
+            }
+            else {
+                this.generateUpdateOffsetAndLenght(clock);
+                for (let i of this.updateOffsetAndLenght) {
+                    this.device.queue.writeBuffer(this.gpuBuffer, i[0], this.cpuBuffer, i[0], i[1]);
+                }
             }
         }
     }
@@ -424,4 +434,28 @@ export class BlockOffsetLength implements I_UUID {
             this.size.lastFree = this.size.total - (offset + byteSize);
         }
     }
+    checkRebuild(): boolean {
+        if (this.checkUpdate()) {
+            let percent = this.size.released / this.size.total * 100;
+            if (percent >= this.rebuildPecent) {
+                return true;
+            }
+        }
+        return false;
+    }
+    checkUpdate(): boolean {
+        if (this._isDestroy ||
+            this.state == E_BOLState.released ||
+            this.type == E_BOLBufferType.staticVS ||
+            this.state == E_BOLState.rebuilding
+        ) return false;
+        return true;
+    }
+    set State(state: E_BOLState) {
+        this.state = state;
+    }
+    get State() {
+        return this.state;
+    }
+
 }

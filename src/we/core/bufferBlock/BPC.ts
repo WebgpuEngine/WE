@@ -1,6 +1,6 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { E_BOLState, E_BufferType, I_BolSize, I_BolStrideSizeOfUpdate, V_BolBufferSize, V_BolStrideSizeOfUpdate } from "./base";
+import { E_BOLState, E_BOLBufferType, I_BolSize, I_BolStrideSizeOfUpdate, V_BolBufferSize, V_BolStrideSizeOfUpdate, I_BolRebulidPercent } from "./base";
 import { BlockOffsetLength, I_pointerInfoInBOL, IV_BOL } from "./BOL";
 import { I_pointerCreateParams, Pointers } from "./pointer";
 
@@ -19,85 +19,116 @@ export class BlockPointerCoordinator {
     scene: Scene;
     device: GPUDevice;
     clock: Clock;
-    /** BOL合并更新间距阈值 */
-    thresholdMergeUpdateStrideSizeOfBOL: I_BolStrideSizeOfUpdate;
+    BOL_params: {
+        /** BOL合并更新间距阈值 */
+        updateStrideSize: I_BolStrideSizeOfUpdate;
+        /** BOL大小定义 */
+        sizeOfBOL: I_BolSize;
+        /** BOL重建百分比 */
+        rebuildPecent: I_BolRebulidPercent;
+        //  {
+        // VS: 0.3,
+        // uniform: 0.3,
+        // storage: 0.3,
+        // };
+    } = {
+            updateStrideSize: V_BolStrideSizeOfUpdate,
+            sizeOfBOL: V_BolBufferSize,
+            rebuildPecent: {
+                VS: 0.3,
+                uniform: 0.3,
+                storage: 0.3,
+            },
+        }
 
     /** 指针管理器 */
     pointers: Pointers;
     /** BOL集合，key为BOLID，value为BOL实例 */
     // BOLs: Map<number, BlockOffsetLength> = new Map();
     BOLs: {
-        [E_BufferType.staticVS]: Map<number, BlockOffsetLength>,
-        [E_BufferType.VS]: Map<number, BlockOffsetLength>,
-        [E_BufferType.uniform]: Map<number, BlockOffsetLength>,
-        [E_BufferType.storage]: Map<number, BlockOffsetLength>,
+        [E_BOLBufferType.staticVS]: Map<number, BlockOffsetLength>,
+        [E_BOLBufferType.VS]: Map<number, BlockOffsetLength>,
+        [E_BOLBufferType.uniform]: Map<number, BlockOffsetLength>,
+        [E_BOLBufferType.storage]: Map<number, BlockOffsetLength>,
         "all": Map<number, BlockOffsetLength>,
     } = {
-            [E_BufferType.staticVS]: new Map(),
-            [E_BufferType.VS]: new Map(),
-            [E_BufferType.uniform]: new Map(),
-            [E_BufferType.storage]: new Map(),
+            [E_BOLBufferType.staticVS]: new Map(),
+            [E_BOLBufferType.VS]: new Map(),
+            [E_BOLBufferType.uniform]: new Map(),
+            [E_BOLBufferType.storage]: new Map(),
             "all": new Map(),
         }
     /** BOLID集合 */
     BOLid: Set<number> = new Set();
     /** 最后一个BOLID */
     lastBOLid: number = 0;
-    /** BOL大小定义 */
-    sizeOfBOL: I_BolSize;
+
     /** 默认BOL类型 */
-    defaultBOL: string[] = [E_BufferType.staticVS, E_BufferType.VS, E_BufferType.uniform, E_BufferType.storage];
+    defaultBOL: string[] = [E_BOLBufferType.staticVS, E_BOLBufferType.VS, E_BOLBufferType.uniform, E_BOLBufferType.storage];
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = scene.device;
         this.clock = scene.clock;
-        if (scene.BOL_updateStrideSize !== undefined) {
-            for (let i in scene.BOL_updateStrideSize) {
-                {
-                    let complementOfNumber = scene.BOL_updateStrideSize[i as E_BufferType] % 4;
-                    if (complementOfNumber !== 0) {
-                        complementOfNumber = 4 - complementOfNumber;
-                        scene.BOL_updateStrideSize[i as E_BufferType] += complementOfNumber;
-                        console.warn(`BOL_updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL_updateStrideSize[i as E_BufferType] }`);
+        if (scene.BOL !== undefined) {
+            if (scene.BOL.updateStrideSize !== undefined) {
+                for (let i in scene.BOL.updateStrideSize) {
+                    {
+                        let complementOfNumber = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] % 4;
+                        if (complementOfNumber !== 0) {
+                            complementOfNumber = 4 - complementOfNumber;
+                            scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] += complementOfNumber;
+                            console.warn(`updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]}`);
+                        }
                     }
                 }
+                this.BOL_params.updateStrideSize = scene.BOL.updateStrideSize
             }
-        }
-        if (scene.BOL_size !== undefined) {
-            for (let i in scene.BOL_size) {
-                {
-                    let complementOfNumber = scene.BOL_size[i as E_BufferType] % 4;
-                    if (complementOfNumber !== 0) {
-                        complementOfNumber = 4 - complementOfNumber;
-                        scene.BOL_size[i as E_BufferType] += complementOfNumber;
-                        console.warn(`BOL_size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL_size[i as E_BufferType] }`);
+            if (scene.BOL.size !== undefined) {
+                for (let i in scene.BOL.size) {
+                    {
+                        let complementOfNumber = scene.BOL.size[i as E_BOLBufferType] % 4;
+                        if (complementOfNumber !== 0) {
+                            complementOfNumber = 4 - complementOfNumber;
+                            scene.BOL.size[i as E_BOLBufferType] += complementOfNumber;
+                            console.warn(`size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.size[i as E_BOLBufferType]}`);
+                        }
                     }
                 }
+                this.BOL_params.sizeOfBOL = scene.BOL.size
             }
+            if (scene.BOL.rebuildPecent !== undefined) {
+                this.BOL_params.rebuildPecent = scene.BOL.rebuildPecent;
+            }
+
         }
-        this.thresholdMergeUpdateStrideSizeOfBOL = scene.BOL_updateStrideSize || V_BolStrideSizeOfUpdate;
-        this.sizeOfBOL = scene.BOL_size || V_BolBufferSize;
+
         this.pointers = new Pointers(this);
         this.init();
     }
     init() {
         for (let i of this.defaultBOL) {
             let params: IV_BOL = {
-                size: this.sizeOfBOL[i as E_BufferType],
-                type: i as E_BufferType,
+                size: this.BOL_params.sizeOfBOL[i as E_BOLBufferType],
+                type: i as E_BOLBufferType,
                 id: -1,
                 name: i,
-                // thresholdOfMergeUpdateStrideSize: thresholdOfMergeUpdateStrideSize
             }
             this.createBOL(params);
         }
     }
     /** 创建BOL */
     createBOL(params: IV_BOL) {
-        let key = params.type as keyof I_BolStrideSizeOfUpdate;
-        let thresholdOfMergeUpdateStrideSize = this.thresholdMergeUpdateStrideSizeOfBOL[key];
-        if (thresholdOfMergeUpdateStrideSize != undefined) {
-            params.thresholdOfMergeUpdateStrideSize = thresholdOfMergeUpdateStrideSize;
+        if (params.type != E_BOLBufferType.staticVS) {
+            let key = params.type as keyof I_BolStrideSizeOfUpdate;
+            let updateStrideSize = this.BOL_params.updateStrideSize[key];
+            if (updateStrideSize != undefined) {
+                params.updateStrideSize = updateStrideSize;
+            }
+
+            let rebuildPecent = this.BOL_params.rebuildPecent[key];
+            if (rebuildPecent != undefined) {
+                params.rebuildPecent = rebuildPecent;
+            }
         }
         if (params.id == undefined || params.id < 1) {
             params.id = this.createBolID();
@@ -129,7 +160,7 @@ export class BlockPointerCoordinator {
         let id = this.createBolID();
         let bol = new BlockOffsetLength(param, this);
         this.BOLs.all.set(id, bol);
-        this.BOLs[E_BufferType.staticVS].set(id, bol);
+        this.BOLs[E_BOLBufferType.staticVS].set(id, bol);
         return id;
     }
     /** 分配指针到BOL，并分配内存空间，返回指针信息InBOL */
@@ -139,28 +170,36 @@ export class BlockPointerCoordinator {
 
         return pointerInfo;
     }
-    /** 获取BOL */
-    getBOLsByType(type: E_BufferType, byteSize: number) {
-        if (type == E_BufferType.staticVS) {
+    /** 根据类型和需要分配的内存大小获取BOL
+     * 1、匹配lastFree最大的BOL，返回存在的BOL
+     * 2、不满足，创建一个新的BOL
+     */
+    getBOLsByType(type: E_BOLBufferType, byteSize: number) {
+        if (type == E_BOLBufferType.staticVS) {
             // return this.staticVertexBOLs;
             throw new Error("staticVertex BOL 不能申请分配，只能通过createStaticVertexBolWithData创建，且必须有初始化数据，且不可更改");
         }
         else {
+            let sizeOfFourL = byteSize + (4 - byteSize%4);//BOL大小必须是4的倍数
+            //匹配lastFree最大的BOL
             for (let [id, bol] of this.BOLs[type]) {
                 //rebuilding状态原则上不会和分配状态冲突，因为在不同的执行阶段。
                 if (bol.state == E_BOLState.released || bol.state == E_BOLState.close || bol.state == E_BOLState.rebuilding) {
                     continue;
                 }
                 //这里需要考虑最后的连续byteSize是否足够分配
-                if (bol.size.lastFree >= byteSize) {
+                if (bol.size.lastFree >= sizeOfFourL) {
                     return bol;
                 }
             }
+            //不满足，创建一个新的BOL
             let params: IV_BOL = {
-                size: this.sizeOfBOL[type] > byteSize ? this.sizeOfBOL[type] : byteSize,
+                size: this.BOL_params.sizeOfBOL[type] > sizeOfFourL ? this.BOL_params.sizeOfBOL[type] : sizeOfFourL,//BOL大小不能小于需要分配的内存大小
                 type: type,
                 id: this.createBolID(),
-                name: ""
+                name: "",
+                updateStrideSize: 0,
+                rebuildPecent: 0.3,
             }
             return this.createBOL(params);
         }
@@ -190,10 +229,10 @@ export class BlockPointerCoordinator {
             let isDestroy = bol.destroy();
             if (isDestroy) {
                 this.BOLs.all.delete(id);
-                this.BOLs[E_BufferType.staticVS].delete(id);
-                this.BOLs[E_BufferType.VS].delete(id);
-                this.BOLs[E_BufferType.uniform].delete(id);
-                this.BOLs[E_BufferType.storage].delete(id);
+                this.BOLs[E_BOLBufferType.staticVS].delete(id);
+                this.BOLs[E_BOLBufferType.VS].delete(id);
+                this.BOLs[E_BOLBufferType.uniform].delete(id);
+                this.BOLs[E_BOLBufferType.storage].delete(id);
                 this.BOLid.delete(id);
             }
             return isDestroy;
@@ -211,7 +250,7 @@ export class BlockPointerCoordinator {
         * 2、如果需要，调用BOL的rebuild方法
         * 
      * 
-     * BOL间调度：
+     * BOL间调度：todo
          * 1、只在内部调用
          * 2、外部调度增加：
          *      A、BPC先clone一个ArrayBuffer，缓存指针数据；
@@ -225,6 +264,11 @@ export class BlockPointerCoordinator {
          *      C、按需 调用rebuild()
      */
     update(clock: Clock) {
+        for (let [id, bol] of this.BOLs.all) {
+            if (bol.checkRebuild()) {
+                bol.rebuild();
+            }
+        }
     }
 
 }
