@@ -171,17 +171,17 @@ export class BlockOffsetLength implements I_UUID {
             this.ID = input.id!;
         }
         this.UUID = WeGenerateUUID();
-        if (input.type == E_BOLBufferType.staticVS) {
+        if (input.type == E_BOLBufferType.static) {
             this.usage = GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST;
         }
         else if (input.type == E_BOLBufferType.VS) {
             this.usage = GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST;
         }
         else if (input.type == E_BOLBufferType.uniform) {
-            this.usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
+            this.usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX;
         }
         else if (input.type == E_BOLBufferType.storage) {
-            this.usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
+            this.usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.VERTEX | GPUBufferUsage.UNIFORM;
         }
         else {
             //    this.usage 
@@ -446,7 +446,7 @@ export class BlockOffsetLength implements I_UUID {
     checkUpdate(): boolean {
         if (this._isDestroy ||
             this.state == E_BOLState.released ||
-            this.type == E_BOLBufferType.staticVS ||
+            this.type == E_BOLBufferType.static ||
             this.state == E_BOLState.rebuilding
         ) return false;
         return true;
