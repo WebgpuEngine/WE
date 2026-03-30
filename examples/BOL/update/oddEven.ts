@@ -28,7 +28,7 @@ let input: IV_Scene = {
     ///////////////////////////////
     /** BOL Buffer 大小 */
     size: {
-      staticVS: 1024 * 2,
+      // staticVS: 1024 * 2,
       VS: 1024,
       uniform: 100,
       storage: 200

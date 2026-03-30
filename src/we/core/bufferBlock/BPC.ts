@@ -47,14 +47,14 @@ export class BlockPointerCoordinator {
     /** BOL集合，key为BOLID，value为BOL实例 */
     // BOLs: Map<number, BlockOffsetLength> = new Map();
     BOLs: {
-        [E_BOLBufferType.staticVS]: Map<number, BlockOffsetLength>,
+        [E_BOLBufferType.static]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.VS]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.dynamicVS]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.uniform]: Map<number, BlockOffsetLength>,
         [E_BOLBufferType.storage]: Map<number, BlockOffsetLength>,
         "all": Map<number, BlockOffsetLength>,
     } = {
-            [E_BOLBufferType.staticVS]: new Map(),
+            [E_BOLBufferType.static]: new Map(),
             [E_BOLBufferType.VS]: new Map(),
             [E_BOLBufferType.dynamicVS]: new Map(),
             [E_BOLBufferType.uniform]: new Map(),
@@ -66,8 +66,8 @@ export class BlockPointerCoordinator {
     /** 最后一个BOLID */
     lastBOLid: number = 0;
 
-    /** 默认BOL类型 */
-    defaultBOL: E_BOLBufferType[] = [E_BOLBufferType.staticVS, E_BOLBufferType.VS, E_BOLBufferType.dynamicVS, E_BOLBufferType.uniform, E_BOLBufferType.storage];
+    /** 默认BOL类型，没有static，因为static是通过this.createStaticBolWithData()创建的*/
+    defaultBOL: E_BOLBufferType[] = [E_BOLBufferType.VS, E_BOLBufferType.dynamicVS, E_BOLBufferType.uniform, E_BOLBufferType.storage];
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = scene.device;
@@ -119,7 +119,7 @@ export class BlockPointerCoordinator {
     }
     /** 创建BOL */
     createBOL(params: IV_BOL) {
-        if (params.type != E_BOLBufferType.staticVS) {
+        if (params.type != E_BOLBufferType.static) {
             let key = params.type as keyof I_BolStrideSizeOfUpdate;
             let updateStrideSize = this.BOL_params.updateStrideSize[key];
             if (updateStrideSize != undefined) {
@@ -157,11 +157,11 @@ export class BlockPointerCoordinator {
      * 2、静态VS必须有初始化数据，且不可更改 
      * 3、静态VS的CPU侧内存不会保留
      */
-    createStaticVertexBolWithData(param: IV_BOL) {
+    createStaticBolWithData(param: IV_BOL) {
         let id = this.createBolID();
         let bol = new BlockOffsetLength(param, this);
         this.BOLs.all.set(id, bol);
-        this.BOLs[E_BOLBufferType.staticVS].set(id, bol);
+        this.BOLs[E_BOLBufferType.static].set(id, bol);
         return id;
     }
     /** 分配指针到BOL，并分配内存空间，返回指针信息InBOL */
@@ -176,7 +176,7 @@ export class BlockPointerCoordinator {
      * 2、不满足，创建一个新的BOL
      */
     getBOLsByType(type: E_BOLBufferType, byteSize: number) {
-        if (type == E_BOLBufferType.staticVS) {
+        if (type == E_BOLBufferType.static) {
             // return this.staticVertexBOLs;
             throw new Error("staticVertex BOL 不能申请分配，只能通过createStaticVertexBolWithData创建，且必须有初始化数据，且不可更改");
         }
@@ -230,7 +230,7 @@ export class BlockPointerCoordinator {
             let isDestroy = bol.destroy();
             if (isDestroy) {
                 this.BOLs.all.delete(id);
-                this.BOLs[E_BOLBufferType.staticVS].delete(id);
+                this.BOLs[E_BOLBufferType.static].delete(id);
                 this.BOLs[E_BOLBufferType.VS].delete(id);
                 this.BOLs[E_BOLBufferType.uniform].delete(id);
                 this.BOLs[E_BOLBufferType.storage].delete(id);

@@ -84,8 +84,8 @@ window.BPC = scene.BPC;
 let bolParams: IV_BOL = {
   name: "test1",
   size: 1024 * 1024 * 10,
-  type: E_BOLBufferType.staticVS,
-  id: undefined
+  type: E_BOLBufferType.static,
+  id: -1
 }
 let bol1 = BPC.createBOL(bolParams);
 console.log(bol1);

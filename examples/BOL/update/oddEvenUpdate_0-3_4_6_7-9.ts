@@ -28,7 +28,7 @@ let input: IV_Scene = {
     ///////////////////////////////
     /** BOL Buffer 大小 */
     size: {
-      staticVS: 1024 * 2,
+      // staticVS: 1024 * 2,
       VS: 1024,
       uniform: 100,
       storage: 200
@@ -110,7 +110,8 @@ for (let i = 0; i < 10; i++) {
 }
 console.log(window.pointersList);
 
-window.BolVS = scene.BPC.BOLs.all.get(1)
+window.BolVS = scene.BPC.BOLs.all.get(0)  ///必须和pointer的type一致，否则因为BOLID不正确，看不到数据，更新的也不对
+
 console.log(window.BolVS);
 
 // window.BolVS.generateUpdateOffsetAndLenght(scene.clock);

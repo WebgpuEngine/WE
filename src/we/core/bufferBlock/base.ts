@@ -12,14 +12,14 @@ export enum E_BOLState {
 }
 
 /** buffer 类型
- * 1、staticVS：静态VS，必须有初始化数据,建立后，立即释放，不保存CPU端数据。
+ * 1、static：静态VS，必须有初始化数据,建立后，立即释放，不保存CPU端数据。
  * 2、VS：运行时静态VS。
  * 3、dynamicVS：动态VS。
  * 4、uniform：统一变量。
  * 5、storage：存储变量。
  */
 export enum E_BOLBufferType {
-    staticVS = "staticVS",
+    static = "static",
     VS = "VS",
     dynamicVS = "dynamicVS",
     uniform = "uniform",
@@ -27,7 +27,7 @@ export enum E_BOLBufferType {
 }
 /** BOL Buffer 大小定义接口 */
 export interface I_BolSize {
-    [E_BOLBufferType.staticVS]?: number;
+    [E_BOLBufferType.static]?: number;
     [E_BOLBufferType.VS]?: number;
     [E_BOLBufferType.dynamicVS]?: number;
     [E_BOLBufferType.uniform]?: number;
@@ -35,7 +35,7 @@ export interface I_BolSize {
 }
 /** BOL Buffer 默认大小 */
 export const V_BolBufferSize: I_BolSize = {
-    [E_BOLBufferType.staticVS]: 1024 * 1024 * 20,//20MB
+    [E_BOLBufferType.static]: 1024 * 1024 * 20,//20MB
     [E_BOLBufferType.VS]: 1024 * 1024 * 10,//10MB
     [E_BOLBufferType.dynamicVS]: 1024 * 1024 * 10,//10MB
     [E_BOLBufferType.uniform]: 1024 * 1024 * 1,//1MB
@@ -46,7 +46,7 @@ export const V_BolBufferSize: I_BolSize = {
 /** BOL 重建百分比定义接口 */
 export interface I_BolRebulidPercent {
     /** 静态VS，阈值：10M */
-    // staticVS: number,
+    // static: number,
     /** 运行时静态VS，阈值：0.30 */
     VS?: number,
     /** 动态VS重建百分比，阈值：0.30 */
@@ -61,7 +61,7 @@ export interface I_BolRebulidPercent {
 /** BOL合并更新间距阈值定义接口 */
 export interface I_BolStrideSizeOfUpdate {
     /** 静态VS，阈值：10M */
-    // staticVS?: number,
+    // static?: number,
     /** 运行时静态VS，阈值：64K*4 */
     VS?: number,
     /** 动态VS，阈值：64K*4 */
@@ -78,7 +78,7 @@ export interface I_BolStrideSizeOfUpdate {
  */
 export const V_BolStrideSizeOfUpdate: I_BolStrideSizeOfUpdate = {
     /** 这个是不更新的*/
-    // staticVS: 10 * 1024 * 1024,
+    // static: 10 * 1024 * 1024,
     /** 运行时静态VS，阈值：64K*4 */
     VS: 4 * 64 * 1024,
     /** 动态VS，阈值：64K*4 */
