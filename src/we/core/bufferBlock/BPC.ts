@@ -42,7 +42,7 @@ export class BlockPointerCoordinator {
     /** BOLID集合 */
     BOLid: Set<number> = new Set();
     /** 最后一个BOLID */
-    lastBOLid: number = 1;
+    lastBOLid: number = 0;
     /** BOL大小定义 */
     sizeOfBOL: I_BolSize;
     /** 默认BOL类型 */
@@ -51,6 +51,30 @@ export class BlockPointerCoordinator {
         this.scene = scene;
         this.device = scene.device;
         this.clock = scene.clock;
+        if (scene.BOL_updateStrideSize !== undefined) {
+            for (let i in scene.BOL_updateStrideSize) {
+                {
+                    let complementOfNumber = scene.BOL_updateStrideSize[i as E_BufferType] % 4;
+                    if (complementOfNumber !== 0) {
+                        complementOfNumber = 4 - complementOfNumber;
+                        scene.BOL_updateStrideSize[i as E_BufferType] += complementOfNumber;
+                        console.warn(`BOL_updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL_updateStrideSize[i as E_BufferType] }`);
+                    }
+                }
+            }
+        }
+        if (scene.BOL_size !== undefined) {
+            for (let i in scene.BOL_size) {
+                {
+                    let complementOfNumber = scene.BOL_size[i as E_BufferType] % 4;
+                    if (complementOfNumber !== 0) {
+                        complementOfNumber = 4 - complementOfNumber;
+                        scene.BOL_size[i as E_BufferType] += complementOfNumber;
+                        console.warn(`BOL_size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL_size[i as E_BufferType] }`);
+                    }
+                }
+            }
+        }
         this.thresholdMergeUpdateStrideSizeOfBOL = scene.BOL_updateStrideSize || V_BolStrideSizeOfUpdate;
         this.sizeOfBOL = scene.BOL_size || V_BolBufferSize;
         this.pointers = new Pointers(this);

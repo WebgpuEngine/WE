@@ -277,23 +277,31 @@ export class BlockOffsetLength implements I_UUID {
         let lastAtEndOfPointer = 0;
         //两个指针之间的不更新byteLength间距
         let strideSize = 0;
+        // 上一个有效的长度+strideSize(未达到阈值时)
+        let lastAtEndOfPointer_add_strideSize = 0;
         for (let [offset, pointerID] of this.pointerOffsetMap) {
             let pointer = this.pointers.getPointer(pointerID)!;
 
-            //判断pointer 当前帧是否有写入数据
+            //判断pointer 当前帧是否有写入数据。如果无，累计strideSize，
             if (pointer.writeTime < lastUpdateTime) {
-                strideSize += pointer.byteLength;
+                strideSize += pointer.byteLength;           //累计strideSize
                 //大于阈值，提交上次最后的lastOffset 和 lastAtEndOfPointer 之间的长度
-                if (strideSize >= this.thresholdOfMergeUpdateStrideSize) {
-                    if (lastOffset != 0 && lastAtEndOfPointer != 0) {
+                if (strideSize >= this.thresholdOfMergeUpdateStrideSize && lastOffset != lastAtEndOfPointer) {
+                    // if (lastOffset != 0 && lastAtEndOfPointer != 0) {
+                    if (lastAtEndOfPointer != 0) {
                         this.updateOffsetAndLenght.push([lastOffset, lastAtEndOfPointer]);
                     }
                     //重置strideSize，lastOffset，lastAtEndOfPointer
                     strideSize = 0;
-                    lastOffset = 0;
-                    lastAtEndOfPointer = 0;
+                    lastOffset = lastAtEndOfPointer;
+                    // lastAtEndOfPointer = 0;
+                    // lastAtEndOfPointer_add_strideSize = lastAtEndOfPointer;
+                }
+                else {
+                    lastAtEndOfPointer_add_strideSize = lastAtEndOfPointer + strideSize;
                 }
             }
+            //否则，更新lastAtEndOfPointer
             else {
                 let atEndOfPointer = offset + pointer.byteLength;       //当前指针的偏移量+当前指针的长度=当前指针的结束偏移量
                 //如果是第一个指针或重置，直接赋值
@@ -302,14 +310,21 @@ export class BlockOffsetLength implements I_UUID {
                     lastAtEndOfPointer = atEndOfPointer;
                     continue;
                 }
-                //如果不是第一个指针，且当前指针的偏移量大于上一个指针的偏移量，说明当前指针是独立的
-                else {
+                //上一个指针的结束偏移量等于当前指针的偏移量，直接赋值。中间存在stride
+                else if (lastAtEndOfPointer == lastOffset) {
+                    lastOffset = offset;
                     lastAtEndOfPointer = atEndOfPointer;
+                }
+                else {
+                    //更新lastAtEndOfPointer
+                    lastAtEndOfPointer = atEndOfPointer;
+                    //重置strideSize，无strideSize或strideSize小于阈值.
+                    strideSize = 0;
                 }
             }
         }
         //提交最后一个指针的偏移量和长度
-        if (lastOffset != 0 && lastAtEndOfPointer != 0) {
+        if (lastAtEndOfPointer != 0) {
             this.updateOffsetAndLenght.push([lastOffset, lastAtEndOfPointer]);
         }
     }

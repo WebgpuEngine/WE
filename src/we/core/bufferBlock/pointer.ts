@@ -96,7 +96,7 @@ export class Pointers {
      */
     pointerID: Set<number> = new Set();
     /** 最后一个指针ID */
-    lastPointerID: number = 1;
+    lastPointerID: number = 0;
     clock: Clock;
 
     constructor(bpc: BlockPointerCoordinator) {
@@ -194,23 +194,23 @@ export class Pointers {
                 cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
             case "i16":
-                cpuBufferView = new Int16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
+                cpuBufferView = new Int16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/2);
                 break;
             case "u16":
-                cpuBufferView = new Uint16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
+                cpuBufferView = new Uint16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/2);
                 break;
             case "i32":
-                cpuBufferView = new Int32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
+                cpuBufferView = new Int32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
                 break;
             case "u32":
-                cpuBufferView = new Uint32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
+                cpuBufferView = new Uint32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
                 break;
             case "f32":
-                cpuBufferView = new Float32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
+                cpuBufferView = new Float32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
                 break;
             default:
                 console.warn("createPointer viewType not support, default use Uint8", params.viewType);
-                cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
+                cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
                 break;
         }
         let gpuBufferView: GPUBufferBinding = {

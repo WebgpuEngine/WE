@@ -1,6 +1,6 @@
 
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../src/we/core/scene/base";
+import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
@@ -20,18 +20,18 @@ let input: IV_Scene = {
   ///////////////////////////////
   /** BOL 合并更新间距阈值 */
   BOL_updateStrideSize: {
-    staticVS: 1024*2,
-    VS: 1024,
-    uniform: 100,
-    storage: 200
+    "VS": 256,
+    "uniform": 10,
+    "storage": 128,
+    "staticVS": 1024,
   },
   ///////////////////////////////
   /** BOL Buffer 大小 */
   BOL_size: {
-    "VS":256,
-    "uniform":64,
-    "storage": 128,
-    "staticVS": 1024,
+    staticVS: 1024 * 2,
+    VS: 1024,
+    uniform: 100,
+    storage: 200
   },
 };
 let scene = await initScene({
@@ -48,7 +48,7 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
@@ -67,7 +67,7 @@ let inputMesh: IV_MeshEntity = {
     geometry: boxGeometry,
   },
   material: colorMaterial,
-    wireFrame: {
+  wireFrame: {
     color: [1, 1, 1, 1],
     enable: true,
     // wireFrameOnly: true,
@@ -75,15 +75,15 @@ let inputMesh: IV_MeshEntity = {
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
-window.mesh=mesh;
-window.instanceMash=await scene.add(mesh);
+window.mesh = mesh;
+window.instanceMash = await scene.add(mesh);
 
-window.BPC= scene.BPC;
+window.BPC = scene.BPC;
 
 
-let bolParams:IV_BOL={
+let bolParams: IV_BOL = {
   name: "test1",
-  size: 1024*1024*10,
+  size: 1024 * 1024 * 10,
   type: E_BufferType.staticVS,
   id: undefined
 }

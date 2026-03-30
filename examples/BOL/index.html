@@ -19,8 +19,6 @@
         <li><a href="./BOL/destory_1.html">BOL销毁BOL</a></li>
         <li><a href="./BOL/pointer_menual_1.html">手工：分配指针</a></li>
         <li><a href="./BOL/create_2_strideSizeUpdate.html">BPC 使用scene的BOL更新尺寸阈值创建BOL</a></li>
-        <!-- <li><a href="./BOL/pointer_resize_1.html">指针resize</a></li>
-        <li><a href="./BOL/rebuild_1.html">rebuild BOL</a></li> -->
     </ul>
 
     <h1>pointer + BPC 基础测试</h1>
@@ -39,17 +37,23 @@
 
     <h1>BOL 聚合更新测试</h1>
     <ul>
-        <li><a href="">10个指针,小于阈值,每帧都更新</a></li>
-        <li><a href="">10个指针,大于阈值,每帧都更新</a></li>
-        <li><a href="">10个指针,奇数小于阈值,偶数大于阈值,每帧都更新</a></li>
 
-        <li><a href="">10个指针,小于阈值,1-3更新,4-6不更新,7-10更新</a></li>
-        <li><a href="">10个指针,大于阈值,1-3更新,4-6不更新,7-10更新</a></li>
-        <li><a href="">10个指针,奇数小于阈值,偶数大于阈值,1-3更新,4-6不更新,7-10更新</a></li>
+        <li><a href="./update/less.html">静态：10个指针,小于阈值</a></li>
+        <li><a href="./update/great.html">静态：10个指针,大于阈值</a></li>
+        <li><a href="./update/oddEven.html">静态：10个指针,奇数小于阈值,偶数大于阈值</a></li>
 
-        <li><a href="">10个指针,小于阈值,1-3/Y,4/N,5/Y,6/N,7-8/Y,9/N,10/Y</a></li>
-        <li><a href="">10个指针,大于阈值,1-3/Y,4/N,5/Y,6/N,7-8/Y,9/N,10/Y</a></li>
-        <li><a href="">10个指针,奇数小于阈值,偶数大于阈值,1-3/Y,4/N,5/Y,6/N,7-8/Y,9/N,10/Y</a></li>
+        <li><a href="./update/lessEvenUpdate.html">模拟动态：10个指针,小于阈值,偶数更新</a></li>
+        <li><a href="./update/greatEvenUpdate.html">模拟动态：10个指针,大于阈值,偶数更新</a></li>
+        <br>
+
+        <li><a href="./update/lessEvenUpdate_1-3_7-10.html">10个指针,小于阈值,0-3更新,4-6不更新,7-9更新</a></li>
+        <li><a href="./update/oddEvenUpdate_0-3_7-9.html">10个指针,大于阈值,0-3更新,4-6不更新,7-9更新</a></li>
+        <li><a href="./update/oddEvenUpdate_1-3_7-10.html">10个指针,奇数小于阈值,偶数大于阈值,0-3更新,4-6不更新,7-9更新</a></li>
+
+        <br>
+        <li><a href="./update/oddEvenUpdate_0-3_4_6_7-9.html">10个指针,奇数小于阈值,偶数大于阈值,0-3/Y,4/N,5/Y,6/N,7-9/Y</a></li>
+        <li><a href="">10个指针,大于阈值,0-3/Y,4/N,5/Y,6/N,7-/Y9/N,/Y</a></li>
+        <li><a href="">10个指针,奇数小于阈值,偶数大于阈值,0-3/Y,4/N,5/Y,6/N,7-/Y,9/N,/Y</a></li>
     </ul>
     <h1>pointer -> BPC -> BOL + DCG适配: 基础测试(BOX)</h1>
     <ul>
