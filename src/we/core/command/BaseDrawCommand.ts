@@ -36,6 +36,7 @@ export interface I_VertexBufferEntry {
     offset?: number,
     byteSize?: number,
 }
+export type I_IndexBufferEntry = I_VertexBufferEntry;
 
 export abstract class BaseDrawCommand {
     _isDestroy: boolean = false;

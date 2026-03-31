@@ -47,6 +47,7 @@ export type weVec3 = [number, number, number];
 export type weVec4 = [number, number, number, number];
 export type weMat4 = [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number];
 export type weMat3 = [number, number, number, number, number, number, number, number, number];
+export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array ;//| Float64Array;
 
 export type weColor4 = weVec4;
 /**RGBA四个数值的颜色interface，0--255 */

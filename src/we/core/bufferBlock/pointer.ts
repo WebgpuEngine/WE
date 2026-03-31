@@ -1,10 +1,11 @@
+import { TypedArray } from "../base/coreDefine";
 import { getTypedArrayType, isArrayBuffer } from "../command/baseFunction";
 import { Clock } from "../scene/clock";
 import { E_BOLBufferType } from "./base";
 import { BlockPointerCoordinator } from "./BPC";
 
 /** 指针数据视图类型 */
-export type T_pointerDataView = Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array;
+export type T_pointerDataView =TypedArray;// Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array;
 /** 指针数据类型 */
 export type T_pointerDataType = "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "f32";//| "array";
 
