@@ -62,22 +62,23 @@ export interface I_vsAttribute {
      */
     offset?: 0,
 }
-export interface I_baseGPUBufferBundle {
-    name: string,
-    buffer: GPUBuffer,
-    /**
-     * bytesize
-     * 读取数据的大小，默认=count*arrayStride
-     * default: count*arrayStride
-     */
-    byteSize: number,
-    /**
-    * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-    *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-    * default: 0
-    */
-    offset: number,
-}
+export type I_baseGPUBufferBundle = I_VertexBufferEntry;
+// export interface I_baseGPUBufferBundle {
+//     name: string,
+//     buffer: GPUBuffer,
+//     /**
+//      * bytesize
+//      * 读取数据的大小，默认=count*arrayStride
+//      * default: count*arrayStride
+//      */
+//     byteSize: number,
+//     /**
+//     * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
+//     *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
+//     * default: 0
+//     */
+//     offset: number,
+// }
 /**
  * 顶点属性的bundle，用于绑定到DC的vertex buffer
  * 1、gltf使用
@@ -215,6 +216,12 @@ export interface IV_DC {
          */
         uniforms?: T_uniformGroups[],//vs 部分有会 vertex texture
         unifromLayout?: T_BindGroupLayout[],
+        /**
+         * 是否开启动态属性绑定。pointer绑定资源模式会不同。
+         * 默认：false
+         * 如果true，则需要动态绑定资源
+         */
+        dynamicAttribute?: boolean,
     },
     render: {
         // code: string,//这里需要进行VS 属性的映射替换
@@ -263,26 +270,26 @@ export interface IV_DC {
         MSAA?: T_rpdInfomationOfMSAA,
     },
     /**
-     * 父实体，
+     * DC的parent，
      * 1、entity的bindGroup占用bindGroup1的位置；
      * 2、如果存在parent，bindgroup和bindgrouplayout通过parent.getBindGroupAndBindGroupLayout()获取
      * 2、如果没有父实体，则entity的bindGroup使用data中的uniform数据生成bindgroup；同时layout 通过cache获取
      */
     parent?: BaseEntity,
     /**
-     * 渲染pass的描述符，
+     * 渲染RPD描述符，
      * 1、如果有同级别中的system存在，则按照camera或light，去scene中获取
      * 2、如果没有system：
      *  A、若有本项，则使用
      *  B、没有，则去scene中获取NDC的RPD
      */
     renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
-    /**
-     * 材质 shader模块的名称
-     * 1、用于shader module的Map 操作的key
-     * 2、如果没有，则不进行Map操作，直接创建使用
-     */
-    shaderModuleName?: string,
+    // /**
+    //  * 材质 shader模块的名称
+    //  * 1、用于shader module的Map 操作的key
+    //  * 2、如果没有，则不进行Map操作，直接创建使用
+    //  */
+    // shaderModuleName?: string,
 
 }
 
@@ -808,6 +815,9 @@ export class DrawCommandGenerator {
         DC_localtions: string[],
         DC_verticesBufferLayout: GPUVertexBufferLayout[],
     } {
+        //是否开启动态属性绑定。
+        let dynamicAttribute = values.data.dynamicAttribute || false;
+        
         //1、buffer资源
         // 20260114修改为 I_VertexBufferEntry
         let DC_vertexBuffers: I_VertexBufferEntry[] = [];//当前DC的顶点列表。之后在DC中passEncoder.setVertexBuffer(parseInt(i), verticesBuffer)使用。

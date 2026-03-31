@@ -19,8 +19,8 @@
     "lil-gui": "^0.17.0",
     "muigui": "^0.0.22",
     "rollup": "^4.48.1",
-    "stats.js": "^0.17.0",
     "seedrandom": "^3.0.5",
+    "stats.js": "^0.17.0",
     "ts-jest": "^29.4.1",
     "typedoc": "^0.28.11",
     "typescript": "~5.8.3",
@@ -39,6 +39,7 @@
     "@loaders.gl/textures": "4.3.4",
     "@loaders.gl/video": "4.3.4",
     "@loaders.gl/zip": "4.3.4",
+    "js-md5": "^0.8.3",
     "webgpu-utils": "^1.11.0",
     "wgpu-matrix": "^3.4.0"
   }

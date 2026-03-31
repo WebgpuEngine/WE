@@ -120,6 +120,13 @@ export interface IV_BaseEntity extends IV_NodeSpace {
     drawMode?: I_drawMode | I_drawModeIndexed,
     /**材质 */
     material?: BaseMaterial, //| BaseMaterial[],  
+    /**是否动态attribute数据 
+     * 1、默认false。涉及BOL和底层的CPU到GPU数据的传输，如果需要动态更新attribute数据，则需要设置为true。else
+     * 2、动态顶点属性的：
+     *      A、数据的内容在运行时有动态变化；
+     *      B、数据的长度在运行时有动态变化；
+    */
+    dynamicAttribute?: boolean,
 }
 
 

@@ -2,6 +2,7 @@ import { E_renderForDC } from "../base/coreDefine";
 import { BaseEntity } from "../entity/baseEntity";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, I_viewport, IV_BaseCommand, T_BindGroupType, T_drawMode } from "./base";
+import { I_baseGPUBufferBundle } from "./DrawCommandGenerator";
 
 
 /**
@@ -33,8 +34,9 @@ export interface I_VertexBufferEntry {
     name?: string,
     buffer: GPUBuffer,
     offset?: number,
-    size?: number,
+    byteSize?: number,
 }
+// type  I_VertexBufferEntry = I_baseGPUBufferBundle;
 
 export abstract class BaseDrawCommand {
     _isDestroy: boolean = false;
@@ -122,8 +124,8 @@ export abstract class BaseDrawCommand {
     doEncoder(passEncoder: GPURenderPassEncoder) {
         for (let i in this.vertexBuffers) {
             const verticesBuffer = this.vertexBuffers[i];
-            if (verticesBuffer.offset !== undefined && verticesBuffer.size !== undefined)
-                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.size);//四个参数： slot, buffer, offset, size
+            if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
             else
                 passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
         }

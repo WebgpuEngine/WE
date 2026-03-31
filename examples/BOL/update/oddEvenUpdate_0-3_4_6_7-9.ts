@@ -118,3 +118,6 @@ console.log(window.BolVS);
 window.BolVS.update(scene.clock);
 
 console.log(window.BolVS.updateOffsetAndLenght);
+
+
+
