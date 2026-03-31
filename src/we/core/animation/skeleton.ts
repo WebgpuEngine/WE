@@ -1,5 +1,5 @@
 import { mat4, Mat4 } from "wgpu-matrix";
-import { NodeObject } from "../organization/root";
+import { NodeObject } from "../organization/nodeObject";
 import { Clock } from "../scene/clock";
 
 export interface IV_Skeleton {

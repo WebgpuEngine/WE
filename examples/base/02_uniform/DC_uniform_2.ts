@@ -141,4 +141,8 @@ let inputDC: IV_DrawCommandGenerator = {
 }
 let DCManager = new DrawCommandGenerator(inputDC);
 let dc = DCManager.generateDrawCommand(valueDC);
+scene.BPC.BOLs.all.get(0).updateForce();
+scene.BPC.BOLs.all.get(1).updateForce();
+scene.BPC.BOLs.all.get(2).updateForce();
+scene.BPC.BOLs.all.get(3).updateForce();
 dc.submit()

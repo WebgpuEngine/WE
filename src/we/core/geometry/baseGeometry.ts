@@ -1,5 +1,5 @@
 
-import { weColor3, Color4 } from "../base/coreDefine";
+import { weColor3 } from "../base/coreDefine";
 
 type geometryMaterialStep = number[];
 export interface xyz {

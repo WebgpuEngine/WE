@@ -146,13 +146,11 @@ export abstract class RootGPU implements I_UUID {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
-        // if (this.lastUpdaeTime === clock.now) //更新检查
-        //     return false;
-        // if (this.inputValues && this.inputValues.update !== undefined && typeof this.inputValues.update === "function") {
+        //更新I_Update的自定义function,在开始执行update()
         if (this.needUpdateuserDefine) {
             this.inputValues.update!(this);
         }
-        if (updateSelftFN && this.needUpdateSelf) {
+        if (updateSelftFN ) {
             this.updateSelf(clock);                         //更新自身
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }

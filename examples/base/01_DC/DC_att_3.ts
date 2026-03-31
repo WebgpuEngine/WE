@@ -95,4 +95,5 @@ let valueDC: IV_DC = {
 }
 
 let dc = DCManager.generateDrawCommand(valueDC);
+scene.BPC.BOLs.all.get(0).updateForce();
 dc.submit()

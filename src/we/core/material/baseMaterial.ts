@@ -779,15 +779,19 @@ export abstract class BaseMaterial extends RootGPU {
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
      * @returns 
      */
-    update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        if (this.lastUpdaeTime === clock.now) //更新检查
-            return false;
-        // this.updateSelfAttribute(clock);                //更新自身的属性
-        // if (this.children.length > 0)                   //更新子节点
-        //     for (let i of this.children)
-        //         i.update(clock);
-        if (updateSelftFN)
-            this.updateSelf(clock);                         //更新自身
+    // update(clock: Clock, updateSelftFN: boolean = true): boolean {
+    update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
+        super.update(clock, false, false);//更新I_Update，不更新updateSelf() and  updateAtEnd()
+        //更新updateSelf()。只更新一次,在所有自身更新之后
+        if (updateSelftFN) {
+            this.updateSelf(clock);
+            this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
+        }
+        //在最后执行调用
+        if (updateAtEndFN)
+            if (this.needUpdateuserDefineAtEnd) {
+                this.inputValues.updateAtEnd!(this);
+            }
         return true;
     }
 

@@ -11,7 +11,7 @@ import { pickupManager } from "./pickupManager";
 
 
 
-export interface I_PickupMouseKey {
+export interface I_PickupedMouseKey {
     x: number | undefined,
     y: number | undefined,
     buttons: number | undefined,
@@ -38,7 +38,7 @@ export class Pickup extends BaseInputControl {
     /**
      * 记录当前按下的鼠标键
      */
-    pickupKey: I_PickupMouseKey = {
+    pickupKey: I_PickupedMouseKey = {
         x: undefined,
         y: undefined,
         buttons: undefined,

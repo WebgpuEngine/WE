@@ -29,7 +29,7 @@ export interface IV_Pickup {
     /**
      * 拾取目标的自定义函数或者鼠标键拾取目标
      */
-    action: T_PickupFunction | I_PickupMouseKey
+    action: T_PickupFunction | I_PickupMouseKeyEvent
     target?: {
         IDs: boolean,
         position: boolean,
@@ -56,7 +56,7 @@ export type T_PickupFunction = (scope: Pickup, event: Event) => Promise<any>;
 /**
  * mouse 拾取目标定义
  */
-export interface I_PickupMouseKey {
+export interface I_PickupMouseKeyEvent {
     /**https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent/buttons 
      *   0：主按键
      *   1：辅助按键，通常指鼠标滚轮中键

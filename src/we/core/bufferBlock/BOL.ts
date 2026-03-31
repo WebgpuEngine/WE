@@ -360,6 +360,9 @@ export class BlockOffsetLength implements I_UUID {
             }
         }
     }
+    updateForce(clock: Clock) {
+            this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
+    }
     /**
      * 分配指针缓冲区
      * @param pointerID 指针ID
