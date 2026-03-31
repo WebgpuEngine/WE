@@ -1,3 +1,4 @@
+import { I_pointerStruct } from "../bufferBlock/pointer";
 import type { I_dynamicTextureEntryForExternal, I_dynamicTextureEntryForView, I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../command/base";
 import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { DrawCommand } from "../command/DrawCommand";
@@ -23,9 +24,10 @@ export class ResourceManagerOfGPU {
     /////////////////////////////////////////////////////////////////////////////////////////
     //基础单位数据
     /**顶点资源管理器 */
-    vertices: Map<any, GPUBuffer> = new Map();
+    // vertices: Map<any, GPUBuffer> = new Map();
+    vertices: Map<string, I_pointerStruct> = new Map();
     /**索引资源管理器 */
-    indices: Map<any, GPUBuffer> = new Map();//GPUBuffer默认使用uint32的格式。
+    indices: Map<string, I_pointerStruct> = new Map();//GPUBuffer默认使用uint32的格式。
     /**单个uniform的ArrayBuffer 对应的GPUBuffer 资源管理器 */
     uniformBuffer: Map<any, GPUBuffer> = new Map();
 
@@ -88,6 +90,36 @@ export class ResourceManagerOfGPU {
         this.createDefaultTexture();
 
     }
+    //////////////////////////////////////////////////////////////////////////////////////////
+    //attribute and uniform 
+    vertexGet(md5: string) {
+        return this.vertices.get(md5);
+    }
+    vertexHas(md5: string) {
+        return this.vertices.has(md5);
+    }
+    vertexSet(md5: string, vertex: I_pointerStruct) {
+        this.vertices.set(md5, vertex);
+    }
+    uniformGet(md5: string) {
+        return this.uniformBuffer.get(md5);
+    }
+    uniformHas(md5: string) {
+        return this.uniformBuffer.has(md5);
+    }
+    uniformSet(md5: string, uniform: I_pointerStruct) {
+        this.uniformBuffer.set(md5, uniform);
+    }
+    indicesGet(md5: string) {
+        return this.indices.get(md5);
+    }
+    indicesHas(md5: string) {
+        return this.indices.has(md5);
+    }
+    indicesSet(md5: string, indices: I_pointerStruct) {
+        this.indices.set(md5, indices);
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////////
     //texture 
     /**string 可以是URL或texture的名称等 */
@@ -189,9 +221,9 @@ export class ResourceManagerOfGPU {
             if (key instanceof GPUBindGroup) {
                 return this.bindGroupToGroupLayout.has(key as GPUBindGroup);
             }
-            else if (isUniformGroup(key)) {
-                return this.uniformGroupToBindGroup.has(key);
-            }
+            // else if (isUniformGroup(key)) {
+            //     return this.uniformGroupToBindGroup.has(key);
+            // }
             // else if (key instanceof GPUBindGroupEntryImpl || key instanceof I_uniformArrayBufferEntryImpl) {
             //     return this.entriesToEntriesLayout.get(key);
             // }
@@ -227,7 +259,7 @@ export class ResourceManagerOfGPU {
             // //     return this.entriesToEntriesLayout.get(key);
             // // }
             // else 
-                if (isGPUBindGroupEntry(key)) {
+            if (isGPUBindGroupEntry(key)) {
                 return this.entriesToEntriesLayout.get(key);
             }
             else if (isUniformBufferPart(key)) {
@@ -273,7 +305,7 @@ export class ResourceManagerOfGPU {
             // //     this.entriesToEntriesLayout.set(key, value);
             // // }
             // else 
-                if (isGPUBindGroupEntry(key)) {
+            if (isGPUBindGroupEntry(key)) {
                 this.entriesToEntriesLayout.set(key, value);
             }
             else if (isUniformBufferPart(key)) {
@@ -315,7 +347,7 @@ export class ResourceManagerOfGPU {
             //     this.uniformGroupToBindGroup.delete(key);
             // }
             // else 
-                if (isGPUBindGroupEntry(key)) {
+            if (isGPUBindGroupEntry(key)) {
                 this.entriesToEntriesLayout.delete(key);
             }
             else if (isUniformBufferPart(key)) {

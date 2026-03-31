@@ -38,7 +38,7 @@ export interface IV_DrawCommand extends IV_BaseDrawCommand {
     // device: GPUDevice,
     pipeline: GPURenderPipeline,
     vertexBuffers?: I_VertexBufferEntry[],//20260114 修改GPUBuffer[]为interface[]
-    indexBuffer?: GPUBuffer,
+    indexBuffer?: I_VertexBufferEntry | undefined,
     indexFormat?: GPUIndexFormat,
     uniform?: GPUBindGroup[],
     // viewport?: I_viewport,
@@ -145,7 +145,7 @@ export class DrawCommand extends BaseDrawCommand {
         // this.pipelineLayout = {} as GPUPipelineLayout;
         this.renderPassDescriptor = {} as () => GPURenderPassDescriptor;
         this.vertexBuffers = [];
-        this.indexBuffer = {} as GPUBuffer;
+        this.indexBuffer = undefined;
         this.bindGroups = [];
         this.drawMode = {} as I_drawMode | I_drawModeIndexed;
         this.cacheFlagPipeline = {} as I_PipelineStructure;

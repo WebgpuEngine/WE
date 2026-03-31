@@ -36,7 +36,6 @@ export interface I_VertexBufferEntry {
     offset?: number,
     byteSize?: number,
 }
-// type  I_VertexBufferEntry = I_baseGPUBufferBundle;
 
 export abstract class BaseDrawCommand {
     _isDestroy: boolean = false;
@@ -54,7 +53,7 @@ export abstract class BaseDrawCommand {
     device!: GPUDevice;
     renderPassDescriptor!: GPURenderPassDescriptor | (() => GPURenderPassDescriptor);
     vertexBuffers: I_VertexBufferEntry[] = [];
-    indexBuffer!: GPUBuffer;
+    indexBuffer!: I_VertexBufferEntry | undefined;
     indexFormat: GPUIndexFormat = "uint32";
     bindGroups: T_BindGroupType[] = [];//GPUBindGroup[] = [];
     pipeline!: GPURenderPipeline;
@@ -204,6 +203,10 @@ export abstract class BaseDrawCommand {
 
         }
         else if ("indexCount" in drawMode) {
+            if (this.indexBuffer === undefined) {
+                console.warn("indexBuffer is undefined");
+                return;
+            }
             const indexCount = drawMode.indexCount;
             let instanceCount = 1;
             let firstIndex = 0;
@@ -221,7 +224,7 @@ export abstract class BaseDrawCommand {
             if ("baseVertex" in drawMode) {
                 baseVertex = drawMode.baseVertex as number;
             }
-            passEncoder.setIndexBuffer(this.indexBuffer, this.indexFormat);// 'uint32');
+            passEncoder.setIndexBuffer(this.indexBuffer.buffer, this.indexFormat, this.indexBuffer.offset , this.indexBuffer.byteSize );// 'uint32');
             passEncoder.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
         }
         else {

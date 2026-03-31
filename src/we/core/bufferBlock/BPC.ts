@@ -2,6 +2,7 @@ import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { E_BOLState, E_BOLBufferType, I_BolSize, I_BolStrideSizeOfUpdate, V_BolBufferSize, V_BolStrideSizeOfUpdate, I_BolRebulidPercent } from "./base";
 import { BlockOffsetLength, I_pointerInfoInBOL, IV_BOL } from "./BOL";
+import { MemoryBlockManager } from "./MBM";
 import { I_pointerCreateParams, Pointers } from "./pointer";
 
 
@@ -19,6 +20,7 @@ export class BlockPointerCoordinator {
     scene: Scene;
     device: GPUDevice;
     clock: Clock;
+    MBM: MemoryBlockManager;
     BOL_params: {
         /** BOL合并更新间距阈值 */
         updateStrideSize: I_BolStrideSizeOfUpdate;
@@ -72,6 +74,7 @@ export class BlockPointerCoordinator {
         this.scene = scene;
         this.device = scene.device;
         this.clock = scene.clock;
+        this.MBM = scene.memoryBlockManager;
         if (scene.BOL !== undefined) {
             if (scene.BOL.updateStrideSize !== undefined) {
                 for (let i in scene.BOL.updateStrideSize) {
@@ -141,6 +144,7 @@ export class BlockPointerCoordinator {
         let bol = new BlockOffsetLength(params, this);
         this.BOLs.all.set(params.id, bol);
         this.BOLs[params.type].set(params.id, bol);
+        this.MBM.add(bol);
         return bol;
     }
     /** 创建指针ID */
@@ -156,6 +160,7 @@ export class BlockPointerCoordinator {
      * 1、为加载WE静态模型数据准备的BOL
      * 2、静态VS必须有初始化数据，且不可更改 
      * 3、静态VS的CPU侧内存不会保留
+     * 4、静态VS不会被添加到MBM中
      */
     createStaticBolWithData(param: IV_BOL) {
         let id = this.createBolID();
@@ -236,6 +241,7 @@ export class BlockPointerCoordinator {
                 this.BOLs[E_BOLBufferType.storage].delete(id);
                 this.BOLid.delete(id);
             }
+            this.MBM.remove(bol);
             return isDestroy;
         }
     }

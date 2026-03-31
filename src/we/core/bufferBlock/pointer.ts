@@ -283,6 +283,10 @@ export class Pointers {
                     length = byteLengthTarget / 4;
                     offsetTarget = offsetTarget / 4;
                 }
+                else if (pointer.viewType == "f32") {
+                    length = byteLengthTarget / 4;
+                    offsetTarget = offsetTarget / 4;
+                }
                 else {
                     length = byteLengthTarget / 4;
                     offsetTarget = offsetTarget / 4;
