@@ -169,7 +169,7 @@ export class PhongMaterial extends BaseMaterial {
       let nameOfUniformLayout = "Phong Material base uniform Layout";
       let unifromCPUBufferLayout: GPUBindGroupLayoutEntry
       let cacheFlagOfUniformLayout = false;
-      if (this.scene.resourcesGPU.has(nameOfUniformLayout)) {
+      if (this.scene.resourcesGPU.entryLayoutOfGroup.has(nameOfUniformLayout)) {
         let uniformLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfUniformLayout);
         if (uniformLayout) {
           unifromCPUBufferLayout = uniformLayout;

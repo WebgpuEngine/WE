@@ -338,7 +338,7 @@ export class Pointers {
                     else {
                         let offsetSourceFromArrayBuffer = offsetSource + (params.sourceData.data as ArrayBufferView).byteOffset;//再增加ArrayBufferView在arraybuffer的偏移量
                         let u8ViewOfCopyFrom = new Uint8Array(params.sourceData.data.buffer, offsetSourceFromArrayBuffer, byteLengthSource);
-                        let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, offsetTarget, byteLengthTarget);
+                        let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer,  offsetTarget, byteLengthTarget);
                         u8ViewOfCopyTo.set(u8ViewOfCopyFrom);
                     }
                 }
@@ -347,7 +347,7 @@ export class Pointers {
                      * 如果是ArrayBuffer，以Uint8Array的形式写入指针
                      */
                     let u8ViewOfCopyFrom = new Uint8Array(params.sourceData.data as ArrayBuffer, offsetSource, byteLengthSource);
-                    let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, offsetTarget, byteLengthTarget);
+                    let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, pointer.offset + offsetTarget, byteLengthTarget);
                     u8ViewOfCopyTo.set(u8ViewOfCopyFrom);
                 }
                 else {
