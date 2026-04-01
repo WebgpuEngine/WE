@@ -125,6 +125,10 @@ export interface IV_BaseEntity extends IV_NodeSpace {
      * 2、动态顶点属性的：
      *      A、数据的内容在运行时有动态变化；
      *      B、数据的长度在运行时有动态变化；
+     * 3、drawMode 不可以变化：索引模式或非索引模式
+     * 4、属性数据和索引数据只支持 number[] 类型
+     *    A、DCG中不适用pointer，而是使用单独GPUBuffer。
+     *    B、后续使用setVertexBuffer() 和setIndexBuffer()来重新绑定顶点数据和索引数据。
     */
     dynamicAttribute?: boolean,
 }

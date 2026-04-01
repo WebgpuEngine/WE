@@ -138,6 +138,10 @@ export class ResourceManagerOfGPU {
     setIndices(md5: string, indices: I_pointerStruct) {
         this.indices.set(md5, indices);
     }
+    /**动态顶点属性资源管理器 */
+    verticesDynamic: Map<any, GPUBuffer> = new Map();
+    /**动态索引属性资源管理器 */
+    indicesDynamic: Map<any, GPUBuffer> = new Map();
 
     //////////////////////////////////////////////////////////////////////////////////////////
     //texture 

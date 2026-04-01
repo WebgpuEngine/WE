@@ -4,9 +4,9 @@
  * 材质的资源不进行管理，传过来的已经是GPU资源
  */
 
-import type { Scene } from "../scene/scene";
+import { Scene } from "../scene/scene";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
-import { getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
+import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
@@ -187,11 +187,20 @@ export type T_indexAttribute = number[] | I_indexGPUBufferBundle
  */
 export interface IV_DC {
 
-    /**是否包括动态资源在binding group中
-     * 默认：false，
-     * 如果true，则需要动态绑定资源
-     */
-    dynamic?: boolean,
+
+    dynamic?:
+    {
+        /** 动态更新vs属性
+         * 1、attribute的内容，数量不变，内容变化
+         * 2、attribute的内容的，数量变化。要求所有属性对应的数量必须相同。
+         */
+        vs?: boolean,
+        /**是否包括动态资源在binding group中
+         * 默认：false，
+         * 如果true，则需要动态绑定资源
+         */
+        fs?: boolean,
+    }
     /**
      * 是否透明渲染,包括alpha 透明，物理透明
      */
@@ -223,12 +232,8 @@ export interface IV_DC {
          */
         uniforms?: T_uniformGroups[],//vs 部分有会 vertex texture
         unifromLayout?: T_BindGroupLayout[],
-        /**
-         * 是否开启动态属性绑定。pointer绑定资源模式会不同。
-         * 默认：false
-         * 如果true，则需要动态绑定资源
-         */
-        dynamicAttribute?: boolean,
+
+
     },
     render: {
         // code: string,//这里需要进行VS 属性的映射替换
@@ -488,7 +493,7 @@ export class DrawCommandGenerator {
             commandOption.viewport = camera.viewport;
         }
         //5.5 动态bindGroup情况，如果dynamicUniform参数，DC会根据dynamicUniform参数，动态绑定bindGroup。
-        if (values.dynamic && values.dynamic === true) {
+        if (values.dynamic && values.dynamic.fs === true) {
             /**
              * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
              * 1、如果有system，dynamicUniform 是material的uniform，数组下标=2
@@ -833,8 +838,7 @@ export class DrawCommandGenerator {
         DC_verticesBufferLayout: GPUVertexBufferLayout[],
     } {
         //是否开启动态属性绑定。
-        let dynamicAttribute = values.data.dynamicAttribute || false;
-
+        let dynamicAttribute = values.dynamic?.vs || false;
         //1、buffer资源
         // 20260114修改为 I_VertexBufferEntry
         let DC_vertexBuffers: I_VertexBufferEntry[] = [];//当前DC的顶点列表。之后在DC中passEncoder.setVertexBuffer(parseInt(i), verticesBuffer)使用。
@@ -871,7 +875,78 @@ export class DrawCommandGenerator {
                 //20260114 增加interface I_VertexBufferEntry
                 let vertexBufferEntry: I_VertexBufferEntry;
                 //标准的数组格式，默认为position等
-                if (Array.isArray(value)) {
+                if (dynamicAttribute) {
+                    if (Array.isArray(value)) {
+                        if (value.length == 0) {
+                            console.warn("顶点属性" + key + "数据为空");
+                        }
+                        let data = new Float32Array(value);//默认:float32
+                        let arrayStride = 4 * 3;
+                        let format: GPUVertexFormat = "float32x3";
+                        switch (lowKey) {
+                            case "position":
+                                arrayStride = 4 * 3;
+                                format = "float32x3";
+                                break;
+                            case "uv":
+                                // case "uv1":
+                                // case "uv2":
+                                arrayStride = 4 * 2;
+                                format = "float32x2";
+                                break;
+                            case "normal":
+                                arrayStride = 4 * 3;
+                                format = "float32x3";
+                                break;
+                            case "color":
+                                arrayStride = 4 * 3;
+                                format = "float32x3";
+                                break;
+                            case "joints":
+                                arrayStride = 4 * 4;
+                                format = "uint32x4";
+                                break;
+                            case "weights":
+                                arrayStride = 4 * 4;
+                                format = "float32x4";
+                                break;
+                            default:
+                                arrayStride = 4 * 3;
+                                format = "float32x3";
+                                break;
+                        }
+                        let wgsl_value_format = this.getWgslValueFormat(format);
+                        locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
+
+                        let vertexBuffer: GPUBuffer;
+                        //判断是否以及存在顶点GPUBuffer
+                        if (!this.resources.verticesDynamic.has(value)) {
+                            vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
+                            this.resources.set(value, vertexBuffer, "vertices");
+                            this.resources.verticesDynamic.set(value, vertexBuffer);
+                        }
+                        else {
+                            vertexBuffer = this.resources.verticesDynamic.get(value) as GPUBuffer;
+                        }
+                        // vertexBuffer = pointerOfVertex.gpuBufferView;
+                        vertexBufferEntry = {
+                            name: lowKey,
+                            buffer: vertexBuffer,
+                        }
+                        //当前顶点属性的GBufferLayout，就是vertex.buffers[]之中的内容
+                        _GPUVertexBufferLayout = {
+                            arrayStride: arrayStride,
+                            attributes: [{
+                                shaderLocation: shaderLocation++,
+                                format: format,
+                                offset: 0,
+                            }],
+                        };
+                    }
+                    else
+                        throw new Error("动态顶点属性:'" + key + "'数据必须为数组形式");
+                }
+                else if (Array.isArray(value)) {
                     if (value.length == 0) {
                         console.warn("顶点属性" + key + "数据为空");
                     }
@@ -990,9 +1065,6 @@ export class DrawCommandGenerator {
                                 viewType = "f32";
                                 break;
                         }
-
-
-
                         let arrayBufferType: T_pointerDataType = "f32";
                         let arrarBufferUnitLength = 4;
                         switch (lowKey) {
@@ -1486,7 +1558,7 @@ export class DrawCommandGenerator {
 
                                 let pointerParams: I_pointerCreateParams = {
                                     name: label,
-                                    byteSize: perEntry.size,//uniform data 的bytesize大小
+                                    byteSize: perEntry.size > 256 ? perEntry.size : 256,//uniform data 的bytesize大小
                                     type: E_BOLBufferType.uniform,
                                     viewType: "u8",//由于data是ArrayBuffer,按照u8处理
                                     data: {

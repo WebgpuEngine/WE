@@ -46,8 +46,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     };
     // _pologyMode: pologyMode = "triangle";
     _primitive!: GPUPrimitiveState;
-    /**是否动态attribute数据 */
-    _dynamicAttribute: boolean = false;
+
     constructor(input: IV_BaseEntity) {
         super(input);
         this._dynamicAttribute = input.dynamicAttribute || false;
@@ -94,7 +93,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
     }
 
+    /**
+     * 动态更新顶点数据和索引数据的标志位
+     *   1、更新后，this.getDrawModeTemplate()需要重新生成drawMode数据，因为长度可以变化了
+     */
     _vertexAndIndexBuffersUpdated: boolean = false;
+    /**是否支持动态attribute数据 */
+    _dynamicAttribute: boolean = false;
     /**
      * 更新顶点数据，
      * 1、如果是数组形式，直接更新
@@ -108,11 +113,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     setVertexBuffer(name: string, data: number[], option?: { type?: "float32" | "int32" | "uint32", stride?: number }) {
         if (this._dynamicAttribute) {
             let replaceTarget = this.attributes.vertices[name];
-            if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isI_vsAttributeMerge(replaceTarget)) {
-                console.warn("EntityBundleMaterial: setVertexAndIndexBuffers, merge attribute and gpu buffer attribute, not support set data");
-                return;
-            }
-            else {
+            // if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isI_vsAttributeMerge(replaceTarget)) {
+            if (Array.isArray(replaceTarget)) {
                 /*
                  * 一、更新this.attributes.vertices[name]
                  * 1、是数组形式
@@ -136,8 +138,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 }
 
                 //2.1 删除旧的vertexBuffer
-                let vertexBuffer = this.resourcesGPU.vertices.get(replaceTarget);
-                this.resourcesGPU.vertices.delete(replaceTarget);
+                let vertexBuffer = this.resourcesGPU.verticesDynamic.get(replaceTarget);
+                this.resourcesGPU.verticesDynamic.delete(replaceTarget);
                 vertexBuffer?.destroy();
 
                 let arrayBuffer;
@@ -147,12 +149,16 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 else if (option?.type == "uint32") {
                     arrayBuffer = new Uint32Array(data);
                 }
-                else {
+                else if (option?.type == "float32") {
                     arrayBuffer = new Float32Array(data);
+                }
+                else {
+                    console.warn(" setVertexAndIndexBuffers(), 只支持int32, uint32, float32类型设置.");
+                    return;
                 }
                 //2.2 创建新的vertexBuffer
                 let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
-                this.resourcesGPU.vertices.set(this.attributes.vertices[name], vertexBufferNew);
+                this.resourcesGPU.verticesDynamic.set(this.attributes.vertices[name], vertexBufferNew);
 
 
                 //3.1  更新cameraDC队列
@@ -183,9 +189,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                         }
                     }
                 }
-
+                this._vertexAndIndexBuffersUpdated = true;
+            } else {
+                console.warn(" setVertexAndIndexBuffers(), 只支持数组形式的顶点数据.");
+                return;
             }
-            this._vertexAndIndexBuffersUpdated = true;
         }
         else {
             console.log("setVertexAndIndexBuffers(),需要在初始化参数中设置dynamicAttribute为true");
@@ -212,15 +220,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                  * 四、更新shadowmapDC
                  * 
                  */
-
-
                 let replaceTarget = this.attributes.indices;
                 if (Array.isArray(replaceTarget) && data.length > 0) {
                     //1.1 更新this.attributes.indices
                     this.attributes.indices = data;
                     //2.1 删除旧的indexBuffer
-                    let indexBuffer = this.resourcesGPU.indices.get(replaceTarget);
-                    this.resourcesGPU.indices.delete(replaceTarget);
+                    let indexBuffer = this.resourcesGPU.indicesDynamic.get(replaceTarget);
+                    this.resourcesGPU.indicesDynamic.delete(replaceTarget);
                     indexBuffer?.destroy();
                     //2.2 创建新的indexBuffer
                     indexBuffer = createIndexBuffer(this.device, `${this.ID} rebuild indices `, new Uint32Array(data));
@@ -233,7 +239,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                                 if (perDC.label.includes(wireFrame) && isWireFrame === false) {
                                     continue;
                                 }
-                                perDC.indexBuffer = indexBuffer;
+                                if (perDC.indexBuffer) {
+                                    perDC.indexBuffer.buffer = indexBuffer;
+                                }
                             }
                         }
                     }
@@ -246,18 +254,19 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                                 if (perDC.label.includes(wireFrame) && isWireFrame === false) {
                                     continue;
                                 }
-                                perDC.indexBuffer = indexBuffer;
+                                if (perDC.indexBuffer) {
+                                    perDC.indexBuffer.buffer = indexBuffer;
+                                }
                             }
                         }
                     }
-
+                    this._vertexAndIndexBuffersUpdated = true;
                 }
                 else {
-                    console.warn("EntityBundleMaterial: setIndexBuffer, only array type, not support set data");
+                    console.warn("setIndexBuffer(), 只支持数组形式的索引数据.");
                     return;
                 }
             }
-            this._vertexAndIndexBuffersUpdated = true;
         }
         else {
             console.log("setIndexBuffer(),需要在初始化参数中设置dynamicAttribute为true");
@@ -715,7 +724,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
 
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
         if (bundle.fsBundle && bundle.fsBundle.shaderTemplateFinal.material?.dynamic === true) {
-            valueDC.dynamic = true;
+            if (valueDC.dynamic == undefined)
+                valueDC.dynamic = { fs: true };
+            else
+                valueDC.dynamic.fs = true;
         }
         if (scope.inputValues.primitive) {
             valueDC.render.primitive = scope.inputValues.primitive;
