@@ -24,33 +24,34 @@ export class WireFrameMaterial extends ColorMaterial {
     _destroy(): void {
         throw new Error("Method not implemented.");
     }
-    declare inputValues: I_ColorMaterial;
-    color: weColor4;
-    red: number = 0;
-    green: number = 0;
-    blue: number = 0;
-    alpha: number = 1;
+    // declare inputValues: I_ColorMaterial;
+    // color: weColor4;
+    // red: number = 0;
+    // green: number = 0;
+    // blue: number = 0;
+    // alpha: number = 1;
 
     constructor(input: I_ColorMaterial) {
         super(input);
         this.kind = E_MaterialType.wireframe;
         this.inputValues = input;
-        this.color = input.color;
-        this.red = input.color[0];
-        this.green = input.color[1];
-        this.blue = input.color[2];
-        this.alpha = input.color[3];
+        // this.color = input.color;
+        // this.red = input.color[0];
+        // this.green = input.color[1];
+        // this.blue = input.color[2];
+        // this.alpha = input.color[3];
 
-        if (this._transparent || this.alpha < 1.0) {
+        if (this._transparent || this._color[3] < 1.0) {
             this._transparent = undefined;
-            this.alpha = 1.0;
+            this._color[3] = 1.0;
             console.warn("wire frame 不支持透明");
         }
     }
-    async readyForGPU(): Promise<any> {
-        this._state = E_lifeState.finished;
-        // console.log(this._state);
-    }
+    // async readyForGPU(): Promise<any> {
+    //     await super.readyForGPU();
+    //     this._state = E_lifeState.finished;
+    //     // console.log(this._state);
+    // }
 
     getOpacity_Forward(startBinding: number=0): I_materialBundleOutput {
         return this.getOpaqueCodeFS(SHT_WireFrameFS, startBinding);

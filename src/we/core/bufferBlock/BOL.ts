@@ -15,9 +15,15 @@ export interface I_pointerInfoInBOL {
      * 1、为后期跨Block进行内存调度适用
      */
     BolID: number;
+    // /** 所属BOL的Block */
+    // BOL: BlockOffsetLength;
+    /** 指针在BOL中的偏移量 */
     offset: number;
+    /** 指针数据长度 */ 
     byteLength: number;
+    /** CPU侧指针数据缓冲区 */
     cpuBuffer: ArrayBuffer;
+    /** GPU侧指针数据缓冲区 */
     gpuBuffer: GPUBuffer;
 }
 /** BOL创建参数 */
@@ -71,6 +77,7 @@ export class BlockOffsetLength implements I_UUID {
     parent: BlockPointerCoordinator
     device: GPUDevice;
     clock: Clock;
+    // rebuildTime: number = 0;
     scene: Scene;
     /** 指针管理器 */
     pointers: Pointers;
@@ -271,7 +278,7 @@ export class BlockOffsetLength implements I_UUID {
             oneViewOfRebuild.set(oneViewOfClone);
 
             //4.2 更新指针的offset和byteLength
-            this.pointers.updatePointerOffset(oldPointerStruct.pointerID, offset, this.ID);
+            this.pointers.updatePointerOffset(oldPointerStruct.pointerID, offset, this.ID, this.clock.last);
 
             //4.3 聚合更新的Map
             this.pointerOffsetMap.set(offset, oldPointerStruct.pointerID);
@@ -280,13 +287,14 @@ export class BlockOffsetLength implements I_UUID {
             this.updateSizeOfUsed("add", oldPointerStruct.byteLength, offset);
             offset += oldPointerStruct.byteLength;
             this.lastOffset = offset;
+
         }
         this.state = E_BOLState.open;
+        // this.rebuildTime = this.clock.last;
     }
     /** 生成更新偏移量和长度的映射表
      */
     generateUpdateOffsetAndLenght(clock: Clock) {
-        let lastUpdateTime = clock.last;
         this.updateOffsetAndLenght = [];
         //上一个有效的偏移量
         let lastOffset = 0;
@@ -297,9 +305,10 @@ export class BlockOffsetLength implements I_UUID {
         for (let [offset, pointerID] of this.pointerOffsetMap) {
             let pointer = this.pointers.getPointer(pointerID)!;
 
-            //无写入数据，累计strideSize，
-            if (pointer.writeTime < lastUpdateTime) {//判断pointer 当前帧是否有写入数据。
-                //累计strideSize
+            
+            //判断pointer写入时间是否=0，即是否更新过。0表示此帧未更新过，即是否有写入数据。防止写入在MBM.update()之后。
+            if (pointer.writeTime === 0) {
+                //无写入数据，累计strideSize，
                 strideSize += pointer.byteLength;
                 //如果strideSize大于阈值，提交上次最后的lastOffset 和 lastAtEndOfPointer 之间的长度
                 if (strideSize >= this.updateStrideSize) {
@@ -338,6 +347,8 @@ export class BlockOffsetLength implements I_UUID {
                     //重置strideSize，无strideSize或之前的strideSize之和小于阈值.
                     strideSize = 0;
                 }
+                //更新pointer的writeTime=0,表示已经更新过
+                pointer.writeTime = 0;
             }
         }
         //提交最后一个指针的偏移量和长度
@@ -361,7 +372,7 @@ export class BlockOffsetLength implements I_UUID {
         }
     }
     updateForce(clock: Clock) {
-            this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
+        this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
     }
     /**
      * 分配指针缓冲区
@@ -380,6 +391,7 @@ export class BlockOffsetLength implements I_UUID {
             offset: offset,
             byteLength: byteSize,
             BolID: this.ID,
+            // BOL: this.BOL,
             cpuBuffer: this.cpuBuffer,
             gpuBuffer: this.gpuBuffer,
         }

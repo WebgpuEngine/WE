@@ -38,6 +38,7 @@ export const V_BolBufferSize: I_BolSize = {
     [E_BOLBufferType.static]: 1024 * 1024 * 20,//20MB
     [E_BOLBufferType.VS]: 1024 * 1024 * 10,//10MB
     [E_BOLBufferType.dynamicVS]: 1024 * 1024 * 10,//10MB
+    /**必须是256Byte的倍数*/
     [E_BOLBufferType.uniform]: 1024 * 1024 * 1,//1MB
     [E_BOLBufferType.storage]: 1024 * 1024 * 10,//10MB
 };
@@ -83,7 +84,9 @@ export const V_BolStrideSizeOfUpdate: I_BolStrideSizeOfUpdate = {
     VS: 4 * 64 * 1024,
     /** 动态VS，阈值：64K*4 */
     dynamicVS: 1 * 64 * 1024,
-    /** 统一变量，阈值：1K */
+    /** 统一变量，阈值：1K 
+     * 最小：256Byte
+    */
     uniform: 1 * 1024,
     /** 存储变量，阈值：64K */
     storage: 1 * 64 * 1024,

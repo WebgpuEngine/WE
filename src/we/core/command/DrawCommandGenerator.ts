@@ -6,7 +6,7 @@
 
 import type { Scene } from "../scene/scene";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
-import { createUniformBuffer, getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
+import { getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
@@ -489,13 +489,21 @@ export class DrawCommandGenerator {
         }
         //5.5 动态bindGroup情况，如果dynamicUniform参数，DC会根据dynamicUniform参数，动态绑定bindGroup。
         if (values.dynamic && values.dynamic === true) {
+            /**
+             * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
+             * 1、如果有system，dynamicUniform 是material的uniform，数组下标=2
+             * 2、如果没有system，dynamicUniform 是当前uniform，数组下标=0
+             */
             let layoutNumber = 0;
             if (values.system) {
                 layoutNumber = 2;
             }
             commandOption.dynamicUniform = {
+                //全部bindGroupLayout
                 bindGroupLayout: DC_bindGroupLayouts,
+                //适用传入的uniform，从2开始，即不包括(system0，entity1),只包括material2及之后的uniform3
                 bindGroupsUniform: values.data.uniforms!,
+                //指定动态组的序号
                 layoutNumber: layoutNumber,
             };
         }

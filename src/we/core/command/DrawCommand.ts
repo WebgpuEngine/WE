@@ -9,18 +9,26 @@ import { createUniformBuffer } from "./baseFunction";
  * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
  */
 export interface I_DynamicUniformOfDrawCommand {
-    /**layout 是不变的，变的是内容（纹理）,这个是重新创建bindinggroup使用；
-     * 数据的buffer，通过arrayBuffer 写入GPUBuffer，其在DrawCommandGenerator.update()实现；
+    /**
+     * 所有组的BindGroupLayout
+     * 1、layout 是不变的，变的是内容（纹理）,这个是重新创建bindinggroup使用；
      */
     bindGroupLayout: GPUBindGroupLayout[],
     /**
-     * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
-     * 有system，从1开始，共3个
-     * 没有system，从0开始，共4个
+     * 所有组的BindGroup
+     * 1、动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
+     * 2、有system，从1开始，共3个
+     * 3、没有system，从0开始，共4个
      */
     bindGroupsUniform: T_uniformGroups[],
     /**
-     * bind group layout 索引，从几开始（有system，从1开始，没有system，从0开始）
+     * 指定的动态uniform组的序号
+     * 一、动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
+     * 二、bind group layout 索引，从几开始（有system，从2开始（不包括system:0，entity:1），没有system，从0开始）
+     * 1、通常：如果有system，dynamicUniform 是material的uniform，数组下标=2
+     *     A、system，通过let { bindGroup, bindGroupLayout } = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(values.system.UUID, values.system.type);
+     *     B、entity，通过let { bindGroup, bindGroupLayout } = values.parent.getBindGroupAndBindGroupLayout();
+     * 2、通常：如果没有system，dynamicUniform 是当前uniform，数组下标=0
      */
     layoutNumber: number,
 }
@@ -42,6 +50,7 @@ export interface IV_DrawCommand extends IV_BaseDrawCommand {
     // viewport?: I_viewport,
     renderPassDescriptor: () => GPURenderPassDescriptor,
     // drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]),
+
     dynamicUniform?: I_DynamicUniformOfDrawCommand,
     /**
      * ID组

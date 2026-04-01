@@ -214,7 +214,9 @@ export class Mesh extends EntityBundleMaterial {
         }
         let uniforms: T_uniformGroups[] = [];
         // let uniforms = [bundle.vsBundle.uniformGroup];
-
+        if (bundle.fsBundle) {
+            uniforms.push(bundle.fsBundle.uniformGroup);
+        }
         let valueDC: IV_DC = {
             // label: "wireframe" + scope.Name + " for  " + type + ": " + UUID,
             label: `wireframe  ${scope.Name} for ${type}: ${UUID}`,

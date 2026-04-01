@@ -2,6 +2,7 @@ import { TypedArray } from "../base/coreDefine";
 import { getTypedArrayType, isArrayBuffer } from "../command/baseFunction";
 import { Clock } from "../scene/clock";
 import { E_BOLBufferType } from "./base";
+import { BlockOffsetLength } from "./BOL";
 import { BlockPointerCoordinator } from "./BPC";
 
 /** 指针数据视图类型 */
@@ -28,11 +29,21 @@ export interface I_pointerStruct {
      * 1、为后期跨Block进行内存调度适用
      */
     BolID: number;
+    // /** 所属BOL的Block */
+    // BOL: BlockOffsetLength;
+    /** 指针在BOL中的偏移量 */
     offset: number;
+    /** 指针数据长度 */
     byteLength: number;
+    /** CPU侧指针数据缓冲区 */
     cpuBuffer: ArrayBuffer;
+    /** GPU侧指针数据缓冲区 */
     gpuBuffer: GPUBuffer;
-
+    /**pointer 的buffer，offset，BOL 等最后重建时间，
+     * 1、分配buffer所属BOL的最后重建时间 
+     * 2、如果有跨BOL调度，也会变化。todo，20260401
+     * */
+    rebuildTime: number;
 }
 
 
@@ -234,6 +245,7 @@ export class Pointers {
             writeTime: 0,//初始化时，写入时间为0
             cpuBuffer: pointerInfo.cpuBuffer,
             gpuBuffer: pointerInfo.gpuBuffer,
+            rebuildTime: 0,
         };
         //3、在pointers中记录指针信息；
         this.pointers.set(pointerID, perOnePointer);
@@ -245,21 +257,6 @@ export class Pointers {
 
         //5、返回指针信息；
         return perOnePointer;
-    }
-    safeSet(
-        target: T_pointerDataView,
-        source: T_pointerDataView,
-        offset = 0,
-        byteLength: number | undefined,
-        sourceOffset: number | undefined,
-        sourceByteLength: number | undefined
-    ) {
-        const maxWrite = target.length - offset;
-        if (maxWrite <= 0) return;
-
-        // 截尾：只取能放下的长度
-        const truncated = source.slice(0, maxWrite);
-        target.set(truncated, offset);
     }
     /** 更新指针数据 */
     updatePointerData(pointer: I_pointerStruct, params: I_pointerDataParams) {
@@ -384,11 +381,12 @@ export class Pointers {
         return true;
     }
     /** 更新指针偏移量和BOLID */
-    updatePointerOffset(pointerID: number, offset: number, BolID: number): void {
+    updatePointerOffset(pointerID: number, offset: number, BolID: number,timer:number): void {
         let pointer = this.pointers.get(pointerID);
         if (pointer) {
             pointer.offset = offset;
             pointer.BolID = BolID;
+            pointer.rebuildTime = timer;
         }
     }
     /** 释放指针 */

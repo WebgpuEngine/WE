@@ -78,9 +78,13 @@ export class BlockPointerCoordinator {
         if (scene.BOL !== undefined) {
             if (scene.BOL.updateStrideSize !== undefined) {
                 for (let i in scene.BOL.updateStrideSize) {
-                    let complementOfNumber = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! % 4;
+                    let baseStride=4;
+                    if (i == E_BOLBufferType.uniform) {
+                        baseStride=256;
+                    }
+                    let complementOfNumber = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! % baseStride;
                     if (complementOfNumber !== 0) {
-                        complementOfNumber = 4 - complementOfNumber;
+                        complementOfNumber = baseStride - complementOfNumber;
                         scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! += complementOfNumber;
                         console.warn(`updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]}`);
                     }
@@ -89,9 +93,14 @@ export class BlockPointerCoordinator {
             }
             if (scene.BOL.size !== undefined) {
                 for (let i in scene.BOL.size) {
-                    let complementOfNumber = scene.BOL.size[i as E_BOLBufferType]! % 4;
+                    let baseStride=4;
+                    if (i == E_BOLBufferType.uniform) {
+                        baseStride=256;
+                    }
+                    let complementOfNumber = scene.BOL.size[i as E_BOLBufferType]! %baseStride;
+                    
                     if (complementOfNumber !== 0) {
-                        complementOfNumber = 4 - complementOfNumber;
+                        complementOfNumber = baseStride - complementOfNumber;
                         scene.BOL.size[i as E_BOLBufferType]! += complementOfNumber;
                         console.warn(`size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.size[i as E_BOLBufferType]}`);
                     }

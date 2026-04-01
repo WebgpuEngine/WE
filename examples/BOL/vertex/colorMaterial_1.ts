@@ -1,6 +1,6 @@
 
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../src/we/core/scene/base";
+import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
@@ -33,7 +33,7 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
@@ -44,7 +44,11 @@ await scene.add(camera);
 let boxGeometry = new BoxGeometry();
 
 let colorMaterial = new ColorMaterial({
-  color: [0, 0.1, 0.2, 1]
+  color: [0, 0.1, 0.2, 1],
+  update: (scope: ColorMaterial) => {
+    let red = Math.sin(Date.now() / 500);
+    scope.Color = [red, 0.1, 0.2, 1];
+  }
 });
 
 let inputMesh: IV_MeshEntity = {
@@ -52,15 +56,15 @@ let inputMesh: IV_MeshEntity = {
     geometry: boxGeometry,
   },
   material: colorMaterial,
-    wireFrame: {
-    color: [1, 1, 1, 1],
+  wireFrame: {
+    color: [1, 0, 0, 1],
     enable: true,
     // wireFrameOnly: true,
   }
 }
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
-window.mesh=mesh;
-window.instanceMash=await scene.add(mesh);
+window.mesh = mesh;
+window.instanceMash = await scene.add(mesh);
 
-window.BPC= scene.BPC;
+window.BPC = scene.BPC;

@@ -1,5 +1,6 @@
 import { E_renderForDC } from "../base/coreDefine";
 import { BaseEntity } from "../entity/baseEntity";
+import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, I_viewport, IV_BaseCommand, T_BindGroupType, T_drawMode } from "./base";
 import { I_baseGPUBufferBundle } from "./DrawCommandGenerator";
@@ -49,6 +50,7 @@ export abstract class BaseDrawCommand {
     dynamic: boolean = false;
     drawMode: T_drawMode;
     scene: Scene;
+    clock: Clock;
     label: string;
     // rawUniform!: boolean;
     device!: GPUDevice;
@@ -79,6 +81,7 @@ export abstract class BaseDrawCommand {
 
     constructor(input: IV_BaseDrawCommand) {
         this.scene = input.scene;
+        this.clock = this.scene.clock;
         this.label = input.label;
         this.device = input.device;
         this.drawMode = input.drawMode;
@@ -101,6 +104,11 @@ export abstract class BaseDrawCommand {
      */
     update(): GPUCommandBuffer {
         let device = this.device;
+        /**
+         * 1、动态更新bind group：适用于GPUTexture的注销与重建(外部模式的video等)等
+         * 2、增加一个判断pointer是否有更新过的机制。
+         *    A、unix时间戳判断pointer是否有更新过（BOL的rebulid）。
+         */
         if (this.dynamic === true) {
             this.generateBindGroup();
         }

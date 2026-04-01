@@ -180,7 +180,12 @@ export function isDynamicTextureEntryForView(obj: unknown): obj is I_dynamicText
         typeof (obj as I_dynamicTextureEntryForView).getResource === 'function'
     );
 }
-
+// export interface I_uniformDynamicPointer {
+//     label: string,
+//     binding: number,
+//     /**动态获取importExternalTexture的箭头函数 */
+//     getResource: () => GPUBufferBinding,
+// }
 
 
 /** 单个bind group的  unifrom 入口的数组格式 
@@ -188,7 +193,7 @@ export function isDynamicTextureEntryForView(obj: unknown): obj is I_dynamicText
  * GPUBindGroupEntry 是标准的
  */
 export type T_uniformEntries = GPUBindGroupEntry | I_uniformArrayBufferEntry | I_dynamicTextureEntryForView | I_dynamicTextureEntryForExternal;
-export type  T_uniformOneGroup = T_uniformEntries[] |GPUBindGroup;    //entity 等内部使用的uniform group，每个group 是一个bind group，不能为空数组或undefined
+export type T_uniformOneGroup = T_uniformEntries[] | GPUBindGroup;    //entity 等内部使用的uniform group，每个group 是一个bind group，不能为空数组或undefined
 
 
 
@@ -196,7 +201,7 @@ export type  T_uniformOneGroup = T_uniformEntries[] |GPUBindGroup;    //entity �
  * 1、undefined 表示没有uniform group
  * 2、[] 表示空的uniform group.未验证
 */
-export type T_uniformGroups = T_uniformOneGroup | [] |undefined;  // DCG 使用，可以支持多个uniform group，包括空的uniform group和undefined，
+export type T_uniformGroups = T_uniformOneGroup | [] | undefined;  // DCG 使用，可以支持多个uniform group，包括空的uniform group和undefined，
 export function isGPUBindGroupEntry(obj: unknown): obj is GPUBindGroupEntry {
     return (
         typeof obj === 'object' &&

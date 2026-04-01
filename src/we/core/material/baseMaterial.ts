@@ -15,12 +15,13 @@ import { E_GBufferNames, V_TransparentGBufferNames } from "../gbuffers/base";
 import { getSampler } from "../sampler/baseFunction";
 import { Texture } from "../texture/texture";
 import { CubeTexture } from "../texture/cubeTexxture";
+import { I_pointerStruct } from "../bufferBlock/pointer";
 
 
 
 
 export abstract class BaseMaterial extends RootGPU {
-    declare inputValues: IV_BaseMaterial;
+    override inputValues: IV_BaseMaterial;
 
     doubleSided: boolean = false;
 
@@ -116,8 +117,10 @@ export abstract class BaseMaterial extends RootGPU {
     /** 材质的uniform CPU Buffer */
     unifromCPUBuffer!: ArrayBuffer;
 
+    uniformPointer!:I_pointerStruct;
+
     constructor(input?: IV_BaseMaterial) {
-        super();
+        super(input);
         this.type = "material";
         this.doubleSided = input?.doubleSided || false;
         // this.reversedZ = false;
