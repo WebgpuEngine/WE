@@ -5,11 +5,11 @@
  */
 
 import type { Scene } from "../scene/scene";
-import type { I_DrawCommandIDs, I_uniformArrayBufferEntry, I_viewport, T_BindGroupLayout, T_drawMode, T_rpdInfomationOfMSAA, T_uniformGroups } from "./base";
+import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
 import { createUniformBuffer, getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
 import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
-import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, ResourceManagerOfGPU } from "../resources/resourcesGPU";
+import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { AA } from "../scene/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
 import { BaseCamera } from "../camera/baseCamera";
@@ -907,7 +907,7 @@ export class DrawCommandGenerator {
 
                     //判断是否以及存在顶点GPUBuffer
                     let md5OfVertexOfArray = MD5.hex(value);
-                    if (!this.resources.vertexHas(md5OfVertexOfArray)) {
+                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                         // vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
@@ -920,11 +920,11 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.vertexSet(md5OfVertexOfArray, pointerOfVertex);
+                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                     }
                     else {
                         // vertexBuffer = this.resources.get(value, "vertices");
-                        let pointerOfVertexTemp = this.resources.vertexGet(md5OfVertexOfArray);
+                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
                         if (!pointerOfVertexTemp) {
                             throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
                         }
@@ -953,7 +953,7 @@ export class DrawCommandGenerator {
                     let pointerOfVertex: I_pointerStruct;
                     let arrayStride = 4 * 3;
                     let format: GPUVertexFormat = "float32x3";
-                    if (!this.resources.vertexHas(md5OfVertexOfArray)) {
+                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                         let arrayBuffertype = getTypedArrayType(value);
                         let viewType: T_pointerDataType;
                         switch (arrayBuffertype) {
@@ -1030,11 +1030,11 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.vertexSet(md5OfVertexOfArray, pointerOfVertex);
+                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                     }
                     else {
                         // vertexBuffer = this.resources.get(value, "vertices");
-                        let pointerOfVertexTemp = this.resources.vertexGet(md5OfVertexOfArray);
+                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
                         if (!pointerOfVertexTemp) {
                             throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
                         }
@@ -1122,7 +1122,7 @@ export class DrawCommandGenerator {
                     let md5OfVertexOfArray = MD5.hex(value.data);
 
                     // if (!this.resources.has(value, "vertices")) {
-                    if (!this.resources.vertexHas(md5OfVertexOfArray)) {
+                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                         // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
@@ -1135,10 +1135,10 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.vertexSet(md5OfVertexOfArray, pointerOfVertex);
+                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                     }
                     else {
-                        let pointerOfVertexTemp = this.resources.vertexGet(md5OfVertexOfArray);
+                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
                         if (!pointerOfVertexTemp) {
                             throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
                         }
@@ -1179,7 +1179,7 @@ export class DrawCommandGenerator {
                     }
 
                     let md5OfVertexOfArray = MD5.hex(value.data);
-                    if (!this.resources.vertexHas(md5OfVertexOfArray)) {
+                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                         // if (!this.resources.has(value, "vertices")) {
                         // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =mergeAttribute", data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
@@ -1193,11 +1193,11 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.vertexSet(md5OfVertexOfArray, pointerOfVertex);
+                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                     }
                     else {
                         // vertexBuffer = this.resources.get(value, "vertices");
-                        let pointerOfVertexTemp = this.resources.vertexGet(md5OfVertexOfArray);
+                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
                         if (!pointerOfVertexTemp) {
                             throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
                         }
@@ -1270,7 +1270,7 @@ export class DrawCommandGenerator {
                     if (values.data.indices && values.data.indices.length > 0) {
                         // let u32Buffer = new Uint32Array(values.data.indices);
                         // if (!this.resources.has(values.data.indices, "indices")) {
-                        if (!this.resources.indicesHas(md5OfIndicesOfArray)) {
+                        if (!this.resources.hasIndices(md5OfIndicesOfArray)) {
                             // let _indexBuffer = createIndexBuffer(this.device, values.label + " index GPUBuffer", u32Buffer.buffer);
                             // this.resources.set(values.data.indices, _indexBuffer, "indices");
                             let pointerParams: I_pointerCreateParams = {
@@ -1283,10 +1283,10 @@ export class DrawCommandGenerator {
                                 }
                             };
                             index = this.pointers.createPointer(pointerParams);
-                            this.resources.indicesSet(md5OfIndicesOfArray, index);
+                            this.resources.setIndices(md5OfIndicesOfArray, index);
                         }
                         else {
-                            index = this.resources.indicesGet(md5OfIndicesOfArray) as I_pointerStruct;
+                            index = this.resources.getIndices(md5OfIndicesOfArray) as I_pointerStruct;
                         }
                         if (index) {
                             DC_indexBuffer = {
@@ -1354,15 +1354,19 @@ export class DrawCommandGenerator {
                 }
 
                 let perGroup = values.data.uniforms[i];
+                //如果uniforms为空，就跳过
                 if (perGroup == undefined || (Array.isArray(perGroup) && perGroup.length == 0)) {
                     // console.warn("uniforms 组", i, "为空");
                     continue;
                 }
+                //如果layout存在，进行进一步判断
                 if (values.data.unifromLayout)
+                    //如果有layout，就直接使用
                     if (values.data.unifromLayout[i] == undefined || values.data.unifromLayout[i].length == 0) {
                         console.warn("uniforms layoiut 组[", i, "]的layout为空,与uniform组不匹配");
                         continue;
                     }
+
                 //BindGroup，重点1
                 let bindGroup: GPUBindGroup;
                 //BindGroupDesc ,重点1->1.1
@@ -1394,9 +1398,14 @@ export class DrawCommandGenerator {
                     }
                     //如果没有layout，就从resources中获取
                     else {
-                        let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//是否有对应的layout
-                        if (bindGroupLayoutGet) {
-                            bindGroupLayout = bindGroupLayoutGet;
+                        if (this.resources.hasBindGroupLayout(bindGroup)) {
+                            let bindGroupLayoutGet = this.resources.getBindGroupLayout(bindGroup);//是否有对应的layout
+                            if (bindGroupLayoutGet) {
+                                bindGroupLayout = bindGroupLayoutGet;
+                            }
+                            else {
+                                throw new Error("bindGroupLayout 不存在");
+                            }
                         }
                         else {
                             throw new Error("bindGroupLayout 不存在");
@@ -1423,21 +1432,28 @@ export class DrawCommandGenerator {
                 //     }
                 // }
                 else {//创建
-                    for (let j in perGroup) {
+                    for (let j in perGroup) {//遍历每组group的每个entry
                         let perEntry = perGroup[j];
                         let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
-                        //如果传入的参数中有GPUBindGroupLayoutEntry，就从GPUBindGroupLayoutEntry中获取，否则从entriesToEntriesLayout中获取
+                        //有对应的layout
                         if (values.data.unifromLayout) {
+                            //如果传入的参数中有GPUBindGroupLayoutEntry，就从GPUBindGroupLayoutEntry中获取，    
                             perBindGroupLayoutEntry = values.data.unifromLayout[i]![j];         //使用断言，判断在前面已经判断了layout不为空
                             bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
                         }
+                        //没有对应的layout，从resources中获取
                         else {
                             /**
                              * 获取perEntry的layout
                              */
-                            perBindGroupLayoutEntry = this.resources.entriesToEntriesLayout.get(perEntry) as GPUBindGroupLayoutEntry;//每个entry的layout
-                            if (perBindGroupLayoutEntry) {
-                                bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
+                            if (this.resources.hasEntrieLayout(perEntry)) {
+                                perBindGroupLayoutEntry = this.resources.getEntrieLayout(perEntry)!;//每个entry的layout
+                                if (perBindGroupLayoutEntry) {
+                                    bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
+                                }
+                                else {
+                                    throw new Error("bindGroupLayoutEntry 不存在");
+                                }
                             }
                             else {
                                 // console.warn("bindGroupLayoutEntry 不存在", perEntry);
@@ -1449,25 +1465,34 @@ export class DrawCommandGenerator {
                          * 其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
                         */
                         if (isUniformBufferPart(perEntry)) {
-                            if (this.resources.has(perEntry, "uniformBuffer")) {//已有,直接获取，不创建
-                                let buffer = this.resources.get(perEntry, "uniformBuffer");
+                            if (this.resources.hasUniform(perEntry)) {//已有,直接获取，不创建
+                                let buffer = this.resources.getUniform(perEntry);
                                 if (buffer)
                                     bindGroupEntry.push({
                                         binding: perEntry.binding,
-                                        resource: {
-                                            buffer
-                                        }
+                                        resource: buffer.gpuBufferView,
                                     });
                             }
                             else {//没有，创建
                                 const label = (perEntry as I_uniformArrayBufferEntry).label;
-                                let buffer = createUniformBuffer(this.device, label, (perEntry as I_uniformArrayBufferEntry).data);
-                                this.resources.set(perEntry, buffer, "uniformBuffer");
+
+                                let pointerParams: I_pointerCreateParams = {
+                                    name: label,
+                                    byteSize: perEntry.size,//uniform data 的bytesize大小
+                                    type: E_BOLBufferType.uniform,
+                                    viewType: "u8",//由于data是ArrayBuffer,按照u8处理
+                                    data: {
+                                        sourceData: {
+                                            data: perEntry.data,//ArrayBuffer
+                                        },
+                                    }
+                                };
+                                let pointer = this.pointers.createPointer(pointerParams);
+                                this.resources.setUniform(perEntry, pointer);
                                 bindGroupEntry.push({
                                     binding: perEntry.binding,
-                                    resource: {
-                                        buffer
-                                    }
+                                    resource: pointer.gpuBufferView
+
                                 });
                             }
                         }
@@ -1485,9 +1510,9 @@ export class DrawCommandGenerator {
                                 resource: perEntry.getResource(),
                             });
                         }
-                        //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
+                        //排除其他类型后，即是GPUBindGroupEntry
                         else {
-                            bindGroupEntry.push(perEntry);
+                            bindGroupEntry.push(perEntry);//GPUBindGroupEntry
                         }
                     }
 

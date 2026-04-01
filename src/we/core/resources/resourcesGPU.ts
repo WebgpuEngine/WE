@@ -1,5 +1,5 @@
 import { I_pointerStruct } from "../bufferBlock/pointer";
-import type { I_dynamicTextureEntryForExternal, I_dynamicTextureEntryForView, I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "../command/base";
+import { I_uniformArrayBufferEntry, isGPUBindGroupEntry, isUniformBufferPart, T_uniformEntries } from "../command/base";
 import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseMaterial } from "../material/baseMaterial";
@@ -21,20 +21,20 @@ export class ResourceManagerOfGPU {
     //所有为分类的,未定义，未分类，分类失败
     resources: Map<any, any> = new Map();
 
-    /////////////////////////////////////////////////////////////////////////////////////////
-    //基础单位数据
-    /**顶点资源管理器 */
-    // vertices: Map<any, GPUBuffer> = new Map();
-    vertices: Map<string, I_pointerStruct> = new Map();
-    /**索引资源管理器 */
-    indices: Map<string, I_pointerStruct> = new Map();//GPUBuffer默认使用uint32的格式。
-    /**单个uniform的ArrayBuffer 对应的GPUBuffer 资源管理器 */
-    uniformBuffer: Map<any, GPUBuffer> = new Map();
 
     /////////////////////////////////////////////////////////////////////////////////////////
     // 单个（每个binding）uniform-->GPUBindGroupLayoutEntry
     /**一个bind group的entries对应的group layout */
     entriesToEntriesLayout: Map<T_uniformEntries, GPUBindGroupLayoutEntry> = new Map();//需要人工释放资源
+    getEntrieLayout(entries: T_uniformEntries) {
+        return this.entriesToEntriesLayout.get(entries);
+    }
+    setEntrieLayout(entries: T_uniformEntries, entriesLayout: GPUBindGroupLayoutEntry) {
+        this.entriesToEntriesLayout.set(entries, entriesLayout);
+    }
+    hasEntrieLayout(entries: T_uniformEntries) {
+        return this.entriesToEntriesLayout.has(entries);
+    }
     /**
      * 保存通用的Entry GPUBindGroupLayoutEntry
      * 1、警告
@@ -51,6 +51,15 @@ export class ResourceManagerOfGPU {
 
     /** bindGroup 对应的layout */
     bindGroupToGroupLayout: Map<GPUBindGroup, GPUBindGroupLayout> = new Map();//需要人工释放资源
+    getBindGroupLayout(bindGroup: GPUBindGroup) {
+        return this.bindGroupToGroupLayout.get(bindGroup);
+    }
+    setBindGroupLayout(bindGroup: GPUBindGroup, bindGroupLayout: GPUBindGroupLayout) {
+        this.bindGroupToGroupLayout.set(bindGroup, bindGroupLayout);
+    }
+    hasBindGroupLayout(bindGroup: GPUBindGroup) {
+        return this.bindGroupToGroupLayout.has(bindGroup);
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////
     //shadowmap
@@ -92,31 +101,41 @@ export class ResourceManagerOfGPU {
     }
     //////////////////////////////////////////////////////////////////////////////////////////
     //attribute and uniform 
-    vertexGet(md5: string) {
+
+    //基础单位数据
+    /**顶点资源管理器 */
+    // vertices: Map<any, GPUBuffer> = new Map();
+    vertices: Map<string, I_pointerStruct> = new Map();
+    /**索引资源管理器 */
+    indices: Map<string, I_pointerStruct> = new Map();//GPUBuffer默认使用uint32的格式。
+    /**单个uniform的ArrayBuffer 对应的GPUBuffer 资源管理器 */
+    uniformBuffer: Map<T_uniformEntries, I_pointerStruct> = new Map();
+
+    getVertex(md5: string) {
         return this.vertices.get(md5);
     }
-    vertexHas(md5: string) {
+    hasVertex(md5: string) {
         return this.vertices.has(md5);
     }
-    vertexSet(md5: string, vertex: I_pointerStruct) {
+    setVertex(md5: string, vertex: I_pointerStruct) {
         this.vertices.set(md5, vertex);
     }
-    uniformGet(md5: string) {
-        return this.uniformBuffer.get(md5);
+    getUniform(uniform: T_uniformEntries) {
+        return this.uniformBuffer.get(uniform);
     }
-    uniformHas(md5: string) {
-        return this.uniformBuffer.has(md5);
+    hasUniform(uniform: T_uniformEntries) {
+        return this.uniformBuffer.has(uniform);
     }
-    uniformSet(md5: string, uniform: I_pointerStruct) {
-        this.uniformBuffer.set(md5, uniform);
+    setUniform(uniform: T_uniformEntries, pointerStruct: I_pointerStruct) {
+        this.uniformBuffer.set(uniform, pointerStruct);
     }
-    indicesGet(md5: string) {
+    getIndices(md5: string) {
         return this.indices.get(md5);
     }
-    indicesHas(md5: string) {
+    hasIndices(md5: string) {
         return this.indices.has(md5);
     }
-    indicesSet(md5: string, indices: I_pointerStruct) {
+    setIndices(md5: string, indices: I_pointerStruct) {
         this.indices.set(md5, indices);
     }
 
@@ -479,60 +498,6 @@ class I_uniformArrayBufferEntryImpl implements I_uniformArrayBufferEntry {
     update?: boolean | undefined;
 }
 
-export function isGPUBindGroupEntry(obj: unknown): obj is GPUBindGroupEntry {
-    return (
-        typeof obj === 'object' &&
-        obj !== null &&
-        'binding' in obj &&
-        typeof (obj as GPUBindGroupEntry).binding === 'number' &&
-        'resource' in obj &&
-        typeof (obj as GPUBindGroupEntry).resource === 'object'
-    );
-}
-
-export function isUniformBufferPart(obj: unknown): obj is I_uniformArrayBufferEntry {
-    return (
-        typeof obj === 'object' &&
-        obj !== null &&
-        'binding' in obj &&
-        typeof (obj as I_uniformArrayBufferEntry).binding === 'number' &&
-        'size' in obj &&
-        typeof (obj as I_uniformArrayBufferEntry).size === 'number' &&
-        'data' in obj &&
-        typeof (obj as I_uniformArrayBufferEntry).data === 'object'
-    );
-}
-
-export function isUniformGroup(obj: unknown): obj is T_uniformGroups {
-    return (
-        Array.isArray(obj) &&
-        obj.every(isUniformBufferPart || isGPUBindGroupEntry)
-    );
-}
 
 
 
-
-
-export function isDynamicTextureEntryForExternal(obj: unknown): obj is I_dynamicTextureEntryForExternal {
-    return (
-        typeof obj === 'object' &&
-        obj !== null &&
-        'binding' in obj &&
-        'scope' in obj &&
-        typeof (obj as I_dynamicTextureEntryForExternal).binding === 'number' &&
-        'getResource' in obj &&
-        typeof (obj as I_dynamicTextureEntryForExternal).getResource === 'function'
-    );
-}
-
-export function isDynamicTextureEntryForView(obj: unknown): obj is I_dynamicTextureEntryForView {
-    return (
-        typeof obj === 'object' &&
-        obj !== null &&
-        'binding' in obj &&
-        typeof (obj as I_dynamicTextureEntryForView).binding === 'number' &&
-        'getResource' in obj &&
-        typeof (obj as I_dynamicTextureEntryForView).getResource === 'function'
-    );
-}

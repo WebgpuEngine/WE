@@ -1,8 +1,6 @@
-import { E_renderForDC } from "../base/coreDefine";
 import { E_TransparentType } from "../material/base";
-import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "../resources/resourcesGPU";
-import { Scene } from "../scene/scene";
-import { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformArrayBufferEntry, I_viewport, IV_BaseCommand, T_uniformGroups } from "./base";
+import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "./base";
+import { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformArrayBufferEntry, T_uniformGroups } from "./base";
 import { BaseDrawCommand, I_VertexBufferEntry, IV_BaseDrawCommand } from "./BaseDrawCommand";
 import { createUniformBuffer } from "./baseFunction";
 
@@ -241,7 +239,7 @@ export class DrawCommand extends BaseDrawCommand {
 
             //初始化BindGroup描述
             let bindGroupDesc: GPUBindGroupDescriptor = {
-                label: "DC 动态绑定"+values.label + " bindGroupLayoutDescriptor of " + layoutNumber,
+                label: "DC 动态绑定" + values.label + " bindGroupLayoutDescriptor of " + layoutNumber,
                 layout: bindGroupLayout,
                 entries: bindGroupEntry,
             }

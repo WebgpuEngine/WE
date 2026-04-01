@@ -115,8 +115,9 @@ export interface I_uniformArrayBufferEntry {
     /**TypedArray的大小，以byte计算 ;这个size是需要数据对齐的*/
     size: number,//
 
-    /**TypedArray,通过()=>{return TypedArray }返回TypedArray */
-    // get: () => ArrayBuffer,
+    /**
+     * 这里只能说ArrayBuffer，因为shader中的uniform对应的结构是未知的（暴露出来不太可能，情况太多了）。     
+     */
     data: ArrayBuffer,
 
     /** 
@@ -126,6 +127,20 @@ export interface I_uniformArrayBufferEntry {
     */
     update?: boolean,
 }
+export function isUniformBufferPart(obj: unknown): obj is I_uniformArrayBufferEntry {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'binding' in obj &&
+        typeof (obj as I_uniformArrayBufferEntry).binding === 'number' &&
+        'size' in obj &&
+        typeof (obj as I_uniformArrayBufferEntry).size === 'number' &&
+        'data' in obj &&
+        typeof (obj as I_uniformArrayBufferEntry).data === 'object'
+    );
+}
+
+
 /**定义一个动态纹理的External 接口 */
 export interface I_dynamicTextureEntryForExternal {
     label: string,
@@ -134,6 +149,20 @@ export interface I_dynamicTextureEntryForExternal {
     getResource: (scope: any) => GPUBindingResource,
     scope: any,
 }
+export function isDynamicTextureEntryForExternal(obj: unknown): obj is I_dynamicTextureEntryForExternal {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'binding' in obj &&
+        'scope' in obj &&
+        typeof (obj as I_dynamicTextureEntryForExternal).binding === 'number' &&
+        'getResource' in obj &&
+        typeof (obj as I_dynamicTextureEntryForExternal).getResource === 'function'
+    );
+}
+
+
+
 /**定义一个动态纹理的view 接口 */
 export interface I_dynamicTextureEntryForView {
     label: string,
@@ -141,19 +170,51 @@ export interface I_dynamicTextureEntryForView {
     /**动态获取importExternalTexture的箭头函数 */
     getResource: () => GPUBindingResource,
 }
+export function isDynamicTextureEntryForView(obj: unknown): obj is I_dynamicTextureEntryForView {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'binding' in obj &&
+        typeof (obj as I_dynamicTextureEntryForView).binding === 'number' &&
+        'getResource' in obj &&
+        typeof (obj as I_dynamicTextureEntryForView).getResource === 'function'
+    );
+}
+
+
+
 /** 单个bind group的  unifrom 入口的数组格式 
  * I_uniformArrayBufferEntry 是自定义的uniformBuffer，用于创建GPUBuffer
  * GPUBindGroupEntry 是标准的
  */
 export type T_uniformEntries = GPUBindGroupEntry | I_uniformArrayBufferEntry | I_dynamicTextureEntryForView | I_dynamicTextureEntryForExternal;
-
 export type  T_uniformOneGroup = T_uniformEntries[] |GPUBindGroup;    //entity 等内部使用的uniform group，每个group 是一个bind group，不能为空数组或undefined
+
+
 
 /**  bind group的数组  
  * 1、undefined 表示没有uniform group
  * 2、[] 表示空的uniform group.未验证
 */
 export type T_uniformGroups = T_uniformOneGroup | [] |undefined;  // DCG 使用，可以支持多个uniform group，包括空的uniform group和undefined，
+export function isGPUBindGroupEntry(obj: unknown): obj is GPUBindGroupEntry {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'binding' in obj &&
+        typeof (obj as GPUBindGroupEntry).binding === 'number' &&
+        'resource' in obj &&
+        typeof (obj as GPUBindGroupEntry).resource === 'object'
+    );
+}
+export function isUniformGroup(obj: unknown): obj is T_uniformGroups {
+    return (
+        Array.isArray(obj) &&
+        obj.every(isUniformBufferPart || isGPUBindGroupEntry)
+    );
+}
+
+
 
 /** bind group layout的数组  
  * 1、undefined 表示没有uniform group layout 

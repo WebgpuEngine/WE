@@ -1,4 +1,4 @@
-import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "../resources/resourcesGPU";
+import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "./base";
 import { Scene } from "../scene/scene";
 import { I_DrawCommandIDs, I_uniformArrayBufferEntry, IV_BaseCommand, T_uniformGroups } from "./base";
 import { createUniformBuffer } from "./baseFunction";
