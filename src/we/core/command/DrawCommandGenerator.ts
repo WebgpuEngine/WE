@@ -837,8 +837,6 @@ export class DrawCommandGenerator {
         DC_localtions: string[],
         DC_verticesBufferLayout: GPUVertexBufferLayout[],
     } {
-        //是否开启动态属性绑定。
-        let dynamicAttribute = values.dynamic?.vs || false;
         //1、buffer资源
         // 20260114修改为 I_VertexBufferEntry
         let DC_vertexBuffers: I_VertexBufferEntry[] = [];//当前DC的顶点列表。之后在DC中passEncoder.setVertexBuffer(parseInt(i), verticesBuffer)使用。
@@ -874,8 +872,9 @@ export class DrawCommandGenerator {
                 let pointerOfVertex: I_pointerStruct;
                 //20260114 增加interface I_VertexBufferEntry
                 let vertexBufferEntry: I_VertexBufferEntry;
-                //标准的数组格式，默认为position等
-                if (dynamicAttribute) {
+                //动态顶点属性
+                if (values.dynamic?.vs) {
+                    //标准的数组格式，默认为position等
                     if (Array.isArray(value)) {
                         if (value.length == 0) {
                             console.warn("顶点属性" + key + "数据为空");
@@ -946,6 +945,7 @@ export class DrawCommandGenerator {
                     else
                         throw new Error("动态顶点属性:'" + key + "'数据必须为数组形式");
                 }
+                //标准的数组格式，默认为position等
                 else if (Array.isArray(value)) {
                     if (value.length == 0) {
                         console.warn("顶点属性" + key + "数据为空");
@@ -1555,10 +1555,10 @@ export class DrawCommandGenerator {
                             }
                             else {//没有，创建
                                 const label = (perEntry as I_uniformArrayBufferEntry).label;
-
+                                let offsetSize = Math.ceil(perEntry.size / 256) * 256;
                                 let pointerParams: I_pointerCreateParams = {
                                     name: label,
-                                    byteSize: perEntry.size > 256 ? perEntry.size : 256,//uniform data 的bytesize大小
+                                    byteSize: offsetSize,//uniform data 的bytesize大小
                                     type: E_BOLBufferType.uniform,
                                     viewType: "u8",//由于data是ArrayBuffer,按照u8处理
                                     data: {

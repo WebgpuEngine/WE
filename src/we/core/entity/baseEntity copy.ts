@@ -28,7 +28,6 @@ import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFuncti
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
-import { I_pointerStruct } from "../bufferBlock/pointer";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -99,19 +98,6 @@ export abstract class BaseEntity extends NodeSpace {
         /** 世界矩阵数组@group(1) @binding(2)*/
         wolrdMatrix?: GPUBuffer;
     } = {};
-
-    bufferPointers:{
-        uniformCommonEntity: I_pointerStruct;
-        instances: I_pointerStruct;
-        wolrdMatrix: I_pointerStruct;
-    } = {
-        uniformCommonEntity: {} as I_pointerStruct,
-        instances: {} as I_pointerStruct,
-        wolrdMatrix: {} as I_pointerStruct,
-    };
-
-
-
     /**
      * 外部实例化数组
      * 说明：

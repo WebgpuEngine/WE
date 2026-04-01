@@ -175,6 +175,18 @@ export class DrawCommand extends BaseDrawCommand {
         return this.cacheFlagPipeline;
     }
 
+    override update(): GPUCommandBuffer {
+        /**
+         * 1、动态更新bind group：适用于GPUTexture的注销与重建(外部模式的video等)等
+         * 2、增加一个判断pointer是否有更新过的机制。
+         *    A、unix时间戳判断pointer是否有更新过（BOL的rebulid）。
+         */
+        if (this.dynamic === true) {
+            this.generateBindGroup();
+        }
+        return super.update();
+    }
+
     /**
      * 生成动态bindGroup，由super中的update()根据this.dynamic 调用
      */

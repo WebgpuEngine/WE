@@ -44,10 +44,10 @@ await scene.add(camera);
 let boxGeometry = new BoxGeometry();
 
 let colorMaterial = new ColorMaterial({
-  color: [0, 0.1, 0.2, 1],
+  color: [1, 1., 1, 1],
   update: (scope: ColorMaterial) => {
-    let red = Math.sin(Date.now() / 500);
-    scope.Color = [red, 0.1, 0.2, 1];
+    let red = (Math.sin(Date.now() / 1500) + 1) / 2;
+    scope.Color = [red, 0., 0., 1];
   }
 });
 
@@ -57,7 +57,7 @@ let inputMesh: IV_MeshEntity = {
   },
   material: colorMaterial,
   wireFrame: {
-    color: [1, 0, 0, 1],
+    color: [0, 1, 0, 1],
     enable: true,
     // wireFrameOnly: true,
   }

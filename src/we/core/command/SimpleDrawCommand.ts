@@ -1,7 +1,6 @@
 import { I_EntityBundleOutput } from "../entity/base";
-import { isUniformBufferPart } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_uniformArrayBufferEntry, T_uniformEntries, T_uniformGroups } from "./base";
+import { I_uniformArrayBufferEntry, isUniformBufferPart, T_uniformEntries, T_uniformGroups } from "./base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
 import { createUniformBuffer, createVerticesBuffer } from "./baseFunction";
 
@@ -214,7 +213,7 @@ export class SimpleDrawCommand extends BaseDrawCommand {
                 shaderTemplateFinal[i] = {
                     templateString: this.formatShaderCode(SHT_VS[i]),
                     groupAndBindingString: "",
-                    owner: this,
+                    owner: this.label,
                     binding: 4//@group(1) @binding(x)的bindingNumber（固定数量的,这里没有作用）,参见deferRender.fs.wgsl
                 };
             }

@@ -109,10 +109,10 @@ export abstract class BaseDrawCommand {
          * 2、增加一个判断pointer是否有更新过的机制。
          *    A、unix时间戳判断pointer是否有更新过（BOL的rebulid）。
          */
-        if (this.dynamic === true) {
-            this.generateBindGroup();
-        }
-        const commandEncoder = device.createCommandEncoder({ label: "Draw Command :commandEncoder" });
+        // if (this.dynamic === true) {
+        //     this.generateBindGroup();
+        // }
+        const commandEncoder = device.createCommandEncoder({ label: this.label });
         let passEncoder: GPURenderPassEncoder;
         if (typeof this.renderPassDescriptor === "function")
             passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
@@ -233,7 +233,7 @@ export abstract class BaseDrawCommand {
             if ("baseVertex" in drawMode) {
                 baseVertex = drawMode.baseVertex as number;
             }
-            passEncoder.setIndexBuffer(this.indexBuffer.buffer, this.indexFormat, this.indexBuffer.offset , this.indexBuffer.byteSize );// 'uint32');
+            passEncoder.setIndexBuffer(this.indexBuffer.buffer, this.indexFormat, this.indexBuffer.offset, this.indexBuffer.byteSize);// 'uint32');
             passEncoder.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
         }
         else {
