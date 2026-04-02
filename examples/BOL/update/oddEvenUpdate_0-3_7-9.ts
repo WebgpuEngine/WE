@@ -68,7 +68,7 @@ let evenNumberSize = 64;
 
 window.pointersList = [];
 
-let lastTime = scene.clock.last - 10;
+let lastTime = scene.clock.now - 10;
 
 for (let i = 0; i < 10; i++) {
   let pointer1_params: I_pointerCreateParams = {
@@ -89,7 +89,7 @@ for (let i = 0; i < 10; i++) {
     case 1:
     case 2:
     case 3:
-      pointer1.writeTime = scene.clock.last;
+      pointer1.writeTime = scene.clock.now;
       break;
     case 4:
     case 5:
@@ -99,7 +99,7 @@ for (let i = 0; i < 10; i++) {
     case 7:
     case 8:
     case 9:
-      pointer1.writeTime = scene.clock.last;
+      pointer1.writeTime = scene.clock.now;
       break;
     default:
       pointer1.writeTime = lastTime;

@@ -89,7 +89,7 @@ console.log(window.pointersList);
 window.BolVS = scene.BPC.BOLs.all.get(1)
 console.log(window.BolVS);
 
-let lastTime = scene.clock.last - 10;
+let lastTime = scene.clock.now - 10;
 window.BolVS.generateUpdateOffsetAndLenght(scene.clock, lastTime);
 
 console.log(window.BolVS.updateOffsetAndLenght);

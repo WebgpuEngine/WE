@@ -355,19 +355,23 @@ export class Pointers {
                     return false;
                 }
             }
-            pointer.writeTime = this.clock.last;
+            pointer.writeTime = this.clock.now;
         }
         else {
             console.error("指针不存在");
             return false;
         }
     }
+    /** 更新指针写入时间 
+     * @param pointerID 指针ID或指针结构体
+     * @returns 是否更新成功
+    */
     updatePointerWriteTime(pointerID: number | I_pointerStruct): boolean {
         //如果是number，需要从pointers中获取指针信息
         if (typeof pointerID === "number") {
             let pointer = this.pointers.get(pointerID);
             if (pointer) {
-                pointer.writeTime = this.clock.last;
+                pointer.writeTime = this.clock.now;
             }
             else {
                 console.warn("指针不存在");
@@ -376,7 +380,7 @@ export class Pointers {
         }
         //如果是I_pointerStruct，直接更新writeTime
         else {
-            pointerID.writeTime = this.clock.last;
+            pointerID.writeTime = this.clock.now;
         }
         return true;
     }

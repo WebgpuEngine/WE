@@ -4,7 +4,7 @@ import { RootGPU } from "../organization/root";
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
-import { commmandType, I_dynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
+import { commmandType, I_bindGroupAndGroupLayout, I_dynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
@@ -273,11 +273,13 @@ export abstract class BaseMaterial extends RootGPU {
       * @returns 绑定槽位，组绑定字符串，uniform组，layout组
       */
     abstract getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial
-    //  {
-    //     bindingNumber: number,
-    //     groupAndBindingString: string,
-    //     entry: T_uniformOneGroup,
-    // }
+    /**
+     * 20260402 增加：DC可以获取当前材质的bind group和bind group layout
+     * 获取当前材质的bind group和bind group layout
+     * @returns I_bindGroupAndGroupLayout
+     */
+    abstract getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout
+
     /**
      * 获取当前材质的TTPF的输出uniform bundle 。（在common uniform bundle之后）
      * @param renderObject 

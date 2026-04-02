@@ -19,7 +19,7 @@ export interface I_pointerInfoInBOL {
     // BOL: BlockOffsetLength;
     /** 指针在BOL中的偏移量 */
     offset: number;
-    /** 指针数据长度 */ 
+    /** 指针数据长度 */
     byteLength: number;
     /** CPU侧指针数据缓冲区 */
     cpuBuffer: ArrayBuffer;
@@ -278,7 +278,7 @@ export class BlockOffsetLength implements I_UUID {
             oneViewOfRebuild.set(oneViewOfClone);
 
             //4.2 更新指针的offset和byteLength
-            this.pointers.updatePointerOffset(oldPointerStruct.pointerID, offset, this.ID, this.clock.last);
+            this.pointers.updatePointerOffset(oldPointerStruct.pointerID, offset, this.ID, this.clock.now);
 
             //4.3 聚合更新的Map
             this.pointerOffsetMap.set(offset, oldPointerStruct.pointerID);
@@ -290,7 +290,7 @@ export class BlockOffsetLength implements I_UUID {
 
         }
         this.state = E_BOLState.open;
-        // this.rebuildTime = this.clock.last;
+        // this.rebuildTime = this.clock.now;
     }
     /** 生成更新偏移量和长度的映射表
      */
@@ -305,7 +305,7 @@ export class BlockOffsetLength implements I_UUID {
         for (let [offset, pointerID] of this.pointerOffsetMap) {
             let pointer = this.pointers.getPointer(pointerID)!;
 
-            
+
             //判断pointer写入时间是否=0，即是否更新过。0表示此帧未更新过，即是否有写入数据。防止写入在MBM.update()之后。
             if (pointer.writeTime === 0) {
                 //无写入数据，累计strideSize，

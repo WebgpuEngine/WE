@@ -329,5 +329,7 @@ export class ColorMaterial extends BaseMaterial {
     loadJSON(json: any): void {
         throw new Error("Method not implemented.");
     }
-
+    getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout{
+        
+    }
 }

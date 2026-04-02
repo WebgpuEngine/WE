@@ -1,9 +1,6 @@
-// import { NodeObject, NodeSpace } from "../organization/root";
 
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
-
-
 import {
     E_entityType,
     I_EntityBundleOutput,
@@ -28,7 +25,8 @@ import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFuncti
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
-import { I_pointerStruct } from "../bufferBlock/pointer";
+import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
+import { E_BOLBufferType } from "../bufferBlock/base";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -79,6 +77,8 @@ export abstract class BaseEntity extends NodeSpace {
 
     ///////////////////////////////////////////////////////////////////
     //uniform
+    /** 外部实例化数组stride数量，默认为1 */
+    outsideInstanceCountOfDefaultStride: number = 4;
     /** 实例化数组最后重新的时间 */
     flagInstanceArrayBufferReNew: boolean = false;
     /**Buffer(uniform and storage )在CPU端的ArrayBuffer */
@@ -100,16 +100,15 @@ export abstract class BaseEntity extends NodeSpace {
         wolrdMatrix?: GPUBuffer;
     } = {};
 
-    bufferPointers:{
-        uniformCommonEntity: I_pointerStruct;
-        instances: I_pointerStruct;
-        wolrdMatrix: I_pointerStruct;
+    bufferPointers: {
+        uniformCommonEntity: I_pointerStruct | undefined;
+        instances: I_pointerStruct | undefined;
+        wolrdMatrix: I_pointerStruct | undefined;
     } = {
-        uniformCommonEntity: {} as I_pointerStruct,
-        instances: {} as I_pointerStruct,
-        wolrdMatrix: {} as I_pointerStruct,
-    };
-
+            uniformCommonEntity: undefined,
+            instances: undefined,
+            wolrdMatrix: undefined
+        };
 
 
     /**
@@ -491,7 +490,8 @@ export abstract class BaseEntity extends NodeSpace {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
-        if (this._state === E_lifeState.finished && this.checkStatus()) {//initial finish
+        //判断初始化状态是否为完成，判断状态，判断是否有外部实例
+        if (this._state === E_lifeState.finished && this.checkStatus() && this.getInstancesCount(true)) {
             super.update(clock, updateSelftFN);
             return true;
         }
@@ -649,8 +649,14 @@ export abstract class BaseEntity extends NodeSpace {
     }
 
     intUniformCommonEntity() {
-        this.bufferCPU.uniformCommonEntity = new ArrayBuffer(this._entityCommonByteSize);
-        this.bufferGPU.uniformCommonEntity = createUniformBuffer(this.device, "uniformCommonEntity:" + this.ID, this.bufferCPU.uniformCommonEntity);
+        let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
+        let pointerParams: I_pointerCreateParams = {
+            name: this.ID.toString(),
+            byteSize: offsetSize,//uniform data 的bytesize大小
+            type: E_BOLBufferType.uniform,
+            viewType: "u8",//由于data是ArrayBuffer,按照u8处理
+        };
+        this.bufferPointers.uniformCommonEntity = this.scene.pointers.createPointer(pointerParams);
     }
     /**
      * 被update调用，更新vs、fs的uniform
@@ -658,18 +664,18 @@ export abstract class BaseEntity extends NodeSpace {
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
     updateUniformCommonEntity(clock: Clock, write: boolean = true): void {
-        if (this.bufferCPU.uniformCommonEntity !== undefined) {
-
-            const st_entityValues = this.bufferCPU.uniformCommonEntity;
+        if (this.bufferPointers.uniformCommonEntity !== undefined) {
+            const st_entityValues = this.bufferPointers.uniformCommonEntity.cpuBuffer;
+            let offset = this.bufferPointers.uniformCommonEntity.offset;
             const st_entityViews = {
-                time: new Float32Array(st_entityValues, 0, 1),
-                last_time: new Float32Array(st_entityValues, 4, 1),
-                instance_count: new Uint32Array(st_entityValues, 8, 1),
-                vs_offset: new Float32Array(st_entityValues, 12, 1),
-                animation_kind: new Uint32Array(st_entityValues, 16, 1),
-                morpht_target_count: new Uint32Array(st_entityValues, 20, 1),
-                vertex_count: new Uint32Array(st_entityValues, 24, 1),
-                joint_matrix_count: new Uint32Array(st_entityValues, 28, 1),
+                time: new Float32Array(st_entityValues, offset, 1),
+                last_time: new Float32Array(st_entityValues, offset + 4, 1),
+                instance_count: new Uint32Array(st_entityValues, offset + 8, 1),
+                vs_offset: new Float32Array(st_entityValues, offset + 12, 1),
+                animation_kind: new Uint32Array(st_entityValues, offset + 16, 1),
+                morpht_target_count: new Uint32Array(st_entityValues, offset + 20, 1),
+                vertex_count: new Uint32Array(st_entityValues, offset + 24, 1),
+                joint_matrix_count: new Uint32Array(st_entityValues, offset + 28, 1),
             };
             st_entityViews.time[0] = clock.now;
             st_entityViews.last_time[0] = clock.last;
@@ -679,8 +685,7 @@ export abstract class BaseEntity extends NodeSpace {
             st_entityViews.morpht_target_count[0] = 0;//this.MorphtTargetCount;
             st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
             st_entityViews.joint_matrix_count[0] = 0;// this.JointsMatCount;
-            if (write)
-                this.device.queue.writeBuffer(this.bufferGPU.uniformCommonEntity!, 0, this.bufferCPU.uniformCommonEntity);
+            this.scene.pointers.updatePointerWriteTime(this.bufferPointers.uniformCommonEntity);
         }
     }
     /**
@@ -718,79 +723,62 @@ export abstract class BaseEntity extends NodeSpace {
          *      B、skins
          * 4、根据reNew是否创建ArrayBuffer和GPUBuffer
          */
-        let reNew = false;
-        let nameCPU = name as keyof typeof this.bufferCPU;
-        //实例化
+        let nameOfPointer = name as keyof typeof this.bufferPointers;
+        let byteSizeOfBuffer = this._instanceInfoByteSize;
         if (name == "instances") {
-            //没有
-            if (this.bufferCPU[nameCPU] == undefined) {
-                reNew = true;
-            }
-            //长度不相等
-            else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceInfoByteSize) {
-                reNew = true;
-            }
+            byteSizeOfBuffer = this._instanceInfoByteSize;
         }
         else if (name == "wolrdMatrix") {
-            //没有
-            if (this.bufferCPU[nameCPU] == undefined) {
-                reNew = true;
-            }
-            //长度不相等
-            else if (this.bufferCPU[nameCPU].byteLength != this.getInstancesCount() * this._instanceWorldMatrixByteSize) {
-                reNew = true;
-            }
+            byteSizeOfBuffer = this._instanceWorldMatrixByteSize;
         }
-        //new or renew :cpu and gpu
-        if (reNew) {
+        //实例化
+        let instanceCount = this.getInstancesCount() || 1;
+        let count = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);
+        let sizeOfInstances = Math.ceil(count * byteSizeOfBuffer * this.outsideInstanceCountOfDefaultStride / 256) * 256;
+        //没有
+        if (this.bufferPointers[nameOfPointer] == undefined) {
             this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
-            let size = 16;
-            if (name == "instances") {
-                size = this._instanceInfoByteSize;
-            }
-            else if (name == "wolrdMatrix") {
-                size = this._instanceWorldMatrixByteSize;
-            }
-            else {
-                throw new Error("checkStorageBuffer: unknown name:" + name);
-            }
-            let sizeOfInstances = this.getInstancesCount() * size;
-            //创建ArrayBuffer，旧的ArrayBuffer由GC回收
-            this.bufferCPU[nameCPU] = new ArrayBuffer(sizeOfInstances);     //创建新的ArrayBuffer，空的，不是N个单位矩阵
-            //销毁旧的GPUBuffer，句柄由webGPU GC回收
-            if (this.bufferGPU[nameCPU] && this.bufferGPU[nameCPU] != this.scene.getResourceOneStorageMatrix()) {
-                this.bufferGPU[nameCPU].destroy();
-            }
-            //创建新的GPUBuffer
-            this.bufferGPU[nameCPU] = createEmptyGPUBuffer(this.device, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, sizeOfInstances, name + ":" + this.ID);
+            // let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
+            // let offsetSize = sizeOfInstances;
+            let pointerParams: I_pointerCreateParams = {
+                name: this.ID.toString(),
+                byteSize: sizeOfInstances,
+                type: E_BOLBufferType.storage,
+                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+            };
+            this.bufferPointers[nameOfPointer] = this.scene.pointers.createPointer(pointerParams);
         }
-
-        return this.bufferCPU[nameCPU] != undefined;
+        //长度不相等
+        else if (this.bufferPointers[nameOfPointer].byteLength != sizeOfInstances) {
+            this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
+            this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, sizeOfInstances);
+        }
+        return this.bufferPointers[nameOfPointer] != undefined;
     }
     /** 更新|初始化实例化数组 */
     updateInstanceBuffer() {
         this.checkStorageBuffer("instances");//instance 不考虑返回值
         //update：cpu and gpu
-        if (this.bufferGPU.instances && this.bufferCPU.instances) {
+        if (this.bufferPointers.instances) {
+            let offset = this.bufferPointers.instances.offset;
             //外部instance
             for (let i in this.outSideInstance) {
                 let perNode = this.outSideInstance[i];
                 //内部instance
                 for (let j = 0; j < this.instance.numInstances; j++) {
                     // let instanceIndex = Number(i) * Number(j) * this._instanceInfoByteSize;
-                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceInfoByteSize;
-
+                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceInfoByteSize + offset;
                     const st_instance_infoViews = {
-                        node_id: new Uint32Array(this.bufferCPU.instances, instanceIndex, 1),
-                        stage_id: new Uint32Array(this.bufferCPU.instances, instanceIndex + 4, 1),
-                        uv: new Float32Array(this.bufferCPU.instances, instanceIndex + 8, 2),
+                        node_id: new Uint32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex, 1),
+                        stage_id: new Uint32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex + 4, 1),
+                        uv: new Float32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex + 8, 2),
                     };
                     st_instance_infoViews.node_id[0] = perNode.ID;
                     st_instance_infoViews.stage_id[0] = perNode.stageID;
                     st_instance_infoViews.uv.set(this._uv);
                 }
             }
-            this.device.queue.writeBuffer(this.bufferGPU.instances, 0, this.bufferCPU.instances);
+            this.scene.pointers.updatePointerWriteTime(this.bufferPointers.instances);
         }
         else {
             throw new Error("更新实例化数组与GPU实例化数组失败");
@@ -814,19 +802,20 @@ export abstract class BaseEntity extends NodeSpace {
     updateWorldMatrixBuffer(_clock?: Clock) {
         this.checkStorageBuffer("wolrdMatrix");//world matrix 不考虑返回值
         //update：cpu and gpu
-        if (this.bufferGPU.wolrdMatrix && this.bufferCPU.wolrdMatrix) {
+        if (this.bufferPointers.wolrdMatrix) {
+            let offset = this.bufferPointers.wolrdMatrix.offset;
             //外部instance
             for (let i in this.outSideInstance) {
                 let perNode = this.outSideInstance[i];
                 //内部instance
                 for (let j = 0; j < this.instance.numInstances; j++) {
-                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceWorldMatrixByteSize;
-                    const worldMatrix = new Float32Array(this.bufferCPU.wolrdMatrix, instanceIndex, 16);//array buffer view ，全部为0的arraybuffer，参见checkStorageBuffer
+                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceWorldMatrixByteSize + offset;
+                    const worldMatrix = new Float32Array(this.bufferPointers.wolrdMatrix.cpuBuffer, instanceIndex, 16);//array buffer view ，全部为0的arraybuffer，参见checkStorageBuffer
                     let matrixWorld = mat4.multiply(this.getMatrixWorldOfInstance(perNode), this.getInsideInstanceMatrix(j));//内部矩阵乘以外部矩阵，得到世界矩阵
                     worldMatrix.set(matrixWorld)
                 }
             }
-            this.device.queue.writeBuffer(this.bufferGPU.wolrdMatrix, 0, this.bufferCPU.wolrdMatrix);
+            this.scene.pointers.updatePointerWriteTime(this.bufferPointers.wolrdMatrix);
         }
         else {
             throw new Error("更新世界矩阵数组与GPU世界矩阵数组失败");
@@ -865,12 +854,13 @@ export abstract class BaseEntity extends NodeSpace {
          *      C、返回值
          * 
          */
+        let createBindGroup = false;
         //undefined，创建
         if (this.bindGroup == undefined && this.bindGroupLayout == undefined) {
             //////////////////////////////////////////////////
             //bind group  layout
             let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
+                label: `entity:${this.ID}`,
                 entries: [
                     {//@group(1) @binding(0) var<uniform> u_entity_base:st_entity;
                         binding: 0,
@@ -912,25 +902,35 @@ export abstract class BaseEntity extends NodeSpace {
             this.bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);;
             //////////////////////////////////////////////////
             //bind group  
-            let entries: GPUBindGroupEntry[] = this.generateGPUBindGroupEntries();
-            let bindGroupDescriptor: GPUBindGroupDescriptor = {
-                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
-                layout: this.bindGroupLayout,
-                entries: entries
-            }
-            this.bindGroup = this.device.createBindGroup(bindGroupDescriptor);
+            createBindGroup = true;
         }
         //当前帧有instance变化，更新
         else if (this.flagInstanceArrayBufferReNew === true) {
+            createBindGroup = true;
+        }
+        //当前帧有pointer布局有变化（来自BOL系统，非entity的变化，比如BOL的rebuild等），更新bind group
+        else {
+            if (this.bufferPointers.uniformCommonEntity?.rebuildTime == this.scene.clock.now
+                ||
+                this.bufferPointers.instances?.rebuildTime == this.scene.clock.now
+                ||
+                this.bufferPointers.wolrdMatrix?.rebuildTime == this.scene.clock.now
+            ) {
+                createBindGroup = true;
+            }
+        }
+        //创建或更新bind group
+        if (createBindGroup === true) {
             let entries: GPUBindGroupEntry[] = this.generateGPUBindGroupEntries();
             let bindGroupDescriptor: GPUBindGroupDescriptor = {
-                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
+                label: `entity:${this.ID}`,
                 layout: this.bindGroupLayout,
                 entries: entries
             }
             this.bindGroup = this.device.createBindGroup(bindGroupDescriptor);
             this.flagInstanceArrayBufferReNew = false;//重置为false
         }
+
         return {
             bindGroup: this.bindGroup,
             bindGroupLayout: this.bindGroupLayout
@@ -943,12 +943,14 @@ export abstract class BaseEntity extends NodeSpace {
      */
     generateGPUBindGroupEntries(): GPUBindGroupEntry[] {
         let entries: GPUBindGroupEntry[] = [];
-        for (let i in this.bufferGPU) {
+        for (let i in this.bufferPointers) {
             let binding = this.getBindingOfBindGroup(i);//获取绑定的顺序
             let perEntry: GPUBindGroupEntry = {
                 binding: binding,
                 resource: {
-                    buffer: this.bufferGPU[i as keyof typeof this.bufferGPU]!,
+                    buffer: this.bufferPointers[i as keyof typeof this.bufferPointers]!.gpuBufferView.buffer,
+                    offset: this.bufferPointers[i as keyof typeof this.bufferPointers]!.gpuBufferView.offset,
+                    size: this.bufferPointers[i as keyof typeof this.bufferPointers]!.gpuBufferView.size,
                 }
             }
             entries.push(perEntry)

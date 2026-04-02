@@ -578,7 +578,7 @@ export class Scene {
      * @param height 高度
      */
     reSize(width: number, height: number) {
-        console.log("Scene reSize()", this.clock.last);
+        console.log("Scene reSize()", this.clock.now);
         if (width != this.surface.size.width || height != this.surface.size.height) {
             this.surface.size.width = width;
             this.surface.size.height = height;
@@ -788,7 +788,6 @@ export class Scene {
         this.clock.update();
         async function perFrameRun() {
             if (scope.flags.realTimeRender) {//是否开启实时更新
-                // console.log("Scene run()",scope.clock.last);
                 //时间更新
                 let timerNow = Date.now();
                 let timerLast = timerNow;
