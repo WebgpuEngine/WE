@@ -997,7 +997,7 @@ export class DrawCommandGenerator {
                         // vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey,
+                            name: lowKey+"_VS_"+values.label,
                             byteSize: value.length * 4,
                             type: E_BOLBufferType.VS,
                             viewType: "f32",
@@ -1005,7 +1005,7 @@ export class DrawCommandGenerator {
                                 sourceData: { data: value },
                             }
                         };
-                        pointerOfVertex = this.pointers.createPointer(pointerParams);
+                        pointerOfVertex = this.pointers.createPointer(pointerParams,values.parent);
                         this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                     }
                     else {
@@ -1104,7 +1104,7 @@ export class DrawCommandGenerator {
                                 break;
                         }
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey,
+                            name: lowKey+"_VS_"+values.label,
                             byteSize: value.length * arrarBufferUnitLength,
                             type: E_BOLBufferType.VS,
                             viewType: viewType,
@@ -1209,7 +1209,7 @@ export class DrawCommandGenerator {
                         // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey,
+                            name: lowKey+"_VS_"+values.label,
                             byteSize: value.data.length * datakind,
                             type: E_BOLBufferType.VS,
                             viewType: "f32",
@@ -1267,7 +1267,7 @@ export class DrawCommandGenerator {
                         // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =mergeAttribute", data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey,
+                            name: lowKey+"_VS_"+values.label,
                             byteSize: value.data.length * 4,
                             type: E_BOLBufferType.VS,
                             viewType: "f32",
@@ -1357,7 +1357,7 @@ export class DrawCommandGenerator {
                             // let _indexBuffer = createIndexBuffer(this.device, values.label + " index GPUBuffer", u32Buffer.buffer);
                             // this.resources.set(values.data.indices, _indexBuffer, "indices");
                             let pointerParams: I_pointerCreateParams = {
-                                name: "indices",
+                                name: "indices "+values.label,
                                 byteSize: values.data.indices.length * 4,
                                 type: E_BOLBufferType.VS,
                                 viewType: "u32",

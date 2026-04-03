@@ -122,6 +122,7 @@ export abstract class RootGPU implements I_UUID {
      */
     abstract readyForGPU(): Promise<any>
     destroy(): void {
+        if (this._isDestroy) return;
         if (this.resourcesGPU) {
             for (let i of this.mapList) {
                 if (i.map && this.resourcesGPU.getProperty(i.map as keyof ResourceManagerOfGPU)) {

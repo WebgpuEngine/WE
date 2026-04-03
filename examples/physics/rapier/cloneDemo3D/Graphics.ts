@@ -161,6 +161,7 @@ export class Graphics {
                 accept: false,
             },
             material: lineColorMaterial,
+            dynamicAttribute: true,
         }
         this.linesOfDebug = new Lines(inputMesh);
         window.lines=this.linesOfDebug;

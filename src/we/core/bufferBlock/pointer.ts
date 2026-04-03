@@ -6,7 +6,7 @@ import { BlockOffsetLength } from "./BOL";
 import { BlockPointerCoordinator } from "./BPC";
 
 /** 指针数据视图类型 */
-export type T_pointerDataView =TypedArray;// Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array;
+export type T_pointerDataView = TypedArray;// Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | Float32Array;
 /** 指针数据类型 */
 export type T_pointerDataType = "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "f32";//| "array";
 
@@ -44,6 +44,8 @@ export interface I_pointerStruct {
      * 2、如果有跨BOL调度，也会变化。todo，20260401
      * */
     rebuildTime: number;
+
+    owner?: any;
 }
 
 
@@ -174,7 +176,7 @@ export class Pointers {
         return size;
     }
     /** 创建指针 */
-    createPointer(params: I_pointerCreateParams): I_pointerStruct {
+    createPointer(params: I_pointerCreateParams, owner?: any): I_pointerStruct {
         /**
          * 1、创建pointerID；
          * 2、分配内存
@@ -206,23 +208,23 @@ export class Pointers {
                 cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength);
                 break;
             case "i16":
-                cpuBufferView = new Int16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/2);
+                cpuBufferView = new Int16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength / 2);
                 break;
             case "u16":
-                cpuBufferView = new Uint16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/2);
+                cpuBufferView = new Uint16Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength / 2);
                 break;
             case "i32":
-                cpuBufferView = new Int32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
+                cpuBufferView = new Int32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength / 4);
                 break;
             case "u32":
-                cpuBufferView = new Uint32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
+                cpuBufferView = new Uint32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength / 4);
                 break;
             case "f32":
-                cpuBufferView = new Float32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
+                cpuBufferView = new Float32Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength / 4);
                 break;
             default:
                 console.warn("createPointer viewType not support, default use Uint8", params.viewType);
-                cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength/4);
+                cpuBufferView = new Uint8Array(pointerInfo.cpuBuffer, pointerInfo.offset, pointerInfo.byteLength / 4);
                 break;
         }
         let gpuBufferView: GPUBufferBinding = {
@@ -254,12 +256,17 @@ export class Pointers {
         if (params.data && params.data.sourceData) {
             this.updatePointerData(perOnePointer, params.data);
         }
-
+        if(owner ){
+            perOnePointer.owner = owner;
+        }
         //5、返回指针信息；
         return perOnePointer;
     }
     /** 更新指针数据 */
     updatePointerData(pointer: I_pointerStruct, params: I_pointerDataParams) {
+        // if(pointer.pointerID==1135){
+        //     console.log(params);
+        // }
         if (pointer) {
             if (!params.sourceData?.data) {
                 console.warn("updatePointerData: sourceData data is undefined");
@@ -338,7 +345,7 @@ export class Pointers {
                     else {
                         let offsetSourceFromArrayBuffer = offsetSource + (params.sourceData.data as ArrayBufferView).byteOffset;//再增加ArrayBufferView在arraybuffer的偏移量
                         let u8ViewOfCopyFrom = new Uint8Array(params.sourceData.data.buffer, offsetSourceFromArrayBuffer, byteLengthSource);
-                        let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer,  offsetTarget, byteLengthTarget);
+                        let u8ViewOfCopyTo = new Uint8Array(pointer.cpuBuffer, offsetTarget, byteLengthTarget);
                         u8ViewOfCopyTo.set(u8ViewOfCopyFrom);
                     }
                 }
@@ -367,6 +374,9 @@ export class Pointers {
      * @returns 是否更新成功
     */
     updatePointerWriteTime(pointerID: number | I_pointerStruct): boolean {
+        // if(pointerID==1135){
+        //     console.log(pointerID);
+        // }
         //如果是number，需要从pointers中获取指针信息
         if (typeof pointerID === "number") {
             let pointer = this.pointers.get(pointerID);
@@ -385,7 +395,7 @@ export class Pointers {
         return true;
     }
     /** 更新指针偏移量和BOLID */
-    updatePointerOffset(pointerID: number, offset: number, BolID: number,timer:number): void {
+    updatePointerOffset(pointerID: number, offset: number, BolID: number, timer: number): void {
         let pointer = this.pointers.get(pointerID);
         if (pointer) {
             pointer.offset = offset;
@@ -406,7 +416,7 @@ export class Pointers {
         }
         //2、删除指针
         this.pointers.delete(id);
-        this.pointerID.delete(id);
+        // this.pointerID.delete(id);
         return true;
     }
     /** 获取指针的GPUBufferBinding */
@@ -431,10 +441,10 @@ export class Pointers {
             return undefined;
         }
     }
-    getCPUBufferByPointerID(id: number): {buffer:ArrayBuffer,offset:number,byteLength:number} | undefined {
+    getCPUBufferByPointerID(id: number): { buffer: ArrayBuffer, offset: number, byteLength: number } | undefined {
         let pointer = this.pointers.get(id);
         if (pointer) {
-            return {buffer: pointer.cpuBuffer,offset: pointer.offset,byteLength: pointer.byteLength};
+            return { buffer: pointer.cpuBuffer, offset: pointer.offset, byteLength: pointer.byteLength };
         }
         else {
             console.error("指针不存在");

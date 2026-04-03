@@ -90,5 +90,6 @@ export const V_BolStrideSizeOfUpdate: I_BolStrideSizeOfUpdate = {
     uniform: 1 * 1024,
     /** 存储变量，阈值：64K */
     storage: 1 * 64 * 1024,
+    // storage: 256,
 }
 

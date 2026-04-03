@@ -33,6 +33,7 @@ type RAPIER_API = typeof RAPIER;
 // type RAPIER_API = typeof import("@dimforge/rapier3d");
 
 let builders = new Map([
+
     ["convex polyhedron", ConvexPolyhedron.initWorld],
 
     ["collision groups", CollisionGroups.initWorld],

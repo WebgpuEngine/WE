@@ -185,9 +185,9 @@ export class Points extends EntityBundleMaterial {
         }
         await super.readyForGPU();
     }
-    _destroy(): void {
-        throw new Error("Method not implemented.");
-    }
+    // _destroy(): void {
+    //     throw new Error("Method not implemented.");
+    // }
 
     /**
      * 生成模拟点的DrawCommand参数

@@ -946,6 +946,7 @@ export class NodeInstance extends NodeObject {
 
     }
     _destroy(): void {
+        if (this._isDestroy) return;
         // throw new Error("Method not implemented.");
     }
     updateSelf(clock: Clock): void {

@@ -21,7 +21,6 @@ import { Scene } from "../scene/scene";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { E_renderPassName } from "../scene/renderManager";
 import { mergeLightUUID } from "../light/lightsManager";
-import { createEmptyGPUBuffer, createUniformBuffer } from "../command/baseFunction";
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
@@ -78,7 +77,7 @@ export abstract class BaseEntity extends NodeSpace {
     ///////////////////////////////////////////////////////////////////
     //uniform
     /** 外部实例化数组stride数量，默认为1 */
-    outsideInstanceCountOfDefaultStride: number = 4;
+    outsideInstanceCountOfDefaultStride: number = 20;
     /** 实例化数组最后重新的时间 */
     flagInstanceArrayBufferReNew: boolean = false;
     /**Buffer(uniform and storage )在CPU端的ArrayBuffer */
@@ -286,6 +285,15 @@ export abstract class BaseEntity extends NodeSpace {
 
     }
     abstract detachData(): void;
+    override _destroy(): void {
+        for(let i of this.outSideInstance){
+            i.destroy();
+        }
+        for (let i in this.bufferPointers) {
+            let perPointer = this.bufferPointers[i as keyof typeof this.bufferPointers]!;
+            this.scene.pointers.releasePointer(perPointer.pointerID);
+        }
+    }
     /**
      * 检查内部instance是否合法
      */
@@ -651,12 +659,12 @@ export abstract class BaseEntity extends NodeSpace {
     intUniformCommonEntity() {
         let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
         let pointerParams: I_pointerCreateParams = {
-            name: this.ID.toString(),
+            name: this.ID.toString() + "_CommonEntity",
             byteSize: offsetSize,//uniform data 的bytesize大小
             type: E_BOLBufferType.uniform,
             viewType: "u8",//由于data是ArrayBuffer,按照u8处理
         };
-        this.bufferPointers.uniformCommonEntity = this.scene.pointers.createPointer(pointerParams);
+        this.bufferPointers.uniformCommonEntity = this.scene.pointers.createPointer(pointerParams, this);
     }
     /**
      * 被update调用，更新vs、fs的uniform
@@ -732,7 +740,7 @@ export abstract class BaseEntity extends NodeSpace {
             byteSizeOfBuffer = this._instanceWorldMatrixByteSize;
         }
         //实例化
-        let instanceCount = this.getInstancesCount() || 1;
+        let instanceCount = this.getInstancesCount() //|| 1;
         let count = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);
         let sizeOfInstances = Math.ceil(count * byteSizeOfBuffer * this.outsideInstanceCountOfDefaultStride / 256) * 256;
         //没有
@@ -741,17 +749,23 @@ export abstract class BaseEntity extends NodeSpace {
             // let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
             // let offsetSize = sizeOfInstances;
             let pointerParams: I_pointerCreateParams = {
-                name: this.ID.toString(),
+                name: this.ID.toString() + "_" + name,
                 byteSize: sizeOfInstances,
                 type: E_BOLBufferType.storage,
                 viewType: "f32",//由于data是ArrayBuffer,按照u8处理
             };
-            this.bufferPointers[nameOfPointer] = this.scene.pointers.createPointer(pointerParams);
+            this.bufferPointers[nameOfPointer] = this.scene.pointers.createPointer(pointerParams, this);
         }
         //长度不相等
         else if (this.bufferPointers[nameOfPointer].byteLength != sizeOfInstances) {
             this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
-            this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, sizeOfInstances);
+            let newPointer = this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, sizeOfInstances);
+            if (newPointer) {
+                this.bufferPointers[nameOfPointer] = newPointer;
+            }
+            else {
+                throw new Error("更新实例化数组与GPU实例化数组失败");
+            }
         }
         return this.bufferPointers[nameOfPointer] != undefined;
     }

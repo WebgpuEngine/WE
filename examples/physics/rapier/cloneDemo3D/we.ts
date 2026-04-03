@@ -35,7 +35,7 @@ export async function initWe() {
         color: [1, 1, 1],
         direction: [0, 1, 1],
         intensity: 0.8,
-        shadow: false,
+        shadow: true,
     });
     await scene.add(onelight);
 

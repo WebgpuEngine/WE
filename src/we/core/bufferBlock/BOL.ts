@@ -302,12 +302,18 @@ export class BlockOffsetLength implements I_UUID {
         let lastAtEndOfPointer = 0;
         //两个指针之间的不更新byteLength间距
         let strideSize = 0;
+        // if (this.type === E_BOLBufferType.VS) {
+        //      console.log(this.type);
+        // }
         for (let [offset, pointerID] of this.pointerOffsetMap) {
             let pointer = this.pointers.getPointer(pointerID)!;
 
-
+            if (this.type === E_BOLBufferType.storage && pointer.writeTime != 0) {
+                // console.log(pointer.writeTime,clock.now);
+                // console.log(pointer.pointerID, pointer.owner, pointer.writeTime);
+            }
             //判断pointer写入时间是否=0，即是否更新过。0表示此帧未更新过，即是否有写入数据。防止写入在MBM.update()之后。
-            if (pointer.writeTime === 0) {
+            if (pointer.writeTime == 0) {
                 //无写入数据，累计strideSize，
                 strideSize += pointer.byteLength;
                 //如果strideSize大于阈值，提交上次最后的lastOffset 和 lastAtEndOfPointer 之间的长度
@@ -327,12 +333,22 @@ export class BlockOffsetLength implements I_UUID {
             }
             //有写入数据，更新lastAtEndOfPointer
             else {
+                //如果两个pointer之间有被释放的pointer，需要计算stride释放大于阈值。
+                if (offset - lastAtEndOfPointer >= this.updateStrideSize) {
+                    if (lastOffset != lastAtEndOfPointer) {
+                        this.updateOffsetAndLenght.push([lastOffset, lastAtEndOfPointer]);
+                        //重置strideSize，lastOffset，lastAtEndOfPointer
+                        strideSize = 0;
+                        lastOffset = lastAtEndOfPointer;
+                    }
+                }
                 //当前指针的结束偏移量=当前指针的偏移量+当前指针的长度
                 let atEndOfPointer = offset + pointer.byteLength;
                 //如果是第一个指针，直接赋值
                 if (lastOffset === 0 && lastAtEndOfPointer === 0 && strideSize === 0) {
                     lastOffset = offset;
                     lastAtEndOfPointer = atEndOfPointer;
+                    pointer.writeTime = 0;
                     continue;
                 }
                 //上一个指针的结束偏移量等于其指针的偏移量，直接赋值。中间存在stride，意味着者是新的开始。
@@ -350,6 +366,7 @@ export class BlockOffsetLength implements I_UUID {
                 //更新pointer的writeTime=0,表示已经更新过
                 pointer.writeTime = 0;
             }
+
         }
         //提交最后一个指针的偏移量和长度
         if (lastAtEndOfPointer != 0) {
@@ -362,11 +379,14 @@ export class BlockOffsetLength implements I_UUID {
             if (this.flagWriteAll === true) {
                 this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
                 this.flagWriteAll = false;
+                // console.log(this.type);
+
             }
             else {
                 this.generateUpdateOffsetAndLenght(clock);
                 for (let i of this.updateOffsetAndLenght) {
                     this.device.queue.writeBuffer(this.gpuBuffer, i[0], this.cpuBuffer, i[0], i[1]);
+                    // console.log(this.type,i[0],i[1]);
                 }
             }
         }

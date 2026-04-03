@@ -153,8 +153,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     arrayBuffer = new Float32Array(data);
                 }
                 else {
-                    console.warn(" setVertexAndIndexBuffers(), 只支持int32, uint32, float32类型设置.");
-                    return;
+                    arrayBuffer = new Float32Array(data);
+                    // console.warn(" setVertexAndIndexBuffers(), 只支持int32, uint32, float32类型设置.");
+                    // return;
                 }
                 //2.2 创建新的vertexBuffer
                 let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
@@ -720,7 +721,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 renderID: scope.ID,
             }
         }
-
+        if (scope._dynamicAttribute) {
+            valueDC.dynamic = {
+                vs: true,
+            }
+        }
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
         if (bundle.fsBundle && bundle.fsBundle.shaderTemplateFinal.material?.dynamic === true) {
             if (valueDC.dynamic == undefined)

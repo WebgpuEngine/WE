@@ -151,16 +151,16 @@ export class Mesh extends EntityBundleMaterial {
             };
         }
     }
-    _destroy(): void {
-        // //1、删除所有的DrawCommand
-        // this.TT2TTP.forEach((value, key) => {
-        //     key.destroy();
-        // });
-        // this.TT2TTPF.forEach((value, key) => {
-        //     key.destroy();
-        // });
-        // throw new Error("Method not implemented.");
-    }
+    // _destroy(): void {
+    //     // //1、删除所有的DrawCommand
+    //     // this.TT2TTP.forEach((value, key) => {
+    //     //     key.destroy();
+    //     // });
+    //     // this.TT2TTPF.forEach((value, key) => {
+    //     //     key.destroy();
+    //     // });
+    //     // throw new Error("Method not implemented.");
+    // }
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
     override async readyForGPU() {

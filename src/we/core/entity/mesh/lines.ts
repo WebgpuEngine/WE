@@ -55,9 +55,9 @@ export class Lines extends EntityBundleMaterial {
         };
     }
 
-    _destroy(): void {
-        throw new Error("Method not implemented.");
-    }
+    // _destroy(): void {
+    //     throw new Error("Method not implemented.");
+    // }
     /**
      * 20251021,lines目前不考虑透明问题,还是输出不透明
      */
