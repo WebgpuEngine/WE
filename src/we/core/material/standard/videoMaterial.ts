@@ -42,7 +42,6 @@ export class VideoMaterial extends BaseMaterial {
 
     constructor(input: IV_VideoMaterial) {
         super(input);
-        this.Dynamic = true;
         this.kind = E_MaterialType.video;
         this.textures = {};
         this.countOfTextures = 0;
@@ -115,16 +114,18 @@ export class VideoMaterial extends BaseMaterial {
             };
             uniformTextureLayout = {
                 binding: binding,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                visibility: GPUShaderStage.FRAGMENT,
                 texture: {
                     sampleType: "float",
                     viewDimension: "2d",
                     multisampled: false,
                 },
             };
+
         }
         else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
         {
+            this.Dynamic = true;
             groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
             uniformTexture = ({
                 binding: binding,
@@ -141,14 +142,7 @@ export class VideoMaterial extends BaseMaterial {
             };
             // dynamic = true;
         }
-
-        //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.entriesToEntriesLayout.set(uniformTexture, uniformTextureLayout)
-        this.mapList.push({
-            key: uniformTexture,
-            type: "",//GPUBindGroupEntry  ,
-        });
-        //push到uniform1队列
+        this.unifromEntryLayout.push(uniformTextureLayout);
         uniform1.push(uniformTexture);
         //+1
         binding++;
@@ -168,13 +162,7 @@ export class VideoMaterial extends BaseMaterial {
                 type: this.defaultSamplerBindingType,
             },
         };
-        //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout)
-        this.mapList.push({
-            key: uniformSampler,
-            type: "",//GPUBindGroupEntry  ,
-        });
-        //push到uniform1队列
+        this.unifromEntryLayout.push(uniformSamplerLayout);
         uniform1.push(uniformSampler);
         //+1
         binding++;

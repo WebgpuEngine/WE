@@ -144,23 +144,24 @@ export abstract class BaseDrawCommand {
             passEncoder.setViewport(this.inputValues.viewport.x, this.inputValues.viewport.y, this.inputValues.viewport.width, this.inputValues.viewport.height, minDepth, maxDepth);
         }
 
-        // 如果有system(camera,light)，则绑定system的bindGroup0
-        if (this.system !== undefined) {
-            /**
-             * 目标：
-             * 1、为DC绑定camera的bindGroup0（动态增加光源的阴影贴图后，shadowmap textture 会重建，原来绑定的会失效）
-             * 2、透明的shadowmap渲染，预计也可能有类似的问题。（如果是copy 到公用的uniform depth texture的方式，应该没有此问题）todo
-             */
-            if (this.system.type === E_renderForDC.camera) {
-                let bindGroupBundle = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.system.UUID, this.system.type);
-                this.bindGroups[0] = bindGroupBundle.bindGroup;
-            }
-        }
-        // 如果有parent(entity)，则绑定parent的bindGroup0; PP的DC也有parent
-        if (this.parent !== undefined && this.parent.type === "entity") {
-            let bindGroupBundle = this.parent.getBindGroupAndBindGroupLayout();
-            this.bindGroups[1] = bindGroupBundle.bindGroup;
-        }
+        // // 如果有system(camera,light)，则绑定system的bindGroup0
+        // if (this.system !== undefined) {
+        //     /**
+        //      * 目标：
+        //      * 1、为DC绑定camera的bindGroup0（动态增加光源的阴影贴图后，shadowmap textture 会重建，原来绑定的会失效）
+        //      * 2、透明的shadowmap渲染，预计也可能有类似的问题。（如果是copy 到公用的uniform depth texture的方式，应该没有此问题）todo
+        //      */
+        //     if (this.system.type === E_renderForDC.camera) {
+        //         let bindGroupBundle = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.system.UUID, this.system.type);
+        //         this.bindGroups[0] = bindGroupBundle.bindGroup;
+        //     }
+        // }
+        // // 如果有parent(entity)，则绑定parent的bindGroup0; PP的DC也有parent
+        // if (this.parent !== undefined && this.parent.type === "entity") {
+        //     let bindGroupBundle = this.parent.getBindGroupAndBindGroupLayout();
+        //     this.bindGroups[1] = bindGroupBundle.bindGroup;
+
+        // }
 
         for (let i in this.bindGroups) {
             if (this.bindGroups[i] != undefined)

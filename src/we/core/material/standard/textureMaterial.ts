@@ -191,9 +191,7 @@ export class TextureMaterial extends BaseMaterial {
                     type: "uniform",
                 },
             };
-            //添加到resourcesGPU的Map中
-            this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
-            this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
+            this.unifromEntryLayout.push(uniformBufferLayout);
             //push到uniform1队列
             uniform1.push(uniformBuffer);
             //+1
@@ -216,12 +214,7 @@ export class TextureMaterial extends BaseMaterial {
                     // multisampled: false,
                 },
             };
-            //添加到resourcesGPU的Map中
-            this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
-            this.mapList.push({
-                key: uniformTexture,
-                type: E_resourceKind.textureOfString,
-            });
+            this.unifromEntryLayout.push(uniformTextureLayout);
             //push到uniform1队列
             uniform1.push(uniformTexture);
             //+1
@@ -243,12 +236,7 @@ export class TextureMaterial extends BaseMaterial {
                     type: this.defaultSamplerBindingType,
                 },
             };
-            //添加到resourcesGPU的Map中
-            this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout);
-            this.mapList.push({
-                key: uniformSampler,
-                type: "sampler",
-            });
+            this.unifromEntryLayout.push(uniformSamplerLayout);
             //push到uniform1队列
             uniform1.push(uniformSampler);
             //+1

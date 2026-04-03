@@ -2,7 +2,6 @@ import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUnifo
 import { Scene } from "../scene/scene";
 import { I_DrawCommandIDs, I_uniformArrayBufferEntry, IV_BaseCommand, T_uniformGroups } from "./base";
 import { createUniformBuffer } from "./baseFunction";
-import { I_DynamicUniformOfDrawCommand } from "./DrawCommand";
 
 export interface I_ComputePipelineInitValues {
     shader: {

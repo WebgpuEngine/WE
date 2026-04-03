@@ -80,15 +80,9 @@ export class CubeTextureMaterial extends TextureMaterial {
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
             texture: textureLayout
         };
-        //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
-        this.mapList.push({
-            key: uniformTexture,
-            type: E_resourceKind.textureOfString,
-        });
-        //push到uniform1队列
+
+        this.unifromEntryLayout.push(uniformTextureLayout);
         uniform1.push(uniformTexture);
-        //+1
         binding++;
 
         ////group bindgin sampler 字符串
@@ -106,13 +100,7 @@ export class CubeTextureMaterial extends TextureMaterial {
                 type: "filtering",
             },
         };
-        //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout);
-        this.mapList.push({
-            key: uniformSampler,
-            type: "sampler",
-        });
-        //push到uniform1队列
+        this.unifromEntryLayout.push(uniformSamplerLayout);
         uniform1.push(uniformSampler);
         //+1
         binding++;

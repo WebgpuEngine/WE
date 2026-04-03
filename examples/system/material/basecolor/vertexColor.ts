@@ -1,6 +1,6 @@
 
 import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
-import {  IV_Scene } from "../../../../src/we/core/scene/base";
+import { IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
 import { BoxGeometry } from "../../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../../src/we/core/material/standard/colorMaterial";
@@ -17,6 +17,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   // reversedZ:true,
+  toneMapping: "linear",
 };
 let scene = await initScene({
   initConfig: input,
@@ -32,26 +33,40 @@ let camera = new PerspectiveCamera({
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType:"arcball",
+  controlType: "arcball",
 });
 await scene.add(camera);
 
+const oneTriangleVertexArray = [
+  -0.5, -0.5, 1,
+  0.5, -0.5, 1,
+  -0.5, 0.5, 1,
+  0.5, 0.5, 1,
+];
+const oneTriangleColorArray = [
+  1, 0, 0,
+  0, 1, 0,
+  0, 0, 1,
+  1, 0, 0,
+];
+const indices = [2, 0, 1, 1, 3, 2];
 
 
 
-
-let boxGeometry = new BoxGeometry();
-
-let colorMaterial = new VertexColorMaterial({
-  // vertexColor:true  
-});
+let colorMaterial = new VertexColorMaterial();
 
 let inputMesh: IV_MeshEntity = {
   attributes: {
-    geometry: boxGeometry,
+    data: {
+      vertices: {
+        "position": oneTriangleVertexArray,
+        "color": oneTriangleColorArray
+      },
+      indices: indices,
+    }
   },
   material: colorMaterial,
-    wireFrame: {
+  wireFrame: {
     color: [0, 0, 0, 1],
     enable: true,
     // wireFrameOnly: true,

@@ -494,26 +494,27 @@ export class DrawCommandGenerator {
         if (camera) {
             commandOption.viewport = camera.viewport;
         }
-        //5.5 动态bindGroup情况，如果dynamicUniform参数，DC会根据dynamicUniform参数，动态绑定bindGroup。
-        if (values.dynamic && values.dynamic.fs === true) {
-            /**
-             * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
-             * 1、如果有system，dynamicUniform 是material的uniform，数组下标=2
-             * 2、如果没有system，dynamicUniform 是当前uniform，数组下标=0
-             */
-            let layoutNumber = 0;
-            if (values.system) {
-                layoutNumber = 2;
-            }
-            commandOption.dynamicUniform = {
-                //全部bindGroupLayout
-                bindGroupLayout: DC_bindGroupLayouts,
-                //适用传入的uniform，从2开始，即不包括(system0，entity1),只包括material2及之后的uniform3
-                bindGroupsUniform: values.data.uniforms!,
-                //指定动态组的序号
-                layoutNumber: layoutNumber,
-            };
-        }
+        //20260403 注释掉 dynamicUniform 参数
+        ////5.5 动态bindGroup情况，如果dynamicUniform参数，DC会根据dynamicUniform参数，动态绑定bindGroup。
+        // if (values.dynamic && values.dynamic.fs === true) {
+        //     /**
+        //      * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
+        //      * 1、如果有system，dynamicUniform 是material的uniform，数组下标=2
+        //      * 2、如果没有system，dynamicUniform 是当前uniform，数组下标=0
+        //      */
+        //     let layoutNumber = 0;
+        //     if (values.system) {
+        //         layoutNumber = 2;
+        //     }
+        //     commandOption.dynamicUniform = {
+        //         //全部bindGroupLayout
+        //         bindGroupLayout: DC_bindGroupLayouts,
+        //         //适用传入的uniform，从2开始，即不包括(system0，entity1),只包括material2及之后的uniform3
+        //         bindGroupsUniform: values.data.uniforms!,
+        //         //指定动态组的序号
+        //         layoutNumber: layoutNumber,
+        //     };
+        // }
         //5.6 indexBuffer
         if (DC_indexBuffer) {
             commandOption.indexBuffer = DC_indexBuffer;

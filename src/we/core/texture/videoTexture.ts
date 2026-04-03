@@ -1,6 +1,5 @@
 import { E_lifeState } from "../base/coreDefine";
 import { I_VideoOption, weGetVidoeByUrl } from "../base/coreFunction";
-import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
 import { I_BaseSampler, I_BaseTexture, numMipLevels, T_textureSourceType } from "./base";
@@ -51,7 +50,7 @@ export class VideoTexture extends BaseTexture {
      * 2、External模式，速度快，没有mipmap
      */
     model: T_modelOfVideo = "copy";
-    declare inputValues: IV_OptionVideoTexture;
+    override inputValues: IV_OptionVideoTexture;
     declare texture: GPUTexture | GPUExternalTexture;
     width!: number;
     height!: number;
@@ -214,6 +213,8 @@ export class VideoTexture extends BaseTexture {
     getExternalTexture(scope: any): GPUExternalTexture {
         let source: HTMLVideoElement | VideoFrame = scope.video as HTMLVideoElement | VideoFrame;
         // if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
+        // scope.texture = scope.device.importExternalTexture({ source })
+
         return scope.device.importExternalTexture({ source: source })
 
     }

@@ -295,9 +295,6 @@ export class ColorMaterial extends BaseMaterial {
         };
         this.unifromEntryLayout.push(uniformBufferLayout);
 
-        //添加到resourcesGPU的Map中
-        this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
-        this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
         //push到uniform1队列
         uniform1.push(uniformBuffer);
         //20260311 ,这里必须是新的变量，这个变量会被传递给后续的function，内容会被修改。
