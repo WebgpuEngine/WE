@@ -224,7 +224,7 @@ export class Mesh extends EntityBundleMaterial {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
                 indices: scope._wireframe.indices,
-                uniforms: uniforms,
+                // uniforms: uniforms,
             },
             render: {
                 vertex: {

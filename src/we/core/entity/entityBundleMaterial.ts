@@ -683,11 +683,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
 
         // let uniforms = [bundle.vsBundle.uniformGroup];//old ,未使用parent参数之前的代码
+        //20260403 ，DCG变化，取消了FS部分的uniform传递
         let uniforms = [];
-
-        if (bundle.fsBundle) {
-            uniforms.push(bundle.fsBundle.uniformGroup);
-        }
+        // if (bundle.fsBundle) {
+        //     uniforms.push(bundle.fsBundle.uniformGroup);
+        // }
         let valueDC: IV_DC = {
             // label: scope.kind + scope.Name + " for " + renderType + ":" + UUID,
             label: `${scope.kind} ${scope.Name} for ${renderType}: ${UUID}`,
@@ -695,8 +695,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
                 indices: scope.attributes.indices,
-                uniforms,
-                dynamicAttribute: scope._dynamicAttribute,
+                // uniforms,
             },
             render: {
                 vertex: {

@@ -703,7 +703,7 @@ export class Scene {
             this.reSize(this.flags.reSize.width, this.flags.reSize.height);
             await this.cameraManager.onResize();
             //实体的onSizeChange
-            await this.entityManager.onResize();
+            // await this.entityManager.onResize();
             await this.pickupManager.onResize();
             await this.postProcessManager.onResize();
             this.flags.reSize.status = false;

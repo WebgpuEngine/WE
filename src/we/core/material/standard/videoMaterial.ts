@@ -42,6 +42,7 @@ export class VideoMaterial extends BaseMaterial {
 
     constructor(input: IV_VideoMaterial) {
         super(input);
+        this.Dynamic = true;
         this.kind = E_MaterialType.video;
         this.textures = {};
         this.countOfTextures = 0;

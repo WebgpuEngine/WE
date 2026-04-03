@@ -573,7 +573,7 @@ export abstract class BaseEntity extends NodeSpace {
                 if (this.cameraDC[camera.UUID] == undefined) {
                     this.cameraDC[camera.UUID] = {
                         [E_renderPassName.forward]: [],
-                        [E_renderPassName.depth]: [],
+                        // [E_renderPassName.depth]: [],
                         [E_renderPassName.transparent]: [],
                         [E_renderPassName.MSAA]: [],
                     }

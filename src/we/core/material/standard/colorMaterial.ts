@@ -3,8 +3,7 @@ import { isWeColor4 } from "../../base/coreFunction";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
-import { createUniformBuffer } from "../../command/baseFunction";
+import { I_bindGroupAndGroupLayout, T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
@@ -18,9 +17,7 @@ export interface I_ColorMaterial extends IV_BaseMaterial {
 
 export class ColorMaterial extends BaseMaterial {
 
-    // uniformGPUBuffer!: GPUBuffer;
-    unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
-    declare inputValues: I_ColorMaterial;
+    override inputValues: I_ColorMaterial;
     _color: weColor4 = [1, 1, 1, 1];
     get Color(): weColor4 {
         return this._color;
@@ -29,10 +26,6 @@ export class ColorMaterial extends BaseMaterial {
         this._color = value;
         this.writeUniformBuffer(true);
     }
-    // red: number = 1;
-    // green: number = 1;
-    // blue: number = 1;
-    // alpha: number = 1;
 
     constructor(input: I_ColorMaterial) {
         super(input);
@@ -270,16 +263,14 @@ export class ColorMaterial extends BaseMaterial {
     /**
      * ColorMaterial 的没有uniform，所以返回的都是空数组和空字符串
      * @param startBinding 
-     * @returns 
+     * @returns I_UniformBundleOfMaterial
      */
-    getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial
-    //{ bindingNumber: number; groupAndBindingString: string; entry: T_uniformOneGroup; }
-    {
+    getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
         let binding: number = startBinding;
         let uniform1: T_uniformOneGroup = [];
 
         let groupAndBindingString: string = ''
-        //         let groupAndBindingString: string = `
+        // let groupAndBindingString: string = `
         // struct color_material_uniform  {
         //     color: vec4f,
         // }
@@ -302,6 +293,8 @@ export class ColorMaterial extends BaseMaterial {
                 type: "uniform",
             },
         };
+        this.unifromEntryLayout.push(uniformBufferLayout);
+
         //添加到resourcesGPU的Map中
         this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
         this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
@@ -329,7 +322,53 @@ export class ColorMaterial extends BaseMaterial {
     loadJSON(json: any): void {
         throw new Error("Method not implemented.");
     }
-    getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout{
-        
-    }
+    // getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout {
+    //     let createBindGroup = false;
+    //     //undefined，创建
+    //     if (this.bindGroup == undefined && this.bindGroupLayout == undefined) {
+    //         let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+    //             label: `colorMaterial:${this.ID}`,
+    //             entries: [
+    //                 {//@group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
+    //                     binding: 0,
+    //                     visibility: GPUShaderStage.FRAGMENT,
+    //                     buffer: {
+    //                         type: "uniform"
+    //                     }
+    //                 },
+
+    //             ]
+    //         }
+    //         this.bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);;
+    //         //////////////////////////////////////////////////
+    //         //bind group  
+    //         createBindGroup = true;
+    //     }
+    //     else if (this.uniformPointer != undefined &&
+    //         this.uniformPointer.rebuildTime == this.scene.clock.now
+    //     ) {
+    //         createBindGroup = true;
+
+    //     }
+    //     else {
+
+    //     }
+    //     //创建或更新bind group
+    //     if (createBindGroup === true) {
+    //         let entries: GPUBindGroupEntry[] = [{
+    //             binding: 0,
+    //             resource: this.uniformPointer.gpuBufferView,
+    //         }];
+    //         let bindGroupDescriptor: GPUBindGroupDescriptor = {
+    //             label: `colorMaterial:${this.ID}`,
+    //             layout: this.bindGroupLayout,
+    //             entries: entries
+    //         }
+    //         this.bindGroup = this.device.createBindGroup(bindGroupDescriptor);
+    //     }
+    //     return {
+    //         bindGroup: this.bindGroup,
+    //         bindGroupLayout: this.bindGroupLayout
+    //     }
+    // }
 }

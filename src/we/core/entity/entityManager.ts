@@ -36,8 +36,8 @@ export class EntityManager extends ECSManager<BaseEntity> {
         this.checkDestroy();
         for (let entity of this.list) {//所有entity
             if (entity.isDestroy() === false &&
-                entity.getInstancesCount(true) > 0 && 
-                entity.enable === true && 
+                entity.getInstancesCount(true) > 0 &&
+                entity.enable === true &&
                 entity.visible === true
             ) {//&& entity.enable === true && entity.visible === true
                 //更新entity bindGroup
@@ -66,14 +66,14 @@ export class EntityManager extends ECSManager<BaseEntity> {
             }
         }
     }
-    /**
-     * 实体的onResize
-     */
-    async onResize() {
-        for (let entity of this.list) {
-            entity.onResize();
-        }
-    }
+    // /**
+    //  * 实体的onResize
+    //  */
+    // async onResize() {
+    // for (let entity of this.list) {
+    //     entity.onResize();
+    // }
+    // }
     getEntityByUUID(UUID: string): BaseEntity {
         let entity = this.list.find((entity) => entity.UUID == UUID);
         if (entity) {

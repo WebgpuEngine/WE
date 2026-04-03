@@ -4,7 +4,7 @@ import { RootGPU } from "../organization/root";
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
 import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType } from "./base";
-import { commmandType, I_bindGroupAndGroupLayout, I_dynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
+import { commmandType, I_bindGroupAndGroupLayout, I_dynamicTextureEntryForView, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
@@ -21,12 +21,58 @@ import { I_pointerStruct } from "../bufferBlock/pointer";
 
 
 export abstract class BaseMaterial extends RootGPU {
+    ///////////////////////////////////////////////////////////////////
     override inputValues: IV_BaseMaterial;
-
-    doubleSided: boolean = false;
-
     kind!: E_MaterialType;
 
+    ///////////////////////////////////////////////////////////////////
+    //bind group
+    /** VS bind group */
+    bindGroup!: GPUBindGroup;
+    /** VS bind group layout */
+    bindGroupLayout!: GPUBindGroupLayout;
+    /**材质的默认绑定组，默认是2 */
+    bindGroupNumber: number = 2;
+    /**
+     * todo，20260311，需要更新此部分说明
+     * 已下是未进行材质uniform统一化之前的设计。
+     * 不透明、TO、TT、TTP、TTPF公用的uniform(目的：保证所有的uniform绑定槽号是相同的，不变化的)
+     * 
+     * 1、bindingNumber 绑定的槽号的通用的计数器。
+     *      只在第一次计数，然后不要再增加。
+     *      不透明，TO,TT，三个相同，其他TTP、TTPF的特殊的在此数字之后，不需要增加到此计数器
+     * 
+     * 2、 uniform 的@group(${this.bindGroupNumber}) @binding(x) 绑定字符串。
+     *      只在第一次进行，然后不要再增加。
+     *      与uniformEntry顺序一一对应
+     * 
+     * 3、 uniform 的绑定，必须在材质uniform的第一顺序序列，否则，绑定槽会不同而报错
+     *      只在第一次进行，然后不要再增加。
+     *      A、不透明和TO会用
+     *      B、TT会用
+     *      C、TTP会用（判断是否透明）
+     *      D、TTPF会用（输出color，进行Blend）
+     */
+    unifromEntryBundle_Common: I_UniformBundleOfMaterial | undefined;
+
+    unifromEntryLayout: GPUBindGroupLayoutEntry[] = [];
+    ///////////////////////////////////////////////////////////////////
+    //todo
+    doubleSided: boolean = false;
+
+    ///////////////////////////////////////////////////////////////////
+    //材质相关
+
+    /** 是否动态材质 
+     * 1、video材质的External就需要动态材质
+    */
+    _dynamic: boolean = false;
+    get Dynamic(): boolean {
+        return this._dynamic;
+    }
+    set Dynamic(value: boolean) {
+        this._dynamic = value;
+    }
     /**
      * blending混合的状态interface
      * 
@@ -34,14 +80,11 @@ export abstract class BaseMaterial extends RootGPU {
      * 2、如果是object，说明混合
      */
     _transparent: T_TransparentOfMaterial | undefined;
-
     /**
      * 纹理
      * ！！！这里定义的是any，后续各种材质所需要的纹理根据情况，进行declare
     */
     textures!: any
-
-    // _shadow!: I_optionShadowEntity;
 
     /**
      * 是否更新过，由entity调用，
@@ -71,9 +114,8 @@ export abstract class BaseMaterial extends RootGPU {
         level: 3
     };
 
-    /**材质的默认绑定组，默认是3。20251206 */
-    bindGroupNumber: number = 2;
-
+    ///////////////////////////////////////////////////////////////////
+    //渲染相关
     /**
      * 材质的更新命令队列
      * 1、有materialManager调用，每帧更新一次。
@@ -87,37 +129,15 @@ export abstract class BaseMaterial extends RootGPU {
     hasOpaqueOfTransparent: boolean = false;
 
 
-    /**
-     * todo，20260311，需要更新此部分说明
-     * 已下是未进行材质uniform统一化之前的设计。
-     * 不透明、TO、TT、TTP、TTPF公用的uniform(目的：保证所有的uniform绑定槽号是相同的，不变化的)
-     * 
-     * 1、bindingNumber 绑定的槽号的通用的计数器。
-     *      只在第一次计数，然后不要再增加。
-     *      不透明，TO,TT，三个相同，其他TTP、TTPF的特殊的在此数字之后，不需要增加到此计数器
-     * 
-     * 2、 uniform 的@group(${this.bindGroupNumber}) @binding(x) 绑定字符串。
-     *      只在第一次进行，然后不要再增加。
-     *      与uniformEntry顺序一一对应
-     * 
-     * 3、 uniform 的绑定，必须在材质uniform的第一顺序序列，否则，绑定槽会不同而报错
-     *      只在第一次进行，然后不要再增加。
-     *      A、不透明和TO会用
-     *      B、TT会用
-     *      C、TTP会用（判断是否透明）
-     *      D、TTPF会用（输出color，进行Blend）
-     */
-    unifromEntryBundle_Common: I_UniformBundleOfMaterial | undefined;
     /**TTPF 的uniform Bundle  */
     unifromEntryBundle_TTPF: I_UniformBundleOfMaterial | undefined;
-
 
     /** 材质的uniform GPU Buffer */
     uniformGPUBuffer!: GPUBuffer;
     /** 材质的uniform CPU Buffer */
     unifromCPUBuffer!: ArrayBuffer;
-
-    uniformPointer!:I_pointerStruct;
+    /** 材质的uniform  Buffer 的指针，用于快速访问 */
+    uniformPointer!: I_pointerStruct;
 
     constructor(input?: IV_BaseMaterial) {
         super(input);
@@ -278,7 +298,73 @@ export abstract class BaseMaterial extends RootGPU {
      * 获取当前材质的bind group和bind group layout
      * @returns I_bindGroupAndGroupLayout
      */
-    abstract getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout
+    getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout {
+
+        if (this.unifromEntryBundle_Common == undefined) {
+           this.unifromEntryBundle_Common =  this.getUniformEntryBundleOfCommon(0);            
+        }
+        let createBindGroup = false;
+        //undefined，创建
+        if (this.bindGroupLayout == undefined) {
+            //创建BindGroupLayout
+            this.bindGroupLayout = this.device.createBindGroupLayout({
+                label: `${this.type}:${this.ID} `,
+                entries: this.unifromEntryLayout
+            });
+            //////////////////////////////////////////////////
+            //bind group  
+            createBindGroup = true;
+        }
+        //pointer rebuild，需要更新bind group
+        if (this.uniformPointer != undefined && this.uniformPointer.rebuildTime == this.scene.clock.now) {
+            createBindGroup = true;
+        }
+        //dynamic texture，需要更新bind group
+        if (this.Dynamic) {
+            createBindGroup = true;
+        }
+        //创建或更新bind group
+        if (createBindGroup === true) {
+            let perGroup = this.unifromEntryBundle_Common!.entry as T_uniformEntries[];
+            //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
+            let bindGroupEntry: GPUBindGroupEntry[] = [];
+            for (let j in perGroup) {//遍历每组group的每个entry
+                let perEntry = perGroup[j];
+
+                //动态 external texture,不做map
+                if (isDynamicTextureEntryForExternal(perEntry)) {
+                    bindGroupEntry.push({
+                        binding: perEntry.binding,
+                        resource: perEntry.getResource(perEntry.scope),
+                    });
+                }
+                //动态 view texture,不做map
+                else if (isDynamicTextureEntryForView(perEntry)) {
+                    bindGroupEntry.push({
+                        binding: perEntry.binding,
+                        resource: perEntry.getResource(),
+                    });
+                }
+                //排除其他类型后，即是GPUBindGroupEntry
+                else {
+                    bindGroupEntry.push(perEntry as GPUBindGroupEntry);//GPUBindGroupEntry
+                }
+            }
+            //初始化BindGroup描述
+            let bindGroupDesc: GPUBindGroupDescriptor = {
+                label: `${this.type}:${this.ID} `,
+                layout: this.bindGroupLayout,
+                entries: bindGroupEntry,
+            }
+            //创建BindGroup
+            this.bindGroup = this.device.createBindGroup(bindGroupDesc);
+        }//end 
+
+        return {
+            bindGroup: this.bindGroup,
+            bindGroupLayout: this.bindGroupLayout,
+        }
+    }
 
     /**
      * 获取当前材质的TTPF的输出uniform bundle 。（在common uniform bundle之后）
@@ -821,6 +907,8 @@ export abstract class BaseMaterial extends RootGPU {
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
         //获取固定uniform序列
         let uniformBundle: I_UniformBundleOfMaterial = this.getUniformEntryBundleOfCommon(startBinding);
+        this.unifromEntryBundle_Common = uniformBundle;
+
         // if (isTTPF === true) {
         //     if (!renderObject) {
         //         throw new Error("renderObject is undefined");
