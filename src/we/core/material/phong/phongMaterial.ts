@@ -1,6 +1,8 @@
 import { E_lifeState, weColor4, weColorToColorOfF32, weHexColor, weHexColorToColor3 } from "../../base/coreDefine";
+import { E_BOLBufferType } from "../../bufferBlock/base";
+import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_uniformArrayBufferEntry, T_uniformOneGroup } from "../../command/base";
+import { T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
@@ -10,7 +12,7 @@ import { Texture } from "../../texture/texture";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
-
+/** phong材质的初始化参数 */
 export interface IV_PhongMaterial extends IV_BaseMaterial {
   color?: weColor4 | weHexColor;
   textures?: {
@@ -34,97 +36,154 @@ export interface IV_PhongMaterial extends IV_BaseMaterial {
 }
 
 export class PhongMaterial extends BaseMaterial {
-
+  override inputValues: IV_PhongMaterial;
+  override textures: {
+    [name: string]: Texture
+  }
+  color: weColor4 = [1, 1, 1, 1];
   /** 材质的phong参数，ArrayBuffer 
    * size: 64,取决于WGSL 结构体大小
   */
   uniformGPUBufferSize = 64;
-  unifromCPUBuffer = new ArrayBuffer(this.uniformGPUBufferSize);
-  /** 材质的phong参数，Float32Array视图 */
-  unifromCPUBufferViews = {
-    shininess: new Float32Array(this.unifromCPUBuffer, 0, 1),
-    metalness: new Float32Array(this.unifromCPUBuffer, 4, 1),
-    roughness: new Float32Array(this.unifromCPUBuffer, 8, 1),
-    parallaxScale: new Float32Array(this.unifromCPUBuffer, 12, 1),
-    color: new Float32Array(this.unifromCPUBuffer, 16, 4),
-    has_color_texture: new Int32Array(this.unifromCPUBuffer, 32, 1),
-    has_normal_texture: new Int32Array(this.unifromCPUBuffer, 36, 1),
-    has_parallax_texture: new Int32Array(this.unifromCPUBuffer, 40, 1),
-    has_specular_texture: new Int32Array(this.unifromCPUBuffer, 44, 1),
-    parallax_layer: new Uint32Array(this.unifromCPUBuffer, 48, 1),
+  /** 材质的phong参数视图 */
+  unifromCPUBufferViews!: {
+    shininess: Float32Array,
+    metalness: Float32Array,
+    roughness: Float32Array,
+    parallaxScale: Float32Array,
+    color: Float32Array,
+    has_color_texture: Int32Array,
+    has_normal_texture: Int32Array,
+    has_parallax_texture: Int32Array,
+    has_specular_texture: Int32Array,
+    parallax_layer: Uint32Array,
   };
-
-  declare inputValues: IV_PhongMaterial;
-  declare textures: {
-    [name: string]: Texture
+  /** 创建uniformPointer */
+  createUniformPointer() {
+    if (this.uniformPointer == undefined) {
+      let pointerParams: I_pointerCreateParams = {
+        name: `uniform ${this.kind} material: ${this.UUID}`,
+        byteSize: this.getPointerByteSize(this.uniformGPUBufferSize),
+        type: E_BOLBufferType.uniform,
+        viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+      };
+      this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
+      let offset = this.uniformPointer.offset;
+      let unifromCPUBuffer = this.uniformPointer.cpuBuffer;
+      this.unifromCPUBufferViews = {
+        shininess: new Float32Array(unifromCPUBuffer, offset, 1),
+        metalness: new Float32Array(unifromCPUBuffer, offset + 4, 1),
+        roughness: new Float32Array(unifromCPUBuffer, offset + 8, 1),
+        parallaxScale: new Float32Array(unifromCPUBuffer, offset + 12, 1),
+        color: new Float32Array(unifromCPUBuffer, offset + 16, 4),
+        has_color_texture: new Int32Array(unifromCPUBuffer, offset + 32, 1),
+        has_normal_texture: new Int32Array(unifromCPUBuffer, offset + 36, 1),
+        has_parallax_texture: new Int32Array(unifromCPUBuffer, offset + 40, 1),
+        has_specular_texture: new Int32Array(unifromCPUBuffer, offset + 44, 1),
+        parallax_layer: new Uint32Array(unifromCPUBuffer, offset + 48, 1),
+      };
+      this.unifromCPUBufferViews.shininess[0] = 32.0;
+      this.unifromCPUBufferViews.metalness[0] = 0.50;
+      this.unifromCPUBufferViews.roughness[0] = 1.0;
+      this.unifromCPUBufferViews.parallaxScale[0] = 0.01;
+      this.unifromCPUBufferViews.parallax_layer[0] = 64;
+      this.unifromCPUBufferViews.has_color_texture[0] = 0;//0=vs color，1=color 数据，2= texture
+      this.unifromCPUBufferViews.has_normal_texture[0] = 0;
+      this.unifromCPUBufferViews.has_parallax_texture[0] = 0;
+      this.unifromCPUBufferViews.has_specular_texture[0] = 0;
+      if (this.inputValues.shininess) {
+        this.unifromCPUBufferViews.shininess[0] = this.inputValues.shininess;
+      }
+      if (this.inputValues.metalness) {
+        this.unifromCPUBufferViews.metalness[0] = this.inputValues.metalness;
+      }
+      if (this.inputValues.roughness) {
+        this.unifromCPUBufferViews.roughness[0] = this.inputValues.roughness;
+      }
+      if (this.inputValues.color) {
+        if (typeof this.inputValues.color == "string" || typeof this.inputValues.color == "number") {
+          this.color = [...weHexColorToColor3(this.inputValues.color), 1];
+        }
+        else if (typeof this.inputValues.color == "object" && this.inputValues.color.length == 4) {
+          this.color = weColorToColorOfF32(this.inputValues.color);
+        }
+        else {
+          console.warn(`PhongMaterial color:${this.inputValues.color} is not a valid color. use [1,1,1,1] instead`);
+          this.color = [1, 1, 1, 1];
+        }
+        this.unifromCPUBufferViews.color.set(this.color);
+        this.unifromCPUBufferViews.has_color_texture[0] = 1;//0=vs color，1=color 数据，2= texture
+      }
+      if (this.inputValues.parallax) {
+        this.unifromCPUBufferViews.parallaxScale[0] = this.inputValues.parallax.scale;
+        if (this.inputValues.parallax.layer) {
+          this.unifromCPUBufferViews.parallax_layer[0] = this.inputValues.parallax.layer;
+        }
+      }
+      if (this.inputValues.textures) {
+        if (this.inputValues.textures[E_TextureType.color]) {
+          this.unifromCPUBufferViews.has_color_texture[0] = 2;//0=vs color，1=color 数据，2= texture
+        }
+        if (this.inputValues.textures[E_TextureType.normal]) {
+          this.unifromCPUBufferViews.has_normal_texture[0] = 1;
+        }
+        if (this.inputValues.textures[E_TextureType.parallax]) {
+          this.unifromCPUBufferViews.has_parallax_texture[0] = 1;
+        }
+        if (this.inputValues.textures[E_TextureType.specular]) {
+          this.unifromCPUBufferViews.has_specular_texture[0] = 1;
+        }
+      }
+      this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
+    }
   }
-  // unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
-  color: weColor4 = [1, 1, 1, 1];
+  /** 写入uniformBuffer */
+  writeUniformBuffer() {
+    this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
+  }
+  get Color() {
+    return this.color;
+  }
+  set Color(value: weColor4) {
+    // this.inputValues.color = value;
+    this.color = value;
+    this.unifromCPUBufferViews.color.set(this.color);
+    this.writeUniformBuffer();
+  }
+  get Shininess() {
+    return this.unifromCPUBufferViews.shininess[0];
+  }
+  set Shininess(value: number) {
+    this.unifromCPUBufferViews.shininess[0] = value;
+    this.writeUniformBuffer();
+  }
+  get Metalness() {
+    return this.unifromCPUBufferViews.metalness[0];
+  }
+  set Metalness(value: number) {
+    this.unifromCPUBufferViews.metalness[0] = value;
+    this.writeUniformBuffer();
+  }
+  get Roughness() {
+    return this.unifromCPUBufferViews.roughness[0];
+  }
+  set Roughness(value: number) {
+    this.unifromCPUBufferViews.roughness[0] = value;
+    this.writeUniformBuffer();
+  }
+
+
   constructor(options: IV_PhongMaterial) {
     super(options);
     this.kind = E_MaterialType.Phong;
     this.textures = {};
     this.inputValues = options;
-
-    this.unifromCPUBufferViews.shininess[0] = 32.0;
-    this.unifromCPUBufferViews.metalness[0] = 0.50;
-    this.unifromCPUBufferViews.roughness[0] = 1.0;
-    this.unifromCPUBufferViews.parallaxScale[0] = 0.01;
-    this.unifromCPUBufferViews.parallax_layer[0] = 64;
-    this.unifromCPUBufferViews.has_color_texture[0] = 0;//0=vs color，1=color 数据，2= texture
-    this.unifromCPUBufferViews.has_normal_texture[0] = 0;
-    this.unifromCPUBufferViews.has_parallax_texture[0] = 0;
-    this.unifromCPUBufferViews.has_specular_texture[0] = 0;
-
-    if (this.inputValues.shininess) {
-      this.unifromCPUBufferViews.shininess[0] = this.inputValues.shininess;
-    }
-    if (this.inputValues.metalness) {
-      this.unifromCPUBufferViews.metalness[0] = this.inputValues.metalness;
-    }
-    if (this.inputValues.roughness) {
-      this.unifromCPUBufferViews.roughness[0] = this.inputValues.roughness;
-    }
-    if (this.inputValues.color) {
-      if (typeof this.inputValues.color == "string" || typeof this.inputValues.color == "number") {
-        this.color = [...weHexColorToColor3(this.inputValues.color), 1];
-      }
-      else if (typeof this.inputValues.color == "object" && this.inputValues.color.length == 4) {
-        this.color = weColorToColorOfF32(this.inputValues.color);
-      }
-      else {
-        console.warn(`PhongMaterial color:${this.inputValues.color} is not a valid color. use [1,1,1,1] instead`);
-        this.color = [1, 1, 1, 1];
-      }
-      this.unifromCPUBufferViews.color.set(this.color);
-      this.unifromCPUBufferViews.has_color_texture[0] = 1;//0=vs color，1=color 数据，2= texture
-    }
-    if (this.inputValues.parallax) {
-      this.unifromCPUBufferViews.parallaxScale[0] = this.inputValues.parallax.scale;
-      if (this.inputValues.parallax.layer) {
-        this.unifromCPUBufferViews.parallax_layer[0] = this.inputValues.parallax.layer;
-      }
-    }
-    if (options.textures) {
-      if (options.textures[E_TextureType.color]) {
-        this.unifromCPUBufferViews.has_color_texture[0] = 2;//0=vs color，1=color 数据，2= texture
-      }
-      if (options.textures[E_TextureType.normal]) {
-        this.unifromCPUBufferViews.has_normal_texture[0] = 1;
-      }
-      if (options.textures[E_TextureType.parallax]) {
-        this.unifromCPUBufferViews.has_parallax_texture[0] = 1;
-      }
-      if (options.textures[E_TextureType.specular]) {
-        this.unifromCPUBufferViews.has_specular_texture[0] = 1;
-      }
-    }
-
   }
   _destroy(): void {
     throw new Error("Method not implemented.");
   }
   async readyForGPU(): Promise<any> {
+    this.createUniformPointer();
     this.defaultSampler = this.checkSampler(this.inputValues);
     this.textures[E_TextureType.color] = this.defaultTexture2D;
     this.textures[E_TextureType.normal] = this.defaultTexture2D;
@@ -159,124 +218,56 @@ export class PhongMaterial extends BaseMaterial {
     {
       groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
       //uniform buffer
-      let unifromCPUBuffer: I_uniformArrayBufferEntry = {
+      let unifromBuffer: GPUBindGroupEntry = {
         binding: binding,
-        size: this.uniformGPUBufferSize,
-        data: this.unifromCPUBuffer,
-        label: "Bulinn Phong uniform ",
+        resource: this.uniformPointer.gpuBufferView,
       };
       //uniform buffer layout
-      let nameOfUniformLayout = "Phong Material base uniform Layout";
-      let unifromCPUBufferLayout: GPUBindGroupLayoutEntry
-      let cacheFlagOfUniformLayout = false;
-      if (this.scene.resourcesGPU.entryLayoutOfGroup.has(nameOfUniformLayout)) {
-        let uniformLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfUniformLayout);
-        if (uniformLayout) {
-          unifromCPUBufferLayout = uniformLayout;
-          cacheFlagOfUniformLayout = true;
+      let unifromBufferLayout: GPUBindGroupLayoutEntry = {
+        binding: binding,
+        visibility: GPUShaderStage.FRAGMENT,
+        buffer: {
+          type: "uniform"
         }
-
-      }
-      if (!cacheFlagOfUniformLayout) {
-        unifromCPUBufferLayout = {
-          binding: binding,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: {
-            type: "uniform"
-          }
-        };
-        this.scene.resourcesGPU.entryLayoutOfGroup.set(nameOfUniformLayout, unifromCPUBufferLayout);
-      }
-      //push entry and entry's layout for DCG
-      this.scene.resourcesGPU.entriesToEntriesLayout.set(unifromCPUBuffer, unifromCPUBufferLayout!);
-      //添加到resourcesGPU的Map中//20260320 在cache保存为phong默认的，phong材质通用
-      // this.mapList.push({ key: unifromCPUBuffer, type: "uniformBuffer" });
-      //push到uniform1队列
-      uniform1.push(unifromCPUBuffer);
-      //+1
+      };
+      this.unifromEntryLayout.push(unifromBufferLayout);
+      uniform1.push(unifromBuffer);
       binding++;
     }
     ////group bindgin sampler 字符串
     {
-
       groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
       //uniform sampler
-      let uniformSampler: GPUBindGroupEntry;
-      let uniformSamplerLayout: GPUBindGroupLayoutEntry
-      let nameOfSamplerLayout = "Phong Material sampler Layout";
-      let nameOfSampler = "Phong Material sampler";
-      let cacheFlagOfSamplerLayout = false;
-      if (this.scene.resourcesGPU.entryLayoutOfGroup.has(nameOfSamplerLayout) && this.scene.resourcesGPU.entryOfGroup.has(nameOfSampler)) {
-        let samplerLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfSamplerLayout);
-        let sampler = this.scene.resourcesGPU.entryOfGroup.get(nameOfSampler);
-        if (samplerLayout && sampler) {
-          uniformSamplerLayout = samplerLayout;
-          uniformSampler = sampler;
-          cacheFlagOfSamplerLayout = true;
-        }
-      }
-      if (!cacheFlagOfSamplerLayout) {
-        uniformSampler = {
-          binding: binding,
-          resource: this.defaultSampler,
-        };
-        //uniform sampler layout
-        uniformSamplerLayout = {
-          binding: binding,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          sampler: {
-            type: this.defaultSamplerBindingType,
-          },
-        };
-        this.scene.resourcesGPU.entriesToEntriesLayout.set(uniformSampler, uniformSamplerLayout);
-        this.scene.resourcesGPU.entryOfGroup.set(nameOfSampler, uniformSampler);
-        this.scene.resourcesGPU.entryLayoutOfGroup.set(nameOfSamplerLayout, uniformSamplerLayout);
-        // this.mapList.push({ key: uniformSampler, type: "GPUBindGroupLayoutEntry" });
-      }
-      //添加到resourcesGPU的Map中
-      //push到uniform1队列
-      uniform1.push(uniformSampler!);
-      //+1
+      let uniformSampler: GPUBindGroupEntry = {
+        binding: binding,
+        resource: this.defaultSampler,
+      };;
+      let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
+        binding: binding,
+        visibility: GPUShaderStage.FRAGMENT,
+        sampler: {
+          type: this.defaultSamplerBindingType,
+        },
+      };
+      this.unifromEntryLayout.push(uniformSamplerLayout);
+      uniform1.push(uniformSampler);
       binding++;
     }
     //循环绑定纹理
     {
       for (let i in this.textures) {
-        let uniformTexture: GPUBindGroupEntry;
-        let uniformTextureLayout: GPUBindGroupLayoutEntry;
-        let nameOfTexture = `phong material ${i}`;
-        let nameOfTextureLayout = nameOfTexture + " Layout";
-        let cacheFlagOfTextureLayout = false;
-        if (this.textures[i] == this.defaultTexture2D) {
-          let textureLayout = this.scene.resourcesGPU.entryLayoutOfGroup.get(nameOfTextureLayout);
-          let texture = this.scene.resourcesGPU.entryOfGroup.get(nameOfTexture);
-          if (textureLayout && texture) {
-            uniformTextureLayout = textureLayout;
-            uniformTexture = texture;
-            cacheFlagOfTextureLayout = true;
-          }
-        }
-        if (!cacheFlagOfTextureLayout) {
-          //uniform texture
-          uniformTexture = {
-            binding: binding,
-            resource: this.textures[i].texture.createView(),
-          };
-          //uniform texture layout
-          uniformTextureLayout = {
-            binding: binding,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            texture: this.textures[i].defaultTextureLayout(),
-          };
-          //添加到resourcesGPU的Map中
-          this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
-          this.mapList.push({ key: uniformTexture, type: "GPUBindGroupLayoutEntry" });
-          this.scene.resourcesGPU.entryOfGroup.set(nameOfTexture, uniformTexture);
-          this.scene.resourcesGPU.entryLayoutOfGroup.set(nameOfTextureLayout, uniformTextureLayout);
-        }
-        //push到uniform1队列
+        let uniformTexture: GPUBindGroupEntry = {
+          binding: binding,
+          resource: this.textures[i].texture.createView(),
+        };
+        //uniform texture layout
+        let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+          binding: binding,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          texture: this.textures[i].defaultTextureLayout(),
+        };
+        this.unifromEntryLayout.push(uniformTextureLayout);
         uniform1.push(uniformTexture!);
-
         groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
         binding++;
       }
@@ -291,64 +282,6 @@ export class PhongMaterial extends BaseMaterial {
   getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
 
     let replaceList = new Map<string, string | (() => string)>();
-    // let materialColor = () => {
-    //   let replaceString = "";
-    //   if (flag_texture) {
-    //     if (flag_parallax && flag_normal) {
-    //       let parallaxLayer = this.inputValues.parallax?.layer || 0;
-    //       let parallaxScale = this.inputValues.parallax?.scale || 0.001;
-    //       // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
-    //       replaceString = ` 
-    //                 let TBN=getTBN_ForNormal(normal,fsInput.worldPosition,uv);
-    //                 let invertTBN=transpose(TBN );
-    //                 let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-    //                 `;
-    //       //todo:20250521
-    //       //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
-    //       //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
-    //       //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-    //       //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
-    //       if (this.inputValues.parallax?.layer) {
-
-    //         replaceString += `uv = parallax_occlusion(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
-    //       }
-    //       else {
-    //         replaceString += ` uv = ParallaxMappingBase(fsInput.uv.xy, viewDir, ${parallaxScale},u_parallaxTexture, u_Sampler);\n`;
-    //       }
-    //       replaceString += ` materialColor = textureSample(u_colorTexture, u_Sampler, uv);\n`;
-    //       // replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv);\n `;
-
-    //     }
-    //     else
-    //       replaceString = ` materialColor =textureSample(u_colorTexture, u_Sampler, fsInput.uv.xy);\n `;
-    //   }
-    //   else {
-    //     replaceString = ` materialColor =vec4f(${this.color[0]},${this.color[1]},${this.color[2]},${this.color[3]}); `;
-    //   }
-    //   return replaceString;
-    // };
-    // let normal = () => {
-    //   let replaceString = "";
-    //   if (flag_normal) {
-    //     replaceString = `
-    //              let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb; 
-    //              normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
-    //             `;
-    //   }
-    //   return replaceString;
-    // };
-    // let specular = () => {
-    //   let replaceString = "";
-    //   if (flag_spec) {
-    //     replaceString = `
-    //             inSpecularColor= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;`
-    //     // specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
-    //   }
-    //   return replaceString;
-    // };
-    // replaceList.set("$materialColor", materialColor);
-    // replaceList.set("$normal", normal);
-    // replaceList.set("$specular", specular);
     let parallax = () => {
       let replaceString = "";
       if (this.inputValues?.textures?.parallax != undefined) {
@@ -421,6 +354,3 @@ export class PhongMaterial extends BaseMaterial {
 
 }
 
-function weHexColorToColorOfF32(color: string): import("../../base/coreDefine").weVec4 {
-  throw new Error("Function not implemented.");
-}

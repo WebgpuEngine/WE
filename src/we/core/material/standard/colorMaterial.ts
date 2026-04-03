@@ -3,7 +3,7 @@ import { isWeColor4 } from "../../base/coreFunction";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_bindGroupAndGroupLayout, T_uniformEntries, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
@@ -98,7 +98,7 @@ export class ColorMaterial extends BaseMaterial {
         if (this.uniformPointer == undefined) {
             let pointerParams: I_pointerCreateParams = {
                 name: `uniform ${this.kind} material: ${this.UUID}`,
-                byteSize: 256,//4 * 4,最小256字节对齐
+                byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
                 type: E_BOLBufferType.uniform,
                 viewType: "f32",//由于data是ArrayBuffer,按照u8处理
                 data: {
@@ -119,14 +119,6 @@ export class ColorMaterial extends BaseMaterial {
                 }
             );
         }
-        // let bufferView = new Float32Array(this.unifromCPUBuffer);
-        // bufferView.set(this._color);
-        // if (update) {
-        //     this.device.queue.writeBuffer(this.uniformGPUBuffer, 0, this.unifromCPUBuffer);
-        // }
-        // else {
-        //     this.uniformGPUBuffer = createUniformBuffer(this.device, `colorMaterial:${this.UUID}`, this.unifromCPUBuffer);
-        // }
     }
     /**没有透明中的不透明部分，要不透明，要么全部alpha的透明 */
     setTO(): void {

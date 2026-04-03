@@ -56,6 +56,13 @@ export abstract class BaseMaterial extends RootGPU {
     unifromEntryBundle_Common: I_UniformBundleOfMaterial | undefined;
 
     unifromEntryLayout: GPUBindGroupLayoutEntry[] = [];
+    // /** 材质的uniform GPU Buffer */
+    // uniformGPUBuffer!: GPUBuffer;
+    // /** 材质的uniform CPU Buffer */
+    // unifromCPUBuffer!: ArrayBuffer;
+
+    /** 材质的uniform  Buffer 的指针，用于快速访问 */
+    uniformPointer!: I_pointerStruct;
     ///////////////////////////////////////////////////////////////////
     //todo
     doubleSided: boolean = false;
@@ -132,12 +139,7 @@ export abstract class BaseMaterial extends RootGPU {
     /**TTPF 的uniform Bundle  */
     unifromEntryBundle_TTPF: I_UniformBundleOfMaterial | undefined;
 
-    /** 材质的uniform GPU Buffer */
-    uniformGPUBuffer!: GPUBuffer;
-    /** 材质的uniform CPU Buffer */
-    unifromCPUBuffer!: ArrayBuffer;
-    /** 材质的uniform  Buffer 的指针，用于快速访问 */
-    uniformPointer!: I_pointerStruct;
+
 
     constructor(input?: IV_BaseMaterial) {
         super(input);
@@ -301,7 +303,7 @@ export abstract class BaseMaterial extends RootGPU {
     getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout {
 
         if (this.unifromEntryBundle_Common == undefined) {
-           this.unifromEntryBundle_Common =  this.getUniformEntryBundleOfCommon(0);            
+            this.unifromEntryBundle_Common = this.getUniformEntryBundleOfCommon(0);
         }
         let createBindGroup = false;
         //undefined，创建
@@ -365,7 +367,15 @@ export abstract class BaseMaterial extends RootGPU {
             bindGroupLayout: this.bindGroupLayout,
         }
     }
-
+    /**
+     * 获取当前材质的pointer的byte size
+     * @param size 
+     * @returns 
+     * */
+    getPointerByteSize(size: number): number {
+        let min = Math.ceil(size / 256) || 1;
+        return min * 256;
+    }
     /**
      * 获取当前材质的TTPF的输出uniform bundle 。（在common uniform bundle之后）
      * @param renderObject 

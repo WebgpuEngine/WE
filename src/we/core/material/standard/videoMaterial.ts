@@ -175,41 +175,6 @@ export class VideoMaterial extends BaseMaterial {
     }
 
     getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
-        // if (this.getTransparent()) {
-        //     let bundle = getOpacity_GBufferOfUniformOfDefer(binding, this.scene, camera);
-        //     uniform1.push(...bundle.uniformGroup);
-        //     groupAndBindingString += bundle.groupAndBindingString;
-        //     binding = bundle.binding;
-        //     template = SHT_materialTextureTransparentFS;
-        // }
-        // // else
-        // {
-        //     ////////////////shader 模板格式化部分
-        //     // template = SHT_materialVideoTextureFS;
-        //     for (let perOne of template.material!.add as I_shaderTemplateAdd[]) {
-        //         code += perOne.code;
-        //     }
-        //     for (let perOne of template.material!.replace as I_shaderTemplateReplace[]) {
-        //         if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-        //             code = code.replace(perOne.replace, perOne.replaceCode as string);
-        //         }
-        //         else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-        //             if (perOne.name == "materialColor") {
-        //                 if (this.textures[E_TextureType.video].model == "copy") {
-        //                     //texture 默认是 'rgba8unorm-srgb'，已经完成解gamma
-        //                     code = code.replace(perOne.replace, `materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); `);
-        //                 }
-        //                 else {
-        //                     //外部texture 是 'rgba8unorm'，需要解gamma到线性空间
-        //                     code = code.replace(perOne.replace, `
-        //                         materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) ); 
-        //                         materialColor =vec4f( pow(materialColor.rgb,vec3f(2.2)),materialColor.a);
-        //                          `);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
         let dynamic: boolean = false;
         if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture)
             dynamic = true;

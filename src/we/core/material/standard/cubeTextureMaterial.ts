@@ -11,14 +11,13 @@
  *    B、opacity,整体透明度
  */
 import { E_lifeState } from "../../base/coreDefine";
-import {  T_uniformOneGroup } from "../../command/base";
+import { T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import {  I_ShaderTemplate} from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial } from "../base";
 import { SHT_materialCubePositionTextureFS, SHT_materialCubePositionTextureFS_MSAA, SHT_materialCubePositionTextureFS_MSAAinfo, SHT_materialCubeSkyTextureFS, SHT_materialCubeSkyTextureFS_MSAA, SHT_materialCubeSkyTextureFS_MSAAinfo } from "../../shadermanagemnet/material/cubeTextureMaterial";
-import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Texture } from "../../texture/texture";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
