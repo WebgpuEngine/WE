@@ -1,3 +1,4 @@
+import { RootGPU } from "../organization/root";
 import { weColor3, weColor4, weMat3, weMat4, weVec2, weVec3, weVec4 } from "./coreDefine";
 
 export async function weGetResource(param: string): Promise<any> {

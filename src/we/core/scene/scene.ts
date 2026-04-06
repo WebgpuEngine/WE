@@ -1328,26 +1328,10 @@ export class Scene {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // debug performance
+    // get entity material camera ...
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    _performanceCount: number = 300;
-    _outputCountOfRun: number = 0;
-    _performanceFlag: boolean = false;
-    _performanceTimeNow: number = 0;
-    _performanceTimeLast: number = 0;
-    performanceLog(name: string, type: T_kindOfPerformanceLog) {
-        if (!this._performanceFlag) return;
-        if (this._performanceCount > this._outputCountOfRun) return;
-        if (type == "start") {
-            this._performanceTimeLast = Date.now();
-        }
-        else if (type == "output") {
-            this._performanceTimeNow = Date.now();
-            console.log(name, this._performanceTimeNow - this._performanceTimeLast);
-            this._performanceTimeLast = this._performanceTimeNow;
-            this._outputCountOfRun++;
-        }
+    getEntityByID(id: number): any {
+        return this.entityManager.getByID(id);
     }
 
 }
-type T_kindOfPerformanceLog = "start" | "output";

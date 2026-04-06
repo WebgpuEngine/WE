@@ -83,6 +83,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         else
             this._material = input.material;
     }
+    override _destroy(): void {
+        super._destroy();
+        this._material.destroy();
+    }
     /**三段式初始化的第三段
     * 覆写 Root的function,因为材料类需要GPUDevice 
     */
@@ -690,8 +694,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         //     uniforms.push(bundle.fsBundle.uniformGroup);
         // }
         let valueDC: IV_DC = {
-            // label: scope.kind + scope.Name + " for " + renderType + ":" + UUID,
-            label: `${scope.kind} ${scope.Name} for ${renderType}: ${UUID}`,
+            // label: `${scope.kind} ${scope.Name} for ${renderType}: ${UUID}`,
+            label: `${scope.kind} ${scope.Name}`,
             data: {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,

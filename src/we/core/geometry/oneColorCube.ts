@@ -2,7 +2,7 @@
  * 一个彩色立方体，边长=2.0
  */
 import { BoxGeometry, optionBoxGemetry } from "./boxGeometry"; 
-import oneColorCubeVS from "../shader/geometry/OneColorCube.vs.wgsl?raw"
+// import oneColorCubeVS from "../shader/geometry/OneColorCube.vs.wgsl?raw"
 
 
 export class OneColorCube extends BoxGeometry {
@@ -20,20 +20,20 @@ export class OneColorCube extends BoxGeometry {
         this.width = width;
         this.type = "OneColorCube";
     }
-    /**覆写了这个function
-     * 
-     * 增加了@location(4) fsPosition:vec4f, @location(5) cubeUV:vec3f,
-     * 
-     * 
-     * 适用于cube的三维UV
-     */
-    getCodeVS() {
-        let width = this.width / 2;
-        //这个比正常的geometry的vs多了fsPosition
-        let code=oneColorCubeVS;
-        code=code.replaceAll("$width", width.toString());
-        return code;
-    }
+    // /**覆写了这个function
+    //  * 
+    //  * 增加了@location(4) fsPosition:vec4f, @location(5) cubeUV:vec3f,
+    //  * 
+    //  * 
+    //  * 适用于cube的三维UV
+    //  */
+    // getCodeVS() {
+    //     let width = this.width / 2;
+    //     //这个比正常的geometry的vs多了fsPosition
+    //     let code=oneColorCubeVS;
+    //     code=code.replaceAll("$width", width.toString());
+    //     return code;
+    // }
 
 
 

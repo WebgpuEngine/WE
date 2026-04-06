@@ -930,6 +930,8 @@ export class DrawCommandGenerator {
                         else {
                             vertexBuffer = this.resources.verticesDynamic.get(value) as GPUBuffer;
                         }
+                        if (values.parent) values.parent.vertexPointers[lowKey] = { gpuBuffer: vertexBuffer };
+
                         // vertexBuffer = pointerOfVertex.gpuBufferView;
                         vertexBufferEntry = {
                             name: lowKey,
@@ -991,13 +993,17 @@ export class DrawCommandGenerator {
                     let wgsl_value_format = this.getWgslValueFormat(format);
                     locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
 
-                    //判断是否以及存在顶点GPUBuffer
-                    let md5OfVertexOfArray = MD5.hex(value);
-                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
+                    if (values.parent && values.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    }
+                    else {
+                        //判断是否以及存在顶点GPUBuffer
+                        // let md5OfVertexOfArray = MD5.hex(value);
+                        // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                         // vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey+"_VS_"+values.label,
+                            name: lowKey + " " + values.label,
                             byteSize: value.length * 4,
                             type: E_BOLBufferType.VS,
                             viewType: "f32",
@@ -1005,18 +1011,20 @@ export class DrawCommandGenerator {
                                 sourceData: { data: value },
                             }
                         };
-                        pointerOfVertex = this.pointers.createPointer(pointerParams,values.parent);
-                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
+                        pointerOfVertex = this.pointers.createPointer(pointerParams, values.parent);
+                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        // this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
+                        // }
+                        // else {
+                        //     // vertexBuffer = this.resources.get(value, "vertices");
+                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
+                        //     if (!pointerOfVertexTemp) {
+                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
+                        //     }
+                        //     pointerOfVertex = pointerOfVertexTemp;
+                        // }
+                        // vertexBuffer = pointerOfVertex.gpuBufferView;
                     }
-                    else {
-                        // vertexBuffer = this.resources.get(value, "vertices");
-                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        if (!pointerOfVertexTemp) {
-                            throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        }
-                        pointerOfVertex = pointerOfVertexTemp;
-                    }
-                    // vertexBuffer = pointerOfVertex.gpuBufferView;
                     vertexBufferEntry = {
                         name: lowKey,
                         buffer: pointerOfVertex.gpuBufferView.buffer,
@@ -1035,76 +1043,80 @@ export class DrawCommandGenerator {
 
                 }
                 else if (ArrayBuffer.isView(value)) {
-                    let md5OfVertexOfArray = MD5.hex(value.buffer as ArrayBuffer);
+                    // let md5OfVertexOfArray = MD5.hex(value.buffer as ArrayBuffer);
                     let pointerOfVertex: I_pointerStruct;
                     let arrayStride = 4 * 3;
                     let format: GPUVertexFormat = "float32x3";
-                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
-                        let arrayBuffertype = getTypedArrayType(value);
-                        let viewType: T_pointerDataType;
-                        switch (arrayBuffertype) {
-                            case "Float32Array":
-                                viewType = "f32";
-                                break;
-                            case "Uint32Array":
-                                viewType = "u32";
-                                break;
-                            case "Uint8Array":
-                                viewType = "u8";
-                                break;
-                            case "Uint16Array":
-                                viewType = "u16";
-                                break;
-                            case "Int32Array":
-                                viewType = "i32";
-                                break;
-                            case "Int8Array":
-                                viewType = "i8";
-                                break;
-                            case "Int16Array":
-                                viewType = "i16";
-                                break;
-                            default:
-                                viewType = "f32";
-                                break;
-                        }
-                        let arrayBufferType: T_pointerDataType = "f32";
-                        let arrarBufferUnitLength = 4;
-                        switch (lowKey) {
-                            case "position":
-                                arrayStride = 4 * 3;
-                                format = "float32x3";
-                                break;
-                            case "uv":
-                                // case "uv1":
-                                // case "uv2":
-                                arrayStride = 4 * 2;
-                                format = "float32x2";
-                                break;
-                            case "normal":
-                                arrayStride = 4 * 3;
-                                format = "float32x3";
-                                break;
-                            case "color":
-                                arrayStride = 4 * 3;
-                                format = "float32x3";
-                                break;
-                            case "joints":
-                                arrayStride = 4 * 4;
-                                format = "uint32x4";
-                                break;
-                            case "weights":
-                                arrayStride = 4 * 4;
-                                format = "float32x4";
-                                break;
-                            default:
-                                arrayStride = 4 * 3;
-                                format = "float32x3";
-                                console.warn("顶点属性" + lowKey + "的类型" + arrayBuffertype + "未被支持.按照float32x3处理");
-                                break;
-                        }
+                    // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
+                    let arrayBuffertype = getTypedArrayType(value);
+                    let viewType: T_pointerDataType;
+                    switch (arrayBuffertype) {
+                        case "Float32Array":
+                            viewType = "f32";
+                            break;
+                        case "Uint32Array":
+                            viewType = "u32";
+                            break;
+                        case "Uint8Array":
+                            viewType = "u8";
+                            break;
+                        case "Uint16Array":
+                            viewType = "u16";
+                            break;
+                        case "Int32Array":
+                            viewType = "i32";
+                            break;
+                        case "Int8Array":
+                            viewType = "i8";
+                            break;
+                        case "Int16Array":
+                            viewType = "i16";
+                            break;
+                        default:
+                            viewType = "f32";
+                            break;
+                    }
+                    let arrayBufferType: T_pointerDataType = "f32";
+                    let arrarBufferUnitLength = 4;
+                    switch (lowKey) {
+                        case "position":
+                            arrayStride = 4 * 3;
+                            format = "float32x3";
+                            break;
+                        case "uv":
+                            // case "uv1":
+                            // case "uv2":
+                            arrayStride = 4 * 2;
+                            format = "float32x2";
+                            break;
+                        case "normal":
+                            arrayStride = 4 * 3;
+                            format = "float32x3";
+                            break;
+                        case "color":
+                            arrayStride = 4 * 3;
+                            format = "float32x3";
+                            break;
+                        case "joints":
+                            arrayStride = 4 * 4;
+                            format = "uint32x4";
+                            break;
+                        case "weights":
+                            arrayStride = 4 * 4;
+                            format = "float32x4";
+                            break;
+                        default:
+                            arrayStride = 4 * 3;
+                            format = "float32x3";
+                            console.warn("顶点属性" + lowKey + "的类型" + arrayBuffertype + "未被支持.按照float32x3处理");
+                            break;
+                    }
+                    if (values.parent && values.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    }
+                    else {
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey+"_VS_"+values.label,
+                            name: lowKey + " " + values.label,
                             byteSize: value.length * arrarBufferUnitLength,
                             type: E_BOLBufferType.VS,
                             viewType: viewType,
@@ -1113,15 +1125,18 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
-                    }
-                    else {
-                        // vertexBuffer = this.resources.get(value, "vertices");
-                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        if (!pointerOfVertexTemp) {
-                            throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        }
-                        pointerOfVertex = pointerOfVertexTemp;
+                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+
+                        //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
+                        // }
+                        // else {
+                        //     // vertexBuffer = this.resources.get(value, "vertices");
+                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
+                        //     if (!pointerOfVertexTemp) {
+                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
+                        //     }
+                        //     pointerOfVertex = pointerOfVertexTemp;
+                        // }
                     }
                     vertexBufferEntry = {
                         name: lowKey,
@@ -1202,14 +1217,17 @@ export class DrawCommandGenerator {
                     let wgsl_value_format = this.getWgslValueFormat(value.format);
                     locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
                     //判断是否以及存在顶点GPUBuffer
-                    let md5OfVertexOfArray = MD5.hex(value.data);
+                    // let md5OfVertexOfArray = MD5.hex(value.data);
 
-                    // if (!this.resources.has(value, "vertices")) {
-                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
-                        // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
-                        // this.resources.set(value, vertexBuffer, "vertices");
+                    // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
+                    // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
+                    // this.resources.set(value, vertexBuffer, "vertices");
+                    if (values.parent && values.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    }
+                    else {
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey+"_VS_"+values.label,
+                            name: lowKey + " " + values.label,
                             byteSize: value.data.length * datakind,
                             type: E_BOLBufferType.VS,
                             viewType: "f32",
@@ -1218,14 +1236,16 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
-                    }
-                    else {
-                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        if (!pointerOfVertexTemp) {
-                            throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        }
-                        pointerOfVertex = pointerOfVertexTemp;
+                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
+                        // }
+                        // else {
+                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
+                        //     if (!pointerOfVertexTemp) {
+                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
+                        //     }
+                        //     pointerOfVertex = pointerOfVertexTemp;
+                        // }
                     }
                     vertexBufferEntry = {
                         name: lowKey,
@@ -1260,14 +1280,17 @@ export class DrawCommandGenerator {
                         locationString += ` @location(${location_i}) ${item.name.toLowerCase()} : ${wgsl_value_format}  ,`;
                         location_i++;//合并属性，每个属性都要增加一个location
                     }
-
-                    let md5OfVertexOfArray = MD5.hex(value.data);
-                    if (!this.resources.hasVertex(md5OfVertexOfArray)) {
+                    if (values.parent && values.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    }
+                    else {
+                        // let md5OfVertexOfArray = MD5.hex(value.data);
+                        // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                         // if (!this.resources.has(value, "vertices")) {
                         // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =mergeAttribute", data.buffer);
                         // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
-                            name: lowKey+"_VS_"+values.label,
+                            name: lowKey + " " + values.label,
                             byteSize: value.data.length * 4,
                             type: E_BOLBufferType.VS,
                             viewType: "f32",
@@ -1276,17 +1299,19 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
+                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
+                        // }
+                        // else {
+                        //     // vertexBuffer = this.resources.get(value, "vertices");
+                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
+                        //     if (!pointerOfVertexTemp) {
+                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
+                        //     }
+                        //     pointerOfVertex = pointerOfVertexTemp;
+                        // }
+                        //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
                     }
-                    else {
-                        // vertexBuffer = this.resources.get(value, "vertices");
-                        let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        if (!pointerOfVertexTemp) {
-                            throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        }
-                        pointerOfVertex = pointerOfVertexTemp;
-                    }
-                    //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
                     vertexBufferEntry = {
                         name: lowKey,
                         buffer: pointerOfVertex.gpuBufferView.buffer,
@@ -1301,6 +1326,8 @@ export class DrawCommandGenerator {
                 //顶点数据是GPUBuffer数据的
                 // else if ("format" in value && value.buffer instanceof GPUBuffer) {
                 else if (isVSGPUBufferBundle(value)) {
+                    if (values.parent) values.parent.vertexPointers[lowKey] = { gpuBuffer: value };
+
                     let format = value.format;
                     let arrayStride = value.arrayStride;
                     let wgsl_value_format = this.getWgslValueFormat(format);
@@ -1348,16 +1375,18 @@ export class DrawCommandGenerator {
             //1.2、索引资源
             if (values.data.indices) {
                 if (Array.isArray(values.data.indices)) {
+                    let wireFrame = values.label.includes("wireframe")?"Mesh":"Wireframe";
                     let index: I_pointerStruct;
-                    let md5OfIndicesOfArray = MD5.hex(values.data.indices);
+                    // let md5OfIndicesOfArray = MD5.hex(values.data.indices);
                     if (values.data.indices && values.data.indices.length > 0) {
-                        // let u32Buffer = new Uint32Array(values.data.indices);
-                        // if (!this.resources.has(values.data.indices, "indices")) {
-                        if (!this.resources.hasIndices(md5OfIndicesOfArray)) {
-                            // let _indexBuffer = createIndexBuffer(this.device, values.label + " index GPUBuffer", u32Buffer.buffer);
-                            // this.resources.set(values.data.indices, _indexBuffer, "indices");
+
+                        if (values.parent && values.parent.vertexPointers["index"+wireFrame]) {
+                            index = values.parent.vertexPointers["index"+wireFrame].pointer!;
+                        }
+                        else {
+                            // if (!this.resources.hasIndices(md5OfIndicesOfArray)) {
                             let pointerParams: I_pointerCreateParams = {
-                                name: "indices "+values.label,
+                                name: "indices " + values.label,
                                 byteSize: values.data.indices.length * 4,
                                 type: E_BOLBufferType.VS,
                                 viewType: "u32",
@@ -1366,10 +1395,12 @@ export class DrawCommandGenerator {
                                 }
                             };
                             index = this.pointers.createPointer(pointerParams);
-                            this.resources.setIndices(md5OfIndicesOfArray, index);
-                        }
-                        else {
-                            index = this.resources.getIndices(md5OfIndicesOfArray) as I_pointerStruct;
+                            if (values.parent) values.parent.vertexPointers["index"+wireFrame] = { pointer: index };
+                            // this.resources.setIndices(md5OfIndicesOfArray, index);
+                            // }
+                            // else {
+                            //     index = this.resources.getIndices(md5OfIndicesOfArray) as I_pointerStruct;
+                            // }
                         }
                         if (index) {
                             DC_indexBuffer = {
@@ -1390,10 +1421,12 @@ export class DrawCommandGenerator {
                             // offset:,
                             // offset: indexBundle.buffer.size,
                         };
+                        if (values.parent) values.parent.vertexPointers.index = { gpuBuffer: indexBundle };
                     }
                 }
             }
         }
+
         return { DC_vertexBuffers, DC_indexBuffer, DC_vertexNames, DC_localtions, DC_verticesBufferLayout };
     }
 

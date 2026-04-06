@@ -180,7 +180,8 @@ export class PhongMaterial extends BaseMaterial {
     this.inputValues = options;
   }
   _destroy(): void {
-    throw new Error("Method not implemented.");
+    // throw new Error("Method not implemented.");
+    super._destroy();
   }
   async readyForGPU(): Promise<any> {
     this.createUniformPointer();

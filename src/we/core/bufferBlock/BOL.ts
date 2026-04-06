@@ -127,7 +127,23 @@ export class BlockOffsetLength implements I_UUID {
     cpuBuffer!: ArrayBuffer;
     gpuBuffer!: GPUBuffer;
     /** 指针ID列表 */
-    pointerIdList: number[] = [];
+    // pointerIdList: number[] = [];
+    pointerIdList: Set<number> = new Set();
+    hasPointerInBOL(id: number): boolean {
+        return this.pointerIdList.has(id);
+    }
+    addPointerInBOL(id: number) {
+        if (this.pointerIdList.has(id)) {
+            throw new Error("pointerID already in BOL");
+        }
+        else {
+            this.pointerIdList.add(id);
+        }
+    }
+
+    removePointerInBOL(id: number) {
+        this.pointerIdList.delete(id);
+    }
     /**
      * 指针偏移量映射表,用于聚合更新
      * 1、key:指针offset
@@ -243,6 +259,7 @@ export class BlockOffsetLength implements I_UUID {
      * 2、更新指针的offset和byteLength
      */
     rebuild() {
+        // console.log("-------------------------------------------------rebuild",this.type);
         /**         
          * 步骤：
          * 1、设置flagWriteAll为true，以及size重置
@@ -376,6 +393,8 @@ export class BlockOffsetLength implements I_UUID {
     /** 更新BOL     */
     update(clock: Clock) {
         if (this.checkUpdate()) {
+            // this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
+
             if (this.flagWriteAll === true) {
                 this.device.queue.writeBuffer(this.gpuBuffer, 0, this.cpuBuffer);
                 this.flagWriteAll = false;
@@ -405,6 +424,8 @@ export class BlockOffsetLength implements I_UUID {
         if (offset + byteSize > this.size.total) {
             throw new Error("BOL size not enough");
         }
+        // if (this.type == E_BOLBufferType.storage)
+        // console.log(` BOL allocate pointer ${this.type} ,last offset: ${this.lastOffset} and offset256:${this.lastOffset / 256} , pointer: ${pointerID} ${offset} ${byteSize}`);
         this.lastOffset += byteSize;
         let pointerInfo: I_pointerInfoInBOL = {
             pointerID: pointerID,
@@ -415,10 +436,24 @@ export class BlockOffsetLength implements I_UUID {
             cpuBuffer: this.cpuBuffer,
             gpuBuffer: this.gpuBuffer,
         }
-        this.pointerIdList.push(pointerID);     //添加指针ID到pointerIdList
+        this.addPointerInBOL(pointerID);     //添加指针ID到pointerIdList
         this.pointerOffsetMap.set(offset, pointerID);//更新pointer的Offse tMap的映射
+        // this.updatePointerOffsetMap();
+
         this.updateSizeOfUsed("add", byteSize, offset); //更新BOL的size使用量
         return pointerInfo;
+    }
+    updatePointerOffsetMap() {
+        this.pointerOffsetMap.clear();
+        for (let i of this.pointerIdList) {
+            let pointer = this.pointers.getPointer(i);
+            if (pointer != undefined) {
+                this.pointerOffsetMap.set(pointer.offset, i);
+            }
+            else {
+                throw new Error("pointerID not found");
+            }
+        }
     }
     /** 释放指针
      * 1、从pointerIdList中移除指针ID
@@ -433,12 +468,15 @@ export class BlockOffsetLength implements I_UUID {
             console.warn("pointerID not found");
             return;
         }
-        let index = this.pointerIdList.indexOf(pointerID);
-        if (index == -1) {
+        let index = this.hasPointerInBOL(pointerID);
+        if (index == false) {
             console.warn("pointerID not found");
             return;
         }
-        this.pointerIdList.splice(index, 1);
+        else {
+            // console.log("BOL release pointer", pointerID);
+        }
+        this.removePointerInBOL(pointerID);
         this.pointerOffsetMap.delete(pointerStruct.offset);
         this.updateSizeOfUsed("remove", pointerStruct.byteLength);
     }
@@ -471,7 +509,7 @@ export class BlockOffsetLength implements I_UUID {
     }
     checkRebuild(): boolean {
         if (this.checkUpdate()) {
-            let percent = this.size.released / this.size.total * 100;
+            let percent = this.size.released / this.size.total ;
             if (percent >= this.rebuildPecent) {
                 return true;
             }

@@ -70,6 +70,7 @@ export class Testbed {
         let parameters = new SimulationParameters(backends, builders);
         this.gui = new Gui(this, parameters);
         this.graphics = new Graphics(this.scene);
+        window.Graphics = this.graphics;
         this.inhibitLookAt = false;
         this.parameters = parameters;
         this.demoToken = 0;
@@ -124,6 +125,7 @@ export class Testbed {
 
     // 切换到指定的演示场景
     switchToDemo(demo: string) {
+        console.log("================switchToDemo================", demo);
         if (demo == this.prevDemo) {
             this.inhibitLookAt = true;
         }

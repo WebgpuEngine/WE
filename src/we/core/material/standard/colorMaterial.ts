@@ -299,9 +299,9 @@ export class ColorMaterial extends BaseMaterial {
         return unifromEntryBundle_Common;
     }
 
-    _destroy(): void {
-        // throw new Error("Method not implemented.");
-    }
+    // _destroy(): void {
+       
+    // }
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");
     }

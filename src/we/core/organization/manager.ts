@@ -9,7 +9,9 @@ export abstract class ECSManager<T extends I_UUID> {
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = this.scene.device;
-
+    }
+    getByID(id: number): T | undefined {
+        return this.list.find((item) => item._id == id);
     }
     // abstract add(entity: T): void;
     // abstract remove(entity: T): void;

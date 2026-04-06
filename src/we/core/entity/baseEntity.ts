@@ -26,6 +26,7 @@ import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
 import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_BOLBufferType } from "../bufferBlock/base";
+import { get } from "../../../@loaders.gl/draco/dist/draco-worker-node";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -76,28 +77,29 @@ export abstract class BaseEntity extends NodeSpace {
 
     ///////////////////////////////////////////////////////////////////
     //uniform
-    /** 外部实例化数组stride数量，默认为1 */
-    outsideInstanceCountOfDefaultStride: number = 20;
-    /** 实例化数组最后重新的时间 */
+    /** 外部实例化数组stride数量，默认为4 */
+    outsideInstanceCountOfDefaultStride: number = 4;
+    /** 实例化数组最后重新的时间 ,有stride（256byte）存在，外部实例化数量改变时，可能不需要renew */
     flagInstanceArrayBufferReNew: boolean = false;
-    /**Buffer(uniform and storage )在CPU端的ArrayBuffer */
-    bufferCPU: {
-        /** 最终输出@group(1) @binding(0)的uniform buffer*/
-        uniformCommonEntity?: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-        /** 实例化数组@group(1) @binding(1)*/
-        instances?: ArrayBuffer;
-        /** 世界矩阵数组@group(1) @binding(2)*/
-        wolrdMatrix?: ArrayBuffer;
-    } = {};
-    /**Buffer(uniform and storage )在GPU端的 GPUBuffer */
-    bufferGPU: {
-        /** 最终输出@group(1) @binding(0)的uniform buffer*/
-        uniformCommonEntity?: GPUBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-        /** 实例化数组@group(1) @binding(1)*/
-        instances?: GPUBuffer;
-        /** 世界矩阵数组@group(1) @binding(2)*/
-        wolrdMatrix?: GPUBuffer;
-    } = {};
+    /** 是否外部实例化数量改变 ，只标记是否有数量变化*/
+    flagOutsideInstanceCountChange: boolean = false;
+
+    /** storage buffer 列表
+     * 1、instances 实例化数组
+     * 2、wolrdMatrix 世界矩阵数组
+     */
+    storageBufferList: {
+        name: string;
+        byteSize: number;
+    }[] = [
+            {
+                name: "instances",
+                byteSize: this._instanceInfoByteSize
+            },
+            {
+                name: "wolrdMatrix",
+                byteSize: this._instanceWorldMatrixByteSize
+            }];
 
     bufferPointers: {
         uniformCommonEntity: I_pointerStruct | undefined;
@@ -108,8 +110,15 @@ export abstract class BaseEntity extends NodeSpace {
             instances: undefined,
             wolrdMatrix: undefined
         };
-
-
+    /** 顶点buffer 列表:有DCG生成的顶点buffer和index buffer
+     *  1、有DCG写入
+    */
+    vertexPointers: {
+        [key: string]: {
+            pointer?: I_pointerStruct;
+            gpuBuffer?: any;
+        }
+    } = {};
     /**
      * 外部实例化数组
      * 说明：
@@ -125,6 +134,10 @@ export abstract class BaseEntity extends NodeSpace {
      * 4、getInstancesCount() 获取实例化数量：内外部
      */
     outSideInstance: NodeObject[] = [];
+    /** 上一帧外部实例化数量 */
+    outSideInstanceCountPreFrame: number = 0;
+
+
     /** inside实例化矩阵数组，每个内部实例一个矩阵 */
     _insideInstanceMatrix: Mat4[] = [];
     ///////////////////////////////////////////////////////////////////
@@ -285,14 +298,24 @@ export abstract class BaseEntity extends NodeSpace {
 
     }
     abstract detachData(): void;
-    override _destroy(): void {
-        for(let i of this.outSideInstance){
+    _destroy(): void {
+        for (let i of this.outSideInstance) {
             i.destroy();
         }
+        this.outSideInstanceCountPreFrame = 0;
         for (let i in this.bufferPointers) {
             let perPointer = this.bufferPointers[i as keyof typeof this.bufferPointers]!;
+            console.log("===entity destroy release pointer", perPointer.pointerID);
             this.scene.pointers.releasePointer(perPointer.pointerID);
         }
+        for (let i in this.vertexPointers) {
+            if (!this.vertexPointers[i as keyof typeof this.vertexPointers].pointer != undefined) {
+                let perPointer: I_pointerStruct = this.vertexPointers[i as keyof typeof this.vertexPointers].pointer!;
+                console.log("===entity destroy release pointer", perPointer.pointerID);
+                this.scene.pointers.releasePointer(perPointer.pointerID);
+            }
+        }
+
     }
     /**
      * 检查内部instance是否合法
@@ -394,8 +417,8 @@ export abstract class BaseEntity extends NodeSpace {
 
         await super.init(scene);
         this.intUniformCommonEntity();
-        this.updateInstanceBuffer();
-        this.updateWorldMatrixBuffer();
+        // this.updateInstanceBuffer();
+        // this.updateWorldMatrixBuffer();
         // this.updateJointMatrixBuffer();
 
         this.transparent = this.getTransparent();
@@ -458,7 +481,7 @@ export abstract class BaseEntity extends NodeSpace {
      * 基础信息,st_entity_instances.vs.wgsl  
      */
     getUniformCommonEntityInfo() {
-        return this.bufferCPU.uniformCommonEntity;
+        return this.bufferPointers.uniformCommonEntity;
     }
 
     /**
@@ -498,12 +521,29 @@ export abstract class BaseEntity extends NodeSpace {
      * @returns 
      */
     update(clock: Clock, updateSelftFN: boolean = true): boolean {
+
         //判断初始化状态是否为完成，判断状态，判断是否有外部实例
-        if (this._state === E_lifeState.finished && this.checkStatus() && this.getInstancesCount(true)) {
+        if (this._state === E_lifeState.finished && this.checkStatus() && this.getInstancesCount()) {
             super.update(clock, updateSelftFN);
             return true;
         }
         return false;
+    }
+    preUpdate(clock: Clock) {
+        //注销状态或注销中
+        if (this._isDestroy) return;
+        this.flagOutsideInstanceCountChange = false;
+        /**
+         * 1、instance 增加，可以进行正常的update
+         * 2、instance 减少，当全部删除时，无法进行update。需要进行相关的storage pointer的处理
+         * 3、instance 保持不变，进行正常的update
+         */
+        if (this.outSideInstance.length !== this.outSideInstanceCountPreFrame) {
+            // console.log("entityID:", this.ID, "外部实例数量", this.getInstancesCount());
+            this.flagOutsideInstanceCountChange = true;
+            this.outSideInstanceCountPreFrame = this.outSideInstance.length;
+            this.checkStorageBuffer(this.storageBufferList);
+        }
     }
 
     /** 更新entity的自定义属性
@@ -518,36 +558,95 @@ export abstract class BaseEntity extends NodeSpace {
      * @param clock 时钟
      */
     updateSelf(clock: Clock) {
-        //uniform @group(1) @binding(0)
-        // this.updateMatrix();
-        this.updateUniformCommonEntity(clock);  //更新vs、fs的uniform
+        this.updateUniformCommonEntity(clock);   //todo,暂时更新，后续按需进行更新
         this.updateInstanceBuffer();            //更新instance buffer
         this.updateWorldMatrixBuffer(clock);    //更新world matrix buffer
-        // this.updateMorphtTargetBuffer();        //更新morphtarget buffer
-        // this.updateJointMatrixBuffer();         //更新joint matrix buffer
-
         //检查是否有新摄像机，有进行更新
         this.checkUpgradeCameras();
         //检查是否有新光源，有进行更新
         this.checkUpgradeLights();
-        // this.DCG.upadate();//20260322,取消DCG的uniform更新,DCG已经迁移到scene，不在保存当前entity的uniform
     }
 
-    // /** 获取当前状态（是否可以进行update）*/
-    // getStateus(): boolean {
-    //     if (this.checkStatus()) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
+    /**
+    * 获取instance总数量：内部instance*外部instance
+    * @param outside 是否只获取外部instance数量
+    *      true表示只获取外部instance数量，
+    *      false表示获取内部instance数量*外部instance数量
+    * @returns number
+    */
+    getInstancesCount(): number {
+        return this.outSideInstance.length;
+    }
+    /** 获取instance总数量：内部instance*外部instance
+     * @returns number
+     */
+    getInstanceCountTotal(): number {
+        let outsideInstanceCount = this.getInstancesCount();
+        return this.instance.numInstances * outsideInstanceCount
+    }
 
+    /**
+     * 检查相关storage buffer的状态，根据instance数量已经动画进行创建、更新或保持
+     * @param name buffer name
+     * @returns  boolen :是否存在
+     * 1、instances 和 worldMatrix 会忽略返回值
+     * 2、morph target 和 骨骼动画 根据是否有动画返回boolean值
+     */
+    checkStorageBuffer(bufferList: {
+        name: string;
+        byteSize: number;
+    }[]) {
+        for (let perBuffer of bufferList) {
+            /**
+             * 1、判断ArrayBuffer是否存在
+             * 2、判断长度是否与instance数量匹配
+             * 3、判断是否存在动画
+             *      A、morph target
+             *      B、skins
+             * 4、根据reNew是否创建ArrayBuffer和GPUBuffer
+             */
+            let nameOfPointer = perBuffer.name as keyof typeof this.bufferPointers;
+            let byteSizeOfBuffer = perBuffer.byteSize;
+            //实例化,最少1个（分配pointer使用）
+            let instanceCount = this.getInstancesCount() || 1;
+            //计算需要的pointer数量
+            let count = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);
+            //计算需要的pointer长度
+            let sizeOfInstances = Math.ceil(count * byteSizeOfBuffer * this.outsideInstanceCountOfDefaultStride / 256) * 256;
+            //没有storage pointer，创建一个
+            if (this.bufferPointers[nameOfPointer] == undefined) {
+                this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
+                let pointerParams: I_pointerCreateParams = {
+                    name: `${this.ID.toString()} ${perBuffer.name}:count=${instanceCount},size=${sizeOfInstances}`,
+                    byteSize: sizeOfInstances,
+                    type: E_BOLBufferType.storage,
+                    viewType: "f32",//不使用view，各自更新各自的buffer
+                };
+                this.bufferPointers[nameOfPointer] = this.scene.pointers.createPointer(pointerParams, this);
+                // console.log("EntityID:", this.ID, perBuffer.name, "创建大小:", sizeOfInstances, "指针ID:", this.bufferPointers[nameOfPointer].pointerID, "实例数量:", instanceCount);
+
+            }
+            //长度不相等
+            else if (this.bufferPointers[nameOfPointer].byteLength != sizeOfInstances) {
+                this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
+                let newPointer = this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, sizeOfInstances);
+                if (newPointer) {
+                    newPointer.name = `${this.ID.toString()} ${perBuffer.name}:count=${instanceCount},size=${sizeOfInstances}`;
+                    this.bufferPointers[nameOfPointer] = newPointer;
+                    // console.log("Resize ~ EntityID:", this.ID, "实例数量:", instanceCount, perBuffer.name, `Resize pointer:${newPointer.pointerID},size:${sizeOfInstances},offset:${newPointer.offset}`);
+                }
+                else {
+                    throw new Error("更新实例化数组与GPU实例化数组失败");
+                }
+            }
+        }
+    }
     /** 清除DCC 渲染队列*/
     clearDC() {
         this.cameraDC = {};
         this.shadowmapDC = {};
     }
     // /**
-    //  * 透明的实体由于使用了camera的GBUffer，所以需要处理onSize
     //  */
     // onResize(): void {
     //     for (let i in this.cameraDC) {
@@ -655,11 +754,13 @@ export abstract class BaseEntity extends NodeSpace {
             this.upgradeLights()
         }
     }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // pointer 相关
 
     intUniformCommonEntity() {
         let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
         let pointerParams: I_pointerCreateParams = {
-            name: this.ID.toString() + "_CommonEntity",
+            name: this.ID.toString() + " uniform",
             byteSize: offsetSize,//uniform data 的bytesize大小
             type: E_BOLBufferType.uniform,
             viewType: "u8",//由于data是ArrayBuffer,按照u8处理
@@ -696,106 +797,36 @@ export abstract class BaseEntity extends NodeSpace {
             this.scene.pointers.updatePointerWriteTime(this.bufferPointers.uniformCommonEntity);
         }
     }
-    /**
-     * 获取instance总数量：内部instance*外部instance
-     * @param outside 是否只获取外部instance数量
-     *      true表示只获取外部instance数量，
-     *      false表示获取内部instance数量*外部instance数量
-     * @returns number
-     */
-    getInstancesCount(outside: boolean = false): number {
-        let outsideInstanceCount = this.outSideInstance.length;
-        if (outsideInstanceCount === 0) {
-            // console.log(outsideInstanceCount);
-        }
-        if (outside) {
-            return outsideInstanceCount;
-        }
-        // if (outsideInstanceCount === 0) outsideInstanceCount = 1;
-        return this.instance.numInstances * outsideInstanceCount
-    }
 
-    /**
-     * 检查相关storage buffer的状态，根据instance数量已经动画进行创建、更新或保持
-     * @param name buffer name
-     * @returns  boolen :是否存在
-     * 1、instances 和 worldMatrix 会忽略返回值
-     * 2、morph target 和 骨骼动画 根据是否有动画返回boolean值
-     */
-    checkStorageBuffer(name: string): boolean {
-        /**
-         * 1、判断ArrayBuffer是否存在
-         * 2、判断长度是否与instance数量匹配
-         * 3、判断是否存在动画
-         *      A、morph target
-         *      B、skins
-         * 4、根据reNew是否创建ArrayBuffer和GPUBuffer
-         */
-        let nameOfPointer = name as keyof typeof this.bufferPointers;
-        let byteSizeOfBuffer = this._instanceInfoByteSize;
-        if (name == "instances") {
-            byteSizeOfBuffer = this._instanceInfoByteSize;
-        }
-        else if (name == "wolrdMatrix") {
-            byteSizeOfBuffer = this._instanceWorldMatrixByteSize;
-        }
-        //实例化
-        let instanceCount = this.getInstancesCount() //|| 1;
-        let count = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);
-        let sizeOfInstances = Math.ceil(count * byteSizeOfBuffer * this.outsideInstanceCountOfDefaultStride / 256) * 256;
-        //没有
-        if (this.bufferPointers[nameOfPointer] == undefined) {
-            this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
-            // let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
-            // let offsetSize = sizeOfInstances;
-            let pointerParams: I_pointerCreateParams = {
-                name: this.ID.toString() + "_" + name,
-                byteSize: sizeOfInstances,
-                type: E_BOLBufferType.storage,
-                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
-            };
-            this.bufferPointers[nameOfPointer] = this.scene.pointers.createPointer(pointerParams, this);
-        }
-        //长度不相等
-        else if (this.bufferPointers[nameOfPointer].byteLength != sizeOfInstances) {
-            this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
-            let newPointer = this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, sizeOfInstances);
-            if (newPointer) {
-                this.bufferPointers[nameOfPointer] = newPointer;
+
+    /** 更新|初始化实例化数组 */
+    updateInstanceBuffer() {
+        if (this.flagOutsideInstanceCountChange) {
+            //update：cpu and gpu
+            if (this.bufferPointers.instances) {
+                let offset = this.bufferPointers.instances.offset;
+                //外部instance
+                for (let i in this.outSideInstance) {
+                    let perNode = this.outSideInstance[i];
+                    //内部instance
+                    for (let j = 0; j < this.instance.numInstances; j++) {
+                        // let instanceIndex = Number(i) * Number(j) * this._instanceInfoByteSize;
+                        let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceInfoByteSize + offset;
+                        const st_instance_infoViews = {
+                            node_id: new Uint32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex, 1),
+                            stage_id: new Uint32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex + 4, 1),
+                            uv: new Float32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex + 8, 2),
+                        };
+                        st_instance_infoViews.node_id[0] = perNode.ID;
+                        st_instance_infoViews.stage_id[0] = perNode.stageID;
+                        st_instance_infoViews.uv.set(this._uv);
+                    }
+                }
+                this.scene.pointers.updatePointerWriteTime(this.bufferPointers.instances);
             }
             else {
                 throw new Error("更新实例化数组与GPU实例化数组失败");
             }
-        }
-        return this.bufferPointers[nameOfPointer] != undefined;
-    }
-    /** 更新|初始化实例化数组 */
-    updateInstanceBuffer() {
-        this.checkStorageBuffer("instances");//instance 不考虑返回值
-        //update：cpu and gpu
-        if (this.bufferPointers.instances) {
-            let offset = this.bufferPointers.instances.offset;
-            //外部instance
-            for (let i in this.outSideInstance) {
-                let perNode = this.outSideInstance[i];
-                //内部instance
-                for (let j = 0; j < this.instance.numInstances; j++) {
-                    // let instanceIndex = Number(i) * Number(j) * this._instanceInfoByteSize;
-                    let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceInfoByteSize + offset;
-                    const st_instance_infoViews = {
-                        node_id: new Uint32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex, 1),
-                        stage_id: new Uint32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex + 4, 1),
-                        uv: new Float32Array(this.bufferPointers.instances.cpuBuffer, instanceIndex + 8, 2),
-                    };
-                    st_instance_infoViews.node_id[0] = perNode.ID;
-                    st_instance_infoViews.stage_id[0] = perNode.stageID;
-                    st_instance_infoViews.uv.set(this._uv);
-                }
-            }
-            this.scene.pointers.updatePointerWriteTime(this.bufferPointers.instances);
-        }
-        else {
-            throw new Error("更新实例化数组与GPU实例化数组失败");
         }
     }
     /**
@@ -814,7 +845,6 @@ export abstract class BaseEntity extends NodeSpace {
      * 1、生成所有的instance 的矩阵，连续的，不考虑可见性与可用性；后期增加判断，避免重复计算
     */
     updateWorldMatrixBuffer(_clock?: Clock) {
-        this.checkStorageBuffer("wolrdMatrix");//world matrix 不考虑返回值
         //update：cpu and gpu
         if (this.bufferPointers.wolrdMatrix) {
             let offset = this.bufferPointers.wolrdMatrix.offset;
@@ -924,15 +954,30 @@ export abstract class BaseEntity extends NodeSpace {
         }
         //当前帧有pointer布局有变化（来自BOL系统，非entity的变化，比如BOL的rebuild等），更新bind group
         else {
-            if (this.bufferPointers.uniformCommonEntity?.rebuildTime == this.scene.clock.now
+            //当前帧匹配，调试模式下，使用手工调用rebuild，不能精确匹配。非手工模式可以
+            // if (this.bufferPointers.uniformCommonEntity?.rebuildTime == this.scene.clock.now
+            //     ||
+            //     this.bufferPointers.instances?.rebuildTime == this.scene.clock.now
+            //     ||
+            //     this.bufferPointers.wolrdMatrix?.rebuildTime == this.scene.clock.now
+            // )
+
+            //匹配手工和当前帧模式
+            if (this.bufferPointers.uniformCommonEntity?.rebuildTime
                 ||
-                this.bufferPointers.instances?.rebuildTime == this.scene.clock.now
+                this.bufferPointers.instances?.rebuildTime
                 ||
-                this.bufferPointers.wolrdMatrix?.rebuildTime == this.scene.clock.now
+                this.bufferPointers.wolrdMatrix?.rebuildTime
             ) {
+                //重新设置为0
+                this.bufferPointers.uniformCommonEntity!.rebuildTime = 0;
+                this.bufferPointers.instances!.rebuildTime = 0;
+                this.bufferPointers.wolrdMatrix!.rebuildTime = 0;
                 createBindGroup = true;
+                // console.log("rebuild time:", this.bufferPointers.wolrdMatrix?.rebuildTime, "system time:", this.scene.clock.now);
             }
         }
+
         //创建或更新bind group
         if (createBindGroup === true) {
             let entries: GPUBindGroupEntry[] = this.generateGPUBindGroupEntries();

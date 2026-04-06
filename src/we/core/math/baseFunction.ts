@@ -36,9 +36,10 @@ const weNodeIDs = new Set();
  */
 export function WeGenerateID() {
     // return  WERandomInt(10000, 40000) + WERandomInt(1001, 10000)+ WERandomInt(100, 1000)+ WERandomInt(1, 100);
-    let id;
+    let id=0;
     do {
-        id = Math.floor(Math.random() * 65536);//shader 中，ID 为16位（u32中的16位）。最大值为65536，如果需要扩大ID范围，需要修改shader。
+        // id = Math.floor(Math.random() * 65536);//shader 中，ID 为16位（u32中的16位）。最大值为65536，如果需要扩大ID范围，需要修改shader。
+        id++;
     } while (weIDs.has(id));
     weIDs.add(id);
     return id;

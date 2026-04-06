@@ -164,7 +164,7 @@ export class Graphics {
             dynamicAttribute: true,
         }
         this.linesOfDebug = new Lines(inputMesh);
-        window.lines=this.linesOfDebug;
+        window.lines = this.linesOfDebug;
 
         this.instanceGroups = [];
         let boxGeometry = new BoxGeometry({ width: 2.0, height: 2.0, depth: 2.0 });
@@ -202,6 +202,7 @@ export class Graphics {
                     });
             })
         );
+        
 
         this.instanceGroups.push(
             materials.map((material) => {
@@ -222,6 +223,7 @@ export class Graphics {
                     });
             })
         );
+        
 
 
     }
@@ -233,9 +235,9 @@ export class Graphics {
             let abc = 1;
             this.linesOfDebug.Visible = true;
             this.linesOfDebug.setVertexBuffer("position", Array.from(buffers.vertices));
-            let colors:number[]=[];
-            for(let i=0;i<buffers.colors.length;i+=4){
-                colors.push(buffers.colors[i],buffers.colors[i+1],buffers.colors[i+2]);
+            let colors: number[] = [];
+            for (let i = 0; i < buffers.colors.length; i += 4) {
+                colors.push(buffers.colors[i], buffers.colors[i + 1], buffers.colors[i + 2]);
             }
             this.linesOfDebug.setVertexBuffer("color", colors);
         } else {
@@ -262,7 +264,9 @@ export class Graphics {
 
     reset() {
         this.rb2colls.forEach((colls) => {
-            colls.forEach((coll) => this.removeCollider(coll));
+            colls.forEach((coll) =>
+                this.removeCollider(coll)
+            );
         });
         this.coll2mesh.forEach((mesh) => {
             mesh.destroy();

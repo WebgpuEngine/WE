@@ -35,12 +35,12 @@ export class EntityManager extends ECSManager<BaseEntity> {
     update(clock: Clock) {
         this.checkDestroy();
         for (let entity of this.list) {//所有entity
+            entity.preUpdate(clock); //检查instance变化
             if (entity.isDestroy() === false &&
-                entity.getInstancesCount(true) > 0 &&
+                entity.getInstancesCount() > 0 &&
                 entity.enable === true &&
                 entity.visible === true
             ) {//&& entity.enable === true && entity.visible === true
-                //更新entity bindGroup
                 entity.update(clock);
                 //camera
                 for (let UUID in entity.cameraDC) {//一个entity的所有camera

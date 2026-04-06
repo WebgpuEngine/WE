@@ -21,9 +21,7 @@ export class WireFrameMaterial extends ColorMaterial {
     getTOFS(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    _destroy(): void {
-        // throw new Error("Method not implemented.");
-    }
+ 
 
     constructor(input: I_ColorMaterial) {
         super(input);

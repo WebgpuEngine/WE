@@ -119,9 +119,11 @@ export class Pointers {
     }
     /** 创建指针ID */
     createPointerID() {
-        let id = this.lastPointerID;
+        let id = -1;
+        // let id = this.lastPointerID;
         do {
-            id = this.lastPointerID++;
+            id++;
+            // id = this.lastPointerID++;
         } while (this.pointerID.has(id));
         this.pointerID.add(id);
         return id;
@@ -256,7 +258,7 @@ export class Pointers {
         if (params.data && params.data.sourceData) {
             this.updatePointerData(perOnePointer, params.data);
         }
-        if(owner ){
+        if (owner) {
             perOnePointer.owner = owner;
         }
         //5、返回指针信息；
@@ -401,10 +403,12 @@ export class Pointers {
             pointer.offset = offset;
             pointer.BolID = BolID;
             pointer.rebuildTime = timer;
+            pointer.gpuBufferView.offset = offset;
+            console.log("pointer rebuild time:", timer, "pointerID:", pointerID);
         }
     }
     /** 释放指针 */
-    releasePointer(id: number): boolean {
+    releasePointer(id: number, resize: boolean = false): boolean {
         //1、释放BOL内存
         let pointer = this.pointers.get(id);
         if (!pointer) {
@@ -416,7 +420,10 @@ export class Pointers {
         }
         //2、删除指针
         this.pointers.delete(id);
-        // this.pointerID.delete(id);
+        if (!resize) {
+            this.pointerID.delete(id);
+        }
+        // console.log("pointer release", id);
         return true;
     }
     /** 获取指针的GPUBufferBinding */
@@ -466,7 +473,7 @@ export class Pointers {
             viewType: pointerOld.viewType,
             pointerID: pointerOld.pointerID,
         }
-        this.releasePointer(pointerID);
+        this.releasePointer(pointerID, true);
         return this.createPointer(params);
     }
 }

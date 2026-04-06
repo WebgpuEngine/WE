@@ -7,6 +7,7 @@ import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 
 export interface I_UUID {
     UUID: string,
+    _id: number,
     _isDestroy: boolean,
 
 }
@@ -123,6 +124,7 @@ export abstract class RootGPU implements I_UUID {
     abstract readyForGPU(): Promise<any>
     destroy(): void {
         if (this._isDestroy) return;
+        this._isDestroy = true;
         if (this.resourcesGPU) {
             for (let i of this.mapList) {
                 if (i.map && this.resourcesGPU.getProperty(i.map as keyof ResourceManagerOfGPU)) {
@@ -133,7 +135,6 @@ export abstract class RootGPU implements I_UUID {
             }
         }
         this._destroy();
-        this._isDestroy = true;
     }
     abstract _destroy(): void;
     /**

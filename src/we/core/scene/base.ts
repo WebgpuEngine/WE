@@ -3,7 +3,7 @@ import { commmandType } from "../command/base"
 import { IV_DirectionalLight } from "../light/DirectionalLight"
 import { Scene } from "./scene"
 
-export declare interface IV_Scene {
+export interface IV_Scene {
     /**canvas id */
     canvas: string,
     /**是否禁用canvas的context, 默认=true */

@@ -6,5 +6,13 @@ export default defineConfig({
   plugins: [
     wasm(), 
     topLevelAwait() // 解决 Wasm 初始化时的顶层 await 问题
-  ]
+  ],
+  server:{
+    hmr:{
+      overlay:false,
+    }
+  },
+  build:{
+    sourcemap:true,
+     }
 });
