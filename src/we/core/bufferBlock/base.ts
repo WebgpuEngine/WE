@@ -10,7 +10,6 @@ export enum E_BOLState {
     released,
     rebuilding,
 }
-
 /** buffer 类型
  * 1、static：静态VS，必须有初始化数据,建立后，立即释放，不保存CPU端数据。
  * 2、VS：运行时静态VS。
@@ -25,6 +24,8 @@ export enum E_BOLBufferType {
     uniform = "uniform",
     storage = "storage",
 }
+
+
 /** BOL Buffer 大小定义接口 */
 export interface I_BolSize {
     [E_BOLBufferType.static]?: number;
@@ -33,7 +34,10 @@ export interface I_BolSize {
     [E_BOLBufferType.uniform]?: number;
     [E_BOLBufferType.storage]?: number;
 }
-/** BOL Buffer 默认大小 */
+/** BOL Buffer 默认大小
+ * 1、这里时默认值
+ * 2、可以通过scene的初始化参数进行调整
+ */
 export const V_BolBufferSize: I_BolSize = {
     [E_BOLBufferType.static]: 1024 * 1024 * 20,//20MB
     [E_BOLBufferType.VS]: 1024 * 1024 * 10,//10MB
@@ -57,6 +61,17 @@ export interface I_BolRebulidPercent {
     /** 存储重建百分比，阈值：0.3 */
     storage?: number,
 }
+/** BOL 重建百分比默认值 
+ * 1、这里时默认值
+ * 2、可以通过scene的初始化参数进行调整
+*/
+export const V_BolRebulidPercent: I_BolRebulidPercent = {
+    VS: 0.3,
+    dynamicVS: 0.3,
+    uniform: 0.2,
+    storage: 0.1,
+}
+
 
 
 /** BOL合并更新间距阈值定义接口 */
@@ -74,9 +89,9 @@ export interface I_BolStrideSizeOfUpdate {
 }
 
 /** BOL 合并更新间距阈值
- * 1、默认64K
- * 2、合并更新间距更新。
- */
+ * 1、默认合并更新间距。
+ * 2、可以通过scene的初始化参数进行调整。
+4 */
 export const V_BolStrideSizeOfUpdate: I_BolStrideSizeOfUpdate = {
     /** 这个是不更新的*/
     // static: 10 * 1024 * 1024,
@@ -92,4 +107,3 @@ export const V_BolStrideSizeOfUpdate: I_BolStrideSizeOfUpdate = {
     storage: 1 * 64 * 1024,
     // storage: 256,
 }
-

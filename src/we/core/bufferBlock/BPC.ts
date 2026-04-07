@@ -1,6 +1,6 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { E_BOLState, E_BOLBufferType, I_BolSize, I_BolStrideSizeOfUpdate, V_BolBufferSize, V_BolStrideSizeOfUpdate, I_BolRebulidPercent } from "./base";
+import { E_BOLState, E_BOLBufferType, I_BolSize, I_BolStrideSizeOfUpdate, V_BolBufferSize, V_BolStrideSizeOfUpdate, I_BolRebulidPercent, V_BolRebulidPercent } from "./base";
 import { BlockOffsetLength, I_pointerInfoInBOL, IV_BOL } from "./BOL";
 import { MemoryBlockManager } from "./MBM";
 import { I_pointerCreateParams, Pointers } from "./pointer";
@@ -36,12 +36,7 @@ export class BlockPointerCoordinator {
     } = {
             updateStrideSize: V_BolStrideSizeOfUpdate,
             sizeOfBOL: V_BolBufferSize,
-            rebuildPecent: {
-                VS: 0.3,
-                dynamicVS: 0.3,
-                uniform: 0.3,
-                storage: 0.3,
-            },
+            rebuildPecent: V_BolRebulidPercent,
         }
 
     /** 指针管理器 */
@@ -76,6 +71,7 @@ export class BlockPointerCoordinator {
         this.clock = scene.clock;
         this.MBM = scene.memoryBlockManager;
         if (scene.BOL !== undefined) {
+            // BOL合并更新间距阈值，需要计算整除情况：4 || 256
             if (scene.BOL.updateStrideSize !== undefined) {
                 for (let i in scene.BOL.updateStrideSize) {
                     let baseStride=4;
@@ -91,6 +87,7 @@ export class BlockPointerCoordinator {
                     this.BOL_params.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate];
                 }
             }
+            // BOL大小，需要计算整除情况：4 || 256
             if (scene.BOL.size !== undefined) {
                 for (let i in scene.BOL.size) {
                     let baseStride=4;
@@ -107,6 +104,7 @@ export class BlockPointerCoordinator {
                     this.BOL_params.sizeOfBOL[i as E_BOLBufferType] = scene.BOL.size[i as E_BOLBufferType];
                 }
             }
+            // BOL重建百分比
             if (scene.BOL.rebuildPecent !== undefined) {
                 for (let i in scene.BOL.rebuildPecent) {
                     this.BOL_params.rebuildPecent[i as keyof I_BolRebulidPercent] = scene.BOL.rebuildPecent[i as keyof I_BolRebulidPercent];
@@ -235,7 +233,7 @@ export class BlockPointerCoordinator {
         }
         let bol = this.BOLs.all.get(id);
         if (bol) {
-            let pointerCount = bol.pointerIdList.length;
+            let pointerCount = bol.pointerIdList.size;
             if (pointerCount > 0) {
                 console.warn(`BOL ${id} 有 ${pointerCount} 个指针，不能删除`);
                 //有指针，不能删除
