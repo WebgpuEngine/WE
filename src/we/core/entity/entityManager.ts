@@ -94,7 +94,7 @@ export class EntityManager extends ECSManager<BaseEntity> {
     }
 
     getNodeByIDs(IDs: pickupTargetOfIDs): NodeObject {
-        let entity = this.list.find((entity) => entity.ID == IDs.entityID);
+        let entity = this.list.find((entity) => entity.ID == IDs.nodeID);
         if (entity) {
             let instances = this.instances.get(entity);
             if (instances != undefined) {

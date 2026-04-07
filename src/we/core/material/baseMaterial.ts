@@ -91,7 +91,7 @@ export abstract class BaseMaterial extends RootGPU {
      * 纹理
      * ！！！这里定义的是any，后续各种材质所需要的纹理根据情况，进行declare
     */
-    textures!: any
+    textures: any
 
     /**
      * 是否更新过，由entity调用，

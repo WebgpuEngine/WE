@@ -7,7 +7,7 @@ import { pickupManager } from "./pickupManager";
 
 export interface pickupTargetOfIDs {
     stageID: number,
-    entityID: number;
+    nodeID: number;
     instanceID: number;
     worldPosition?: [number, number, number]//未实现，在map中没有进行worldposition的数据
 }

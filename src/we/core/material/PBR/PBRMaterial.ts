@@ -22,19 +22,10 @@ import { Texture } from "../../texture/texture";
 import { E_MaterialType, E_MaterialUniformKind, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_MaterialUniformTextureBundle, IV_BaseMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 import { createUniformBuffer } from "../../command/baseFunction";
+import { I_pointerCreateParams } from "../../bufferBlock/pointer";
+import { E_BOLBufferType } from "../../bufferBlock/base";
 
-// /**
-//          * string ： url配置文件(url.json)
-//          *  1、irradianceMap：文件url数组
-//          *  2、perfilteredMap：文件url数组
-//          *  3、brdfLUT:文件url
-//          *  4、cubeMap：       名称+   '_px.jpg', '_nx.jpg','_py.jpg', '_ny.jpg','_pz.jpg','_nz.jpg',
-//          */
-// interface I_EnvMap {
-//     irradianceMap: I_BaseTexture | CubeTexture,
-//     perfilteredMap: I_BaseTexture | CubeTexture,
-//     brdfLUT: I_BaseTexture | Texture,
-// }
+
 
 
 /**
@@ -170,12 +161,8 @@ export class PBRMaterial extends BaseMaterial {
     declare textures: {
         [name: string]: Texture
     };
-    /** 材质的uniform GPUBuffer，用于shader */
-    // uniformGPUBuffer!: GPUBuffer;
-    /** 材质的uniform数据，ArrayBuffer 
-     * size: 320,取决WGSL 结构体大小
-    */
-    uniformArrayBuffer = new ArrayBuffer(320);
+    /** 材质的uniform数据，ArrayBuffer 大小 */
+    uniformGPUBufferSize = 320;
     /** 
      * 材质的uniform数据，ArrayBuffer 视图,完整对应WGSL结构体：struct PBRUniformInput
      * 1、每个属性使用相同的结构体布局
@@ -190,78 +177,165 @@ export class PBRMaterial extends BaseMaterial {
      *       value: vec4f,//uniform value,按需匹配textureChannel适用
      * 
      */
-    uniformArrayBufferViews = {
+    uniformArrayBufferViews !: {
         albedo: {
-            kind: new Int32Array(this.uniformArrayBuffer, 0, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 4, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 8, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 12, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 16, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         metallic: {
-            kind: new Int32Array(this.uniformArrayBuffer, 32, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 36, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 40, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 44, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 48, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         roughness: {
-            kind: new Int32Array(this.uniformArrayBuffer, 64, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 68, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 72, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 76, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 80, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         ao: {
-            kind: new Int32Array(this.uniformArrayBuffer, 96, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 100, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 104, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 108, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 112, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         normal: {
-            kind: new Int32Array(this.uniformArrayBuffer, 128, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 132, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 136, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 140, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 144, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         color: {
-            kind: new Int32Array(this.uniformArrayBuffer, 160, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 164, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 168, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 172, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 176, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         emissive: {
-            kind: new Int32Array(this.uniformArrayBuffer, 192, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 196, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 200, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 204, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 208, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
-            kind: new Int32Array(this.uniformArrayBuffer, 224, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 228, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 232, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 236, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 240, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         alpha: {
-            kind: new Int32Array(this.uniformArrayBuffer, 256, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 260, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 264, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 268, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 272, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
         [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
-            kind: new Int32Array(this.uniformArrayBuffer, 288, 1),
-            textureChannel: new Int32Array(this.uniformArrayBuffer, 292, 1),
-            data1: new Float32Array(this.uniformArrayBuffer, 296, 1),
-            data2: new Float32Array(this.uniformArrayBuffer, 300, 1),
-            value: new Float32Array(this.uniformArrayBuffer, 304, 4),
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Float32Array,
+            data2: Float32Array,
+            value: Float32Array,
         },
     };
+    /** 创建uniformPointer */
+    createUniformPointer() {
+        if (this.uniformPointer == undefined) {
+            let pointerParams: I_pointerCreateParams = {
+                name: `uniform ${this.kind} material: ${this.UUID}`,
+                byteSize: this.getPointerByteSize(this.uniformGPUBufferSize),
+                type: E_BOLBufferType.uniform,
+                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+            };
+            this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
+            let offset = this.uniformPointer.offset;
+            let uniformArrayBuffer = this.uniformPointer.cpuBuffer;
+
+            this.uniformArrayBufferViews = {
+                albedo: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 0, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 4, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 8, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 12, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 16, 4),
+                },
+                metallic: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 32, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 36, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 40, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 44, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 48, 4),
+                },
+                roughness: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 64, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 68, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 72, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 76, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 80, 4),
+                },
+                ao: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 96, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 100, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 104, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 108, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 112, 4),
+                },
+                normal: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 128, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 132, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 136, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 140, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 144, 4),
+                },
+                color: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 160, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 164, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 168, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 172, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 176, 4),
+                },
+                emissive: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 192, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 196, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 200, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 204, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 208, 4),
+                },
+                [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
+                    kind: new Int32Array(uniformArrayBuffer, offset + 224, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 228, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 232, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 236, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 240, 4),
+                },
+                alpha: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 256, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 260, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 264, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 268, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 272, 4),
+                },
+                [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
+                    kind: new Int32Array(uniformArrayBuffer, offset + 288, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 292, 1),
+                    data1: new Float32Array(uniformArrayBuffer, offset + 296, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 300, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 304, 4),
+                },
+            }
+        }
+    }
     /**
      * CPU端保存uniform对应数据的Bundle载体。
      * 1、kind同WGSL结构体中kind（也直接对应 arraybuffer）
@@ -357,20 +431,9 @@ export class PBRMaterial extends BaseMaterial {
         this.kind = E_MaterialType.PBR;
         this.textures = {};
     }
-    // getAttributeOfThisTextures(texture: T_ThisTexturesType): E_ThisTexturesType {
-    //     if (texture instanceof Texture) {
-    //         return E_ThisTexturesType.texture;
-    //     }
-    //     else if (isWeVec3(texture)) {
-    //         return E_ThisTexturesType.weVec3;
-    //     }
-    //     else if (typeof texture == "number") {
-    //         return E_ThisTexturesType.number;
-    //     }
-    //     throw new Error("texture type error");
-    // }
+
     async readyForGPU(): Promise<any> {
-        // this.defaultSampler = this.checkSampler(this.inputValues);
+        this.createUniformPointer();
         //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
             let textureSource = this.inputValues.textures[key as vialidPBRTextureType];
@@ -594,7 +657,8 @@ export class PBRMaterial extends BaseMaterial {
                 bufferView.value.set(uniform.value);
             }
         }
-        this.uniformGPUBuffer = createUniformBuffer(this.device, "PBR", this.uniformArrayBuffer);
+        // this.uniformGPUBuffer = createUniformBuffer(this.device, "PBR", this.uniformArrayBuffer);
+        this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
     }
     /**
      * 创建纹理
@@ -666,7 +730,7 @@ export class PBRMaterial extends BaseMaterial {
                 groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_pbr_uniform : PBRUniformInput; \n `;
                 let uniformBuffer: GPUBindGroupEntry = {
                     binding: binding,
-                    resource: this.uniformGPUBuffer,
+                    resource: this.uniformPointer.gpuBufferView,
                 };
                 let uniformBufferLayout: GPUBindGroupLayoutEntry = {
                     binding: binding,
@@ -675,9 +739,7 @@ export class PBRMaterial extends BaseMaterial {
                         type: "uniform",
                     },
                 };
-                //添加到resourcesGPU的Map中
-                this.scene.resourcesGPU.set(uniformBuffer, uniformBufferLayout);
-                this.mapList.push({ key: uniformBuffer, type: "GPUBindGroupLayoutEntry" });
+                this.unifromEntryLayout.push(uniformBufferLayout);
                 //push到uniform1队列
                 uniform1.push(uniformBuffer);
                 //+1
@@ -699,10 +761,8 @@ export class PBRMaterial extends BaseMaterial {
                             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                             texture: perTexture.texture!.defaultTextureLayout(),
                         };
-                        //添加到resourcesGPU的Map中
-                        this.scene.resourcesGPU.set(uniformTexture, uniformTextureLayout);
-                        this.mapList.push({ key: uniformTexture, type: "GPUBindGroupLayoutEntry" });
                         //push到uniform1队列
+                        this.unifromEntryLayout.push(uniformTextureLayout);
                         uniform1.push(uniformTexture);
                         //+1
                         binding++;
@@ -721,9 +781,7 @@ export class PBRMaterial extends BaseMaterial {
                                 type: perTexture.samplerBindingType!,
                             },
                         };
-                        //添加到resourcesGPU的Map中
-                        this.scene.resourcesGPU.set(uniformSampler, uniformSamplerLayout);
-                        this.mapList.push({ key: uniformSampler, type: "GPUBindGroupLayoutEntry" });
+                        this.unifromEntryLayout.push(uniformSamplerLayout);
                         //push到uniform1队列
                         uniform1.push(uniformSampler);
                         //+1

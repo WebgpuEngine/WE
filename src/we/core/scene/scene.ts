@@ -479,9 +479,9 @@ export class Scene {
         this.entityManager = new EntityManager(this);
         this.lightsManager = new LightsManager(this);
         this.cameraManager = new CameraManager({ scene: this });
+        this.inputManager = new InputManager(this);
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
-        this.inputManager = new InputManager(this);
         this.DCG = new DrawCommandGenerator({ scene: this, parent: this });
     }
     getResourceDefaultPBR(): PBRMaterial {

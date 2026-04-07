@@ -164,12 +164,12 @@ export class Pickup extends BaseInputControl {
                 let stageID = resultOfID[0];
                 stageID = stageID >>> 30;
                 let entityIDMask = (1 << 30) - 1;
-                let entity = resultOfID[0] & entityIDMask;
-                entity = entity >> 14;
+                let nodeID = resultOfID[0] & entityIDMask;
+                nodeID = nodeID >> 14;
                 let instance = resultOfID[0] & 0x3fff;
                 ids = {
                     stageID: stageID,
-                    entityID: entity,
+                    nodeID: nodeID,
                     instanceID: instance
                 }
             }
