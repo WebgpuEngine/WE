@@ -160,6 +160,7 @@ export abstract class BaseMaterial extends RootGPU {
         this._state = E_lifeState.unstart;
     }
      _destroy(): void{
+        console.log("===material destroy release pointer", this.uniformPointer.pointerID);
         this.scene.pointers.releasePointer(this.uniformPointer.pointerID);
      }
 

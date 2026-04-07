@@ -259,7 +259,7 @@ export class BlockOffsetLength implements I_UUID {
      * 2、更新指针的offset和byteLength
      */
     rebuild() {
-        // console.log("-------------------------------------------------rebuild",this.type);
+        console.log("-------------------------------------------------rebuild",this.type);
         /**         
          * 步骤：
          * 1、设置flagWriteAll为true，以及size重置

@@ -85,7 +85,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     }
     override _destroy(): void {
         super._destroy();
-        this._material.destroy();
+        // this._material.destroy();
         //@ts-ignore
         this._material = undefined;
     }

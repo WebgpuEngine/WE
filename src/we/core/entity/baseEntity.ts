@@ -305,13 +305,13 @@ export abstract class BaseEntity extends NodeSpace {
         this.outSideInstanceCountPreFrame = 0;
         for (let i in this.bufferPointers) {
             let perPointer = this.bufferPointers[i as keyof typeof this.bufferPointers]!;
-            console.log("===entity destroy release pointer", perPointer.pointerID);
+            // console.log("===entity destroy release pointer", perPointer.pointerID);
             this.scene.pointers.releasePointer(perPointer.pointerID);
         }
         for (let i in this.vertexPointers) {
             if (!this.vertexPointers[i as keyof typeof this.vertexPointers].pointer != undefined) {
                 let perPointer: I_pointerStruct = this.vertexPointers[i as keyof typeof this.vertexPointers].pointer!;
-                console.log("===entity destroy release pointer", perPointer.pointerID);
+                // console.log("===entity destroy release pointer", perPointer.pointerID);
                 this.scene.pointers.releasePointer(perPointer.pointerID);
             }
         }
