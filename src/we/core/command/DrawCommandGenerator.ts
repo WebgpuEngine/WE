@@ -861,7 +861,6 @@ export class DrawCommandGenerator {
         let DC_vertexNames: string[] = [];//顶点资源的名称列表，反射code中的内容使用；exp："position"
         let DC_indexBuffer: I_VertexBufferEntry | undefined;//GPUBuffer默认使用uint32的格式。passEncoder.setIndexBuffer(this.indexBuffer, 'uint32');
         //1.1、顶点资源
-
         let shaderLocation = 0;//最多16个
         let location_i = 0;
         if (values.data.vertices) {
@@ -922,14 +921,14 @@ export class DrawCommandGenerator {
 
                         let vertexBuffer: GPUBuffer;
                         //判断是否以及存在顶点GPUBuffer
-                        if (!this.resources.verticesDynamic.has(value)) {
-                            vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
-                            this.resources.set(value, vertexBuffer, "vertices");
-                            this.resources.verticesDynamic.set(value, vertexBuffer);
-                        }
-                        else {
-                            vertexBuffer = this.resources.verticesDynamic.get(value) as GPUBuffer;
-                        }
+                        // if (!this.resources.verticesDynamic.has(value)) {
+                        vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
+                        // this.resources.set(value, vertexBuffer, "vertices");
+                        // this.resources.verticesDynamic.set(value, vertexBuffer);
+                        // }
+                        // else {
+                        //     vertexBuffer = this.resources.verticesDynamic.get(value) as GPUBuffer;
+                        // }
                         if (values.parent) values.parent.vertexPointers[lowKey] = { gpuBuffer: vertexBuffer };
 
                         // vertexBuffer = pointerOfVertex.gpuBufferView;
@@ -1374,14 +1373,31 @@ export class DrawCommandGenerator {
             }
             //1.2、索引资源
             if (values.data.indices) {
-                if (Array.isArray(values.data.indices)) {
-                    let wireFrame = values.label.includes("wireframe")?"Mesh":"Wireframe";
+                //索引资源为动态模式，且数据为数组类型
+                if (values.dynamic?.vs) {
+                    if (Array.isArray(values.data.indices)) {
+                        let data = new Uint32Array(values.data.indices);//默认:u32
+                        let index = createVerticesBuffer(this.device, `${values.IDS?.ID}->indices`, data);
+                        if (index) {
+                            DC_indexBuffer = {
+                                name: "indices " + values.label,
+                                buffer: index,
+                            }
+                        }
+                    }
+                    else {
+                        throw new Error("动态模式：索引资源数据必须是数组类型");
+                    }
+                }
+                //索引资源为数组
+                else if (Array.isArray(values.data.indices)) {
+                    let wireFrame = values.label.includes("wireframe") ? "Mesh" : "Wireframe";
                     let index: I_pointerStruct;
                     // let md5OfIndicesOfArray = MD5.hex(values.data.indices);
                     if (values.data.indices && values.data.indices.length > 0) {
 
-                        if (values.parent && values.parent.vertexPointers["index"+wireFrame]) {
-                            index = values.parent.vertexPointers["index"+wireFrame].pointer!;
+                        if (values.parent && values.parent.vertexPointers["index" + wireFrame]) {
+                            index = values.parent.vertexPointers["index" + wireFrame].pointer!;
                         }
                         else {
                             // if (!this.resources.hasIndices(md5OfIndicesOfArray)) {
@@ -1395,7 +1411,7 @@ export class DrawCommandGenerator {
                                 }
                             };
                             index = this.pointers.createPointer(pointerParams);
-                            if (values.parent) values.parent.vertexPointers["index"+wireFrame] = { pointer: index };
+                            if (values.parent) values.parent.vertexPointers["index" + wireFrame] = { pointer: index };
                             // this.resources.setIndices(md5OfIndicesOfArray, index);
                             // }
                             // else {
@@ -1412,6 +1428,7 @@ export class DrawCommandGenerator {
                         }
                     }
                 }
+                //索引资源为GPUBufferBundle
                 else {
                     let indexBundle = values.data.indices as I_indexGPUBufferBundle;
                     if (indexBundle) {

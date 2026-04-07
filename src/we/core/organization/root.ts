@@ -3,18 +3,20 @@ import type { Scene } from "../scene/scene";
 import { E_lifeState, I_Update } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
+import { ECSManager } from "./manager";
 
 
 export interface I_UUID {
+    _manager: any ;
     UUID: string,
     _id: number,
     _isDestroy: boolean,
-
 }
 ////////////////////////////////////////////////////////////RootGPU//////////////////////////////////////////////////////////////////////////////////////////
 
 
 export abstract class RootGPU implements I_UUID {
+
     device!: GPUDevice;
     scene!: Scene;
     /**
@@ -51,11 +53,13 @@ export abstract class RootGPU implements I_UUID {
      */
     type!: string;
 
-    /**
-     * 映射列表，用于存储映射关系，例如：[texture, bindGroupEntry]
-     * 例如：[texture, bindGroupEntry]
-     * destroy时需要删除映射关系
-     */
+    _manager: ECSManager<RootGPU>|undefined;
+
+    // /**
+    //  * 映射列表，用于存储映射关系，例如：[texture, bindGroupEntry]
+    //  * 例如：[texture, bindGroupEntry]
+    //  * destroy时需要删除映射关系
+    //  */
     mapList: {
         key: any,//key of map
         type: string, //类型
@@ -135,6 +139,9 @@ export abstract class RootGPU implements I_UUID {
             }
         }
         this._destroy();
+        if(this._manager){
+            this._manager.remove(this);
+        }
     }
     abstract _destroy(): void;
     /**

@@ -86,6 +86,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     override _destroy(): void {
         super._destroy();
         this._material.destroy();
+        //@ts-ignore
+        this._material = undefined;
     }
     /**三段式初始化的第三段
     * 覆写 Root的function,因为材料类需要GPUDevice 
@@ -104,6 +106,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     _vertexAndIndexBuffersUpdated: boolean = false;
     /**是否支持动态attribute数据 */
     _dynamicAttribute: boolean = false;
+
     /**
      * 更新顶点数据，
      * 1、如果是数组形式，直接更新
@@ -115,7 +118,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @returns 
      */
     setVertexBuffer(name: string, data: number[], option?: { type?: "float32" | "int32" | "uint32", stride?: number }) {
-        if (this._dynamicAttribute) {
+        if (this._dynamicAttribute && this.vertexPointers[name]) {//必须判断vertexPointers[name]是否存在，否则会报错(创建后，visible=false ，没有进行创建DC)，
             let replaceTarget = this.attributes.vertices[name];
             // if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isI_vsAttributeMerge(replaceTarget)) {
             if (Array.isArray(replaceTarget)) {
@@ -142,9 +145,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 }
 
                 //2.1 删除旧的vertexBuffer
-                let vertexBuffer = this.resourcesGPU.verticesDynamic.get(replaceTarget);
-                this.resourcesGPU.verticesDynamic.delete(replaceTarget);
-                vertexBuffer?.destroy();
+                // let vertexBuffer = this.resourcesGPU.verticesDynamic.get(replaceTarget);
+                let vertexBuffer = this.vertexPointers[name].gpuBuffer;
+                // this.resourcesGPU.verticesDynamic.delete(replaceTarget);
+                vertexBuffer.destroy();
 
                 let arrayBuffer;
                 if (option?.type == "int32") {
@@ -163,7 +167,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 }
                 //2.2 创建新的vertexBuffer
                 let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
-                this.resourcesGPU.verticesDynamic.set(this.attributes.vertices[name], vertexBufferNew);
+                // this.resourcesGPU.verticesDynamic.set(this.attributes.vertices[name], vertexBufferNew);
+                this.vertexPointers[name].gpuBuffer = vertexBufferNew;
 
 
                 //3.1  更新cameraDC队列
@@ -205,7 +210,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
     }
     setIndexBuffer(data: number[], option?: { stride?: number, wireFrame?: boolean }) {
-        if (this._dynamicAttribute) {
+        if (this._dynamicAttribute && this.vertexPointers.indices) {
             let wireFrame = "wireframe";
             let isWireFrame = false;
             if (option?.wireFrame == true) {
@@ -230,9 +235,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     //1.1 更新this.attributes.indices
                     this.attributes.indices = data;
                     //2.1 删除旧的indexBuffer
-                    let indexBuffer = this.resourcesGPU.indicesDynamic.get(replaceTarget);
-                    this.resourcesGPU.indicesDynamic.delete(replaceTarget);
-                    indexBuffer?.destroy();
+                    let indexBuffer = this.vertexPointers.indices.gpuBuffer;
+                    indexBuffer.destroy();
                     //2.2 创建新的indexBuffer
                     indexBuffer = createIndexBuffer(this.device, `${this.ID} rebuild indices `, new Uint32Array(data));
                     //3.1 更新cameraDC队列
@@ -353,7 +357,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 // if (position.length)
                 {
                     this.boundingBox = this.generateBox(position);
-                    this.boundingSphere = this.generateSphere(this.boundingBox);
+                    this.boundingSphere = this.generateSphere(this.boundingBox as boundingBox);
                 }
             }
         }
@@ -861,6 +865,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param camera 
      */
     createForwardDC(camera: BaseCamera): void {
+
         let UUID = camera.UUID;
         let SHT_VS = SHT_MeshVS;
         if (this.kind === E_entityType.lines) {

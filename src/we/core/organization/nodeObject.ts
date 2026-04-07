@@ -473,6 +473,9 @@ export abstract class NodeObject extends NodeSpace {
 
         super.destroy();
     }
+    _destroy(): void {
+            
+    }
 
     get children() { return this._children; }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -945,10 +948,10 @@ export class NodeInstance extends NodeObject {
         // throw new Error("Method not implemented.");
 
     }
-    _destroy(): void {
-        if (this._isDestroy) return;
-        // throw new Error("Method not implemented.");
-    }
+    // _destroy(): void {
+    //     if (this._isDestroy) return;
+    //     // throw new Error("Method not implemented.");
+    // }
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");
     }
@@ -973,9 +976,9 @@ export class NodeInstanceModel extends NodeObject {
         // throw new Error("Method not implemented.");
 
     }
-    _destroy(): void {
-        // throw new Error("Method not implemented.");
-    }
+    // _destroy(): void {
+    //     // throw new Error("Method not implemented.");
+    // }
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");
     }

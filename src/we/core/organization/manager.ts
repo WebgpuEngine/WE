@@ -21,6 +21,9 @@ export abstract class ECSManager<T extends I_UUID> {
             return;
         }
         this.list.push(entity);
+        if(entity._manager == undefined){
+            entity._manager = this;
+        }
     }
     remove(entity: T, scendValue?: any) {
         let index = this.list.indexOf(entity);

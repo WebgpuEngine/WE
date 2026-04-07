@@ -155,6 +155,8 @@ export class Mesh extends EntityBundleMaterial {
         super._destroy();
         if (this._materialWireframe) {
             this._materialWireframe.destroy();
+            //@ts-ignore
+            this._materialWireframe = undefined;
         }
     }
     /**三段式初始化的第三段
@@ -298,6 +300,7 @@ export class Mesh extends EntityBundleMaterial {
      * @returns wireframe 索引数组
      */
     createWrieFrame(position: number[], indeices: number[]) {
+        
         let list: { [name: string]: number[] };
         list = {};
         if (indeices.length == 0) {//如果没有索引，就按三角形来创建线框
