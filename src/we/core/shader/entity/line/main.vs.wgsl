@@ -14,8 +14,7 @@ attributes: st_location,
   var vsOutput : VertexShaderOutput;  
   $vsOutput
   $userCodeVS
-  $skinSkeleton
-  $morphTarget
+
 
 
   return vsOutput;

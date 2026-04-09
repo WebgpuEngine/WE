@@ -13,8 +13,7 @@ attributes: st_location,
   var vsOutput : VertexShaderOutput;  
   $vsOutput
   $userCodeVS
-  $skinSkeleton
-  $morphTarget
+
 
   // 骨骼动画shader部分，目前有DCG注入（由于有动态绑定）。若动画模式改为全GPU的storage和插值，再重新启用（需要适配）
   // if(u_entity_base.animation_kind == 4||u_entity_base.animation_kind == 5||u_entity_base.animation_kind == 6) {
