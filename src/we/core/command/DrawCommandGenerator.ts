@@ -905,7 +905,7 @@ export class DrawCommandGenerator {
                                 break;
                             case "joints":
                                 arrayStride = 4 * 4;
-                                format = "uint32x4";
+                                format = "float32x4";
                                 break;
                             case "weights":
                                 arrayStride = 4 * 4;
@@ -978,7 +978,7 @@ export class DrawCommandGenerator {
                             break;
                         case "joints":
                             arrayStride = 4 * 4;
-                            format = "uint32x4";
+                            format = "float32x4";
                             break;
                         case "weights":
                             arrayStride = 4 * 4;
