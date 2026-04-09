@@ -419,38 +419,38 @@ export var SHT_refDCG: I_singleShaderTemplate = {
                 " uv[2]= attributes.uv1[0]; \n uv[3]= attributes.uv1[1]; \n ",
             ],
         },
-        // 骨骼动画
-        {
-            name: "refName",
-            replace: "$skinSkeleton",
-            replaceType: E_shaderTemplateReplaceType.selectCode,                    //replaceType="selectCode",检查是否有属性,并根据check的检查属性进行替换
-            check: ["joints", "weights"],
-            selectCode: [
-                "",
-                ` 
-    if(u_entity_base.animation_kind == 4||u_entity_base.animation_kind == 5||u_entity_base.animation_kind == 6) {
-        var skin_mat: mat4x4f = mat4x4f(
-            vec4f(0.0, 0.0, 0.0, 0.0), // 第0列
-            vec4f(0.0, 0.0, 0.0, 0.0), // 第1列
-            vec4f(0.0, 0.0, 0.0, 0.0), // 第2列
-            vec4f(0.0, 0.0, 0.0, 0.0)  // 第3列（单位矩阵）
-        );
+    //     // 骨骼动画
+    //     {
+    //         name: "refName",
+    //         replace: "$skinSkeleton",
+    //         replaceType: E_shaderTemplateReplaceType.selectCode,                    //replaceType="selectCode",检查是否有属性,并根据check的检查属性进行替换
+    //         check: ["joints", "weights"],
+    //         selectCode: [
+    //             "",
+    //             ` 
+    // if(u_entity_base.animation_kind == 4||u_entity_base.animation_kind == 5||u_entity_base.animation_kind == 6) {
+    //     var skin_mat: mat4x4f = mat4x4f(
+    //         vec4f(0.0, 0.0, 0.0, 0.0), // 第0列
+    //         vec4f(0.0, 0.0, 0.0, 0.0), // 第1列
+    //         vec4f(0.0, 0.0, 0.0, 0.0), // 第2列
+    //         vec4f(0.0, 0.0, 0.0, 0.0)  // 第3列（单位矩阵）
+    //     );
 
-        let count = i32(u_entity_base.joint_matrix_count);
-        for(var i=0 ;i < 4;i++) {
-            let per_joint = u32(attributes.joints[i]);
-            // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
-            skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
-        }
-        worldPosition = skin_mat * vec4f(position, 1.0);
-        // worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));
-        vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
-        vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
-        vsOutput.normal = normalize(vec4f(skin_mat* vec4f(normal, 0)).xyz);
-    }
-        `,
-            ],
-        },
+    //     let count = i32(u_entity_base.joint_matrix_count);
+    //     for(var i=0 ;i < 4;i++) {
+    //         let per_joint = u32(attributes.joints[i]);
+    //         // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
+    //         skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
+    //     }
+    //     worldPosition = skin_mat * vec4f(position, 1.0);
+    //     // worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));
+    //     vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
+    //     vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
+    //     vsOutput.normal = normalize(vec4f(skin_mat* vec4f(normal, 0)).xyz);
+    // }
+    //     `,
+    //         ],
+    //     },
         //  morphTarget动画
         {
             name: "refName",

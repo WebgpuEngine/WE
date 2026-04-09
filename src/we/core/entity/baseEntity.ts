@@ -77,13 +77,26 @@ export abstract class BaseEntity extends NodeSpace {
 
     ///////////////////////////////////////////////////////////////////
     //uniform
-    /** 外部实例化数组stride数量，默认为4 */
+    /** 外部实例化数组stride数量，默认为4
+     * 1、storage和uniform的offset stride都是256byte
+     * 2、为什么是4：简单以矩阵为测算依据（每个矩阵16byte，4x4矩阵常用，而且是常用中最大的类型），64*4=256byte，所以4个4x4的矩阵为一个stride。
+     */
     outsideInstanceCountOfDefaultStride: number = 4;
+
     /** 实例化数组最后重新的时间 ,有stride（256byte）存在，外部实例化数量改变时，可能不需要renew */
     flagInstanceArrayBufferReNew: boolean = false;
+
     /** 是否外部实例化数量改变 ，只标记是否有数量变化*/
     flagOutsideInstanceCountChange: boolean = false;
 
+    /**
+     * storage buffer 偏移量最小值，默认为256byte
+     */
+    storageOffsetStrideSize: number = 256;
+    /**
+     * uniform buffer 偏移量最小值，默认为256byte
+     */
+    uniformOffsetStrideSize: number = 256;
     /** storage buffer 列表
      * 1、instances 实例化数组
      * 2、wolrdMatrix 世界矩阵数组
@@ -110,6 +123,7 @@ export abstract class BaseEntity extends NodeSpace {
             instances: undefined,
             wolrdMatrix: undefined
         };
+
     /** 顶点buffer 列表:有DCG生成的顶点buffer和index buffer
      *  1、有DCG写入
     */
@@ -515,7 +529,7 @@ export abstract class BaseEntity extends NodeSpace {
     //// update 部分
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * 
+     * 更新entity
      * @param clock 
      * @param updateSelftFN 是否call updateSelf()
      * @returns 
@@ -529,6 +543,13 @@ export abstract class BaseEntity extends NodeSpace {
         }
         return false;
     }
+    /**
+     * 预先更新处理：
+     * 1、在ECS中调用，判断是否执行update()
+     * 2、判断是否有外部实例数量变化,
+     *      A、检查storage pointer的更新
+     * @param clock 时钟
+     */
     preUpdate(clock: Clock) {
         //注销状态或注销中
         if (this._isDestroy) return;
@@ -585,12 +606,13 @@ export abstract class BaseEntity extends NodeSpace {
         return this.instance.numInstances * outsideInstanceCount
     }
 
-    /**
-     * 检查相关storage buffer的状态，根据instance数量已经动画进行创建、更新或保持
-     * @param name buffer name
-     * @returns  boolen :是否存在
-     * 1、instances 和 worldMatrix 会忽略返回值
-     * 2、morph target 和 骨骼动画 根据是否有动画返回boolean值
+    /** 检查相关storage buffer的状态，根据instance数量进行创建、更新或保持。
+     * 
+     * 1、preUpdate 中调用
+     * 
+     * 2、目前uniform 和 storage的offset 最小值为256byte
+     * 
+    * @param bufferList buffer list
      */
     checkStorageBuffer(bufferList: {
         name: string;
@@ -598,27 +620,34 @@ export abstract class BaseEntity extends NodeSpace {
     }[]) {
         for (let perBuffer of bufferList) {
             /**
-             * 1、判断ArrayBuffer是否存在
-             * 2、判断长度是否与instance数量匹配
-             * 3、判断是否存在动画
-             *      A、morph target
-             *      B、skins
-             * 4、根据reNew是否创建ArrayBuffer和GPUBuffer
+             * 1、获取外部实例化数量：没有的情况下，默认1个
+             * 2、计算size
+             *      A、以4个pointer为最小单位，数量为多少；
+             *      B、storage buffer需要的bytesize为多少；以256byte为stride。
+             *              即：strideSizeOfInstances= 向上取整( stridePointerCount *  perBuffer.byteSize（实际byte，类型不同而不同） / 256 )* 256
+             * 3、判断是否新建
+             *      pointer不存在，新建一个
+             * 4、判断是否重建
+             *      pointer存在，长度不相等，重建一个
              */
+
             let nameOfPointer = perBuffer.name as keyof typeof this.bufferPointers;
-            let byteSizeOfBuffer = perBuffer.byteSize;
-            //实例化,最少1个（分配pointer使用）
+
+            //1、实例化,最少1个（分配pointer使用）
             let instanceCount = this.getInstancesCount() || 1;
-            //计算需要的pointer数量
-            let count = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);
-            //计算需要的pointer长度
-            let sizeOfInstances = Math.ceil(count * byteSizeOfBuffer * this.outsideInstanceCountOfDefaultStride / 256) * 256;
-            //没有storage pointer，创建一个
+
+            //2.1 计算需要的pointer数量：目前以4个pointer为最小单位。
+            let stridePointerCount = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);//1/4=1，5/4=2
+
+            //2.2 计算需要的pointer长度
+            let strideSizeOfInstances = Math.ceil(stridePointerCount * perBuffer.byteSize / this.storageOffsetStrideSize) * this.storageOffsetStrideSize;
+
+            //3、判断是否新建
             if (this.bufferPointers[nameOfPointer] == undefined) {
                 this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
                 let pointerParams: I_pointerCreateParams = {
-                    name: `${this.ID.toString()} ${perBuffer.name}:count=${instanceCount},size=${sizeOfInstances}`,
-                    byteSize: sizeOfInstances,
+                    name: `Entity:${this.ID.toString()},${perBuffer.name}:count=${instanceCount},size=${strideSizeOfInstances}`,
+                    byteSize: strideSizeOfInstances,
                     type: E_BOLBufferType.storage,
                     viewType: "f32",//不使用view，各自更新各自的buffer
                 };
@@ -626,12 +655,12 @@ export abstract class BaseEntity extends NodeSpace {
                 // console.log("EntityID:", this.ID, perBuffer.name, "创建大小:", sizeOfInstances, "指针ID:", this.bufferPointers[nameOfPointer].pointerID, "实例数量:", instanceCount);
 
             }
-            //长度不相等
-            else if (this.bufferPointers[nameOfPointer].byteLength != sizeOfInstances) {
+            //4、判断是否重建
+            else if (this.bufferPointers[nameOfPointer].byteLength != strideSizeOfInstances) {
                 this.flagInstanceArrayBufferReNew = true;//更新需要reNew的时间
-                let newPointer = this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, sizeOfInstances);
+                let newPointer = this.scene.pointers.resizePointer(this.bufferPointers[nameOfPointer].pointerID, strideSizeOfInstances);
                 if (newPointer) {
-                    newPointer.name = `${this.ID.toString()} ${perBuffer.name}:count=${instanceCount},size=${sizeOfInstances}`;
+                    newPointer.name = `${this.ID.toString()} ${perBuffer.name}:count=${instanceCount},size=${strideSizeOfInstances}`;
                     this.bufferPointers[nameOfPointer] = newPointer;
                     // console.log("Resize ~ EntityID:", this.ID, "实例数量:", instanceCount, perBuffer.name, `Resize pointer:${newPointer.pointerID},size:${sizeOfInstances},offset:${newPointer.offset}`);
                 }
@@ -758,7 +787,7 @@ export abstract class BaseEntity extends NodeSpace {
     // pointer 相关
 
     intUniformCommonEntity() {
-        let offsetSize = Math.ceil(this._entityCommonByteSize / 256) * 256;
+        let offsetSize = Math.ceil(this._entityCommonByteSize / this.uniformOffsetStrideSize) * this.uniformOffsetStrideSize;
         let pointerParams: I_pointerCreateParams = {
             name: this.ID.toString() + " uniform",
             byteSize: offsetSize,//uniform data 的bytesize大小
@@ -854,7 +883,8 @@ export abstract class BaseEntity extends NodeSpace {
                 //内部instance
                 for (let j = 0; j < this.instance.numInstances; j++) {
                     let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceWorldMatrixByteSize + offset;
-                    const worldMatrix = new Float32Array(this.bufferPointers.wolrdMatrix.cpuBuffer, instanceIndex, 16);//array buffer view ，全部为0的arraybuffer，参见checkStorageBuffer
+                    //array buffer view ，全部为0的arraybuffer，参见checkStorageBuffer
+                    const worldMatrix = new Float32Array(this.bufferPointers.wolrdMatrix.cpuBuffer, instanceIndex, 16);
                     let matrixWorld = mat4.multiply(this.getMatrixWorldOfInstance(perNode), this.getInsideInstanceMatrix(j));//内部矩阵乘以外部矩阵，得到世界矩阵
                     worldMatrix.set(matrixWorld)
                 }
@@ -903,46 +933,7 @@ export abstract class BaseEntity extends NodeSpace {
         if (this.bindGroup == undefined && this.bindGroupLayout == undefined) {
             //////////////////////////////////////////////////
             //bind group  layout
-            let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                label: `entity:${this.ID}`,
-                entries: [
-                    {//@group(1) @binding(0) var<uniform> u_entity_base:st_entity;
-                        binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "uniform"
-                        }
-                    },
-                    {//@group(1) @binding(1) var<storage> u_entity_instances: array<st_instance_info>;      //length=instance count
-                        binding: 1,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "read-only-storage"
-                        }
-                    },
-                    {//@group(1) @binding(2) var<storage> world_matrix: array<mat4x4f>;          //length=instance count;
-                        binding: 2,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "read-only-storage"
-                        }
-                    },
-                    // {//@group(1) @binding(3) var<storage> morph_matrix: array<f32>;              //length=instance count * morph target count * vertex count
-                    //     binding: 3,
-                    //     visibility: GPUShaderStage.VERTEX,
-                    //     buffer: {
-                    //         type: "read-only-storage"
-                    //     }
-                    // },
-                    // {//@group(1) @binding(4) var<storage> joint_matrix: array<mat4x4f>;           //length=instance count * joint matrix count
-                    //     binding: 4,
-                    //     visibility: GPUShaderStage.VERTEX,
-                    //     buffer: {
-                    //         type: "read-only-storage"
-                    //     }
-                    // },
-                ]
-            }
+            let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = this.generateGPUBindGroupLayoutDescriptor();
             this.bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);;
             //////////////////////////////////////////////////
             //bind group  
@@ -954,28 +945,7 @@ export abstract class BaseEntity extends NodeSpace {
         }
         //当前帧有pointer布局有变化（来自BOL系统，非entity的变化，比如BOL的rebuild等），更新bind group
         else {
-            //当前帧匹配，调试模式下，使用手工调用rebuild，不能精确匹配。非手工模式可以
-            // if (this.bufferPointers.uniformCommonEntity?.rebuildTime == this.scene.clock.now
-            //     ||
-            //     this.bufferPointers.instances?.rebuildTime == this.scene.clock.now
-            //     ||
-            //     this.bufferPointers.wolrdMatrix?.rebuildTime == this.scene.clock.now
-            // )
-
-            //匹配手工和当前帧模式
-            if (this.bufferPointers.uniformCommonEntity?.rebuildTime
-                ||
-                this.bufferPointers.instances?.rebuildTime
-                ||
-                this.bufferPointers.wolrdMatrix?.rebuildTime
-            ) {
-                //重新设置为0
-                this.bufferPointers.uniformCommonEntity!.rebuildTime = 0;
-                this.bufferPointers.instances!.rebuildTime = 0;
-                this.bufferPointers.wolrdMatrix!.rebuildTime = 0;
-                createBindGroup = true;
-                // console.log("rebuild time:", this.bufferPointers.wolrdMatrix?.rebuildTime, "system time:", this.scene.clock.now);
-            }
+            createBindGroup = this.checkPointerRebuildTime();
         }
 
         //创建或更新bind group
@@ -994,6 +964,72 @@ export abstract class BaseEntity extends NodeSpace {
             bindGroup: this.bindGroup,
             bindGroupLayout: this.bindGroupLayout
         }
+    }
+    generateGPUBindGroupLayoutDescriptor(): GPUBindGroupLayoutDescriptor {
+        return {
+            label: `entity:${this.ID}`,
+            entries: [
+                {//@group(1) @binding(0) var<uniform> u_entity_base:st_entity;
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "uniform"
+                    }
+                },
+                {//@group(1) @binding(1) var<storage> u_entity_instances: array<st_instance_info>;      //length=instance count
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "read-only-storage"
+                    }
+                },
+                {//@group(1) @binding(2) var<storage> world_matrix: array<mat4x4f>;          //length=instance count;
+                    binding: 2,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "read-only-storage"
+                    }
+                },
+                // {//@group(1) @binding(3) var<storage> morph_matrix: array<f32>;              //length=instance count * morph target count * vertex count
+                //     binding: 3,
+                //     visibility: GPUShaderStage.VERTEX,
+                //     buffer: {
+                //         type: "read-only-storage"
+                //     }
+                // },
+                // {//@group(1) @binding(4) var<storage> joint_matrix: array<mat4x4f>;           //length=instance count * joint matrix count
+                //     binding: 4,
+                //     visibility: GPUShaderStage.VERTEX,
+                //     buffer: {
+                //         type: "read-only-storage"
+                //     }
+                // },
+            ]
+        }
+    }
+    checkPointerRebuildTime(): boolean {
+        //当前帧匹配，调试模式下，使用手工调用rebuild，不能精确匹配。非手工模式可以
+        // if (this.bufferPointers.uniformCommonEntity?.rebuildTime == this.scene.clock.now
+        //     ||
+        //     this.bufferPointers.instances?.rebuildTime == this.scene.clock.now
+        //     ||
+        //     this.bufferPointers.wolrdMatrix?.rebuildTime == this.scene.clock.now
+        // )
+
+        //匹配手工和当前帧模式
+        if (this.bufferPointers.uniformCommonEntity?.rebuildTime
+            ||
+            this.bufferPointers.instances?.rebuildTime
+            ||
+            this.bufferPointers.wolrdMatrix?.rebuildTime
+        ) {
+            //重新设置为0
+            this.bufferPointers.uniformCommonEntity!.rebuildTime = 0;
+            this.bufferPointers.instances!.rebuildTime = 0;
+            this.bufferPointers.wolrdMatrix!.rebuildTime = 0;
+            return true;
+        }
+        return false;
     }
     /**
      * todo:20260322,这里需要BOL改造

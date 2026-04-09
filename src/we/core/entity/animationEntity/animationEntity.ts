@@ -47,10 +47,10 @@ export abstract class AnimationEntity extends EntityBundleMaterial {
         return this.getAnimationKind() == E_AnimationType.skeleton || this.getAnimationKind() as number == 6;
     }
 
-    override async init(scene: Scene): Promise<any> {
-        await super.init(scene);
-        await this.updateAnimationBuffer();
-    }
+    // override async init(scene: Scene): Promise<any> {
+    //     await super.init(scene);
+    //     // await this.updateAnimationBuffer();
+    // }
 
 
     /** 初始化或更新动画buffer */

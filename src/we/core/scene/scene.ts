@@ -505,13 +505,18 @@ export class Scene {
             throw new Error("default GPUTexture 不存在");
         }
     }
-    getResourceOneStorageMatrix(): GPUBuffer {
-        let one = this.resourcesGPU.storageBuffer.get("oneStorageMatrix");
-        if (one) return one;
-        else {
-            throw new Error("oneStorageMatrix 不存在");
-        }
-    }
+    /**
+     * 用途：为entity的storay buffer占位使用，//2026040，entity细分之后，不再使用
+     * 获取oneStorageMatrix的GPUBuffer
+     * @returns 
+     */
+    // getResourceOneStorageMatrix(): GPUBuffer {
+    //     let one = this.resourcesGPU.storageBuffer.get("oneStorageMatrix");
+    //     if (one) return one;
+    //     else {
+    //         throw new Error("oneStorageMatrix 不存在");
+    //     }
+    // }
 
     /**
      * 

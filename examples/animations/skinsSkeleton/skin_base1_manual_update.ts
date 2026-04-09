@@ -2,16 +2,12 @@
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
-import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
-import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
-import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
-import { NodeObject } from "../../../src/we/core/organization/root";
 import { Mat4, mat4, vec3 } from "wgpu-matrix";
-import { weVec4 } from "../../../src/we/core/base/coreDefine";
 import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
 import { E_AnimationType } from "../../../src/we/core/animation/base";
 import { VertexColorMaterial } from "../../../src/we/core/material/standard/vertexColorMaterial";
 import { LinesSkins } from "../../../src/we/core/entity/animationEntity/linesOfSkins";
+import { NodeObject } from "../../../src/we/core/organization/nodeObject";
 
 declare global {
   interface Window {
@@ -154,7 +150,7 @@ originBboneJointsMat = bonesMatrixWorld.map(function (m) {
   return mat4.inverse(m);
 });
 
-console.log("originBboneJointsMat:", originBboneJointsMat);
+// console.log("originBboneJointsMat:", originBboneJointsMat);
 
 lines.JointsMatCount = numBones;                        //骨骼数量
 lines.JointMatrixByteSize = 16 * 4 * numBones;          //每个骨骼矩阵大小
@@ -174,6 +170,8 @@ let linesEntity = await scene.add(
       for (let i = 0; i < numBones; ++i) {
         mat4.multiply(bonesMatrixWorld[i], originBboneJointsMat[i], bonesJointsMatWorld[i]);
         // mat4.copy(bonesMatrixWorld[i], bonesJointsMatWorld[i]);
+        // console.log("骨骼节点变换矩阵组:", bonesJointsMatWorld);
+
       }
       let oneMat = new Float32Array(boneArray, 0, 16);
       // console.log("oneMat:", oneMat);
@@ -181,7 +179,17 @@ let linesEntity = await scene.add(
     }
   }
 );
+console.log("世界矩阵组:", bonesMatrixWorld);
+console.log("逆绑定矩阵组:", originBboneJointsMat);
+console.log("骨骼节点变换矩阵组:", bonesJointsMatWorld);
+for (let i = 0; i < numBones; ++i) {
+  mat4.multiply(bonesMatrixWorld[i], originBboneJointsMat[i], bonesJointsMatWorld[i]);
+}
+console.log("骨骼节点变换矩阵组:", bonesJointsMatWorld);
+
 linesEntity.JointsMat = boneArray;
+
+
 
 window.mesh = linesEntity;
 
