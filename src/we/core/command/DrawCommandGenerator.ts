@@ -1497,205 +1497,205 @@ export class DrawCommandGenerator {
         }
         /**
          * 1、20260403 在material中增加了getBindGroupAndBindGroupLayout（）方法，用于获取material的BindGroup和BindGroupLayout
-         * 2、此处注解到的代码
-         *      A、参考使用
-         *      B、为bindgroup 4，预留参考
+         * 2、此处代码功能
+         *      A、为bindgroup 4，预留参考
+         *      B、为NDC模式和PP等使用，即：基础测试功能部分，和直接生成DC的模式（没有entity和material）使用
          */
-        // //2.2、创建其他uniforms的BindGroup和BindGroupLayout
-        // if (values.data.uniforms) {
-        //     for (let i in values.data.uniforms) {
-        //         //如果bindGroupLayout数量超过4个，就跳出循环
-        //         if (layoutNumber > 3) {
-        //             console.warn("uniforms 最多只能有4个BindGroup");
-        //             break;
-        //         }
+        //2.2、创建其他uniforms的BindGroup和BindGroupLayout
+        if (values.data.uniforms) {
+            for (let i in values.data.uniforms) {
+                //如果bindGroupLayout数量超过4个，就跳出循环
+                if (layoutNumber > 3) {
+                    console.warn("uniforms 最多只能有4个BindGroup");
+                    break;
+                }
 
-        //         let perGroup = values.data.uniforms[i];
-        //         //如果uniforms为空，就跳过
-        //         if (perGroup == undefined || (Array.isArray(perGroup) && perGroup.length == 0)) {
-        //             // console.warn("uniforms 组", i, "为空");
-        //             continue;
-        //         }
-        //         //如果layout存在，进行进一步判断
-        //         if (values.data.unifromLayout)
-        //             //如果有layout，就直接使用
-        //             if (values.data.unifromLayout[i] == undefined || values.data.unifromLayout[i].length == 0) {
-        //                 console.warn("uniforms layoiut 组[", i, "]的layout为空,与uniform组不匹配");
-        //                 continue;
-        //             }
+                let perGroup = values.data.uniforms[i];
+                //如果uniforms为空，就跳过
+                if (perGroup == undefined || (Array.isArray(perGroup) && perGroup.length == 0)) {
+                    // console.warn("uniforms 组", i, "为空");
+                    continue;
+                }
+                //如果layout存在，进行进一步判断
+                if (values.data.unifromLayout)
+                    //如果有layout，就直接使用
+                    if (values.data.unifromLayout[i] == undefined || values.data.unifromLayout[i].length == 0) {
+                        console.warn("uniforms layoiut 组[", i, "]的layout为空,与uniform组不匹配");
+                        continue;
+                    }
 
-        //         //BindGroup，重点1
-        //         let bindGroup: GPUBindGroup;
-        //         //BindGroupDesc ,重点1->1.1
-        //         let bindGroupDesc: GPUBindGroupDescriptor;
-        //         //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
-        //         let bindGroupEntry: GPUBindGroupEntry[] = [];
+                //BindGroup，重点1
+                let bindGroup: GPUBindGroup;
+                //BindGroupDesc ,重点1->1.1
+                let bindGroupDesc: GPUBindGroupDescriptor;
+                //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
+                let bindGroupEntry: GPUBindGroupEntry[] = [];
 
 
 
-        //         //BindGroupLayout，重点2
-        //         let bindGroupLayout: GPUBindGroupLayout;
-        //         //BindGroup 的layout 描述，重点2->2.1
-        //         let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-        //             label: `BGLD(${i})(${layoutNumber}) ${values.label}@${this.clock.now}`,
-        //             // label: values.label +" BGLD: "+ layoutNumber + " time:"+this.clock.now,
-        //             entries: []
-        //         };
-        //         //BindGroup layout的数据入口  -->2.1.1
-        //         let bindGroupLayoutEntry: GPUBindGroupLayoutEntry[] = [];
+                //BindGroupLayout，重点2
+                let bindGroupLayout: GPUBindGroupLayout;
+                //BindGroup 的layout 描述，重点2->2.1
+                let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+                    label: `BGLD(${i})(${layoutNumber}) ${values.label}@${this.clock.now}`,
+                    // label: values.label +" BGLD: "+ layoutNumber + " time:"+this.clock.now,
+                    entries: []
+                };
+                //BindGroup layout的数据入口  -->2.1.1
+                let bindGroupLayoutEntry: GPUBindGroupLayoutEntry[] = [];
 
-        //         //如果是GPUBindGroup，就直接使用
-        //         if (isGPUBindGroup(perGroup)) {
-        //             bindGroup = perGroup;
-        //             //如果有layout，就直接使用
-        //             if (values.data.unifromLayout &&
-        //                 values.data.unifromLayout[i] != undefined &&
-        //                 values.data.unifromLayout[i] instanceof GPUBindGroupLayout) {
-        //                 bindGroupLayout = values.data.unifromLayout[i];
-        //             }
-        //             //如果没有layout，就从resources中获取
-        //             else {
-        //                 if (this.resources.hasBindGroupLayout(bindGroup)) {
-        //                     let bindGroupLayoutGet = this.resources.getBindGroupLayout(bindGroup);//是否有对应的layout
-        //                     if (bindGroupLayoutGet) {
-        //                         bindGroupLayout = bindGroupLayoutGet;
-        //                     }
-        //                     else {
-        //                         throw new Error("bindGroupLayout 不存在");
-        //                     }
-        //                 }
-        //                 else {
-        //                     throw new Error("bindGroupLayout 不存在");
-        //                 };
-        //             }
-        //         }
-        //         //20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
-        //         // else if (!values.dynamic && this.resources.uniformGroupToBindGroup.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
-        //         //     let bindGroupGet = this.resources.uniformGroupToBindGroup.get(perGroup);
-        //         //     if (bindGroupGet) {
-        //         //         bindGroup = bindGroupGet;
-        //         //         let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//这里没有进行判断，稍后补上
-        //         //         if (bindGroupLayoutGet) {
-        //         //             bindGroupLayout = bindGroupLayoutGet;
-        //         //         }
-        //         //         else {
-        //         //             throw new Error("bindGroupLayout 不存在");
-        //         //             // console.error("bindGroupLayout 不存在");
-        //         //         }
-        //         //     }
-        //         //     else {
-        //         //         throw new Error("bindGroup 不存在");
-        //         //         // console.error("bindGroup 不存在");
-        //         //     }
-        //         // }
-        //         else {//创建
-        //             for (let j in perGroup) {//遍历每组group的每个entry
-        //                 let perEntry = perGroup[j];
-        //                 let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
-        //                 //有对应的layout
-        //                 if (values.data.unifromLayout) {
-        //                     //如果传入的参数中有GPUBindGroupLayoutEntry，就从GPUBindGroupLayoutEntry中获取，    
-        //                     perBindGroupLayoutEntry = values.data.unifromLayout[i]![j];         //使用断言，判断在前面已经判断了layout不为空
-        //                     bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
-        //                 }
-        //                 //没有对应的layout，从resources中获取
-        //                 else {
-        //                     /**
-        //                      * 获取perEntry的layout
-        //                      */
-        //                     if (this.resources.hasEntrieLayout(perEntry)) {
-        //                         perBindGroupLayoutEntry = this.resources.getEntrieLayout(perEntry)!;//每个entry的layout
-        //                         if (perBindGroupLayoutEntry) {
-        //                             bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
-        //                         }
-        //                         else {
-        //                             throw new Error("bindGroupLayoutEntry 不存在");
-        //                         }
-        //                     }
-        //                     else {
-        //                         // console.warn("bindGroupLayoutEntry 不存在", perEntry);
-        //                         throw new Error("bindGroupLayoutEntry 不存在");
-        //                     }
-        //                 }
-        //                 /**
-        //                  * 创建 uniform data 的 GPUBuffer 并添加到 bindGroupEntry
-        //                  * 其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
-        //                 */
-        //                 if (isUniformBufferPart(perEntry)) {
-        //                     if (this.resources.hasUniform(perEntry)) {//已有,直接获取，不创建
-        //                         let buffer = this.resources.getUniform(perEntry);
-        //                         if (buffer)
-        //                             bindGroupEntry.push({
-        //                                 binding: perEntry.binding,
-        //                                 resource: buffer.gpuBufferView,
-        //                             });
-        //                     }
-        //                     else {//没有，创建
-        //                         const label = (perEntry as I_uniformArrayBufferEntry).label;
-        //                         let offsetSize = Math.ceil(perEntry.size / 256) * 256;
-        //                         let pointerParams: I_pointerCreateParams = {
-        //                             name: label,
-        //                             byteSize: offsetSize,//uniform data 的bytesize大小
-        //                             type: E_BOLBufferType.uniform,
-        //                             viewType: "u8",//由于data是ArrayBuffer,按照u8处理
-        //                             data: {
-        //                                 sourceData: {
-        //                                     data: perEntry.data,//ArrayBuffer
-        //                                 },
-        //                             }
-        //                         };
-        //                         let pointer = this.pointers.createPointer(pointerParams);
-        //                         this.resources.setUniform(perEntry, pointer);
-        //                         bindGroupEntry.push({
-        //                             binding: perEntry.binding,
-        //                             resource: pointer.gpuBufferView
+                //如果是GPUBindGroup，就直接使用
+                if (isGPUBindGroup(perGroup)) {
+                    bindGroup = perGroup;
+                    //如果有layout，就直接使用
+                    if (values.data.unifromLayout &&
+                        values.data.unifromLayout[i] != undefined &&
+                        values.data.unifromLayout[i] instanceof GPUBindGroupLayout) {
+                        bindGroupLayout = values.data.unifromLayout[i];
+                    }
+                    //如果没有layout，就从resources中获取
+                    else {
+                        if (this.resources.hasBindGroupLayout(bindGroup)) {
+                            let bindGroupLayoutGet = this.resources.getBindGroupLayout(bindGroup);//是否有对应的layout
+                            if (bindGroupLayoutGet) {
+                                bindGroupLayout = bindGroupLayoutGet;
+                            }
+                            else {
+                                throw new Error("bindGroupLayout 不存在");
+                            }
+                        }
+                        else {
+                            throw new Error("bindGroupLayout 不存在");
+                        };
+                    }
+                }
+                //20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
+                // else if (!values.dynamic && this.resources.uniformGroupToBindGroup.has(perGroup)) {//已经存在bindgroup，比如：同一个mesh中
+                //     let bindGroupGet = this.resources.uniformGroupToBindGroup.get(perGroup);
+                //     if (bindGroupGet) {
+                //         bindGroup = bindGroupGet;
+                //         let bindGroupLayoutGet = this.resources.bindGroupToGroupLayout.get(bindGroup)!;//这里没有进行判断，稍后补上
+                //         if (bindGroupLayoutGet) {
+                //             bindGroupLayout = bindGroupLayoutGet;
+                //         }
+                //         else {
+                //             throw new Error("bindGroupLayout 不存在");
+                //             // console.error("bindGroupLayout 不存在");
+                //         }
+                //     }
+                //     else {
+                //         throw new Error("bindGroup 不存在");
+                //         // console.error("bindGroup 不存在");
+                //     }
+                // }
+                else {//创建
+                    for (let j in perGroup) {//遍历每组group的每个entry
+                        let perEntry = perGroup[j];
+                        let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
+                        //有对应的layout
+                        if (values.data.unifromLayout) {
+                            //如果传入的参数中有GPUBindGroupLayoutEntry，就从GPUBindGroupLayoutEntry中获取，    
+                            perBindGroupLayoutEntry = values.data.unifromLayout[i]![j];         //使用断言，判断在前面已经判断了layout不为空
+                            bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
+                        }
+                        //没有对应的layout，从resources中获取
+                        else {
+                            /**
+                             * 获取perEntry的layout
+                             */
+                            if (this.resources.hasEntrieLayout(perEntry)) {
+                                perBindGroupLayoutEntry = this.resources.getEntrieLayout(perEntry)!;//每个entry的layout
+                                if (perBindGroupLayoutEntry) {
+                                    bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
+                                }
+                                else {
+                                    throw new Error("bindGroupLayoutEntry 不存在");
+                                }
+                            }
+                            else {
+                                // console.warn("bindGroupLayoutEntry 不存在", perEntry);
+                                throw new Error("bindGroupLayoutEntry 不存在");
+                            }
+                        }
+                        /**
+                         * 创建 uniform data 的 GPUBuffer 并添加到 bindGroupEntry
+                         * 其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
+                        */
+                        if (isUniformBufferPart(perEntry)) {
+                            if (this.resources.hasUniform(perEntry)) {//已有,直接获取，不创建
+                                let buffer = this.resources.getUniform(perEntry);
+                                if (buffer)
+                                    bindGroupEntry.push({
+                                        binding: perEntry.binding,
+                                        resource: buffer.gpuBufferView,
+                                    });
+                            }
+                            else {//没有，创建
+                                const label = (perEntry as I_uniformArrayBufferEntry).label;
+                                let offsetSize = Math.ceil(perEntry.size / 256) * 256;
+                                let pointerParams: I_pointerCreateParams = {
+                                    name: label,
+                                    byteSize: offsetSize,//uniform data 的bytesize大小
+                                    type: E_BOLBufferType.uniform,
+                                    viewType: "u8",//由于data是ArrayBuffer,按照u8处理
+                                    data: {
+                                        sourceData: {
+                                            data: perEntry.data,//ArrayBuffer
+                                        },
+                                    }
+                                };
+                                let pointer = this.pointers.createPointer(pointerParams);
+                                this.resources.setUniform(perEntry, pointer);
+                                bindGroupEntry.push({
+                                    binding: perEntry.binding,
+                                    resource: pointer.gpuBufferView
 
-        //                         });
-        //                     }
-        //                 }
-        //                 //动态 external texture,不做map
-        //                 else if (isDynamicTextureEntryForExternal(perEntry)) {
-        //                     bindGroupEntry.push({
-        //                         binding: perEntry.binding,
-        //                         resource: perEntry.getResource(perEntry.scope),
-        //                     });
-        //                 }
-        //                 //动态 view texture,不做map
-        //                 else if (isDynamicTextureEntryForView(perEntry)) {
-        //                     bindGroupEntry.push({
-        //                         binding: perEntry.binding,
-        //                         resource: perEntry.getResource(),
-        //                     });
-        //                 }
-        //                 //排除其他类型后，即是GPUBindGroupEntry
-        //                 else {
-        //                     bindGroupEntry.push(perEntry);//GPUBindGroupEntry
-        //                 }
-        //             }
+                                });
+                            }
+                        }
+                        //动态 external texture,不做map
+                        else if (isDynamicTextureEntryForExternal(perEntry)) {
+                            bindGroupEntry.push({
+                                binding: perEntry.binding,
+                                resource: perEntry.getResource(perEntry.scope),
+                            });
+                        }
+                        //动态 view texture,不做map
+                        else if (isDynamicTextureEntryForView(perEntry)) {
+                            bindGroupEntry.push({
+                                binding: perEntry.binding,
+                                resource: perEntry.getResource(),
+                            });
+                        }
+                        //排除其他类型后，即是GPUBindGroupEntry
+                        else {
+                            bindGroupEntry.push(perEntry);//GPUBindGroupEntry
+                        }
+                    }
 
-        //             //更新BindGroup 的layout 描述的entry部分
-        //             bindGroupLayoutDescriptor.entries = bindGroupLayoutEntry;
-        //             //创建BindGroupLayout
-        //             bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
-        //             //初始化BindGroup描述
-        //             bindGroupDesc = {
-        //                 // label: values.label + " BGD:" + layoutNumber + " time:"+this.clock.now,
-        //                 label: `BGD(${layoutNumber}) ${values.label}`,
-        //                 layout: bindGroupLayout,
-        //                 entries: bindGroupEntry,
-        //             }
-        //             //创建BindGroup
-        //             bindGroup = this.device.createBindGroup(bindGroupDesc);
-        //             ///////////////////
-        //             //增加到资源
-        //             // this.resources.uniformGroupToBindGroup.set(perGroup, bindGroup,);//20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
-        //             // this.resources.bindGroupToGroupLayout.set(bindGroup, bindGroupLayout);//20260320，如果是动态绑定的uniform资源，显示push到参数中。这个基本不需要
-        //         }
-        //         DC_bindGroups.push(bindGroup);
-        //         DC_bindGroupLayouts.push(bindGroupLayout);
-        //         layoutNumber++;
-        //     }//end for values.data.uniforms
-        // }
+                    //更新BindGroup 的layout 描述的entry部分
+                    bindGroupLayoutDescriptor.entries = bindGroupLayoutEntry;
+                    //创建BindGroupLayout
+                    bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+                    //初始化BindGroup描述
+                    bindGroupDesc = {
+                        // label: values.label + " BGD:" + layoutNumber + " time:"+this.clock.now,
+                        label: `BGD(${layoutNumber}) ${values.label}`,
+                        layout: bindGroupLayout,
+                        entries: bindGroupEntry,
+                    }
+                    //创建BindGroup
+                    bindGroup = this.device.createBindGroup(bindGroupDesc);
+                    ///////////////////
+                    //增加到资源
+                    // this.resources.uniformGroupToBindGroup.set(perGroup, bindGroup,);//20260320 ,基本不需要，每个mesh的uniform group是不同的。instance自己管理
+                    // this.resources.bindGroupToGroupLayout.set(bindGroup, bindGroupLayout);//20260320，如果是动态绑定的uniform资源，显示push到参数中。这个基本不需要
+                }
+                DC_bindGroups.push(bindGroup);
+                DC_bindGroupLayouts.push(bindGroupLayout);
+                layoutNumber++;
+            }//end for values.data.uniforms
+        }
         return { DC_bindGroups, DC_bindGroupLayouts };
     }
     /**shaderModule 编译

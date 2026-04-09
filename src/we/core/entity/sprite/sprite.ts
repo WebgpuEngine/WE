@@ -90,14 +90,20 @@ export class Sprite extends EntityBundleMaterial {
      * 2、需要考虑top，以push到不同的组
      * @param camera 
      */
-    override createTransparent(camera: BaseCamera): void { }
+    override createTransparent(camera: BaseCamera): void {
+        throw new Error("Method not implemented.");
+     }
 
 
     /**sprite 不会投射阴影，也不会接收阴影 */
-    createShadowMapDC(input: I_ShadowMapValueOfDC): void { }
+    createShadowMapDC(input: I_ShadowMapValueOfDC): void { 
+
+    }
     /**sprite 不会投射阴影，也不会接收阴影 */
 
-    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void { }
+    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void { 
+        throw new Error("Method not implemented.");
+    }
 
 
     saveJSON() {
