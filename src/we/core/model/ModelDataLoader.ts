@@ -31,6 +31,8 @@ export abstract class ModelDataLoader {
     abstract getScene(index?: number): any;
     abstract getScenes(): any[] | undefined;
 
+    abstract getCurrentScene(): number;
+
     abstract getSkin(index: number): any | undefined;
     abstract getSkins(): any[] | undefined;
 

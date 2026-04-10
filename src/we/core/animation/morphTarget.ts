@@ -1,3 +1,4 @@
+import { MorphTargetEntity } from "../entity/animationEntity/morphTargetEntity";
 import { Clock } from "../scene/clock";
 import { E_AnimationType, E_PlayState } from "./base";
 import { BaseAnimation, IV_AnimationValue } from "./BaseAnimation";
@@ -18,17 +19,17 @@ export class MorphTargetAnimation extends BaseAnimation {
         if (this.parent.Entity == undefined) {
             throw new Error("MorphTargetAnimation: parent entity is undefined");
         }
-        if (this.parent.Entity.MorphtTargetCount === 0) {
-            this.parent.Entity.MorphtTargetCount = this.Count;
+        if ((this.parent.Entity as MorphTargetEntity).MorphtTargetCount === 0) {
+            (this.parent.Entity as MorphTargetEntity).MorphtTargetCount = this.Count;
         }
-        if (this.parent.Entity.checkMorphTargetCount(this.Count) == false) {
+        if ((this.parent.Entity as MorphTargetEntity).checkMorphTargetCount(this.Count) == false) {
             throw new Error("MorphTargetAnimation: parent entity morphTargetCount not match");
         }
 
         this.morphTargetArray = new ArrayBuffer(4 * this.Count);          //4个f32 ，默认的morphTarget 数量=4
         this.weightsFloat32Array = new Float32Array(this.morphTargetArray);
         this.parent.MorphTarget = this.morphTargetArray;
-        this.parent.Entity.AnimationType = E_AnimationType.morphTarget;
+        (this.parent.Entity as MorphTargetEntity).AnimationType = E_AnimationType.morphTarget;
 
     }
     update(clock: Clock): void {

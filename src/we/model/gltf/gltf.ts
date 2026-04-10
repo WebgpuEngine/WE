@@ -47,7 +47,7 @@ import { LinesMorphTarget } from "../../core/entity/animationEntity/linesOfMorph
 import { LinesSkins } from "../../core/entity/animationEntity/linesOfSkins";
 import { MeshSkins } from "../../core/entity/animationEntity/meshOfSkins";
 
-
+/** 实例化gltf绑定动画与动画组的资源 */
 export interface I_gltfInstanceResource {
     nodes: Map<any, NodeObject>;
     animation: Map<any, any>;
@@ -71,7 +71,7 @@ export class GLTFModel extends BaseModel {
     /** gltf当前场景索引 */
     currentScene: number = 0;
 
-    modelRes: {
+    override modelRes: {
         [key: string]: Map<any, any>;
     } = {
             "GPUBuffers": new Map<any, GPUBuffer>(),
@@ -95,6 +95,7 @@ export class GLTFModel extends BaseModel {
             "entity": new Map<any, BaseEntity>(),
             "animation": new Map<any, any>(),
         };
+    /** 实例化gltf绑定动画与动画组的资源的map，key为节点实例 */
     instanceNodes: Map<any, I_gltfInstanceResource> = new Map();
     /** gltf模型中的mesh和skin的绑定 
      * 1、在initScene()中使用addNode()时，根据node的mesh和skin，push到meshAndSkinBundle中.
@@ -123,7 +124,7 @@ export class GLTFModel extends BaseModel {
     * @returns 场景节点实例
     */
     async initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
-        let nodeOfScene: NodeInstanceModel = await this.initScene(parent, this.currentScene, attachValue);
+        let nodeOfScene: NodeInstanceModel = await this.initModelScene(parent, this.currentScene, attachValue);
         await this.initAnimationsForInstance(nodeOfScene);
         await this.initSkinsForInstance(nodeOfScene);
         if (this.debug === false) {
@@ -143,7 +144,7 @@ export class GLTFModel extends BaseModel {
      * @param attachValue 节点空间属性
      * @returns 场景节点实例
      */
-    async initScene(parent: NodeObject, id: number = 0, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
+    async initModelScene(parent: NodeObject, id?: number, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
         let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
         await nodeOfScene.init(this.scene, parent);         // 初始化node object
         this.instanceNodes.set(nodeOfScene, {
@@ -154,6 +155,9 @@ export class GLTFModel extends BaseModel {
         nodeOfScene._modelOrigin = this;
         nodeOfScene._name = "gltf scene " + nodeOfScene.ID;
 
+        if (id == undefined) {
+            id = this.currentScene;
+        }
         let scene = this.DataLoader.getScene(id);
         if (scene == undefined) {
             throw new Error(`scene ${id} not found`);
@@ -165,7 +169,6 @@ export class GLTFModel extends BaseModel {
         else {
             throw new Error(`scene ${id} not found nodes`);
         }
-        this.currentScene = id;
         /**    push mesh to children         */
         for (let nodeID of nodes) {
             await BaseFunction.addNode(this, nodeID, nodeOfScene, nodeOfScene);
@@ -219,6 +222,11 @@ export class GLTFModel extends BaseModel {
             // console.warn(`can not found animation group for skin at node id: ${nodeOfScene.ID}`);
             return;
         }
+        /** 为每个animation group 增加skin animation 
+         * 1、每个animation group为一个动作，比如：走、跑等
+         * 2、为每个animation group，都有添加skin animation（可能有多个skins，一般只有一个skin）。（未在gltf的定义中找到skins与animation group的对应关系的定义）
+         * 3、动作是关键帧（每个动画组不同），skins是逆绑定矩阵（相同），所以产生不同的骨骼动画
+        */
         for (let animationGroup of nodeOfScene.AnimationGroup) {
             for (let skinAnimation of skinAnimations) {
                 animationGroup.addSkinAnimation(skinAnimation);
@@ -388,6 +396,7 @@ export class GLTFModel extends BaseModel {
         await this.initTextures();
         this.initMaterials();
         await this.initMeshes();
+        this.currentScene = this.DataLoader.getCurrentScene();
         // this.initAnimationSamplers();
     }
     /**

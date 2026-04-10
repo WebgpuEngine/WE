@@ -19,12 +19,16 @@ import { NodeObject, newNode } from "../../core/organization/nodeObject";
  *   1、mesh有多个primitive，目前只处理了第一个primitive。
  *         A、一个实体的点线面可能都存在
  *         B、非相关实体，但对于后续操作，比如动画由相同的操作
+ * 
+ * 二、同时处理的数据
+ *  1、meshAndskinBundle：即、骨骼动画
+ * 
  *         
  */
 export async function addNode(gltf: GLTFModel, nodeID: number, parent: NodeObject, root: NodeObject): Promise<any> {
 
     let node = gltf.DataLoader.getNode(nodeID);
-
+    //存在骨骼动画，就添加到meshAndSkinBundle中
     if (node.mesh != undefined && node.skin != undefined) {
         gltf.meshAndSkinBundle.push({ meshID: node.mesh, skinID: node.skin, nodeID: nodeID });
     }

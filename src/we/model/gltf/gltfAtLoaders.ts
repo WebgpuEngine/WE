@@ -173,6 +173,10 @@ export class GltfDataAtLoaders extends ModelDataLoader {
         }
         return this.gltf.getScene(index);
     }
+    getCurrentScene(): number  {
+        return this.gltf.json.scene || 0;
+    }
+
     getSampler(index: number): any | undefined {
         return this.gltf.getSampler(index);
     }

@@ -1,53 +1,46 @@
 import { I_pointerStruct } from "../../bufferBlock/pointer";
-import { I_bindGroupAndGroupLayout } from "../../command/base";
-import { createEmptyGPUBuffer } from "../../command/baseFunction";
 import { Clock } from "../../scene/clock";
 import { IV_BaseEntity } from "../base";
 import { AnimationEntity } from "./animationEntity";
 
 export abstract class MorphTargetEntity extends AnimationEntity {
-    /**顶点数量 */
-    vertexCount: number = 0;
+    /** 变形目标数量 
+     * 1、由checkMorphTargetCount() 检查并设置
+     * 2、checkMorphTargetCount()由class MorphTargetAnimation 调用
+    */
+    _morphTargetWeightsCount: number = 0;
+    /** 获取变形目标数量 */
+    get MorphtTargetCount(): number {
+        return this._morphTargetWeightsCount;
+    }
+    /** 设置变形目标数量
+     * 1、设置_morphTargetWeightsCount
+     * 2、设置_instanceMorphTargetByteSize
+     * 3、设置storageBufferList[2].byteSize
+     * 4、检查storageBuffer是否匹配
+     */
+    set MorphtTargetCount(count: number) {
+        this._morphTargetWeightsCount = count;
+        this._instanceMorphTargetByteSize = count * 4;
+        this.storageBufferList[2].byteSize = this.MorphTargetByteSize;
+        this.checkStorageBuffer(this.storageBufferList);
+    }
 
     /**storage array(初始化默认一个矩阵，以适配没有morph target的通用情况；)
-     * 1、不使用的默认大小（为了在内没有morph target的情况下，使用default one storage buffer，最小以16计算 ）
+     * 1、默认大小:4*4=16 byte(即4个position*，一般默认是4个，也可以多。webgpu默认attribute：16个，vertex buffer：8个)
      * 2、size计算= M*(N*4)
      *  A、instance 数量（M=1，动态，程序中）
      *  B、一个顶点的morphTarget数量N ;一般情况为4个，即大小=N*f32Size=4*4=16 byte
      */
-    _instanceMorphTargetByteSize = 16 * 4;
+    _instanceMorphTargetByteSize = 4 * 4;
     set MorphTargetByteSize(value: number) {
         this._instanceMorphTargetByteSize = value;
     }
     get MorphTargetByteSize(): number {
         return this._instanceMorphTargetByteSize;
     }
-    // /**Buffer(uniform and storage )在CPU端的ArrayBuffer */
-    // override bufferCPU: {
-    //     /** 最终输出@group(1) @binding(0)的uniform buffer*/
-    //     uniformCommonEntity?: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-    //     /** 实例化数组@group(1) @binding(1)*/
-    //     instances?: ArrayBuffer;
-    //     /** 世界矩阵数组@group(1) @binding(2)*/
-    //     wolrdMatrix?: ArrayBuffer;
-    //     /** 变形矩阵数组@group(1) @binding(3)*/
-    //     morphMatrix?: ArrayBuffer;
-    //     /** 骨骼矩阵数组@group(1) @binding(4)*/
-    //     jointMatrix?: ArrayBuffer;
-    // } = {};
-    // /**Buffer(uniform and storage )在GPU端的 GPUBuffer */
-    // override bufferGPU: {
-    //     /** 最终输出@group(1) @binding(0)的uniform buffer*/
-    //     uniformCommonEntity?: GPUBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-    //     /** 实例化数组@group(1) @binding(1)*/
-    //     instances?: GPUBuffer;
-    //     /** 世界矩阵数组@group(1) @binding(2)*/
-    //     wolrdMatrix?: GPUBuffer;
-    //     /** 变形矩阵数组@group(1) @binding(3)*/
-    //     morphMatrix?: GPUBuffer;
-    //     /** 骨骼矩阵数组@group(1) @binding(4)*/
-    //     jointMatrix?: GPUBuffer;
-    // } = {};
+
+
     override storageBufferList: {
         name: string;
         byteSize: number;
@@ -82,25 +75,6 @@ export abstract class MorphTargetEntity extends AnimationEntity {
         super(input);
     }
 
-    /**顶点数量，morph target 使用 */
-    getVertexCount(): number {
-        if (this.vertexCount === 0) {
-            // console.warn("vertexCount 没有计算");
-        }
-        return this.vertexCount;
-    }
-    /** 变形目标数量 
-     * 1、由checkMorphTargetCount() 检查并设置
-     * 2、checkMorphTargetCount()由class MorphTargetAnimation 调用
-    */
-    _morphTargetWeightsCount: number = 0;
-    /** 获取变形目标数量 */
-    get MorphtTargetCount(): number {
-        return this._morphTargetWeightsCount;
-    }
-    set MorphtTargetCount(count: number) {
-        this._morphTargetWeightsCount = count;
-    }
     /** 检查变形目标数量是否匹配,检查attribute中position*的数量 ,并设置_morphTargetWeightsCount*/
     checkMorphTargetCount(count: number): boolean {
         // throw new Error("EntityBundleMaterial: checkMorphTargetCount not implemented");
@@ -167,47 +141,47 @@ export abstract class MorphTargetEntity extends AnimationEntity {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //uniform merge part
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        override generateGPUBindGroupLayoutDescriptor(): GPUBindGroupLayoutDescriptor {
-        return  {
-                label: `entity:${this.ID} @ ${this.scene.clock.now}`,
-                entries: [
-                    {//@group(1) @binding(0) var<uniform> u_entity_base:st_entity;
-                        binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "uniform"
-                        }
-                    },
-                    {//@group(1) @binding(1) var<storage> u_entity_instances: array<st_instance_info>;      //length=instance count
-                        binding: 1,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "read-only-storage"
-                        }
-                    },
-                    {//@group(1) @binding(2) var<storage> world_matrix: array<mat4x4f>;          //length=instance count;
-                        binding: 2,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "read-only-storage"
-                        }
-                    },
-                    {//@group(1) @binding(3) var<storage> morph_matrix: array<f32>;              //length=instance count * morph target count * vertex count
-                        binding: 3,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {
-                            type: "read-only-storage"
-                        }
-                    },
-                    // {//@group(1) @binding(4) var<storage> joint_matrix: array<mat4x4f>;           //length=instance count * joint matrix count
-                    //     binding: 4,
-                    //     visibility: GPUShaderStage.VERTEX,
-                    //     buffer: {
-                    //         type: "read-only-storage"
-                    //     }
-                    // },
-                ]
-            }
+    override generateGPUBindGroupLayoutDescriptor(): GPUBindGroupLayoutDescriptor {
+        return {
+            label: `entity:${this.ID} @ ${this.scene.clock.now}`,
+            entries: [
+                {//@group(1) @binding(0) var<uniform> u_entity_base:st_entity;
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "uniform"
+                    }
+                },
+                {//@group(1) @binding(1) var<storage> u_entity_instances: array<st_instance_info>;      //length=instance count
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "read-only-storage"
+                    }
+                },
+                {//@group(1) @binding(2) var<storage> world_matrix: array<mat4x4f>;          //length=instance count;
+                    binding: 2,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "read-only-storage"
+                    }
+                },
+                {//@group(1) @binding(3) var<storage> morph_matrix: array<f32>;              //length=instance count * morph target count * vertex count
+                    binding: 3,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: "read-only-storage"
+                    }
+                },
+                // {//@group(1) @binding(4) var<storage> joint_matrix: array<mat4x4f>;           //length=instance count * joint matrix count
+                //     binding: 4,
+                //     visibility: GPUShaderStage.VERTEX,
+                //     buffer: {
+                //         type: "read-only-storage"
+                //     }
+                // },
+            ]
+        }
     }
 
     override checkPointerRebuildTime(): boolean {

@@ -4,12 +4,29 @@ import { IV_BaseEntity } from "../base";
 import { AnimationEntity } from "./animationEntity";
 
 export abstract class SkinsEntity extends AnimationEntity {
-    /**storage array(初始化默认一个矩阵，以适配没有joint的通用情况；)
-     * 每个instance的joint matrix size
+    /** 骨骼（逆绑定矩阵）数量 */
+    _jointsMattricesCount: number = 0;
+    /** 获取骨骼动画数量 */
+    get JointsMatCount(): number {
+        return this._jointsMattricesCount;
+    }
+    /** 设置骨骼（逆绑定矩阵）数量
+     * 1、设置_jointsMattricesCount
+     * 2、设置_JointMatrixByteSize
+     * 3、设置storageBufferList[2].byteSize
+     * 4、检查storageBuffer是否匹配
+     */
+    set JointsMatCount(count: number) {
+        this._jointsMattricesCount = count;
+        this.JointMatrixByteSize = 16 * 4 * count;
+        this.storageBufferList[2].byteSize = this.JointMatrixByteSize;
+        this.checkStorageBuffer(this.storageBufferList);
+    }
+    /**
+     * 逆绑定矩阵大小(单个instance的joint matrix size)
      * 1、matrix以16*4 byte一个单位计算
-     * 2、当前entity的jonit数组数量：N=1(不使用时),N=关节数量
-     * 3、instance 数量（M=1，动态，程序中）
-     * 4、size= M*(N*16*4)
+     * 2、当前entity的jonit数组数量：N=关节数量
+     * 3、size= N*16*4
      */
     _instanceJointMatrixByteSize = 16 * 4;
     set JointMatrixByteSize(value: number) {
@@ -36,6 +53,9 @@ export abstract class SkinsEntity extends AnimationEntity {
             }
         ];
 
+    /**
+     * 逆绑定矩阵指针
+     */
     override bufferPointers: {
         uniformCommonEntity: I_pointerStruct | undefined;
         instances: I_pointerStruct | undefined;
@@ -48,19 +68,8 @@ export abstract class SkinsEntity extends AnimationEntity {
             jointMatrix: undefined,
         };
 
-
     constructor(input: IV_BaseEntity) {
         super(input);
-    }
-
-
-    _jointsMattricesCount: number = 0;
-    /** 获取骨骼动画数量 */
-    get JointsMatCount(): number {
-        return this._jointsMattricesCount;
-    }
-    set JointsMatCount(count: number) {
-        this._jointsMattricesCount = count;
     }
 
     /**
@@ -86,11 +95,10 @@ export abstract class SkinsEntity extends AnimationEntity {
         this.updateJointMatrixBuffer();
     }
     /**
-     * 骨骼动画 update 
+     * 骨骼动画 update ,被updateSelf()调用
      * 如果没有morph target，使用默认的storage buffer占位
      */
     updateJointMatrixBuffer() {
-
         if (this.bufferPointers.jointMatrix) {
             for (let i in this.outSideInstance) {
                 let offset = this.bufferPointers.jointMatrix.offset;
@@ -105,7 +113,6 @@ export abstract class SkinsEntity extends AnimationEntity {
                         f32DataViewOfPointer.set(f32DataViewOfNodeObject);
                     }
                     this.scene.pointers.updatePointerWriteTime(this.bufferPointers.jointMatrix);
-
                 }
             }
         }
@@ -159,14 +166,6 @@ export abstract class SkinsEntity extends AnimationEntity {
         }
     }
     override checkPointerRebuildTime(): boolean {
-        //当前帧匹配，调试模式下，使用手工调用rebuild，不能精确匹配。非手工模式可以
-        // if (this.bufferPointers.uniformCommonEntity?.rebuildTime == this.scene.clock.now
-        //     ||
-        //     this.bufferPointers.instances?.rebuildTime == this.scene.clock.now
-        //     ||
-        //     this.bufferPointers.wolrdMatrix?.rebuildTime == this.scene.clock.now
-        // )
-
         //匹配手工和当前帧模式
         if (this.bufferPointers.uniformCommonEntity?.rebuildTime
             ||
