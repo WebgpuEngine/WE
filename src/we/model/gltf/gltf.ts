@@ -46,6 +46,7 @@ import { MeshMorphTarget } from "../../core/entity/animationEntity/meshOfMorphTa
 import { LinesMorphTarget } from "../../core/entity/animationEntity/linesOfMorphTarget";
 import { LinesSkins } from "../../core/entity/animationEntity/linesOfSkins";
 import { MeshSkins } from "../../core/entity/animationEntity/meshOfSkins";
+import { SkinsEntity } from "../../core/entity/animationEntity/skinsEntity";
 
 /** 实例化gltf绑定动画与动画组的资源 */
 export interface I_gltfInstanceResource {
@@ -206,11 +207,22 @@ export class GLTFModel extends BaseModel {
                 jointsMatrices: jointMatrix,
             });
 
+            let meshOfSkin = this.DataLoader.getMesh(bundle.meshID);
+            let accessorIdOfWeightCount = meshOfSkin.primitives[0].attributes["WEIGHTS_0"];
+            let accessorWeightsCount = this.DataLoader.getAccessorOfSource(accessorIdOfWeightCount);
+            let weightsCount = 4;
+            if (accessorWeightsCount != undefined && accessorWeightsCount.type == "VEC4") {
+                weightsCount = 4;
+            }
+            else {
+                console.warn(`weightsCount type not support: ${accessorWeightsCount.type},use default 4`);
+            }
             let skinAnimation = new SkinAnimation(
                 {
                     parent: node!,
                     skeleton: skeletons,
-                    entity: node!.Entity,
+                    entity: node!.Entity as SkinsEntity,
+                    weightsCount: weightsCount,
                 }
             );
             skinAnimations.push(skinAnimation);

@@ -55,19 +55,26 @@ export interface IV_SkinAnimationValue {
      * 这个可以忽略
      */
     entity?: SkinsEntity;
+    weightsCount?: number;
 }
 export class SkinAnimation implements I_UUID {
     UUID: string;
+    /** 是否销毁 */
     _isDestroy: boolean = false;
+    /** 父节点 */
     parent: NodeObject;
     scene: Scene;
+    /** 管理器 */
     manager: SkinsManager;
     /** 播放状态 */
     playState: E_PlayState = E_PlayState.stoped;
-
+    /** 权重数量 */
+    weightsCount: number = 4;
+    /** 骨骼蒙皮动画 */
     skeleton: Skeleton | undefined;
-
+    /** 是否只播放一次 */
     playOnce: boolean = false;
+    /** 实体 */
     entity: SkinsEntity | undefined;
 
     constructor(values: IV_SkinAnimationValue) {
@@ -83,7 +90,9 @@ export class SkinAnimation implements I_UUID {
         }
         this.entity = this.parent.Entity as SkinsEntity;
 
-
+        if (values.weightsCount != undefined) {
+            this.weightsCount = values.weightsCount;
+        }
         if (values.skeleton instanceof Skeleton) {
             this.skeleton = values.skeleton;
             if (this.entity.JointsMatCount === 0) {
@@ -101,6 +110,7 @@ export class SkinAnimation implements I_UUID {
         else {
             throw new Error("SkinAnimation: skeleton joints length is not equal to parent entity JointsMatCount");
         }
+        this.entity.WeightsCount = this.weightsCount;
         this.entity.JointsMatCount = this.skeleton.joints.length;
         this.entity.JointMatrixByteSize = 16 * 4 * this.skeleton.joints.length;
         // this.entity.AnimationType=E_AnimationType.skeleton;

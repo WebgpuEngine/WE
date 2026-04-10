@@ -4,6 +4,16 @@ import { IV_BaseEntity } from "../base";
 import { AnimationEntity } from "./animationEntity";
 
 export abstract class SkinsEntity extends AnimationEntity {
+    /** 权重数量 */
+    _weightsCount: number = 4;
+    get WeightsCount(): number {
+        return this._weightsCount;
+    }
+    set WeightsCount(value: number) {
+        this._weightsCount = value;
+        this.updateUniformCommonEntity(this.scene.clock, false);
+    }
+
     /** 骨骼（逆绑定矩阵）数量 */
     _jointsMattricesCount: number = 0;
     /** 获取骨骼动画数量 */
@@ -74,20 +84,26 @@ export abstract class SkinsEntity extends AnimationEntity {
 
     /**
      * 被update调用，更新vs、fs的uniform
+     * @param clock 时间戳
+     * @param updateParent 是否更新父entity的uniform
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    override updateUniformCommonEntity(clock: Clock, _write: boolean = true): void {
-        super.updateUniformCommonEntity(clock, false);
+    override updateUniformCommonEntity(clock: Clock, updateParent: boolean = true): void {
+        if (updateParent) {
+            super.updateUniformCommonEntity(clock, false);
+        }
         if (this.bufferPointers.uniformCommonEntity !== undefined) {
             const st_entityValues = this.bufferPointers.uniformCommonEntity.cpuBuffer;
             let offset = this.bufferPointers.uniformCommonEntity.offset;
             const st_entityViews = {
                 animation_kind: new Uint32Array(st_entityValues, offset + 16, 1),
-                joint_matrix_count: new Uint32Array(st_entityValues, offset + 28, 1),
+                joints_count: new Uint32Array(st_entityValues, offset + 24, 1),
+                joint_weights_count: new Uint32Array(st_entityValues, offset + 28, 1),
             };
             st_entityViews.animation_kind[0] = this.getAnimationKind();
-            st_entityViews.joint_matrix_count[0] = this.JointsMatCount;
+            st_entityViews.joint_weights_count[0] = this.WeightsCount;
+            st_entityViews.joints_count[0] = this.JointsMatCount;
             this.scene.pointers.updatePointerWriteTime(this.bufferPointers.uniformCommonEntity);
         }
     }

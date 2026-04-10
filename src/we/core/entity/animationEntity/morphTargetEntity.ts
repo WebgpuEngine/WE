@@ -103,11 +103,11 @@ export abstract class MorphTargetEntity extends AnimationEntity {
             const st_entityViews = {
                 animation_kind: new Uint32Array(st_entityValues, offset + 16, 1),
                 morpht_target_count: new Uint32Array(st_entityValues, offset + 20, 1),
-                vertex_count: new Uint32Array(st_entityValues, offset + 24, 1),
+                // vertex_count: new Uint32Array(st_entityValues, offset + 24, 1),
             };
             st_entityViews.animation_kind[0] = this.getAnimationKind();
             st_entityViews.morpht_target_count[0] = this.MorphtTargetCount;
-            st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
+            // st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
             this.scene.pointers.updatePointerWriteTime(this.bufferPointers.uniformCommonEntity);
         }
     }

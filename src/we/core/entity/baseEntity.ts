@@ -801,7 +801,7 @@ export abstract class BaseEntity extends NodeSpace {
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    updateUniformCommonEntity(clock: Clock, write: boolean = true): void {
+    updateUniformCommonEntity(clock: Clock, updateParent: boolean = true): void {
         if (this.bufferPointers.uniformCommonEntity !== undefined) {
             const st_entityValues = this.bufferPointers.uniformCommonEntity.cpuBuffer;
             let offset = this.bufferPointers.uniformCommonEntity.offset;
@@ -812,8 +812,8 @@ export abstract class BaseEntity extends NodeSpace {
                 vs_offset: new Float32Array(st_entityValues, offset + 12, 1),
                 animation_kind: new Uint32Array(st_entityValues, offset + 16, 1),
                 morpht_target_count: new Uint32Array(st_entityValues, offset + 20, 1),
-                vertex_count: new Uint32Array(st_entityValues, offset + 24, 1),
-                joint_matrix_count: new Uint32Array(st_entityValues, offset + 28, 1),
+                joints_count: new Uint32Array(st_entityValues, offset + 24, 1),
+                joint_weights_count: new Uint32Array(st_entityValues, offset + 28, 1),
             };
             st_entityViews.time[0] = clock.now;
             st_entityViews.last_time[0] = clock.last;
@@ -821,8 +821,8 @@ export abstract class BaseEntity extends NodeSpace {
             st_entityViews.vs_offset[0] = this.vsOffset;
             st_entityViews.animation_kind[0] = 0;//this.getAnimationKind();
             st_entityViews.morpht_target_count[0] = 0;//this.MorphtTargetCount;
-            st_entityViews.vertex_count[0] = 0;//this.getVertexCount();
-            st_entityViews.joint_matrix_count[0] = 0;// this.JointsMatCount;
+            st_entityViews.joints_count[0] = 0;//this.getVertexCount();
+            st_entityViews.joint_weights_count[0] = 0;// this.JointsMatCount;
             this.scene.pointers.updatePointerWriteTime(this.bufferPointers.uniformCommonEntity);
         }
     }

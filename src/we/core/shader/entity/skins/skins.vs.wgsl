@@ -22,17 +22,18 @@ attributes: st_location,
         vec4f(0.0, 0.0, 0.0, 0.0), // 第2列
         vec4f(0.0, 0.0, 0.0, 0.0)  // 第3列（单位矩阵）
     );
-    let count = i32(u_entity_base.joint_matrix_count);
-    for(var i=0 ;i < count;i++) {
+    let count = i32(u_entity_base.joint_weights_count);
+    for(var i=0 ;i < count;i++) {  // 这里的count是骨骼数目
         let per_joint = u32(attributes.joints[i]);   //这里的attribute中的joints和weights 是不确定的因素，没有骨骼动画就没有joints和weights
         // skin_mat += attributes.weights[i] * joint_matrix[  per_joint];
-        skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joint_matrix_count + per_joint];
+        skin_mat += attributes.weights[i] * joint_matrix[ attributes.instanceIndex * u_entity_base.joints_count + per_joint];
     }
     worldPosition = skin_mat * vec4f(position, 1.0);
     // worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));
     vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
     vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
    }
+
 
 
   return vsOutput;
