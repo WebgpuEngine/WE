@@ -16,6 +16,7 @@ import { getSampler } from "../sampler/baseFunction";
 import { Texture } from "../texture/texture";
 import { CubeTexture } from "../texture/cubeTexxture";
 import { I_pointerStruct } from "../bufferBlock/pointer";
+import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 
 
 
@@ -24,7 +25,7 @@ export abstract class BaseMaterial extends RootGPU {
     ///////////////////////////////////////////////////////////////////
     override inputValues: IV_BaseMaterial;
     kind!: E_MaterialType;
-
+    entity!: EntityBundleMaterial;
     ///////////////////////////////////////////////////////////////////
     //bind group
     /** VS bind group */
@@ -159,10 +160,10 @@ export abstract class BaseMaterial extends RootGPU {
         // if (input?.mipmap) this._mipmap = input.mipmap;
         this._state = E_lifeState.unstart;
     }
-     _destroy(): void{
+    _destroy(): void {
         console.log("===material destroy release pointer", this.uniformPointer.pointerID);
         this.scene.pointers.releasePointer(this.uniformPointer.pointerID);
-     }
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础功能部分
@@ -186,9 +187,10 @@ export abstract class BaseMaterial extends RootGPU {
         return this._state;
     }
 
-    async init(scene: Scene): Promise<any> {
+    async init(scene: Scene, entity: EntityBundleMaterial): Promise<any> {
         // this._shadow = (parent as BaseEntity)._shadow;
         this.scene = scene;
+        this.entity = entity;
         this.defaultTexture2D = this.scene.resourcesGPU.weTextureOfString.get("default") as Texture;
         this.defaultTexture3D = this.scene.resourcesGPU.weTextureOfString.get("defaultCube") as CubeTexture;
         this.defaultSampler = this.checkSampler(this.inputValues);
@@ -907,6 +909,12 @@ export abstract class BaseMaterial extends RootGPU {
     convertAddPartOfSHT(addPart: I_shaderTemplateAdd[]): string {
         let code: string = "";
         for (let perOne of addPart) {
+            if (perOne.name == "st_output") {
+                if (this.entity.locationInterpolate != undefined) {
+                    code += this.entity.getSHT_st_output();
+                    continue;
+                }
+            }
             code += perOne.code;
         }
         return code;

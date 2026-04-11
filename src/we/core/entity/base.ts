@@ -77,8 +77,20 @@ export interface I_optionShadowEntity {
     /**是否产生阴影   默认true    */
     generate: boolean,
 }
-
-
+/**
+ * 顶点属性的插值模式
+ * url：https://gpuweb.github.io/gpuweb/wgsl/#interpolation
+ * 1、默认：webGPU默认的，即 @interpolate(perspective, center)
+ * 2、[name]:
+ *      A、"normal"等：指定属性的插值模式              
+ *      B、不存在attribute name的会被忽略；    
+ */
+export interface I_locationInterpolate {
+    [name: string]: {
+        type: "perspective" | "linear" | "flat",
+        sampling: "center" | "centroid" | "sample" | "first" | "either"
+    }
+}
 /**三段式初始化的第一步： input参数 */
 export interface IV_BaseEntity extends IV_NodeSpace {
     /**阴影选项 */
@@ -113,6 +125,10 @@ export interface IV_BaseEntity extends IV_NodeSpace {
             /** 顶点步长模式 */
             vertexStepMode?: GPUVertexStepMode,
         },
+        /**
+         * 顶点属性的插值模式        
+         */
+        locationInterpolate?: I_locationInterpolate
     }
     /** 图元状态 */
     primitive?: GPUPrimitiveState,

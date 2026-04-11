@@ -813,6 +813,24 @@ export class DrawCommandGenerator {
 
         return wgsl_value_format;
     }
+
+    formatLocationStringOfAttribute(values: IV_DC, location: number, name: string, format: string): string {
+        //@location(4) @interpolate(flat) entityID : u32,
+        // if (values.parent && values.parent.locationInterpolate) {
+        //     if (values.parent.locationInterpolate.all) {
+        //         return `@location(${location}) @interpolate(${values.parent.locationInterpolate.all.type},${values.parent.locationInterpolate.all.sampling}) ${name} : ${format} ,`;
+        //     }
+        //     else {
+        //         for (let key in values.parent.locationInterpolate) {
+        //             if (key == name) {
+        //                 return `@location(${location}) @interpolate(${values.parent.locationInterpolate[key].type},${values.parent.locationInterpolate[key].sampling}) ${name} : ${format} ,`;
+        //             }
+        //         }
+        //     }
+        // }
+        return `@location(${location}) ${name} : ${format} ,`;
+    }
+
     /**
      * 初始化顶点资源
      * 
@@ -917,7 +935,8 @@ export class DrawCommandGenerator {
                                 break;
                         }
                         let wgsl_value_format = this.getWgslValueFormat(format);
-                        locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
+                        locationString += this.formatLocationStringOfAttribute(values, location_i, lowKey, wgsl_value_format);
+
 
                         let vertexBuffer: GPUBuffer;
                         //判断是否以及存在顶点GPUBuffer
@@ -990,7 +1009,8 @@ export class DrawCommandGenerator {
                             break;
                     }
                     let wgsl_value_format = this.getWgslValueFormat(format);
-                    locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
+                    locationString += this.formatLocationStringOfAttribute(values, location_i, lowKey, wgsl_value_format);
+
 
                     if (values.parent && values.parent.vertexPointers[lowKey]) {
                         pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
@@ -1214,7 +1234,8 @@ export class DrawCommandGenerator {
                             break;
                     }
                     let wgsl_value_format = this.getWgslValueFormat(value.format);
-                    locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
+                    locationString += this.formatLocationStringOfAttribute(values, location_i, lowKey, wgsl_value_format);
+
                     //判断是否以及存在顶点GPUBuffer
                     // let md5OfVertexOfArray = MD5.hex(value.data);
 
@@ -1330,7 +1351,8 @@ export class DrawCommandGenerator {
                     let format = value.format;
                     let arrayStride = value.arrayStride;
                     let wgsl_value_format = this.getWgslValueFormat(format);
-                    locationString += ` @location(${location_i}) ${lowKey} : ${wgsl_value_format}  ,`;
+                    locationString += this.formatLocationStringOfAttribute(values, location_i, lowKey, wgsl_value_format);
+
                     // vertexBuffer = value.buffer;
                     //GPUBuffer属性暂时不支持动态更新vertex GPUBuffer。（可以支持，但需要重新绑定GPUBuffer，GPUBuffer内部还有stride组合的比较复杂，不考虑）
                     vertexBufferEntry = {
@@ -1713,6 +1735,12 @@ export class DrawCommandGenerator {
         vertexName: string,
         fragmentName: string,
     } {
+        //VS location 输出插值模式
+        let locationInterpolateString = "";
+        if (values.parent) {
+            locationInterpolateString = values.parent.getStringOfLocationInterpolate();
+        }
+
         // 3.1 反射顶点名称到shader code的顶点属性的占位符中
         //vertex shader
         let moduleVS: GPUShaderModule
@@ -1720,13 +1748,14 @@ export class DrawCommandGenerator {
         let vsCacheShaderModuleName = values.label;
 
         if (typeof values.render.vertex.code === "string") {
-            vsCacheShaderModuleName = values.render.vertex.code as string;
+            vsCacheShaderModuleName = values.render.vertex.code as string + locationInterpolateString;
             shadercode = values.render.vertex.code;
         }
         else {
-            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString();
+            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString;
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
+
         // 测试输出
         // if (values.transparent)
         //     console.log(shadercode);
@@ -1781,7 +1810,7 @@ export class DrawCommandGenerator {
                 }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
-                    nameOfMaterial = values.render.fragment.code.material.owner;
+                    nameOfMaterial = values.render.fragment.code.material.owner + locationInterpolateString;
                     //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
                     if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;

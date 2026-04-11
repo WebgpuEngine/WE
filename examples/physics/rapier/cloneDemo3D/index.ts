@@ -34,7 +34,7 @@ type RAPIER_API = typeof RAPIER;
 
 let builders = new Map([
 
-    // ["convex polyhedron", ConvexPolyhedron.initWorld],
+    ["convex polyhedron", ConvexPolyhedron.initWorld],
 
     ["collision groups", CollisionGroups.initWorld],
     ["character controller", CharacterController.initWorld],

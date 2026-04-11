@@ -1,4 +1,4 @@
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_addSystemOfLight, SHT_ScenOfCamera, SHT_ScenOfLight, WGSL_st_location, WGSL_st_output } from "../base";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_ScenOfCamera, WGSL_st_location, WGSL_st_output } from "../base";
 import { st_entity, replace_meshoutput } from "./common";
 
 //entity
@@ -10,7 +10,7 @@ var meshMain = meshMainWGSL.toString();
 export var SHT_MeshVS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera,
     entity: {
-        owner:"mesh",
+        owner: "mesh",
         add: [
             {
                 name: "st_output",

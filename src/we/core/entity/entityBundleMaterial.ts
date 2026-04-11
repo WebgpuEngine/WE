@@ -11,14 +11,14 @@
 import { E_lifeState, E_renderForDC } from "../base/coreDefine";
 import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed, T_uniformEntries } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
-import { isIndexGPUBufferBundle, isI_vsAttributeMerge, isVSGPUBufferBundle, IV_DC, I_vsAttribute } from "../command/DrawCommandGenerator";
+import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC, I_vsAttribute } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { BaseLight } from "../light/baseLight";
 import { I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate, WGSL_st_output } from "../shadermanagemnet/base";
 import { I_EntityAttributes, IV_BaseEntity, I_EntityBundleOutput, I_vsfsBundle, I_ShadowMapValueOfDC, E_entityType } from "./base";
 import { BaseEntity } from "./baseEntity";
 import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
@@ -28,6 +28,8 @@ import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
 import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
 import { mergeLightUUID } from "../light/lightsManager";
 import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
+import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPositionsNoIndex } from "../math/baseFunction";
+import { Scene } from "../scene/scene";
 
 type pologyMode = "triangle" | "line" | "point";
 
@@ -83,6 +85,19 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         else
             this._material = input.material;
     }
+    override async init(scene: Scene): Promise<any> {
+        if (this.kind == E_entityType.mesh && this.attributes.vertices.normal == undefined) {
+            if (Array.isArray(this.attributes.vertices.position)) {
+                if (this.attributes.indices) {
+                    this.attributes.vertices.normal = computeNormalsArrayFromPositionsAndIndices(this.attributes.vertices.position, this.attributes.indices as number[]);
+                }
+                else {
+                    this.attributes.vertices.normal = computeNormalsArrayFromPositionsNoIndex(this.attributes.vertices.position);
+                }
+            }
+        }
+        super.init(scene);
+    }
     override _destroy(): void {
         super._destroy();
         // this._material.destroy();
@@ -93,7 +108,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     * 覆写 Root的function,因为材料类需要GPUDevice 
     */
     async readyForGPU() {
-        await this._material.init(this.scene);
+        await this._material.init(this.scene, this);
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";//透明具有双面性
         }
@@ -373,7 +388,24 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         return 0;
     }
 
-
+    /**
+     * 获取st_output的代码，根据当前entity的locationInterpolate进行替换
+     * @returns string
+     */
+    getSHT_st_output(): string {
+        let st_output = WGSL_st_output.toString();
+        if (this.locationInterpolate != undefined) {
+            for (let i in this.locationInterpolate) {
+                if (st_output.indexOf(i) == -1) {
+                    continue;
+                }
+                let location = this.locationInterpolate[i];
+                let replaceString = ` @interpolate(${location.type},${location.sampling}) ${i} `;
+                st_output = st_output.replace(i, replaceString);
+            }
+        }
+        return st_output;
+    }
     /**
      * 格式化shader代码
      * @param template 
@@ -381,7 +413,16 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      */
     formatShaderCode(template: I_singleShaderTemplate, wireFrame: boolean = false): string {
         let code: string = "";
+        /**
+         * 1 处理st_output: 与 BaseEntity.getStringOfLocationInterpolate() 中的特征码具有同步关系
+         */
         for (let perOne of template.add as I_shaderTemplateAdd[]) {
+            //处理st_location
+            if (perOne.name == "st_output") {
+                if (this.locationInterpolate != undefined) {
+                    perOne.code = this.getSHT_st_output();
+                }
+            }
             code += perOne.code;
         }
         for (let perOne of template.replace as I_shaderTemplateReplace[]) {

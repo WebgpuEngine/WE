@@ -8,6 +8,7 @@ import {
     IV_BaseEntity,
     I_optionShadowEntity,
     I_ShadowMapValueOfDC,
+    I_locationInterpolate,
 } from "./base";
 import { E_lifeState, weVec2 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
@@ -26,7 +27,6 @@ import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
 import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_BOLBufferType } from "../bufferBlock/base";
-import { get } from "../../../@loaders.gl/draco/dist/draco-worker-node";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -74,7 +74,25 @@ export abstract class BaseEntity extends NodeSpace {
      * 2、instance数量
      */
     _instanceWorldMatrixByteSize = 16 * 4;
-
+    /** 顶点属性的插值模式       
+     */
+    locationInterpolate: I_locationInterpolate | undefined;
+    
+    /** 获取字符串化的顶点属性的插值模式       ：cache shader module ,pipeline使用
+     */
+    getStringOfLocationInterpolate(): string {
+        if (!this.locationInterpolate) {
+            return "";
+        }
+        else {
+            let locationOfString = "";
+            for (let i in this.locationInterpolate) {
+                let perLocationInterpolate = this.locationInterpolate[i];
+                locationOfString += ` interpolate:${perLocationInterpolate.type},${perLocationInterpolate.sampling}} `;
+            }
+            return locationOfString;
+        }
+    }
     ///////////////////////////////////////////////////////////////////
     //uniform
     /** 外部实例化数组stride数量，默认为4
@@ -294,6 +312,9 @@ export abstract class BaseEntity extends NodeSpace {
         this.type = "entity";
         this._state = E_lifeState.constructing;
         this.input = input;
+        if (input.attributes?.locationInterpolate) {
+            this.locationInterpolate = input.attributes.locationInterpolate;
+        }
         if (input.instance) {
             this.instance = input.instance;
             this.checkInstance();

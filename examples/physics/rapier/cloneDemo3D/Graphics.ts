@@ -202,7 +202,7 @@ export class Graphics {
                     });
             })
         );
-        
+
 
         this.instanceGroups.push(
             materials.map((material) => {
@@ -223,7 +223,7 @@ export class Graphics {
                     });
             })
         );
-        
+
 
 
     }
@@ -382,8 +382,14 @@ export class Graphics {
                         attributes: {
                             data: {
                                 vertices: { position: positions },
-                                indices: index
-                            }
+                                indices: index,
+                            },
+                            locationInterpolate: {
+                                normal: {
+                                    type: "flat",
+                                    sampling: "first",
+                                }
+                            },
                         }
                     }
                 );

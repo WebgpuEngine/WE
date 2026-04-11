@@ -1,4 +1,3 @@
-import Layout from "muigui/dist/0.x/layout/Layout";
 import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
 import { commmandType, T_uniformGroups } from "../command/base";
 import { DrawCommand, IV_DrawCommand } from "../command/DrawCommand";
@@ -8,7 +7,6 @@ import { Scene } from "../scene/scene";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
 import { CameraManager } from "./cameraManager";
-import { CopyCommandT2T } from "../command/copyCommandT2T";
 
 export interface IV_DeferDrawCommand {
     scene: Scene,

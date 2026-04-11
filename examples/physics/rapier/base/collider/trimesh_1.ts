@@ -39,8 +39,8 @@ await scene.add(camera);
 
 let onelight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [0.5, 1, .0],
-  intensity: 3,
+  direction: [0., 1, .0],
+  intensity: 1,
   shadow: true,
 });
 await scene.add(onelight);
@@ -48,7 +48,7 @@ await scene.add(onelight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.25
+    intensity: 0.05
   }
 )
 await scene.add(ambientLight);
@@ -117,6 +117,7 @@ function generateTriMesh(nsubdivs: number, wx: number, wy: number, wz: number) {
     indices: new Uint32Array(indices),
   };
 }
+// let trimesh = generateTriMesh(1, 1.0, 1.0, 1.0);
 let trimesh = generateTriMesh(20, 40.0, 4.0, 40.0);
 
 // let groundMaterial = new ColorMaterial({
@@ -125,7 +126,7 @@ let trimesh = generateTriMesh(20, 40.0, 4.0, 40.0);
 let groundMaterial = new PhongMaterial({
   color: [0., 0.5, 0.5, 1],
   roughness: 0.51,
-  metalness: 0.9,
+  metalness: 0.29,
   shininess: 32
 });
 
