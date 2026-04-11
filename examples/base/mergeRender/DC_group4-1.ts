@@ -293,16 +293,18 @@ passEncoder.drawIndexed(3, 1, 0, 0,);
 //2.2 设置vertexBuffer
 passEncoder.setVertexBuffer(0, dc_2.vertexBuffers[0].buffer, dc_2.vertexBuffers[0].offset, dc_2.vertexBuffers[0].byteSize);
 passEncoder.setVertexBuffer(1, dc_2.vertexBuffers[1].buffer, dc_2.vertexBuffers[1].offset, dc_2.vertexBuffers[1].byteSize);
+passEncoder.setVertexBuffer(2, undefined);
+passEncoder.setVertexBuffer(3, undefined);
 
 passEncoder.setIndexBuffer(dc_2.indexBuffer!.buffer, dc_2.indexFormat, dc_2.indexBuffer!.offset, dc_2.indexBuffer!.byteSize);// 'uint32');
 
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, dc_2.bindGroups[0]);
-passEncoder.setBindGroup(1, dc_2.bindGroups[1]);
-passEncoder.setBindGroup(2, dc_2.bindGroups[2]);
-passEncoder.setBindGroup(3, dc_2.bindGroups[3]);
-//2.4  draw
-passEncoder.drawIndexed(3, 1, 0, 0,);
+// passEncoder.setBindGroup(1, dc_2.bindGroups[1]);
+// passEncoder.setBindGroup(2, dc_2.bindGroups[2]);
+// passEncoder.setBindGroup(3, dc_2.bindGroups[3]);
+//2.4  draw  不使用索引模式
+passEncoder.draw(3, 1, 0, 0,);
 
 passEncoder.end();
 

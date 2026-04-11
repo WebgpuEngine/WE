@@ -253,21 +253,25 @@ export class ColorMaterial extends BaseMaterial {
         }
     }
     /**
-     * ColorMaterial 的没有uniform，所以返回的都是空数组和空字符串
+     * ColorMaterial 的公用uniform，所以返回的都是空数组和空字符串
      * @param startBinding 
      * @returns I_UniformBundleOfMaterial
      */
     getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
+        // if (this.unifromEntryBundle_Common !== undefined) {
+        //     return this.unifromEntryBundle_Common;
+        // }
+
         let binding: number = startBinding;
         let uniform1: T_uniformOneGroup = [];
-
-        let groupAndBindingString: string = ''
-        // let groupAndBindingString: string = `
-        // struct color_material_uniform  {
-        //     color: vec4f,
-        // }
-        // @group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
-        // `;
+        this.unifromEntryLayout = [];
+        // let groupAndBindingString: string = ''
+        let groupAndBindingString: string = `
+        struct color_material_uniform  {
+            color: vec4f,
+        }
+        @group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
+        `;
 
         let uniformBuffer: GPUBindGroupEntry = {
             binding: binding,

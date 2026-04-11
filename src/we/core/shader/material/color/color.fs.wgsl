@@ -1,8 +1,8 @@
 //start : color.fs.wgsl
-struct color_material_uniform  {
-    color: vec4f,
-}
-@group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
+// struct color_material_uniform  {
+//     color: vec4f,
+// }
+// @group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
 
 @fragment 
 fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {    

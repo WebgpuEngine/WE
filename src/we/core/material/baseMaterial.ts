@@ -56,7 +56,10 @@ export abstract class BaseMaterial extends RootGPU {
      */
     unifromEntryBundle_Common: I_UniformBundleOfMaterial | undefined;
 
+    /** 材质的公用uniform 对应的layout */
     unifromEntryLayout: GPUBindGroupLayoutEntry[] = [];
+    // /** 材质的公用uniform  */
+    // uniformEntry: T_uniformOneGroup = [];
     // /** 材质的uniform GPU Buffer */
     // uniformGPUBuffer!: GPUBuffer;
     // /** 材质的uniform CPU Buffer */
@@ -910,7 +913,7 @@ export abstract class BaseMaterial extends RootGPU {
         let code: string = "";
         for (let perOne of addPart) {
             if (perOne.name == "st_output") {
-                if (this.entity.locationInterpolate != undefined) {
+                if (this.entity?.locationInterpolate && this.entity.locationInterpolate != undefined) {
                     code += this.entity.getSHT_st_output();
                     continue;
                 }
