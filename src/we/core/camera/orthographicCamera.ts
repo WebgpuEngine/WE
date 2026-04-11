@@ -5,11 +5,11 @@ import {
 } from 'wgpu-matrix';
 
 
-import { BaseCamera, projectionOptions } from "./baseCamera";
+import { BaseCamera, I_BaseCameraValue } from "./baseCamera";
 import { computeAABB } from '../math/Box';
 import { generateSphereFromBox3 } from '../math/sphere';
 
-export interface optionOrthProjection extends projectionOptions {
+export interface IV_OrthographicCamera extends I_BaseCameraValue {
     left: number,
     right: number,
     top: number,
@@ -28,8 +28,8 @@ export class OrthographicCamera extends BaseCamera {
         throw new Error('Method not implemented.');
     }
 
-    declare inpuValues: optionOrthProjection;
-    constructor(option: optionOrthProjection) {
+    declare inpuValues: IV_OrthographicCamera;
+    constructor(option: IV_OrthographicCamera) {
         super(option);
         this.inpuValues = option;
     }

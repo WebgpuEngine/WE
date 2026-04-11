@@ -20,9 +20,9 @@ export { IV_SkinAnimationValue, SkinAnimation } from "../core/animation/skin.ts"
 
 export { I_Update, weColor3, weColor4, weVec3, weVec4, weMat4, weMat3, TypedArray, weHexColor } from "../core/base/coreDefine.ts"
 
-export { BaseCamera, projectionOptions } from "../core/camera/baseCamera.ts";
-export { optionOrthProjection, OrthographicCamera } from "../core/camera/orthographicCamera.ts";
-export { optionPerspProjection, PerspectiveCamera } from "../core/camera/perspectiveCamera.ts";
+export { BaseCamera, I_BaseCameraValue } from "../core/camera/baseCamera.ts";
+export { IV_OrthographicCamera, OrthographicCamera } from "../core/camera/orthographicCamera.ts";
+export { IV_PerspectiveCamera, PerspectiveCamera } from "../core/camera/perspectiveCamera.ts";
 
 export { commmandType, I_drawMode, I_drawModeIndexed, I_viewport } from "../core/command/base.ts";
 export { IV_ComputeCommand, ComputeCommand } from "../core/command/ComputeCommand.ts";

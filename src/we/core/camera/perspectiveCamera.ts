@@ -1,13 +1,13 @@
 import { mat4, vec4, Vec4 } from 'wgpu-matrix';
 
 
-import { BaseCamera, projectionOptions } from "./baseCamera"
+import { BaseCamera, I_BaseCameraValue } from "./baseCamera"
 import { Clock } from '../scene/clock';
 import { computeAABB } from '../math/Box';
 import { computeBoundingSphere, generateSphereFromBox3 } from '../math/sphere';
 
 /** 透视相机 */
-export interface optionPerspProjection extends projectionOptions {
+export interface IV_PerspectiveCamera extends I_BaseCameraValue {
     /**The camera angle from top to bottom (in radians). */
     fov: number,
     aspect: number,
@@ -28,12 +28,12 @@ export class PerspectiveCamera extends BaseCamera {
         throw new Error('Method not implemented.');
     }
 
-    declare inpuValues: optionPerspProjection
+    declare inpuValues: IV_PerspectiveCamera
     /**
      * 
-     * @param option:optionPerspProjection
+     * @param option:IV_PerspectiveCamera
      */
-    constructor(option: optionPerspProjection) {
+    constructor(option: IV_PerspectiveCamera) {
         super(option);
         this.inpuValues = option;
     }

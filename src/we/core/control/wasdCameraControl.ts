@@ -56,7 +56,7 @@ export class WASDCameraControl extends CamreaControl {
     // }
     init() {
 
-        this.recalculateAngles(this.camera.back);
+        this.recalculateAngles(this.camera.BackOfViewMatrix);
         // throw new Error('Method not implemented.');
     }
     update(deltaTime: number): boolean {
@@ -86,9 +86,9 @@ export class WASDCameraControl extends CamreaControl {
         const deltaUp = sign(digital.up, digital.down);
         const targetVelocity = vec3.create();
         const deltaBack = sign(digital.backward, digital.forward);
-        vec3.addScaled(targetVelocity, this.camera.right, deltaRight, targetVelocity);
-        vec3.addScaled(targetVelocity, this.camera.up, deltaUp, targetVelocity);
-        vec3.addScaled(targetVelocity, this.camera.back, deltaBack, targetVelocity);
+        vec3.addScaled(targetVelocity, this.camera.RightOfViewMatrix, deltaRight, targetVelocity);
+        vec3.addScaled(targetVelocity, this.camera.UpOfViewMatrix, deltaUp, targetVelocity);
+        vec3.addScaled(targetVelocity, this.camera.BackOfViewMatrix, deltaBack, targetVelocity);
         vec3.normalize(targetVelocity, targetVelocity);
         vec3.mulScalar(targetVelocity, this.movementSpeed, targetVelocity);
 

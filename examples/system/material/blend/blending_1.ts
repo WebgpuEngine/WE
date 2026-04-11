@@ -2,7 +2,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 import GUI from "muigui";
-import { optionOrthProjection, OrthographicCamera } from "../../../../src/we/core/camera/orthographicCamera";
+import { IV_OrthographicCamera, OrthographicCamera } from "../../../../src/we/core/camera/orthographicCamera";
 import { Mesh } from "../../../../src/we/core/entity/mesh/mesh";
 import { PlaneGeometry } from "../../../../src/we/core/geometry/planeGeomertry";
 import { ColorMaterial } from "../../../../src/we/core/material/standard/colorMaterial";
@@ -95,7 +95,7 @@ let scene = await initScene({
 window.scene = scene;
 
 
-const cameraOption: optionOrthProjection = {
+const cameraOption: IV_OrthographicCamera = {
   left: -1,
   right: 1,
   top: 1,

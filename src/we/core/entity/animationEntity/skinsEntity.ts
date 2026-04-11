@@ -30,7 +30,10 @@ export abstract class SkinsEntity extends AnimationEntity {
         this._jointsMattricesCount = count;
         this.JointMatrixByteSize = 16 * 4 * count;
         this.storageBufferList[2].byteSize = this.JointMatrixByteSize;
-        this.checkStorageBuffer(this.storageBufferList);
+        if (this.scene)
+            this.checkStorageBuffer(this.storageBufferList);
+        else 
+            console.warn("SkinsEntity: JointsMatCount 未设置场景，无法检查storageBuffer是否匹配");
     }
     /**
      * 逆绑定矩阵大小(单个instance的joint matrix size)

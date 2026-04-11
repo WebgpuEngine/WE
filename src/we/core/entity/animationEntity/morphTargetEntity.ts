@@ -23,7 +23,10 @@ export abstract class MorphTargetEntity extends AnimationEntity {
         this._morphTargetWeightsCount = count;
         this._instanceMorphTargetByteSize = count * 4;
         this.storageBufferList[2].byteSize = this.MorphTargetByteSize;
-        this.checkStorageBuffer(this.storageBufferList);
+        if (this.scene)
+            this.checkStorageBuffer(this.storageBufferList);
+        else 
+            console.warn("MorphTargetEntity: MorphtTargetCount 未设置场景，无法检查storageBuffer是否匹配");
     }
 
     /**storage array(初始化默认一个矩阵，以适配没有morph target的通用情况；)

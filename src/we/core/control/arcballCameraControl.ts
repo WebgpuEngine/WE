@@ -73,7 +73,7 @@ export class ArcballCameraControl extends CamreaControl {
             let input = this.getInputValue();
             let position = vec3.copy(this.camera.worldPosition);
             //1.1、计算当前距离，旋转距离不变
-            this.distance = vec3.distance(this.camera.positionOfModelMatrix, this.camera.LookAt);
+            this.distance = vec3.distance(this.camera.PositionOfModelMatrix, this.camera.LookAt);
             let oldDistance = this.distance;
             //阈值，for 旋转角 & 旋转轴
             const epsilon = 0.0000001;
@@ -94,10 +94,10 @@ export class ArcballCameraControl extends CamreaControl {
                     //2.2、处理移动 ：X , Y
                     // Calculate the movement vector，计算移动方向
                     const movement = vec3.create();  //以屏幕中心(lookat )为原点
-                    vec3.addScaled(movement, this.camera.right, input.analog.x, movement);//X 方向的增量
-                    vec3.addScaled(movement, this.camera.up, -input.analog.y, movement);//Y 方向的增量,负号是因为鼠标向上是负方向
+                    vec3.addScaled(movement, this.camera.RightOfViewMatrix, input.analog.x, movement);//X 方向的增量
+                    vec3.addScaled(movement, this.camera.UpOfViewMatrix, -input.analog.y, movement);//Y 方向的增量,负号是因为鼠标向上是负方向
                     // 3.1 叉乘出Z轴的增量 Cross the movement vector with the view direction to calculate the rotation axis x magnitude
-                    const crossProduct = vec3.cross(movement, this.camera.back);
+                    const crossProduct = vec3.cross(movement, this.camera.BackOfViewMatrix);
 
                     //3.1 计算拖动的量级，Z方向的向量长度; Calculate the magnitude of the drag
                     const magnitude = vec3.len(crossProduct);
@@ -119,7 +119,7 @@ export class ArcballCameraControl extends CamreaControl {
                         // Rotate the matrix around axis
                         // Note: The rotation is not done as a matrix-matrix multiply as the repeated multiplications
                         // will quickly introduce substantial error into the matrix.
-                        dir = vec3.normalize(MathFun.rotate(this.camera.back, this.axis, rotationAngle));
+                        dir = vec3.normalize(MathFun.rotate(this.camera.BackOfViewMatrix, this.axis, rotationAngle));
                     }
                     //3.5.2 计算在dir方向上的摄像机的position的位置
                     if (dir) {//方向变化，距离有可能变化
@@ -138,8 +138,8 @@ export class ArcballCameraControl extends CamreaControl {
 
                     //ok，在位置上+xy，和在位置+轴方向的增量，效果相同。有可能轴方向增量，有轴向量的scale，差距不大。
                     const movement = vec3.create();  //以屏幕中心(lookat )为原点
-                    vec3.addScaled(movement, this.camera.right, -input.analog.x * this.rightKeyRate, movement);//X 方向的增量,负号是因为鼠标向右是负方向
-                    vec3.addScaled(movement, this.camera.up, input.analog.y * this.rightKeyRate, movement);//Y 方向的增量
+                    vec3.addScaled(movement, this.camera.RightOfViewMatrix, -input.analog.x * this.rightKeyRate, movement);//X 方向的增量,负号是因为鼠标向右是负方向
+                    vec3.addScaled(movement, this.camera.UpOfViewMatrix, input.analog.y * this.rightKeyRate, movement);//Y 方向的增量
 
                     if (movement[0] || movement[1]) {//如果X或Y方向有增量
                         let localLookat = this.camera.getLocalLookAtVec3();
@@ -161,9 +161,9 @@ export class ArcballCameraControl extends CamreaControl {
                 //5.2 距离变化了，重新计算position
                 if (oldDistance != this.distance) {
                     //5.3 重新计算position
-                    position = vec3.add(vec3.scale(this.camera.back, this.distance), this.camera.LookAt);//重新计算位置
-                    // console.log("zoom:dir", ...this.camera.back, "position", ...position, "distance", this.distance);
-                    this.camera.updateByPositionDirection(position, this.camera.back, true, true);
+                    position = vec3.add(vec3.scale(this.camera.BackOfViewMatrix, this.distance), this.camera.LookAt);//重新计算位置
+                    // console.log("zoom:dir", ...this.camera.BackOfViewMatrix, "position", ...position, "distance", this.distance);
+                    this.camera.updateByPositionDirection(position, this.camera.BackOfViewMatrix, true, true);
                     return true;
                 }
             }
@@ -219,7 +219,7 @@ export class ArcballCameraControl extends CamreaControl {
         vec3.copy(up, axisX);
         // 新的Z轴=camrea X
         let axizZ = new Float32Array(viewMatrix.buffer, 4 * 4 * 2, 4);
-        vec3.normalize(vec3.negate(vec3.create(this.camera.right[0], this.camera.right[1], this.camera.right[2])), axizZ);
+        vec3.normalize(vec3.negate(vec3.create(this.camera.RightOfViewMatrix[0], this.camera.RightOfViewMatrix[1], this.camera.RightOfViewMatrix[2])), axizZ);
         //新的Y轴=新的Z轴叉积新的X轴
         let axizY = new Float32Array(viewMatrix.buffer, 4 * 4 * 1, 4);
         vec3.normalize(vec3.cross(axizZ, axisX), axizY);
@@ -261,7 +261,7 @@ export class ArcballCameraControl extends CamreaControl {
 
         // 新的Z轴=camrea X
         let axizZ = new Float32Array(viewMatrix.buffer, 4 * 4 * 2, 4);
-        vec3.normalize(vec3.negate(vec3.create(this.camera.right[0], this.camera.right[1], this.camera.right[2])), axizZ);
+        vec3.normalize(vec3.negate(vec3.create(this.camera.RightOfViewMatrix[0], this.camera.RightOfViewMatrix[1], this.camera.RightOfViewMatrix[2])), axizZ);
 
         //新的Y轴=新的Z轴叉积新的X轴
         let axizY = new Float32Array(viewMatrix.buffer, 4 * 4 * 1, 4);

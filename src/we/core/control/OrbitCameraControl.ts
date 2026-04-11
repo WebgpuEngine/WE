@@ -61,7 +61,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
             let input = this.getInputValue();
             let position = vec3.subtract(this.camera.worldPosition, this.camera.LookAt);
             //1.1、计算当前距离，旋转距离不变
-            this.distance = vec3.distance(this.camera.positionOfModelMatrix, this.camera.LookAt);
+            this.distance = vec3.distance(this.camera.PositionOfModelMatrix, this.camera.LookAt);
             let oldDistance = this.distance;
             //阈值，for 旋转角 & 旋转轴
             const epsilon = 0.0000001;
@@ -86,28 +86,28 @@ export class OrbitCameraControl extends ArcballCameraControl {
                     //2.1.1 判断北极：camera的Z轴是否与upY轴平行
                     if (Math.abs((this.upAxisAngle.top - Math.PI / 2)) < this.epsilon && upDotCameraZ > 0.9999) {
                         if (radianY > 0) {
-                            let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
+                            let x = vec3.transformMat3(this.camera.RightOfViewMatrix, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
                             position = MathFun.rotate(position, x, radianY);
                         }
                         else if (Math.abs(radianX) > epsilon) {
                             /** *********************************** */
                             //旋转camera.right向量和camera.up向量
-                            let right = MathFun.rotate(this.camera.right, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转camera.right向量。
-                            vec3.normalize(right, this.camera.right);                                       //归一化right向量，保持其长度为1。
-                            vec3.normalize(vec3.cross(this.camera.back, this.camera.right), this.camera.up);    //计算新的up向量，保持与right向量垂直。
+                            let right = MathFun.rotate(this.camera.RightOfViewMatrix, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转camera.right向量。
+                            vec3.normalize(right, this.camera.RightOfViewMatrix);                                       //归一化right向量，保持其长度为1。
+                            vec3.normalize(vec3.cross(this.camera.BackOfViewMatrix, this.camera.RightOfViewMatrix), this.camera.UpDirection);    //计算新的up向量，保持与right向量垂直。
                         }
                     }
                     //2.1.2 判断南极：camera的Z轴是否与upY轴平行
                     else if (Math.abs((this.upAxisAngle.bottom - (-Math.PI / 2))) < this.epsilon && upDotCameraZ < -0.9999) {
                         if (radianY < 0) {
-                            let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);
+                            let x = vec3.transformMat3(this.camera.RightOfViewMatrix, this.camera.Parent!.matrixWorld);
                             position = MathFun.rotate(position, x, radianY);
                         }
                         else if (radianX != 0) {
                             //
-                            let right = MathFun.rotate(this.camera.right, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转camera.right向量。
-                            vec3.normalize(right, this.camera.right);                                       //归一化right向量，保持其长度为1。
-                            vec3.normalize(vec3.cross(this.camera.back, this.camera.right), this.camera.up);    //计算新的up向量，保持与right向量垂直。
+                            let right = MathFun.rotate(this.camera.RightOfViewMatrix, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转camera.right向量。
+                            vec3.normalize(right, this.camera.RightOfViewMatrix);                                       //归一化right向量，保持其长度为1。
+                            vec3.normalize(vec3.cross(this.camera.BackOfViewMatrix, this.camera.RightOfViewMatrix), this.camera.UpDirection);    //计算新的up向量，保持与right向量垂直。
                         }
                     }
                     //2.1.3 其他情况：camera的Z轴与upY轴不平行
@@ -145,7 +145,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
                                 else if (upDotCameraZ > limit && sinCosCameraZ.sin > 0) {
                                     //鼠标向下移动，radianY增量为负值。
                                     if (radianY > 0) {
-                                        let x = vec3.transformMat3(this.camera.right, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
+                                        let x = vec3.transformMat3(this.camera.RightOfViewMatrix, this.camera.Parent!.matrixWorld);//将camera.right向量从camera坐标系转换到world坐标系。
                                         position = MathFun.rotate(position, x, radianY);                    //绕X轴（为camera Z轴对应的X轴，非lookat的X轴【原始相等】）旋转
                                     }
                                     //否则，只能旋转Y轴（为lookat Y轴）
@@ -213,8 +213,8 @@ export class OrbitCameraControl extends ArcballCameraControl {
                 else if (this.eventValues.mouseValue.buttons == 2) {
                     // console.log(this.eventValues.mouseValue.buttons, this.eventValues.mouseValue.downOrUP);
                     const movement = vec3.create();  //以屏幕中心(lookat )为原点
-                    vec3.addScaled(movement, this.camera.right, -input.analog.x * this.rightKeyRate, movement);//X 方向的增量,负号是因为鼠标向右是负方向
-                    vec3.addScaled(movement, this.camera.up, input.analog.y * this.rightKeyRate, movement);//Y 方向的增量
+                    vec3.addScaled(movement, this.camera.RightOfViewMatrix, -input.analog.x * this.rightKeyRate, movement);//X 方向的增量,负号是因为鼠标向右是负方向
+                    vec3.addScaled(movement, this.camera.UpDirection, input.analog.y * this.rightKeyRate, movement);//Y 方向的增量
 
                     if (movement[0] || movement[1]) {//如果X或Y方向有增量
                         let position = vec3.copy(this.camera.worldPosition);
@@ -236,9 +236,9 @@ export class OrbitCameraControl extends ArcballCameraControl {
                 //5.2 距离变化了，重新计算position
                 if (oldDistance != this.distance) {
                     //5.3 重新计算position
-                    position = vec3.add(vec3.scale(this.camera.back, this.distance), this.camera.LookAt);//重新计算位置
-                    // console.log("zoom:dir", ...this.camera.back, "position", ...position, "distance", this.distance);
-                    this.camera.updateByPositionDirection(position, this.camera.back, true, true);
+                    position = vec3.add(vec3.scale(this.camera.BackOfViewMatrix, this.distance), this.camera.LookAt);//重新计算位置
+                    // console.log("zoom:dir", ...this.camera._back, "position", ...position, "distance", this.distance);
+                    this.camera.updateByPositionDirection(position, this.camera.BackOfViewMatrix, true, true);
                     return true;
                 }
             }

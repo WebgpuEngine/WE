@@ -1,7 +1,7 @@
 import { Mat4, Vec3, Vec4, mat4, vec3 } from 'wgpu-matrix';
 // import { IV_NodeSpace, NodeObject, } from '../organization/root';
 import { CamreaControl, IV_CamreaControl } from '../control/cameracControl';
-import { I_Update, weVec3, weVec4 } from '../base/coreDefine';
+import { weVec3, weVec4 } from '../base/coreDefine';
 import { cameracCntrolType } from '../control/base';
 import { ArcballCameraControl } from '../control/arcballCameraControl';
 import { WASDCameraControl } from '../control/wasdCameraControl';
@@ -11,30 +11,21 @@ import { boundingSphere } from '../math/sphere';
 import { CameraManager } from './cameraManager';
 import { I_viewport } from '../command/base';
 import { isWeVec3 } from '../base/coreFunction';
-import { IV_OrbitCameraControl, OrbitCameraControl } from '../control/OrbitCameraControl';
+import { OrbitCameraControl } from '../control/OrbitCameraControl';
 import { NodeObject } from '../organization/nodeObject';
 import { IV_NodeSpace } from '../organization/nodeSpace';
-
-
 
 /**
  * 投影矩阵的参数(base)
  */
-export interface projectionOptions extends IV_NodeSpace {
+export interface I_BaseCameraValue extends IV_NodeSpace {
   /** 向上的方向，默认是(0,1,0) */
   upDirection?: Vec3,
 
   /** 近平面*/
   near: number,
-
   /** 远平面 */
   far: number,
-  // left?:number,
-  // right?:number,
-  // top?:number,
-  // bottom?:number,
-
-  // name?: string,//从I_Update继承
 
   /** 相机位置 
    * 1、局部坐标，这里是local position
@@ -93,7 +84,7 @@ export interface projectionOptions extends IV_NodeSpace {
  */
 export abstract class BaseCamera extends NodeObject {
   /** 初始化参数  */
-  declare inpuValues: projectionOptions;
+  declare inpuValues: I_BaseCameraValue;
   manager!: CameraManager;
   ///////////////////////////////////////////////////////////////////
   //空间属性
@@ -111,15 +102,8 @@ export abstract class BaseCamera extends NodeObject {
   boundingBox!: boundingBox;//initDCC中赋值
   boundingSphere!: boundingSphere;
   aspect!: number;
-  // /**
-  //  * 默认的上方向
-  //  */
-  // _upDirection: Vec3 = new Float32Array([0, 1, 0]);
-
-  // /**   * 单位阵   */
-  // matrix_ = new Float32Array([
-  //   1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-  // ]);
+  ///////////////////////////////////////////////////////////////////
+  //matrix属性
   /** view matrix */
   viewMatrix = new Float32Array([
     1, 0, 0, 0,
@@ -127,31 +111,64 @@ export abstract class BaseCamera extends NodeObject {
     0, 0, 1, 0,
     0, 0, 0, 1,
   ]);
-
   /** model matrix  */
   modelMatrix = new Float32Array([
     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
   ]);;
   /** projection Matrix  */
   projectionMatrix!: Mat4;
+  /** MVP的Mat4的数组，[model,view,projection]  */
+  MVP: Mat4[] = [];
+  /**
+  * shader 中的systemMVP的arraybuffer
+  * struct ST_SystemMVP {   
+  *   model: mat4x4f,
+  *   view: mat4x4f,
+  *   projection: mat4x4f,
+  *   cameraPosition: vec3f,
+  *   reversedZ: u32,
+  *   };
+  */
+  bufferOf_ST_SystemMVP: Float32Array = new Float32Array([
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//cameraPosition+reversedZ
+  ]);
+  /**
+   * GPUBuffer :系统的uniform buffer，
+   * 1、MVP
+   * 2、cameraPosition
+   * 3、reversedZ
+   */
+  systemUniformBuffersOfGPU!: GPUBuffer;
+
+  /**
+   * 4*4=matrix
+   * *4=byte
+   * *n=行数
+   */
+  uniformBufferSize = 4 * 4 * 4 * 4;
 
   /**///////////////////////////////////////////////////////// 第一行,X轴///////////////////////////////////////////// */
-  right_ = new Float32Array(this.viewMatrix.buffer, 4 * 0, 4);
-  get right() { return this.right_; } // Returns column vector 0 of the camera matrix
-  set right(vec: Vec3) { vec3.copy(vec, this.right_); }// Assigns `vec` to the first 3 elements of column vector 0 of the camera matrix
+  _right = new Float32Array(this.viewMatrix.buffer, 4 * 0, 4);
+  get RightOfViewMatrix() { return this._right; } // Returns column vector 0 of the camera matrix
+  set RightOfViewMatrix(vec: Vec3) { vec3.copy(vec, this._right); }// Assigns `vec` to the first 3 elements of column vector 0 of the camera matrix
   /**///////////////////////////////////////////////////////// 第二行,Y轴///////////////////////////////////////////// */
-  up_ = new Float32Array(this.viewMatrix.buffer, 4 * 4, 4);
-  get up() { return this.up_; }  // Returns column vector 1 of the camera matrix
-  set up(vec: Vec3) { vec3.copy(vec, this.up_); }// Assigns `vec` to the first 3 elements of column vector 1 of the camera matrix
+  _up = new Float32Array(this.viewMatrix.buffer, 4 * 4, 4);
+  get UpOfViewMatrix() { return this._up; }  // Returns column vector 1 of the camera matrix
+  set UpOfViewMatrix(vec: Vec3) { vec3.copy(vec, this._up); }// Assigns `vec` to the first 3 elements of column vector 1 of the camera matrix
   /**///////////////////////////////////////////////////////// 第三行,Z轴///////////////////////////////////////////// */
-  back_ = new Float32Array(this.viewMatrix.buffer, 4 * 8, 4);
-  get back() { return this.back_; }  // Returns column vector 2 of the camera matrix
-  set back(vec: Vec3) { vec3.copy(vec, this.back_); }  // Assigns `vec` to the first 3 elements of column vector 2 of the camera matrix
+  _back = new Float32Array(this.viewMatrix.buffer, 4 * 8, 4);
+  get BackOfViewMatrix() { return this._back; }  // Returns column vector 2 of the camera matrix
+  set BackOfViewMatrix(vec: Vec3) { vec3.copy(vec, this._back); }  // Assigns `vec` to the first 3 elements of column vector 2 of the camera matrix
   /**///////////////////////////////////////////////////////// 第四行,位置;modelMatrix 第四行,位置///////////////////////////////////////////// */
-  position_ = new Float32Array(this.modelMatrix.buffer, 4 * 12, 4); /**modelMatrix 第四行,位置 */
-  get positionOfModelMatrix() { return this.position_; }
-  set positionOfModelMatrix(vec: Vec3) { vec3.copy(vec, this.position_); } // Assigns `vec` to the first 3 elements of column vector 3 of the camera matrix
-  /**///////////////////////////////////////////////////////// lookAt ///////////////////////////////////////////// */
+  _positionOfModelMatrix: Vec3 = new Float32Array(this.modelMatrix.buffer, 4 * 12, 4); /**modelMatrix 第四行,位置 */
+  get PositionOfModelMatrix() { return this._positionOfModelMatrix; }
+  set PositionOfModelMatrix(vec: Vec3) { vec3.copy(vec, this._positionOfModelMatrix); } // Assigns `vec` to the first 3 elements of column vector 3 of the camera matrix
+
+  //////////////////////////////////////////////////////// lookAt ///////////////////////////////////////////// 
+  /** 相机的lookAt坐标 */
   _lookAt: Vec3 = vec3.create();
   set LookAt(value: Vec3 | weVec3) {
     if (isWeVec3(value)) {
@@ -162,7 +179,6 @@ export abstract class BaseCamera extends NodeObject {
     }
     // this.updateByPositionDirection(this._position, this._lookAt, false);
   }
-
   get LookAt(): Vec3 { return this._lookAt; }
 
   /**
@@ -192,27 +208,23 @@ export abstract class BaseCamera extends NodeObject {
     }
     return localLookat;
   }
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /** 上方向 */
   _upDirection = vec3.create(0, 1, 0);//默认的上方向，Y轴
   get UpDirection() { return this._upDirection; }  // Returns column vector 1 of the camera matrix
   set UpDirection(vec: Vec3) { vec3.copy(vec, this._upDirection); }// Assigns `vec` to the first 3 elements of column vector 1 of the camera matrix
-
+  /** 是否全局坐标系的lookAt  */
   isLookAtGlobal: boolean = true;
 
-  /** MVP的Mat4的数组，[model,view,projection]  */
-  MVP: Mat4[] = [];
   /**归一化的方向 
    * lookAt 的 vector
   */
   direction!: Vec4;
 
-  name!: string;
-
   _control!: CamreaControl;
-  viewport!: I_viewport;
 
+  viewport!: I_viewport;
 
   /** 背景颜色 
    * 无，则使用场景的背景色
@@ -225,43 +237,13 @@ export abstract class BaseCamera extends NodeObject {
    */
   premultipliedAlpha: boolean = false;
 
-  /**
-   * shader 中的systemMVP的arraybuffer
-   * struct ST_SystemMVP {   
-   *   model: mat4x4f,
-   *   view: mat4x4f,
-   *   projection: mat4x4f,
-   *   cameraPosition: vec3f,
-   *   reversedZ: u32,
-   *   };
-   */
-  bufferOf_ST_SystemMVP: Float32Array = new Float32Array([
-    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,//cameraPosition+reversedZ
-  ]);
-  /**
-   * GPUBuffer :系统的uniform buffer，
-   * 1、MVP
-   * 2、cameraPosition
-   * 3、reversedZ
-   */
-  systemUniformBuffersOfGPU!: GPUBuffer;
 
-  /**
-   * 4*4=matrix
-   * *4=byte
-   * *n=行数
-   */
-  uniformBufferSize = 4 * 4 * 4 * 4;
 
-  constructor(option: projectionOptions) {
+  constructor(option: I_BaseCameraValue) {
     super(option);
     this.type = 'Camera';
     this.inpuValues = option;
     if (option.control) this._control = option.control;
-    if (typeof option.name != 'undefined') this.name = option.name;
     ///////////////////////////////////////////////////////////////////
     //附属属性
     if (option.size) this.size = option.size;
@@ -269,28 +251,27 @@ export abstract class BaseCamera extends NodeObject {
     if (option.premultipliedAlpha) this.premultipliedAlpha = option.premultipliedAlpha;
     ///////////////////////////////////////////////////////////////////
     //空间属性
-    // if (option.upDirection) vec3.copy(option.upDirection, this.UpDirection);//20260116,更新单独的上方向，不再使用this.up做为上方向
+    //20260116,更新单独的上方向，不再使用this.up做为上方向
     if (option.upDirection) {
       vec3.copy(option.upDirection, this.UpDirection);//定义的上方向
-      vec3.copy(option.upDirection, this.up);//参见：setViewMatrixByPosition（）
+      vec3.copy(option.upDirection, this.UpOfViewMatrix);//参见：setViewMatrixByPosition（）
     }
     //modelMatrix 第四行,位置
     if (option.position) {
-      this.positionOfModelMatrix = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
-      // this.Position = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
+      this.PositionOfModelMatrix = vec3.fromValues(option.position[0], option.position[1], option.position[2]);
     }
     if (option.lookAt) {
-      this.back = vec3.normalize(vec3.sub(option.position, option.lookAt));
-      if (this.back[0] == 0 && this.back[2] == 0 && this.back[1] == -1) {
-        vec3.copy(vec3.create(1, 0, 0), this.right);
-        vec3.copy(vec3.create(0, 0, 1), this.up);
+      this.BackOfViewMatrix = vec3.normalize(vec3.sub(option.position, option.lookAt));
+      if (this.BackOfViewMatrix[0] == 0 && this.BackOfViewMatrix[2] == 0 && this.BackOfViewMatrix[1] == -1) {
+        vec3.copy(vec3.create(1, 0, 0), this.RightOfViewMatrix);
+        vec3.copy(vec3.create(0, 0, 1), this.UpOfViewMatrix);
       }
-      else if (this.back[0] == 0 && this.back[2] == 0 && this.back[1] == 1) {
-        vec3.copy(vec3.create(1, 0, 0), this.right);
-        vec3.copy(vec3.create(0, 0, -1), this.up);
+      else if (this.BackOfViewMatrix[0] == 0 && this.BackOfViewMatrix[2] == 0 && this.BackOfViewMatrix[1] == 1) {
+        vec3.copy(vec3.create(1, 0, 0), this.RightOfViewMatrix);
+        vec3.copy(vec3.create(0, 0, -1), this.UpOfViewMatrix);
       }
       else {//20260116,更新lookAt后，需要重新计算right和up
-        this.setViewMatrixByPosition(this.back)
+        this.setViewMatrixByPosition(this.BackOfViewMatrix);
       }
       this.LookAt = vec3.fromValues(option.lookAt[0], option.lookAt[1], option.lookAt[2]);
     }
@@ -341,7 +322,7 @@ export abstract class BaseCamera extends NodeObject {
       /**
        * orbitCameraControl中，根据旋转更新了right
        */
-      vec3.cross(back, this.right, this.up);
+      vec3.cross(back, this.RightOfViewMatrix, this.UpOfViewMatrix);
     }
     /**方向在世界坐标系的+Y轴，特殊判断条件，防止up向量和back向量平行
      *    ______X
@@ -351,7 +332,7 @@ export abstract class BaseCamera extends NodeObject {
      */
     // else if (this.back[0] == 0 && this.back[1] == 1 && this.back[2] == 0) {
     else if (dotBackUp < -0.999999) {
-      vec3.cross(back, this.right, this.up);
+      vec3.cross(back, this.RightOfViewMatrix, this.UpOfViewMatrix);
     }
     else {
       /** ///////////////////////////////////////////////////////////////////////////////////////////
@@ -362,23 +343,23 @@ export abstract class BaseCamera extends NodeObject {
        *         在JS中，number其实是64位浮点数，如果使用===判断，可能会导致判断错误。
        *      B、目前没有问题，延迟有问题再说。20260117
        *      C、单独保存upDirection，避免使用this.up,导致判断错误。比如在orbitCameraControl中，需要判断upDirection的角度范围，点积判断是否在范围内。
-       *  //3、使用固定上方的： this.right = vec3.normalize(vec3.cross(this.UpDirection, back));//会产生突然的翻转，使用this.up,没问题
+       *  //3、使用固定上方的： this.RightOfViewMatrix= vec3.normalize(vec3.cross(this.UpDirection, back));//会产生突然的翻转，使用this.up,没问题
        */
       if (this._control) {
         if (this._control.type == "orbit") {
-          this.right = vec3.normalize(vec3.cross(this.UpDirection, back));
+          this.RightOfViewMatrix = vec3.normalize(vec3.cross(this.UpDirection, back));
         }
         else if (this._control.type == "arcball") {
-          this.right = vec3.normalize(vec3.cross(this.up, back));
+          this.RightOfViewMatrix = vec3.normalize(vec3.cross(this.UpOfViewMatrix, back));
         }
         else {
-          this.right = vec3.normalize(vec3.cross(this.UpDirection, back));
+          this.RightOfViewMatrix = vec3.normalize(vec3.cross(this.UpDirection, back));
         }
       }
       else {
-        this.right = vec3.normalize(vec3.cross(this.UpDirection, back));
+        this.RightOfViewMatrix = vec3.normalize(vec3.cross(this.UpDirection, back));
       }
-      this.up = vec3.normalize(vec3.cross(this.back, this.right));
+      this.UpOfViewMatrix = vec3.normalize(vec3.cross(this.BackOfViewMatrix, this.RightOfViewMatrix));
     }
   }
 
@@ -419,7 +400,7 @@ export abstract class BaseCamera extends NodeObject {
 
   /**
    * 更新投影参数
-   * @param options :projectionOptions
+   * @param options :I_BaseCameraValue
    */
   abstract updateProjectionMatrix(): any;
 
@@ -441,8 +422,8 @@ export abstract class BaseCamera extends NodeObject {
     ////移动到NodeObject中
     // this.worldPosition = vec3.fromValues(this.matrixWorld[12], this.matrixWorld[13], this.matrixWorld[14]);
     super.updateWorldPosition();
-    // this.positionOfModelMatrix = this.worldPosition;//更新model matrix
-    this.positionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
+    // this.PositionOfModelMatrix = this.worldPosition;//更新model matrix
+    this.PositionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
     return this.worldPosition;
   }
 
@@ -461,7 +442,7 @@ export abstract class BaseCamera extends NodeObject {
    *   包括 ：
    *        _position:下一帧updateMatrix()使用;
    *        worldPosition:system中camera的世界坐标
-   *        positionOfModelMatrix:shader 的uniform 使用 MVP中的modelMatrix
+   *        PositionOfModelMatrix:shader 的uniform 使用 MVP中的modelMatrix
    * 
    * @param clock 
    */
@@ -521,22 +502,22 @@ export abstract class BaseCamera extends NodeObject {
     //控制器模式，非世界坐标系
     if (isControlMode) {
       this.worldPosition = vec3.transformMat4(position, this.Parent!.matrixWorld);//position 乘以 matrixWorld，得到position的世界坐标
-      this.back = vec3.normalize(vec3.subtract(this.worldPosition, lookAt));
-      this.positionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
+      this.BackOfViewMatrix = vec3.normalize(vec3.subtract(this.worldPosition, lookAt));
+      this.PositionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
     }
     //世界坐标系
     else {
       if (normalize === false) {
-        this.back = vec3.normalize(vec3.subtract(position, direction));
+        this.BackOfViewMatrix = vec3.normalize(vec3.subtract(position, direction));
       }
       else {
-        this.back = direction;
+        this.BackOfViewMatrix = direction;
       }
       this.worldPosition = position;//世界坐标
-      this.positionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
+      this.PositionOfModelMatrix = vec3.copy(this.worldPosition);//更新camera的modelMatrix的position
     }
 
-    this.setViewMatrixByPosition(this.back);
+    this.setViewMatrixByPosition(this.BackOfViewMatrix);
     /**方向在世界坐标系的-Y轴，特殊判断条件，防止up向量和back向量平行
      *   Z|  / Y
      *    | /
@@ -557,7 +538,7 @@ export abstract class BaseCamera extends NodeObject {
     //   vec3.copy(vec3.create(0, 0, -1), this.up);
     // }
     // else {
-    //   this.right = vec3.normalize(vec3.cross(this.up, this.back));
+    //   this.RightOfViewMatrix= vec3.normalize(vec3.cross(this.up, this.back));
     //   this.up = vec3.normalize(vec3.cross(this.back, this.right));
     // }
     // console.log("projectionMatrix=", this.projectionMatrix)
@@ -571,10 +552,10 @@ export abstract class BaseCamera extends NodeObject {
     let view = mat4.rotateX(mat4.rotationY(yaw), pitch);
     mat4.copy(view, this.viewMatrix);
 
-    vec3.copy(position, this.positionOfModelMatrix);
+    vec3.copy(position, this.PositionOfModelMatrix);
     vec3.copy(position, this.worldPosition);
     // if (this.Parent) {
-    //   let pos = vec3.sub(this.positionOfModelMatrix, this.Parent.worldPosition);//camera在其parent的local 坐标系下的位置
+    //   let pos = vec3.sub(this.PositionOfModelMatrix, this.Parent.worldPosition);//camera在其parent的local 坐标系下的位置
     //   vec3.copy(pos, this._position);
     // }
     this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
