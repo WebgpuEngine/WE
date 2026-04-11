@@ -94,7 +94,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
                             //旋转camera.right向量和camera.up向量
                             let right = MathFun.rotate(this.camera.RightOfViewMatrix, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转camera.right向量。
                             vec3.normalize(right, this.camera.RightOfViewMatrix);                                       //归一化right向量，保持其长度为1。
-                            vec3.normalize(vec3.cross(this.camera.BackOfViewMatrix, this.camera.RightOfViewMatrix), this.camera.UpDirection);    //计算新的up向量，保持与right向量垂直。
+                            vec3.normalize(vec3.cross(this.camera.BackOfViewMatrix, this.camera.RightOfViewMatrix), this.camera.UpOfViewMatrix);    //计算新的up向量，保持与right向量垂直。
                         }
                     }
                     //2.1.2 判断南极：camera的Z轴是否与upY轴平行
@@ -107,7 +107,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
                             //
                             let right = MathFun.rotate(this.camera.RightOfViewMatrix, vec3.create(0, 1, 0), radianX);//绕Y轴（为lookat Y轴）旋转camera.right向量。
                             vec3.normalize(right, this.camera.RightOfViewMatrix);                                       //归一化right向量，保持其长度为1。
-                            vec3.normalize(vec3.cross(this.camera.BackOfViewMatrix, this.camera.RightOfViewMatrix), this.camera.UpDirection);    //计算新的up向量，保持与right向量垂直。
+                            vec3.normalize(vec3.cross(this.camera.BackOfViewMatrix, this.camera.RightOfViewMatrix), this.camera.UpOfViewMatrix);    //计算新的up向量，保持与right向量垂直。
                         }
                     }
                     //2.1.3 其他情况：camera的Z轴与upY轴不平行
@@ -214,7 +214,7 @@ export class OrbitCameraControl extends ArcballCameraControl {
                     // console.log(this.eventValues.mouseValue.buttons, this.eventValues.mouseValue.downOrUP);
                     const movement = vec3.create();  //以屏幕中心(lookat )为原点
                     vec3.addScaled(movement, this.camera.RightOfViewMatrix, -input.analog.x * this.rightKeyRate, movement);//X 方向的增量,负号是因为鼠标向右是负方向
-                    vec3.addScaled(movement, this.camera.UpDirection, input.analog.y * this.rightKeyRate, movement);//Y 方向的增量
+                    vec3.addScaled(movement, this.camera.UpOfViewMatrix, input.analog.y * this.rightKeyRate, movement);//Y 方向的增量
 
                     if (movement[0] || movement[1]) {//如果X或Y方向有增量
                         let position = vec3.copy(this.camera.worldPosition);
