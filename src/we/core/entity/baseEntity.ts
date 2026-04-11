@@ -640,7 +640,7 @@ export abstract class BaseEntity extends NodeSpace {
             let stridePointerCount = Math.ceil(instanceCount / this.outsideInstanceCountOfDefaultStride);//1/4=1，5/4=2
 
             //2.2 计算需要的pointer长度
-            let strideSizeOfInstances = Math.ceil(stridePointerCount * perBuffer.byteSize / this.storageOffsetStrideSize) * this.storageOffsetStrideSize;
+            let strideSizeOfInstances = Math.ceil(stridePointerCount * perBuffer.byteSize * this.outsideInstanceCountOfDefaultStride / this.storageOffsetStrideSize) * this.storageOffsetStrideSize;
 
             //3、判断是否新建
             if (this.bufferPointers[nameOfPointer] == undefined) {
