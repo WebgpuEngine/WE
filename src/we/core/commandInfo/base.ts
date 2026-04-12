@@ -82,17 +82,11 @@ export interface I_weDrawStruct {
 
 
 export interface I_weComputeStruct {
-    baseInfo?: {
-        parent: any,
-    },
+    device: GPUDevice,
+    parent: any,
     computeInfo: {
         pipeline: GPUComputePipeline,
-        bindGroup?: [
-            GPUBindGroup | [] | undefined,
-            GPUBindGroup | [] | undefined,
-            GPUBindGroup | [] | undefined,
-            GPUBindGroup | [] | undefined
-        ],
+        bindGroup?: (GPUBindGroup | undefined | null)[],
         dispatchCount: [number, number, number],
     }
 }

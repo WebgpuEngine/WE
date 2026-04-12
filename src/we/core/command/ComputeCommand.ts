@@ -1,6 +1,5 @@
-import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "./base";
-import { Scene } from "../scene/scene";
-import { I_DrawCommandIDs, I_uniformArrayBufferEntry, IV_BaseCommand, T_uniformGroups } from "./base";
+import { isUniformBufferPart, T_uniformEntries } from "./base";
+import { I_uniformArrayBufferEntry, } from "./base";
 import { createUniformBuffer } from "./baseFunction";
 
 export interface I_ComputePipelineInitValues {
@@ -18,105 +17,84 @@ export interface I_ComputePipelineInitValues {
 /**
  * 计算命令 参数
  */
-export interface IV_ComputeCommand extends IV_BaseCommand {
-    scene: Scene,
-    /**
-     * 一、 已经创建pipeline，直接使用
-     * 问题：
-     *  1、所有权：可能会产生GC问题
-     *  2、如果isOwner=true，即获得所有权，可以进行新建等，GC会自动销毁（没有其他使用者的情况）
-     * 
-     * 二、传入相关参数，创建pipeline
-     */
-    pipeline: GPUComputePipeline | I_ComputePipelineInitValues,
-    /**
-     * 绑定的uniform buffer
-     * 1、GPUBindGroup[]：直接绑定的uniform buffer
-     * 2、T_uniformGroups[]：需要根据T_uniformGroups创建GPUBindGroup，然后再绑定。
-     *    A、如果时静态的数据，直接创建GPUBindGroup，然后绑定。
-     *    B、如果时动态的数据，需要在update中更新数据，然后再创建GPUBindGroup，然后绑定。
-     */
-    uniform?: GPUBindGroup[] | T_uniformGroups[],//[GPUBindGroupEntry[]],
-    /**
-     * ID组
-     */
-    IDS?: I_DrawCommandIDs,
-    /**
-     * 数组 ,长度3
-     */
-    dispatchCount: [number, number, number],
-    /** 
-     * callback function 
-     * 
-     * 进行map操作，由上级程序保障正确性
-     * 
-     * examp：
-     *  encoder.copyBufferToBuffer(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
-     * 
-     * workgroupBuffer=this.unifromBuffer[0][0],对应：@group(0)@binding(0)  
-     */
-    map?: (scope: any, encode: GPUCommandEncoder) => Promise<any>,
-    /** callback function 
-     * 
-     * 正确性由上级程序保障
-     * 
-     *一、 如果是map操作，需要copy和unmap两步：
-     * 
-     * 1、  await Promise.all([
-            workgroupReadBuffer.mapAsync(GPUMapMode.READ),
-            localReadBuffer.mapAsync(GPUMapMode.READ),
-            globalReadBuffer.mapAsync(GPUMapMode.READ),
-        ]);
+export interface IV_ComputeCommand {
+    device: GPUDevice,
+    /** label */
+    label: string,
+    // scene: Scene,
+    // /**
+    //  * 一、 已经创建pipeline，直接使用
+    //  * 问题：
+    //  *  1、所有权：可能会产生GC问题
+    //  *  2、如果isOwner=true，即获得所有权，可以进行新建等，GC会自动销毁（没有其他使用者的情况）
+    //  * 
+    //  * 二、传入相关参数，创建pipeline
+    //  */
+    // pipeline: GPUComputePipeline | I_ComputePipelineInitValues,
 
-      2、  workgroupReadBuffer.unmap();
-     * 
-     */
-    afterUpdate?: (scope: any) => Promise<any>,
+
+    computeInfo: {
+        pipeline: GPUComputePipeline | I_ComputePipelineInitValues,
+        bindGroups?: GPUBindGroup[] | (T_uniformEntries[])[],//(GPUBindGroup | undefined | null | [])[],
+        dispatchCount: [number, number, number],
+        /** 
+         * callback function ：测试使用，生成勿用（影响性能）
+         * 
+         * 进行map操作，由上级程序保障正确性
+         * 
+         * examp：
+         *  encoder.copyBufferToBuffer(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
+         * 
+         * workgroupBuffer=this.unifromBuffer[0][0],对应：@group(0)@binding(0)  
+         */
+        afterUpdate?: (scope: any) => Promise<any>,
+        /** callback function 
+         * 
+         * 正确性由上级程序保障
+         * 
+         *一、 如果是map操作，需要copy和unmap两步：
+        * 
+        * 1、  await Promise.all([
+                workgroupReadBuffer.mapAsync(GPUMapMode.READ),
+                localReadBuffer.mapAsync(GPUMapMode.READ),
+                globalReadBuffer.mapAsync(GPUMapMode.READ),
+            ]);
+
+        2、  workgroupReadBuffer.unmap();
+        * 
+        */
+        map?: (scope: any, encode: GPUCommandEncoder) => Promise<any>,
+    }
 }
 
 
 export class ComputeCommand {
 
     inputValues: IV_ComputeCommand;
-    /** 是否是owner，默认=true */
-    isOwner: boolean = true;
-    /**bind group 是否是动态的，默认=false */
-    dynamic: boolean = false;
-    scene!: Scene;
-    label!: string;
-    rawUniform!: boolean;
-    device!: GPUDevice;
-
+    label: string;
+    device: GPUDevice;
     pipeline!: GPUComputePipeline;
     bindGroups: GPUBindGroup[] = [];
     _isDestroy: boolean = false;
-    /**
-     * ID组
-     */
-    IDS: I_DrawCommandIDs = {
-        UUID: "",
-        ID: 0,
-        renderID: 0,
-    }
 
     constructor(input: IV_ComputeCommand) {
         this.inputValues = input;
         this.label = input.label;
         this.device = input.device;
-        this.scene = input.scene;
-        if ("shader" in input.pipeline) {
+        if ("shader" in input.computeInfo.pipeline) {
             this.pipeline = this.createPipeline(input);
         } else {
-            this.pipeline = input.pipeline as GPUComputePipeline;
+            this.pipeline = input.computeInfo.pipeline as GPUComputePipeline;
         }
-        if (input.uniform && Array.isArray(input.uniform) &&
-            input.uniform.every((item) => {
+        if (input.computeInfo.bindGroups &&
+            Array.isArray(input.computeInfo.bindGroups) &&
+            input.computeInfo.bindGroups.every((item) => {
                 return Array.isArray(item) && item.every((subItem) => "binding" in subItem)
             })) {
-            this.bindGroups = this.createUniformGroups(input.uniform as T_uniformGroups[]);
+            this.bindGroups = this.createUniformGroups(input.computeInfo.bindGroups as (T_uniformEntries[])[]);
         }
         else {
-            this.bindGroups = input.uniform as GPUBindGroup[];
+            this.bindGroups = input.computeInfo.bindGroups as GPUBindGroup[];
         }
         this.init();
     }
@@ -135,7 +113,7 @@ export class ComputeCommand {
     createPipeline(input: IV_ComputeCommand) {
         let label = this.inputValues.label;
         let device = this.device;
-        let pipelineValue = input.pipeline as I_ComputePipelineInitValues;
+        let pipelineValue = input.computeInfo.pipeline as I_ComputePipelineInitValues;
 
         let pipelineLayout: GPUPipelineLayout | "auto";
         if (pipelineValue.pipelineLayout! === "auto") {
@@ -169,7 +147,7 @@ export class ComputeCommand {
      * 
      * @returns localUniformGroups
      */
-    createUniformGroups(unifromGroupSource: T_uniformGroups[]): GPUBindGroup[] {
+    createUniformGroups(unifromGroupSource: (T_uniformEntries[])[]): GPUBindGroup[] {
         let device = this.device;
         let pipeline = this.pipeline;
         let bindGroup: GPUBindGroup[] = [];
@@ -180,7 +158,7 @@ export class ComputeCommand {
 
             let bindGroupEntry: GPUBindGroupEntry[] = [];
             for (let j in perGroup) {
-                let perEntry = perGroup[parseInt(j)];
+                let perEntry = perGroup[j];
                 /**
                  * 创建 uniform data 的 GPUBuffer 并添加到 bindGroupEntry
                  * 其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
@@ -195,23 +173,9 @@ export class ComputeCommand {
                         }
                     });
                 }
-                //动态 external texture,不做map
-                else if (isDynamicTextureEntryForExternal(perEntry)) {
-                    bindGroupEntry.push({
-                        binding: perEntry.binding,
-                        resource: perEntry.getResource(perEntry.scope),
-                    });
-                }
-                //动态 view texture,不做map
-                else if (isDynamicTextureEntryForView(perEntry)) {
-                    bindGroupEntry.push({
-                        binding: perEntry.binding,
-                        resource: perEntry.getResource(),
-                    });
-                }
                 //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
                 else {
-                    bindGroupEntry.push(perEntry);
+                    bindGroupEntry.push(perEntry as GPUBindGroupEntry);
                 }
             }
 
@@ -229,53 +193,44 @@ export class ComputeCommand {
         return bindGroup;
     }
 
-    async update(): Promise<GPUCommandBuffer> {
-        const device = this.device;
-
-        // Encode commands to do the computation
-        const encoder = device.createCommandEncoder({ label: 'compute  encoder' + this.label });
-        const passEncoder = encoder.beginComputePass({ label: 'compute  pass' + this.label });
-        passEncoder.setPipeline(this.pipeline);
-
-        for (let i in this.bindGroups) {
-            let perGroup = this.bindGroups[i]
-            passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
-        }
-        // let x = 1, y = 1, z = 1;
-        let [x = 1, y = 1, z = 1] = [...this.inputValues.dispatchCount];
-        passEncoder.dispatchWorkgroups(x, y, z);
-        // passEncoder.dispatchWorkgroups(...this.input.dispatchCount);
-        passEncoder.end();
-
-        if (this.inputValues.map) {
-            await this.inputValues.map!(this, encoder)
+    update(): GPUCommandBuffer {
+        return this.doWhole();
+    }
+    doWhole() {
+        const encoder: GPUCommandEncoder = this.device.createCommandEncoder({ label: 'compute  encoder' + this.label });
+        this.doWithComputePass(encoder);
+        if (this.inputValues.computeInfo.map) {
+            this.inputValues.computeInfo.map!(this, encoder)
         }
         // Finish encoding and submit the commands
         const commandBuffer = encoder.finish();
         return commandBuffer;
     }
+    doWithComputePass(encoder: GPUCommandEncoder) {
+        const passEncoder: GPUComputePassEncoder = encoder.beginComputePass({ label: 'compute  pass' + this.label });
+        this.doWithPipeline(passEncoder);
+        passEncoder.end();
+    }
+    doWithPipeline(passEncoder: GPUComputePassEncoder) {
+        passEncoder.setPipeline(this.pipeline);
+        this.doDispatch(passEncoder);
+    }
+    doDispatch(passEncoder: GPUComputePassEncoder) {
+        for (let i in this.bindGroups) {
+            let perGroup = this.bindGroups[i]
+            passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
+        }
+        let [x = 1, y = 1, z = 1] = [...this.inputValues.computeInfo.dispatchCount];
+        passEncoder.dispatchWorkgroups(x, y, z);
+    }
 
     async submit() {
-        let commandBuffer = await this.update();
+        let commandBuffer = this.update();
         this.device.queue.submit([commandBuffer]);
-        await this.afterUpdate()
-    }
-    /**
-    * afterUpdate 
-    * 
-    * 调用初始化参数中的，afterUpdated (scope)=>{} 
-    * 
-    * scope=this;
-    */
-    async afterUpdate() {
-        let scope = this;
-        if (scope.inputValues.afterUpdate) {
-            //  await new Promise((resolve, reject) => {
-            //     resolve(scope.input.afterUpdate!(scope))
-            // });
-
-            await scope.inputValues.afterUpdate!(scope)
-
+        if (this.inputValues.computeInfo.afterUpdate) {
+            await this.inputValues.computeInfo.afterUpdate!(this)
         }
+
     }
+
 }

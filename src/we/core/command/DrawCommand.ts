@@ -5,38 +5,11 @@ import { Mesh } from "../entity/mesh/mesh";
 import { E_TransparentType } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { Scene } from "../scene/scene";
-import { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformArrayBufferEntry, T_uniformGroups } from "./base";
-import { BaseDrawCommand, I_VertexBufferEntry, IV_BaseDrawCommand } from "./BaseDrawCommand";
+import { I_drawMode, I_drawModeIndexed, } from "./base";
+import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
 
 
-//20260403 注释掉 dynamicUniform 参数
-// /**
-//  * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
-//  */
-// export interface I_DynamicUniformOfDrawCommand {
-//     /**
-//      * 所有组的BindGroupLayout
-//      * 1、layout 是不变的，变的是内容（纹理）,这个是重新创建bindinggroup使用；
-//      */
-//     bindGroupLayout: GPUBindGroupLayout[],
-//     /**
-//      * 所有组的BindGroup
-//      * 1、动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
-//      * 2、有system，从1开始，共3个
-//      * 3、没有system，从0开始，共4个
-//      */
-//     bindGroupsUniform: T_uniformGroups[],
-//     /**
-//      * 指定的动态uniform组的序号
-//      * 一、动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
-//      * 二、bind group layout 索引，从几开始（有system，从2开始（不包括system:0，entity:1），没有system，从0开始）
-//      * 1、通常：如果有system，dynamicUniform 是material的uniform，数组下标=2
-//      *     A、system，通过let { bindGroup, bindGroupLayout } = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(values.system.UUID, values.system.type);
-//      *     B、entity，通过let { bindGroup, bindGroupLayout } = values.parent.getBindGroupAndBindGroupLayout();
-//      * 2、通常：如果没有system，dynamicUniform 是当前uniform，数组下标=0
-//      */
-//     layoutNumber: number,
-// }
+
 
 interface I_DrawInputValueMaterial {
     /**material 所有者 */

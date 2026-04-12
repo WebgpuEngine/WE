@@ -10,7 +10,7 @@ declare global {
     DC: any
   }
 }
-let input: IV_Scene = { canvas: "render", reversedZ: false ,modeNDC:true}
+let input: IV_Scene = { canvas: "render", reversedZ: false, modeNDC: true }
 let scene = new Scene(input);
 await scene._init();
 
@@ -95,56 +95,106 @@ let uniforms: GPUBindGroupEntry[] = [
   },
 ]
 
+// let options: IV_ComputeCommand = {
+//   label: "a compter test 1",
+//   scene: scene,
+//   dispatchCount: dispatchCount,
+//   // uniforms: [],
+//   uniform: [uniforms],
+//   afterUpdate: async () => {
+//     console.log("========================");
+//     await Promise.all([
+//       workgroupReadBuffer.mapAsync(GPUMapMode.READ),
+//       localReadBuffer.mapAsync(GPUMapMode.READ),
+//       globalReadBuffer.mapAsync(GPUMapMode.READ),
+//     ]);
+//     const workgroup = new Uint32Array(workgroupReadBuffer.getMappedRange());
+//     const local = new Uint32Array(localReadBuffer.getMappedRange());
+//     const global = new Uint32Array(globalReadBuffer.getMappedRange());
+
+//     const get3 = (arr: any[] | Uint32Array, i: number) => {
+//       const off = i * 4;
+//       return `${arr[off]}, ${arr[off + 1]}, ${arr[off + 2]}`;
+//     };
+//     for (let i = 0; i < numResults; ++i) {
+//       if (i % numThreadsPerWorkgroup === 0) {
+//         console.log(`\
+//   ---------------------------------------
+//   global                 local     global   dispatch: ${i / numThreadsPerWorkgroup}
+//   invoc.    workgroup    invoc.    invoc.
+//   index     id           id        id
+//   ---------------------------------------`);
+//       }
+//       console.log(`${i.toString().padStart(3)}:      ${get3(workgroup, i)}      ${get3(local, i)}   ${get3(global, i)}`);
+//     }
+
+//   },
+//   map: async (_scope: any, encoder: GPUCommandEncoder) => {
+//     encoder.copyBufferToBuffer!(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
+//     encoder.copyBufferToBuffer!(localBuffer, 0, localReadBuffer, 0, size);
+//     encoder.copyBufferToBuffer!(globalBuffer, 0, globalReadBuffer, 0, size);
+//   },
+//   pipeline: {
+//     pipelineLayout: "auto",
+//     shader: {
+//       shaderCode: shader,
+//       entryPoint: "computeSomething"
+//     }
+//   },
+//   device: scene.device
+// }
 let options: IV_ComputeCommand = {
   label: "a compter test 1",
-  scene: scene,
-  dispatchCount: dispatchCount,
-  // uniforms: [],
-  uniform: [uniforms],
-  afterUpdate: async () => {
-    console.log("========================");
-    await Promise.all([
-      workgroupReadBuffer.mapAsync(GPUMapMode.READ),
-      localReadBuffer.mapAsync(GPUMapMode.READ),
-      globalReadBuffer.mapAsync(GPUMapMode.READ),
-    ]);
-    const workgroup = new Uint32Array(workgroupReadBuffer.getMappedRange());
-    const local = new Uint32Array(localReadBuffer.getMappedRange());
-    const global = new Uint32Array(globalReadBuffer.getMappedRange());
+  device: scene.device,
+  computeInfo: {
+    dispatchCount: dispatchCount,
+    // uniforms: [],
+    bindGroups: [uniforms],
+    pipeline: {
+      pipelineLayout: "auto",
+      shader: {
+        shaderCode: shader,
+        entryPoint: "computeSomething"
+      }
+    },
+    afterUpdate: async () => {
+      console.log("========================");
+      await Promise.all([
+        workgroupReadBuffer.mapAsync(GPUMapMode.READ),
+        localReadBuffer.mapAsync(GPUMapMode.READ),
+        globalReadBuffer.mapAsync(GPUMapMode.READ),
+      ]);
+      const workgroup = new Uint32Array(workgroupReadBuffer.getMappedRange());
+      const local = new Uint32Array(localReadBuffer.getMappedRange());
+      const global = new Uint32Array(globalReadBuffer.getMappedRange());
 
-    const get3 = (arr: any[] | Uint32Array, i: number) => {
-      const off = i * 4;
-      return `${arr[off]}, ${arr[off + 1]}, ${arr[off + 2]}`;
-    };
-    for (let i = 0; i < numResults; ++i) {
-      if (i % numThreadsPerWorkgroup === 0) {
-        console.log(`\
+      const get3 = (arr: any[] | Uint32Array, i: number) => {
+        const off = i * 4;
+        return `${arr[off]}, ${arr[off + 1]}, ${arr[off + 2]}`;
+      };
+      for (let i = 0; i < numResults; ++i) {
+        if (i % numThreadsPerWorkgroup === 0) {
+          console.log(`\
   ---------------------------------------
   global                 local     global   dispatch: ${i / numThreadsPerWorkgroup}
   invoc.    workgroup    invoc.    invoc.
   index     id           id        id
   ---------------------------------------`);
+        }
+        console.log(`${i.toString().padStart(3)}:      ${get3(workgroup, i)}      ${get3(local, i)}   ${get3(global, i)}`);
       }
-      console.log(`${i.toString().padStart(3)}:      ${get3(workgroup, i)}      ${get3(local, i)}   ${get3(global, i)}`);
-    }
 
+    },
+    map: async (_scope: any, encoder: GPUCommandEncoder) => {
+      encoder.copyBufferToBuffer!(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
+      encoder.copyBufferToBuffer!(localBuffer, 0, localReadBuffer, 0, size);
+      encoder.copyBufferToBuffer!(globalBuffer, 0, globalReadBuffer, 0, size);
+    },
   },
-  map: async (_scope: any, encoder: GPUCommandEncoder) => {
-    encoder.copyBufferToBuffer!(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
-    encoder.copyBufferToBuffer!(localBuffer, 0, localReadBuffer, 0, size);
-    encoder.copyBufferToBuffer!(globalBuffer, 0, globalReadBuffer, 0, size);
-  },
-  pipeline: {
-    pipelineLayout: "auto",
-    shader: {
-      shaderCode: shader,
-      entryPoint: "computeSomething"
-    }
-  },
-  device: scene.device
 }
-
 let DC = new ComputeCommand(options);
 // await DC.init();
 window.DC = DC;
 DC.submit()
+
+

@@ -281,19 +281,6 @@ export class BaseDrawCommand {
      * 提交单次命令
      */
     submit() {
-        // 检查动态drawMode的数组长度是否为空
-        // if (typeof this.drawMode === "function") {
-        //     let drawModeTemp: I_drawMode[] | I_drawModeIndexed[];// = this.drawMode();
-        //     if (this.system !== undefined) {
-        //         drawModeTemp = this.drawMode(this.system.UUID, this.system.type);
-        //         if (drawModeTemp.length === 0) {
-        //             return;
-        //         }
-        //     }
-        //     else {
-        //         throw new Error("drawMode is  function and  must be have system input value ");
-        //     }
-        // }
         let commandBuffer = this.update()
         this.device.queue.submit([commandBuffer]);
     }

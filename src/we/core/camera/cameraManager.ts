@@ -731,10 +731,12 @@ export class CameraManager extends ECSManager<BaseCamera> {
 
         let valuesDC: IV_DrawCommand = {
             scene: this.scene,
-            pipeline: pipeline,
-            renderPassDescriptor: rpd,
-            drawMode: {
-                vertexCount: 1
+            drawInfo: {
+                pipeline: pipeline,
+                renderPassDescriptor: rpd,
+                drawMode: {
+                    vertexCount: 1
+                },
             },
             device: this.device,
             label: "initOnePointToTT DC "
@@ -901,12 +903,14 @@ fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
             1
         ];
         let computeValues: IV_ComputeCommand = {
-            dispatchCount: dispatchCount,
-            scene: this.scene,
-            pipeline: resolvePipeline,
+            computeInfo: {
+                dispatchCount: dispatchCount,
+                pipeline: resolvePipeline,
+                bindGroups: [bindGroup],
+
+            },
             device: this.device,
             label: "resolve Depth " + UUID,
-            uniform: [bindGroup],
         }
         let CC = new ComputeCommand(computeValues);
         return CC;
@@ -1246,7 +1250,7 @@ fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
         let valuesDC: IV_BaseDrawCommand = {
             device: this.device,
             label: "RenderFinal ToneMapping: " + UUID,
-            drawInfo:{
+            drawInfo: {
                 pipeline: pipeline,
                 bindGroups: [bindGroup0],
                 renderPassDescriptor,
