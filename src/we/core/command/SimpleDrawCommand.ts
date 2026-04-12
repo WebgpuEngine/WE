@@ -1,7 +1,8 @@
 import { I_EntityBundleOutput } from "../entity/base";
+import { Scene } from "../scene/scene";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_uniformArrayBufferEntry, isUniformBufferPart, T_uniformEntries, T_uniformGroups } from "./base";
-import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
+import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, isUniformBufferPart, T_uniformEntries, T_uniformGroups } from "./base";
+import { BaseDrawCommand, I_VertexBufferEntry, IV_BaseDrawCommand } from "./BaseDrawCommand";
 import { createUniformBuffer, createVerticesBuffer } from "./baseFunction";
 
 
@@ -14,21 +15,16 @@ export type T_uniformGroupsEntryOfSimple = GPUBindGroupEntry | I_uniformArrayBuf
  * 1、不考虑system的情况，如果有system，使用DrawCommand
  * 2、不考虑dynamic的情况，如果有dynamic bind group 情况，使用DrawCommand
  */
-export interface IV_SimpleDrawCommand extends IV_BaseDrawCommand {
-    // scene: Scene,
-    // viewport?: I_viewport,
-    // renderPassDescriptor: () => GPURenderPassDescriptor | GPURenderPassDescriptor,
-    // drawMode: I_drawMode | I_drawModeIndexed,
-    // system?: {
-    //     UUID: string,
-    //     type: E_renderForDC,//"camera" | "light"
-    // }
+export interface IV_SimpleDrawCommand {
+    scene: Scene,
+    label: string,
     parent: any,
     primitive: GPUPrimitiveState,
     /**
      * 深度测试和深度写入状态,非必须，配套RPD使用
      */
     depthStencil?: GPUDepthStencilState,
+    drawMode: I_drawMode | I_drawModeIndexed,
     /**
      * 1、VSFS都必须存在，默认入口 vs()，fs()
      * 2、必须有targets
@@ -39,6 +35,7 @@ export interface IV_SimpleDrawCommand extends IV_BaseDrawCommand {
         SHT?: I_ShaderTemplate,
         SHT_Final?: I_ShaderTemplate_Final,
     },
+    renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
     ColorTargetStat: GPUColorTargetState[],
     uniforms?: T_uniformGroupsEntryOfSimple[][];
     /**
@@ -57,11 +54,23 @@ export interface IV_SimpleDrawCommand extends IV_BaseDrawCommand {
         color?: number[],
         // vertices?: Map<string, T_vsAttribute>,
         indices?: number[],
-    }
+    },
 
 }
 
-export class SimpleDrawCommand extends BaseDrawCommand {
+export class SimpleDrawCommand {
+    scene: Scene;
+    label: string;
+    // rawUniform!: boolean;
+    device: GPUDevice;
+    _isDestroy: boolean = false;
+
+    pipeline!: GPURenderPipeline;
+    vertexBuffers: I_VertexBufferEntry[] = [];
+    indexBuffer: I_VertexBufferEntry | undefined;
+    indexFormat: GPUIndexFormat = "uint32";
+    bindGroups: (GPUBindGroup | undefined | null)[] = [];
+    drawMode: I_drawMode | I_drawModeIndexed;
 
 
     shaderModule!: GPUShaderModule | undefined;
@@ -69,24 +78,29 @@ export class SimpleDrawCommand extends BaseDrawCommand {
     verticesBufferLayout: GPUVertexBufferLayout[] = [];
     uniformGPUBuffers: GPUBuffer[] = [];
 
+    renderPassDescriptor: GPURenderPassDescriptor | (() => GPURenderPassDescriptor) | undefined;
 
     constructor(input: IV_SimpleDrawCommand) {
-        super(input);
+        this.scene = input.scene;
+        this.label = input.label;
+        this.device = input.scene.device;
         this.inputValues = input;
+        this.renderPassDescriptor = input.renderPassDescriptor;
+        this.drawMode = input.drawMode;
         this.createVertexBuffers();
         this.createPipeline();
         this.generateBindGroup();
     }
     destroy(): void {
         if (this.indexBuffer)
-            this.indexBuffer.destroy();
+            this.indexBuffer.buffer.destroy();
         for (let i = 0; i < this.vertexBuffers.length; i++) {
             this.vertexBuffers[i].buffer.destroy();
         }
         for (let i = 0; i < this.uniformGPUBuffers.length; i++) {
             this.uniformGPUBuffers[i].destroy();
         }
-        this.IsDestroy = true;
+        this._isDestroy = true;
     }
     createVertexBuffers() {
         let DC_verticesBufferLayout: GPUVertexBufferLayout[] = [];//vertex.buffers[]
@@ -100,7 +114,9 @@ export class SimpleDrawCommand extends BaseDrawCommand {
                 let gpuBuffer = createVerticesBuffer(this.device, this.label + " position vertex GPUBuffer", data.buffer);
 
                 if (i == "indices") {
-                    this.indexBuffer = gpuBuffer;
+                    this.indexBuffer = {
+                        buffer: gpuBuffer,
+                    }
                 }
                 else {
                     if (i == "position") {
@@ -309,4 +325,100 @@ export class SimpleDrawCommand extends BaseDrawCommand {
         }
     }
 
+    update(): GPUCommandBuffer {
+        return this.dowhole();
+    }
+    dowhole() {
+        let device = this.device;
+        if (this.renderPassDescriptor !== undefined) {
+            const commandEncoder = device.createCommandEncoder({ label: this.label });
+            this.doWithRPD(commandEncoder);
+            const commandBuffer = commandEncoder.finish();
+            return commandBuffer;
+        }
+        else {
+            console.warn("BaseDrawCommand.update: renderPassDescriptor is undefined");
+        }
+    }
+
+    doWithRPD(commandEncoder: GPUCommandEncoder) {
+        if (this.renderPassDescriptor !== undefined) {
+            let passEncoder: GPURenderPassEncoder;
+            if (typeof this.renderPassDescriptor === "function")
+                passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
+            else
+                passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
+            this.doWithPipeline(passEncoder);
+            passEncoder.end();
+        }
+    }
+    doWithPipeline(passEncoder: GPURenderPassEncoder) {
+        passEncoder.setPipeline(this.pipeline);
+        this.doDraw(passEncoder);
+    }
+    doDraw(passEncoder: GPURenderPassEncoder) {
+        for (let i in this.vertexBuffers) {
+            const verticesBuffer = this.vertexBuffers[i];
+            if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
+            else
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
+        }
+
+        for (let i in this.bindGroups) {
+            passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+        }
+
+        this.drawInstacnce(passEncoder, this.drawMode as I_drawMode | I_drawModeIndexed);
+
+    }
+    drawInstacnce(passEncoder: GPURenderPassEncoder, drawMode: I_drawMode | I_drawModeIndexed) {
+        if ("vertexCount" in drawMode) {
+            const count = drawMode.vertexCount;
+            let instanceCount = 1;
+            let firstIndex = 0;
+            let firstInstance = 0;
+            if ("instanceCount" in drawMode) {
+                instanceCount = drawMode.instanceCount as number;
+            }
+            if ("firstIndex" in drawMode) {
+                firstIndex = drawMode.firstIndex as number;
+            }
+            if ("firstInstance" in drawMode) {
+                firstInstance = drawMode.firstInstance as number;
+            }
+
+            passEncoder.draw(count, instanceCount, firstIndex, firstInstance);
+
+        }
+        else if ("indexCount" in drawMode) {
+            if (this.indexBuffer === undefined) {
+                console.warn("indexBuffer is undefined");
+                return;
+            }
+            const indexCount = drawMode.indexCount;
+            let instanceCount = 1;
+            let firstIndex = 0;
+            let firstInstance = 0;
+            let baseVertex = 0;
+            if ("instanceCount" in drawMode) {
+                instanceCount = drawMode.instanceCount as number;
+            }
+            if ("firstIndex" in drawMode) {
+                firstIndex = drawMode.firstIndex as number;
+            }
+            if ("firstInstance" in drawMode) {
+                firstInstance = drawMode.firstInstance as number;
+            }
+            if ("baseVertex" in drawMode) {
+                baseVertex = drawMode.baseVertex as number;
+            }
+            passEncoder.setIndexBuffer(this.indexBuffer.buffer, this.indexFormat, this.indexBuffer.offset, this.indexBuffer.byteSize);// 'uint32');
+            passEncoder.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+        }
+        else {
+            // throw new Error("draw 模式设置错误");
+            console.error("draw 模式设置错误,label=", this.inputValues.label);
+        }
+    }
 }
