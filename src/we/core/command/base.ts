@@ -1,4 +1,5 @@
 import { E_renderForDC } from "../base/coreDefine";
+import { BaseDrawCommand } from "./BaseDrawCommand";
 import { ComputeCommand } from "./ComputeCommand";
 import { CopyCommandT2T } from "./copyCommandT2T";
 import { DrawCommand } from "./DrawCommand";
@@ -13,8 +14,8 @@ export interface IV_BaseCommand {
     device: GPUDevice,
     /** label */
     label: string,
-    /** 是否是owner，默认=true */
-    isOwner?: boolean,
+    // /** 是否是owner，默认=true */
+    // isOwner?: boolean,
 }
 /**
  * 目前未使用，后期更改，20250909
@@ -29,7 +30,7 @@ export interface I_PipelineStructure {
 /**
  * DCCC类型
  */
-export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T | SimpleDrawCommand;
+export type commmandType = BaseDrawCommand | DrawCommand | ComputeCommand | CopyCommandT2T | SimpleDrawCommand;
 /**
  * https://www.w3.org/TR/webgpu/#ref-for-dom-gpurenderpassencoder-setviewport%E2%91%A1
  */
@@ -249,4 +250,4 @@ export type T_rpdInfomationOfMSAA = "MSAA" | "MSAAinfo"
 
 /////////////////////////////////////////////////////////////////////////
 // bind group type
-export type T_BindGroupType = GPUBindGroup | undefined;
+// export type T_BindGroupType = GPUBindGroup | undefined;

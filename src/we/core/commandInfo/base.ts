@@ -5,7 +5,7 @@ import { BaseEntity } from "../entity/baseEntity"
 import { E_TransparentType } from "../material/base"
 import { BaseMaterial } from "../material/baseMaterial"
 
-export interface I_DrawInfo {
+export interface I_weDrawStruct {
     /**
      * 基础信息
      * 
@@ -71,11 +71,38 @@ export interface I_DrawInfo {
          *    A、按照3的情况处理；
          *    B、没有uniform bind group
          */
-        uniform?: [
+        bindGroup?: [
             GPUBindGroup | [] | undefined,
             GPUBindGroup | [] | undefined,
             GPUBindGroup | [] | undefined,
             GPUBindGroup | [] | undefined
         ],
     },
+}
+
+
+export interface I_weComputeStruct {
+    baseInfo?: {
+        parent: any,
+    },
+    computeInfo: {
+        pipeline: GPUComputePipeline,
+        bindGroup?: [
+            GPUBindGroup | [] | undefined,
+            GPUBindGroup | [] | undefined,
+            GPUBindGroup | [] | undefined,
+            GPUBindGroup | [] | undefined
+        ],
+        dispatchCount: [number, number, number],
+    }
+}
+export interface I_weCopyStruct {
+    baseInfo?: {
+        parent: any,
+    },
+    copyInfo: {
+        source: GPUTexelCopyTextureInfo,
+        destination: GPUTexelCopyTextureInfo,
+        copySize: GPUExtent3DStrict
+    }
 }

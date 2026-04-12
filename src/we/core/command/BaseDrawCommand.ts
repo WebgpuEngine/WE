@@ -1,29 +1,77 @@
-import { E_renderForDC } from "../base/coreDefine";
-import { BaseEntity } from "../entity/baseEntity";
-import { Clock } from "../scene/clock";
-import { Scene } from "../scene/scene";
-import { I_drawMode, I_drawModeIndexed, I_viewport, IV_BaseCommand, T_BindGroupType, T_drawMode } from "./base";
-import { I_baseGPUBufferBundle } from "./DrawCommandGenerator";
+
+import { I_drawMode, I_drawModeIndexed, I_viewport, T_drawMode } from "./base";
 
 
 /**
  * DrawCommand input value 
  */
-export interface IV_BaseDrawCommand extends IV_BaseCommand {
-    scene: Scene,
-    viewport?: I_viewport,
-    renderPassDescriptor: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
-    drawMode: T_drawMode,
-    system?: {
-        UUID: string,
-        type: E_renderForDC,//"camera" | "light"
+// export interface IV_BaseDrawCommand {
+//     label: string,
+//     scene: Scene,
+//     pipeline: GPURenderPipeline,
+//     vertexBuffers?: I_VertexBufferEntry[],//20260114 修改GPUBuffer[]为interface[]
+//     indexBuffer?: I_VertexBufferEntry | undefined,
+//     indexFormat?: GPUIndexFormat,
+//     uniform?: GPUBindGroup[],
+//         /**draw mode 定义
+//          * 1、有值：按照 draw mode 定义了绘制的顶点数量，实例化数量，从第几个顶点开始绘制，从第几个实例开始绘制
+//          * 2、无值判断是否有baseInfo.parent:
+//          *      A、有：从parent.getDrawModeArrayOfInstances中获取drawMode序列
+//          *      B、无：判断索引模式还是非索引模式，生成drawMode序列
+//         */
+//     drawMode: T_drawMode,
+//     viewport?: I_viewport,
+//     renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
+//     system?: {
+//         UUID: string,
+//         type: E_renderForDC,//"camera" | "light"
+//     },
+// }
+export interface IV_BaseDrawCommand {
+    device: GPUDevice,
+    label: string,
+    drawInfo: {
+        viewport?: {
+            x: number,
+            y: number,
+            width: number,
+            height: number,
+            minDepth: number,
+            maxDepth: number
+        },
+        /**draw mode 定义
+         * 1、有值：按照 draw mode 定义了绘制的顶点数量，实例化数量，从第几个顶点开始绘制，从第几个实例开始绘制
+         * 2、无值判断是否有baseInfo.parent:
+         *      A、有：从parent.getDrawModeArrayOfInstances中获取drawMode序列
+         *      B、无：判断索引模式还是非索引模式，生成drawMode序列
+        */
+        drawMode?: T_drawMode,// I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[],// | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]),
+        pipeline: GPURenderPipeline,
+        /**顶点缓冲区 
+         * 1、没有：需要绑定undefiend，
+         *    A、比如在shader中写固定的顶点数据，不需要绑定顶点缓冲区
+         * 
+        */
+        vertexBuffers?: I_VertexBufferEntry[],
+        indexBuffer?: I_VertexBufferEntry,
+        indexFormat?: GPUIndexFormat,
+        /**
+         * 绑定的uniform buffer
+         * 1、GPUBindGroup，直接使用。
+         * 2、[]|undefined:忽略
+         * 3、如果有baseInfo，则忽略
+         *        则：0=system,1=entity,2=material
+         * 4、没有赋值的情况，
+         *    A、按照3的情况处理；
+         *    B、没有uniform bind group
+         */
+        bindGroups?: (GPUBindGroup | undefined | null)[],
+        renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
     },
-    parent?: BaseEntity,
 }
 
 /**
- * 顶点缓冲区入口
- * 用于setVertexBuffer方法
+ * 顶点缓冲区
  * 1、buffer：顶点缓冲区
  * 2、offset：顶点缓冲区中的偏移量
  * 3、size：顶点缓冲区中的数据大小
@@ -39,59 +87,56 @@ export interface I_VertexBufferEntry {
 }
 export type I_IndexBufferEntry = I_VertexBufferEntry;
 
-export abstract class BaseDrawCommand {
-    _isDestroy: boolean = false;
-    /** 
-     * 1、owner=true,会释放GPU的重资源
-     * 2、owner=false,不会释放GPU的重资源，由resourcesGPU管理
-     */
-    isOwner: boolean = false;
-    /**bind group 是否动态更新,例如：GPUTexture的注销与重建(外部模式的video等) */
-    dynamic: boolean = false;
-    drawMode: T_drawMode;
-    scene: Scene;
-    clock: Clock;
+export class BaseDrawCommand {
+    // scene: Scene;
     label: string;
     // rawUniform!: boolean;
-    device!: GPUDevice;
-    renderPassDescriptor!: GPURenderPassDescriptor | (() => GPURenderPassDescriptor);
+    device: GPUDevice;
+    _isDestroy: boolean = false;
+
+    pipeline: GPURenderPipeline;
     vertexBuffers: I_VertexBufferEntry[] = [];
-    indexBuffer!: I_VertexBufferEntry | undefined;
+    indexBuffer: I_VertexBufferEntry | undefined;
     indexFormat: GPUIndexFormat = "uint32";
-    bindGroups: T_BindGroupType[] = [];//GPUBindGroup[] = [];
-    pipeline!: GPURenderPipeline;
+    bindGroups: (GPUBindGroup | undefined | null)[] = [];
+    drawMode: T_drawMode | undefined;
+    viewport?: I_viewport;
+    /** 渲染pass描述符 
+     * 1、非必须，只有在需要完整渲染过程时才需要，例如：基础功能测试
+     * 2、为什么不需要：
+     *      renderManager会按照:commandEncoder->RPD->pipeline->setXXX->draw的模式调用
+    */
+    renderPassDescriptor: GPURenderPassDescriptor | (() => GPURenderPassDescriptor) | undefined;
 
     inputValues!: IV_BaseDrawCommand;
 
-    /**
-     * 系统bindGroup 0，用于绑定组1的更新（uniform）
-     * 用于camera和light shadow map
-     */
-    system: {
-        UUID: string,
-        type: E_renderForDC,//"camera" | "light"
-    } | undefined;
-    /**
-     * 20251225 增加，用于entity merge instance 模式
-     * 父实体，用于bingGroup 1 的更新（uniform），用于instance模式（M*N）
-     * 非instance模式下，为undefined
-     * 非BaseEntity的子类，为undefined
-     */
-    parent?: BaseEntity;
-
     constructor(input: IV_BaseDrawCommand) {
-        this.scene = input.scene;
-        this.clock = this.scene.clock;
+        // this.scene = input.scene;
         this.label = input.label;
         this.device = input.device;
-        this.drawMode = input.drawMode;
-        this.renderPassDescriptor = input.renderPassDescriptor;
-        if (input.system)
-            this.system = input.system;
-        if (input.parent)
-            this.parent = input.parent;
+        if (input.drawInfo.pipeline) this.pipeline = input.drawInfo.pipeline;
+        else throw new Error("BaseDrawCommand: pipeline 不能为空");
+        if (input.drawInfo.drawMode)
+            this.drawMode = input.drawInfo.drawMode;
+        if (input.drawInfo.renderPassDescriptor)
+            this.renderPassDescriptor = input.drawInfo.renderPassDescriptor;
+        // if (input.system)
+        //     this.system = input.system;
+        if (input.drawInfo.vertexBuffers)
+            this.vertexBuffers = input.drawInfo.vertexBuffers;
+        if (input.drawInfo.indexBuffer)
+            this.indexBuffer = input.drawInfo.indexBuffer;
+        if (input.drawInfo.indexFormat)
+            this.indexFormat = input.drawInfo.indexFormat;
+        if (input.drawInfo.bindGroups)
+            this.bindGroups = input.drawInfo.bindGroups;
+        if (input.drawInfo.viewport)
+            this.viewport = input.drawInfo.viewport;
+
     }
-    abstract destroy(): void;
+    destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
     get IsDestroy() {
         return this._isDestroy;
     }
@@ -103,33 +148,41 @@ export abstract class BaseDrawCommand {
      * @returns GPUCommandBuffer
      */
     update(): GPUCommandBuffer {
+        return this.dowhole();
+    }
+    dowhole() {
         let device = this.device;
-        /**
-         * 1、动态更新bind group：适用于GPUTexture的注销与重建(外部模式的video等)等
-         * 2、增加一个判断pointer是否有更新过的机制。
-         *    A、unix时间戳判断pointer是否有更新过（BOL的rebulid）。
-         */
-        // if (this.dynamic === true) {
-        //     this.generateBindGroup();
-        // }
-        const commandEncoder = device.createCommandEncoder({ label: this.label });
-        let passEncoder: GPURenderPassEncoder;
-        if (typeof this.renderPassDescriptor === "function")
-            passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
-        else
-            passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        passEncoder.setPipeline(this.pipeline);
-        this.doEncoder(passEncoder);
-        passEncoder.end();
-        const commandBuffer = commandEncoder.finish();
-        return commandBuffer;
+        if (this.renderPassDescriptor !== undefined) {
+            const commandEncoder = device.createCommandEncoder({ label: this.label });
+            this.doWithRPD(commandEncoder);
+            const commandBuffer = commandEncoder.finish();
+            return commandBuffer;
+        }
+        else {
+            console.warn("BaseDrawCommand.update: renderPassDescriptor is undefined");
+        }
     }
 
+    doWithRPD(commandEncoder: GPUCommandEncoder) {
+        if (this.renderPassDescriptor !== undefined) {
+            let passEncoder: GPURenderPassEncoder;
+            if (typeof this.renderPassDescriptor === "function")
+                passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
+            else
+                passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
+            this.doWithPipeline(passEncoder);
+            passEncoder.end();
+        }
+    }
+    doWithPipeline(passEncoder: GPURenderPassEncoder) {
+        passEncoder.setPipeline(this.pipeline);
+        this.doDraw(passEncoder);
+    }
     /**
      * 绘制命令编码
      * @param passEncoder 
      */
-    doEncoder(passEncoder: GPURenderPassEncoder) {
+    doDraw(passEncoder: GPURenderPassEncoder) {
         for (let i in this.vertexBuffers) {
             const verticesBuffer = this.vertexBuffers[i];
             if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
@@ -137,56 +190,38 @@ export abstract class BaseDrawCommand {
             else
                 passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
         }
-        if (this.inputValues.viewport) {
-            let minDepth = this.inputValues.viewport.minDepth == undefined ? 0 : this.inputValues.viewport.minDepth;
-            let maxDepth = this.inputValues.viewport.maxDepth == undefined ? 1 : this.inputValues.viewport.maxDepth;
+        if (this.viewport) {
+            let minDepth = this.viewport.minDepth == undefined ? 0 : this.viewport.minDepth;
+            let maxDepth = this.viewport.maxDepth == undefined ? 1 : this.viewport.maxDepth;
 
-            passEncoder.setViewport(this.inputValues.viewport.x, this.inputValues.viewport.y, this.inputValues.viewport.width, this.inputValues.viewport.height, minDepth, maxDepth);
+            passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
         }
-
-        // // 如果有system(camera,light)，则绑定system的bindGroup0
-        // if (this.system !== undefined) {
-        //     /**
-        //      * 目标：
-        //      * 1、为DC绑定camera的bindGroup0（动态增加光源的阴影贴图后，shadowmap textture 会重建，原来绑定的会失效）
-        //      * 2、透明的shadowmap渲染，预计也可能有类似的问题。（如果是copy 到公用的uniform depth texture的方式，应该没有此问题）todo
-        //      */
-        //     if (this.system.type === E_renderForDC.camera) {
-        //         let bindGroupBundle = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.system.UUID, this.system.type);
-        //         this.bindGroups[0] = bindGroupBundle.bindGroup;
-        //     }
-        // }
-        // // 如果有parent(entity)，则绑定parent的bindGroup0; PP的DC也有parent
-        // if (this.parent !== undefined && this.parent.type === "entity") {
-        //     let bindGroupBundle = this.parent.getBindGroupAndBindGroupLayout();
-        //     this.bindGroups[1] = bindGroupBundle.bindGroup;
-
-        // }
 
         for (let i in this.bindGroups) {
-            if (this.bindGroups[i] != undefined)
-                passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+            passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
         }
 
-        // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
-        if (typeof this.drawMode === "function") {
-            if (this.system !== undefined) {
-                let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.system.UUID, this.system.type);
-                this.drawInstacnceArray(passEncoder, drawModeTemp);
-            }
-            else {
-                throw new Error("drawMode is  function and  must be have system input value ");
-            }
-        }
+        // // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
+        // if (typeof this.drawMode === "function") {
+        //     if (this.system !== undefined) {
+        //         let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.system.UUID, this.system.type);
+        //         this.drawInstacnceArray(passEncoder, drawModeTemp);
+        //     }
+        //     else {
+        //         throw new Error("drawMode is  function and  must be have system input value ");
+        //     }
+        // }
         // 绘制实例 :多个instance数组。测试模拟merge
-        else if (Array.isArray(this.drawMode)) {
+        // else 
+        if (Array.isArray(this.drawMode)) {
             this.drawInstacnceArray(passEncoder, this.drawMode);
         }
         // 绘制实例 :单个instance。测试模拟single instance模式，raw模式
         else {
-            this.drawInstacnce(passEncoder, this.drawMode);
+            this.drawInstacnce(passEncoder, this.drawMode as I_drawMode | I_drawModeIndexed);
         }
     }
+    /** 绘制多个instance数组*/
     drawInstacnceArray(passEncoder: GPURenderPassEncoder, drawMode: I_drawMode[] | I_drawModeIndexed[]) {
         for (let i in drawMode) {
             this.drawInstacnce(passEncoder, drawMode[i]);
@@ -247,46 +282,20 @@ export abstract class BaseDrawCommand {
      */
     submit() {
         // 检查动态drawMode的数组长度是否为空
-        if (typeof this.drawMode === "function") {
-            let drawModeTemp: I_drawMode[] | I_drawModeIndexed[];// = this.drawMode();
-            if (this.system !== undefined) {
-                drawModeTemp = this.drawMode(this.system.UUID, this.system.type);
-                if (drawModeTemp.length === 0) {
-                    return;
-                }
-            }
-            else {
-                throw new Error("drawMode is  function and  must be have system input value ");
-            }
-        }
+        // if (typeof this.drawMode === "function") {
+        //     let drawModeTemp: I_drawMode[] | I_drawModeIndexed[];// = this.drawMode();
+        //     if (this.system !== undefined) {
+        //         drawModeTemp = this.drawMode(this.system.UUID, this.system.type);
+        //         if (drawModeTemp.length === 0) {
+        //             return;
+        //         }
+        //     }
+        //     else {
+        //         throw new Error("drawMode is  function and  must be have system input value ");
+        //     }
+        // }
         let commandBuffer = this.update()
         this.device.queue.submit([commandBuffer]);
     }
-    /**
-    * 合批开始，获取passEncoder和commandEncoder
-    * @returns 
-    */
-    doEncoderStart(): { passEncoder: GPURenderPassEncoder, commandEncoder: GPUCommandEncoder } {
-        const commandEncoder = this.device.createCommandEncoder({ label: "Draw Command :commandEncoder" });
-        let passEncoder;
-        if (typeof this.renderPassDescriptor === "function")
-            passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
-        else
-            passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        passEncoder.setPipeline(this.pipeline);
-        return { passEncoder, commandEncoder };
-    }
-    /**
-     * 合批结束，提交commandBuffer
-     * @param passEncoder 
-     * @param commandEncoder 
-     */
-    dotEncoderEnd(passEncoder: GPURenderPassEncoder, commandEncoder: GPUCommandEncoder): GPUCommandBuffer {
-        passEncoder.end();
-        const commandBuffer = commandEncoder.finish();
-        return commandBuffer;
-        // this.device.queue.submit([commandBuffer]);
-    }
-    abstract generateBindGroup(): any
 
 }

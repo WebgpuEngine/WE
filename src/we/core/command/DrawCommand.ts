@@ -1,11 +1,12 @@
 import { E_renderForDC } from "../base/coreDefine";
+import { BaseEntity } from "../entity/baseEntity";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
 import { E_TransparentType } from "../material/base";
-import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart } from "./base";
+import { BaseMaterial } from "../material/baseMaterial";
+import { Scene } from "../scene/scene";
 import { I_DrawCommandIDs, I_drawMode, I_drawModeIndexed, I_PipelineStructure, I_uniformArrayBufferEntry, T_uniformGroups } from "./base";
 import { BaseDrawCommand, I_VertexBufferEntry, IV_BaseDrawCommand } from "./BaseDrawCommand";
-import { createUniformBuffer } from "./baseFunction";
 
 
 //20260403 注释掉 dynamicUniform 参数
@@ -37,82 +38,60 @@ import { createUniformBuffer } from "./baseFunction";
 //     layoutNumber: number,
 // }
 
-
+interface I_DrawInputValueMaterial {
+    /**material 所有者 */
+    owner: BaseMaterial,
+    /**material类型 
+     * 1、不同类型的material的type，其bind group不同
+    */
+    type: "opacity" | "TO" | "TT" | "TTP" | "TTPF",
+    /**透明类型 :透明材质才需要.todo：备用
+    */
+    transparentType?: E_TransparentType,
+    dynamic: boolean
+}
+interface I_DrawInputValueTarget {
+    UUID: string,
+    type: E_renderForDC,//"camera" | "light"
+}
 /**
  * DrawCommand input value 
  */
 export interface IV_DrawCommand extends IV_BaseDrawCommand {
-
-    pipeline: GPURenderPipeline,
-    vertexBuffers?: I_VertexBufferEntry[],//20260114 修改GPUBuffer[]为interface[]
-    indexBuffer?: I_VertexBufferEntry | undefined,
-    indexFormat?: GPUIndexFormat,
-    uniform?: GPUBindGroup[],
-    // viewport?: I_viewport,
-    renderPassDescriptor: () => GPURenderPassDescriptor,
-    // drawMode: I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | (() => I_drawMode[] | I_drawModeIndexed[]),
-
-    //20260403 注释掉 dynamicUniform 参数
-    // dynamicUniform?: I_DynamicUniformOfDrawCommand,
-    /**
-     * ID组
-     */
-    IDS?: I_DrawCommandIDs,
-    transparentType?: E_TransparentType,
-
+    scene: Scene,
+    baseInfo?: {
+        parent?: BaseEntity,
+        /**material 
+         * 1、有值：渲染material
+         * 2、无值：渲染depth
+        */
+        material?: I_DrawInputValueMaterial
+        /**draw 目标，
+         * 1、有值：camera或light
+         */
+        traget?: I_DrawInputValueTarget
+    },
 }
 
 export class DrawCommand extends BaseDrawCommand {
+    /**Entity     */
+    parent: BaseEntity | undefined;
+    scene: Scene;
+    material: I_DrawInputValueMaterial | undefined;
+
     inputValues: IV_DrawCommand;
-    transparentType: E_TransparentType | undefined;
-
-    /**
-     * 缓存的pipeline结构，用于标识DC在renderManaager中优化渲染使用
-     */
-    cacheFlagPipeline!: I_PipelineStructure;
-    /**
-     * ID组
-     */
-    IDS: I_DrawCommandIDs = {
-        UUID: "",
-        ID: 0,
-        renderID: 0,
-    }
-    /**
-     * 映射列表，用于存储映射关系，例如：[texture, bindGroupEntry]
-     * 例如：[texture, bindGroupEntry]
-     * destroy时需要删除映射关系
-     */
-    resourcesOfMapList: any[] = [];
-    // mapList: {
-    //     key: any,//key of map
-    //     type: string, //类型
-    //     map?: string,//明确的Map<>
-    // }[] = [];
-
-    // resourcesGPU!: ResourceManagerOfGPU;
+    traget: I_DrawInputValueTarget | undefined;
 
     constructor(input: IV_DrawCommand) {
         super(input);
         this.inputValues = input;
-        this.label = input.label;
-        if (input.isOwner !== undefined)
-            this.isOwner = input.isOwner
-        this.device = input.device;
-        this.scene = input.scene;
-        this.pipeline = input.pipeline;
-        this.vertexBuffers = input.vertexBuffers || [];
-        if (input.indexBuffer) this.indexBuffer = input.indexBuffer;
-        if (input.indexFormat) this.indexFormat = input.indexFormat;
-        if (input.uniform) this.bindGroups = input.uniform;
-        this.drawMode = input.drawMode;
-        this.renderPassDescriptor = input.renderPassDescriptor;
-        // console.log(this.renderPassDescriptor());
-        if (input.dynamicUniform) this.dynamic = true;
-        if (input.IDS) this.IDS = input.IDS;
-        // this.resourcesGPU = input.scene.resourcesGPU;
-        this.transparentType = input.transparentType;
-        // if (input.system) this.system = input.system;
+        if (input.scene != undefined) this.scene = input.scene;
+        else throw new Error("DrawCommand: scene 不能为空");
+        if (input.baseInfo?.traget) this.traget = input.baseInfo.traget;
+        // else throw new Error("DrawCommand: baseInfo.traget 不能为空");
+        if (input.baseInfo?.parent) this.parent = input.baseInfo.parent;
+        // else throw new Error("DrawCommand: baseInfo.parent 不能为空");
+        if (input.baseInfo?.material) this.material = input.baseInfo.material;
     }
 
     /**
@@ -121,29 +100,7 @@ export class DrawCommand extends BaseDrawCommand {
      */
     uniformBufferList: any[] = [];
     destroy() {
-        if (this.isOwner === true) {
-
-        }
         console.warn("DrawCommand destroy:", this.label);
-        // if (this.resourcesGPU) {
-        //     for (let i of this.mapList) {
-        //         if (i.map && this.resourcesGPU.getProperty(i.map as keyof ResourceManagerOfGPU)) {
-        //             (this.resourcesGPU[i.map as keyof ResourceManagerOfGPU] as Map<any, any>).delete(i.map);
-        //         }
-        //         else
-        //             this.resourcesGPU.delete(i.key, i.type);
-        //     }
-        // }
-        //只有在DC中使用了uniformBuffer，才需要删除
-        for (let i in this.resourcesOfMapList) {
-            let item = this.resourcesOfMapList[i];
-            this.scene.resourcesGPU.uniformBuffer.delete(item.key);//未测试，应该没问题
-        }
-        for (let i in this.uniformBufferList) {
-            let item = this.uniformBufferList[i];
-            item.destroy();
-        }
-        this.resourcesOfMapList = [];
         this.uniformBufferList = [];
         this.pipeline = {} as GPURenderPipeline;
         // this.scene = null;
@@ -152,55 +109,28 @@ export class DrawCommand extends BaseDrawCommand {
         this.renderPassDescriptor = {} as () => GPURenderPassDescriptor;
         this.vertexBuffers = [];
         this.indexBuffer = undefined;
-        this.bindGroups = [];
+        this.bindGroups = [undefined, undefined, undefined, undefined];
         this.drawMode = {} as I_drawMode | I_drawModeIndexed;
-        this.cacheFlagPipeline = {} as I_PipelineStructure;
-        this.IDS = {
-            UUID: "",
-            ID: 0,
-            renderID: 0,
-        }
-        this._isDestroy = true;
-    }
 
-    getPipeLineStructure(): I_PipelineStructure {
-        if (this.cacheFlagPipeline == undefined) {
-            this.cacheFlagPipeline = {
-                pipeline: this.pipeline,
-                groupCount: this.bindGroups.length,
-                attributeCount: this.vertexBuffers.length,
-            }
-        }
-        return this.cacheFlagPipeline;
+        this._isDestroy = true;
     }
 
     override update(): GPUCommandBuffer {
         /**
-         * 1、动态更新bind group：适用于GPUTexture的注销与重建(外部模式的video等)等
-         * 2、增加一个判断pointer是否有更新过的机制。
-         *    A、unix时间戳判断pointer是否有更新过（BOL的rebulid）。
+         * 目标：
+         * 1、为DC绑定camera的bindGroup0（动态增加光源的阴影贴图后，shadowmap textture 会重建，原来绑定的会失效）
+         * 2、透明的shadowmap渲染，预计也可能有类似的问题。（如果是copy 到公用的uniform depth texture的方式，应该没有此问题）todo
          */
-        // if (this.dynamic === true) {
-        //     this.generateBindGroup();
-        // }
-        // 如果有system(camera,light)，则绑定system的bindGroup0
-        if (this.system !== undefined) {
-            /**
-             * 目标：
-             * 1、为DC绑定camera的bindGroup0（动态增加光源的阴影贴图后，shadowmap textture 会重建，原来绑定的会失效）
-             * 2、透明的shadowmap渲染，预计也可能有类似的问题。（如果是copy 到公用的uniform depth texture的方式，应该没有此问题）todo
-             */
-            if (this.system.type === E_renderForDC.camera) {
-                let bindGroupBundle = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.system.UUID, this.system.type);
-                this.bindGroups[0] = bindGroupBundle.bindGroup;
-            }
+        if (this.traget && this.traget.type === E_renderForDC.camera) {
+            let bindGroupBundle = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.traget.UUID, this.traget.type);
+            this.bindGroups[0] = bindGroupBundle.bindGroup;
         }
         // 如果有parent(entity)，则绑定parent的bindGroup0; PP的DC也有parent
         if (this.parent !== undefined && this.parent.type === "entity") {
             let bindGroupBundle = this.parent.getBindGroupAndBindGroupLayout();
             this.bindGroups[1] = bindGroupBundle.bindGroup;
 
-            if (this.inputValues.system?.type == E_renderForDC.camera) {
+            if (this.traget && this.traget.type == E_renderForDC.camera) {
                 if (this.label.includes("wireframe")) {
                     if ((this.parent as Mesh)._materialWireframe) {
                         let { bindGroup, bindGroupLayout } = (this.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
@@ -215,95 +145,45 @@ export class DrawCommand extends BaseDrawCommand {
                 }
             }
         }
-
         return super.update();
     }
+    override doDraw(passEncoder: GPURenderPassEncoder) {
+        for (let i in this.vertexBuffers) {
+            const verticesBuffer = this.vertexBuffers[i];
+            if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
+            else
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
+        }
+        if (this.viewport) {
+            let minDepth = this.viewport.minDepth == undefined ? 0 : this.viewport.minDepth;
+            let maxDepth = this.viewport.maxDepth == undefined ? 1 : this.viewport.maxDepth;
 
-    /**
-     * 生成动态bindGroup，由super中的update()根据this.dynamic 调用
-     */
-    // generateBindGroup() {
-    //     let values = this.inputValues;
-    //     let uniformGroup = this.inputValues.dynamicUniform!.bindGroupsUniform;
-    //     let bindGroupLayouts = values.dynamicUniform!.bindGroupLayout;
+            passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
+        }
 
-    //     let layoutNumber = values.dynamicUniform!.layoutNumber;//bind group layout 索引，从几开始（有system，从1开始，没有system，从0开始）
+        for (let i in this.bindGroups) {
+            passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+        }
 
-    //     // resources: ResourceManagerOfGPU;
-    //     if (!uniformGroup) {
-    //         return;
-    //     }
-    //     for (let perGroup of uniformGroup!) {
-    //         //BindGroup，重点1
-    //         let bindGroup: GPUBindGroup;
-    //         //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
-    //         let bindGroupEntry: GPUBindGroupEntry[] = [];
-
-    //         //BindGroupLayout，重点2
-    //         let bindGroupLayout: GPUBindGroupLayout = bindGroupLayouts![layoutNumber];
-
-    //         if (perGroup !== undefined && Array.isArray(perGroup) && perGroup.length > 0)
-    //             //创建BindGroup entry
-    //             for (let perEntry of perGroup) {
-
-    //                 //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
-    //                 if (isUniformBufferPart(perEntry)) {
-    //                     if (this.scene.resourcesGPU.has(perEntry, "uniformBuffer")) {//已有,直接获取，不创建
-    //                         let buffer = this.scene.resourcesGPU.get(perEntry, "uniformBuffer");
-    //                         if (buffer)
-    //                             bindGroupEntry.push({
-    //                                 binding: perEntry.binding,
-    //                                 resource: {
-    //                                     buffer
-    //                                 }
-    //                             });
-    //                     }
-    //                     else {//没有，创建
-    //                         const label = (perEntry as I_uniformArrayBufferEntry).label;
-    //                         let buffer = createUniformBuffer(this.device, label, (perEntry as I_uniformArrayBufferEntry).data);
-    //                         this.uniformBufferList.push(buffer);
-    //                         this.scene.resourcesGPU.set(perEntry, buffer, "uniformBuffer");
-    //                         this.resourcesOfMapList.push({ key: perEntry, value: buffer, type: "uniformBuffer" });
-    //                         bindGroupEntry.push({
-    //                             binding: perEntry.binding,
-    //                             resource: {
-    //                                 buffer
-    //                             }
-    //                         });
-    //                     }
-    //                 }
-    //                 else if (isDynamicTextureEntryForExternal(perEntry)) {
-    //                     bindGroupEntry.push({
-    //                         binding: perEntry.binding,
-    //                         resource: perEntry.getResource(perEntry.scope),
-    //                     });
-    //                 }
-    //                 else if (isDynamicTextureEntryForView(perEntry)) {
-    //                     bindGroupEntry.push({
-    //                         binding: perEntry.binding,
-    //                         resource: perEntry.getResource(),
-    //                     });
-    //                 }
-    //                 //其他非uniform传入ArrayBuffer的，直接push，不Map（在其他的owner保存）
-    //                 else {
-    //                     bindGroupEntry.push(perEntry);
-    //                 }
-    //             }
-
-    //         //初始化BindGroup描述
-    //         let bindGroupDesc: GPUBindGroupDescriptor = {
-    //             label: "DC 动态绑定" + values.label + " bindGroupLayoutDescriptor of " + layoutNumber,
-    //             layout: bindGroupLayout,
-    //             entries: bindGroupEntry,
-    //         }
-    //         //创建BindGroup
-    //         bindGroup = this.device.createBindGroup(bindGroupDesc);
-    //         ///////////////////
-    //         //增加到资源
-    //         this.bindGroups[layoutNumber] = bindGroup;
-    //         layoutNumber++;
-    //     }
-    // }
-
+        // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
+        if (typeof this.drawMode === "function") {
+            if (this.traget !== undefined) {
+                let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.traget.UUID, this.traget.type);
+                this.drawInstacnceArray(passEncoder, drawModeTemp);
+            }
+            else {
+                throw new Error("drawMode is  function and  must be have system input value ");
+            }
+        }
+        // 绘制实例 :多个instance数组。测试模拟merge
+        else if (Array.isArray(this.drawMode)) {
+            this.drawInstacnceArray(passEncoder, this.drawMode);
+        }
+        // 绘制实例 :单个instance。测试模拟single instance模式，raw模式
+        else {
+            this.drawInstacnce(passEncoder, this.drawMode as I_drawMode | I_drawModeIndexed);
+        }
+    }
 
 }

@@ -456,43 +456,61 @@ export class DrawCommandGenerator {
         }
 
         //5、传参，生产DC
+        // let commandOption: IV_DrawCommand = {
+        //     scene: this.scene,
+        //     device: this.device,
+        //     pipeline,
+        //     vertexBuffers: DC_vertexBuffers,
+        //     drawMode: values.render.drawMode,
+        //     label: values.label,
+        //     uniform: DC_bindGroups,
+        //     renderPassDescriptor,
+        //     // dynamic: values.dynamic || false,
+        // }
         let commandOption: IV_DrawCommand = {
-            scene: this.scene,
             device: this.device,
-            pipeline,
-            vertexBuffers: DC_vertexBuffers,
-            drawMode: values.render.drawMode,
+            scene: this.scene,
             label: values.label,
-            uniform: DC_bindGroups,
-            renderPassDescriptor,
-            // dynamic: values.dynamic || false,
+            drawInfo: {
+                drawMode: values.render.drawMode,
+                pipeline,
+                vertexBuffers: DC_vertexBuffers,
+                //  indexBuffer: DC_indexBuffer,
+                bindGroups: DC_bindGroups,
+                renderPassDescriptor,
+            },
+            baseInfo: {},
         }
+
         //5.1 为了适配动态增加光源后的阴影贴图的动态更新。
         //在BaseDrawCommand.doEncoder()中，会动态绑定system0
         if (values.system) {
             let UUID = this.checkUUID(values);
             if (UUID) {
-                commandOption.system = {
+                commandOption.baseInfo!.traget = {
                     UUID,
                     type: values.system.type,
                 }
             }
         }
+
         //5.2 传输ID
-        if (values.IDS) {
-            commandOption.IDS = values.IDS;
-        }
+        // if (values.IDS) {
+        //     commandOption.IDS = values.IDS;
+        // }
         //5.3 传输transparentType。（20251206 未在DC中发现具有使用情况，应该是早期参数，暂时保留）
-        if (values.transparent) {
-            if (values.transparent.type) {
-                commandOption.transparentType = values.transparent.type;
-            }
-        }
+        // if (values.transparent) {
+        //     if (values.transparent.type) {
+        //         commandOption.transparentType = values.transparent.type;
+        //     }
+        // }
         //5.4 viewport
-        if (values.render.viewport) commandOption.viewport = values.render.viewport;
-        let camera = this.getCamera(values);
-        if (camera) {
-            commandOption.viewport = camera.viewport;
+        if (values.render.viewport) commandOption.drawInfo.viewport = values.render.viewport;
+        else {
+            let camera = this.getCamera(values);
+            if (camera) {
+                commandOption.drawInfo.viewport = camera.viewport;
+            }
         }
         //20260403 注释掉 dynamicUniform 参数
         ////5.5 动态bindGroup情况，如果dynamicUniform参数，DC会根据dynamicUniform参数，动态绑定bindGroup。
@@ -517,14 +535,20 @@ export class DrawCommandGenerator {
         // }
         //5.6 indexBuffer
         if (DC_indexBuffer) {
-            commandOption.indexBuffer = DC_indexBuffer;
+            commandOption.drawInfo.indexBuffer = DC_indexBuffer;
             if ("buffer" in values.data.indices!) {
-                commandOption.indexFormat = values.data.indices.format;
+                commandOption.drawInfo.indexFormat = values.data.indices.format;
             }
         }
         //5.7 parent 
         if (values.parent) {
-            commandOption.parent = values.parent;
+            commandOption.baseInfo!.parent = values.parent;
+        }
+        // if (values.parent !== undefined) {
+        //     commandOption.baseInfo!.parent = values.parent;
+        // }
+        if (values.material) {
+            commandOption.baseInfo!.material = values.material;
         }
         //6 创建DC
         let drawCommand = new DrawCommand(commandOption);

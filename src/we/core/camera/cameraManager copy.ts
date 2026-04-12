@@ -1,5 +1,4 @@
 import { commmandType } from "../command/base";
-import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
 import { ComputeCommand, IV_ComputeCommand } from "../command/ComputeCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand, IV_DrawCommand } from "../command/DrawCommand";
@@ -1230,32 +1229,19 @@ fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
         //     layoutNumber: 0
         // };
 
-        // let valuesDC: IV_DrawCommand = {
-        //     scene: this.scene,
-        //     pipeline: pipeline,
-        //     uniform: [bindGroup0],
-        //     renderPassDescriptor,
-        //     drawMode: {
-        //         vertexCount: 4
-        //     },
-        //     device: this.device,
-        //     label: "RenderFinal ToneMapping: " + UUID,
-        //     // dynamicUniform: uniforIDTexture,
-        // }
-        // this.cameraDrawCommandOfFinalStep[UUID].toneMapping.push(new DrawCommand(valuesDC));
-        let valuesDC: IV_BaseDrawCommand = {
+        let valuesDC: IV_DrawCommand = {
+            scene: this.scene,
+            pipeline: pipeline,
+            uniform: [bindGroup0],
+            renderPassDescriptor,
+            drawMode: {
+                vertexCount: 4
+            },
             device: this.device,
             label: "RenderFinal ToneMapping: " + UUID,
-            drawInfo:{
-                pipeline: pipeline,
-                bindGroups: [bindGroup0],
-                renderPassDescriptor,
-                drawMode: {
-                    vertexCount: 4
-                },
-            }
+            // dynamicUniform: uniforIDTexture,
         }
-        this.cameraDrawCommandOfFinalStep[UUID].toneMapping.push(new BaseDrawCommand(valuesDC));
+        this.cameraDrawCommandOfFinalStep[UUID].toneMapping.push(new DrawCommand(valuesDC));
         if (UUID === this.defaultCamera.UUID) {
             let size = this.scene.surface.size;
             let copyToColorTexture = new CopyCommandT2T(

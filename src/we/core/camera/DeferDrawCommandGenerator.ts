@@ -1,5 +1,6 @@
 import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
 import { commmandType, T_uniformGroups } from "../command/base";
+import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
 import { DrawCommand, IV_DrawCommand } from "../command/DrawCommand";
 import { I_EntityBundleOutput } from "../entity/base";
 import { E_GBufferNames } from "../gbuffers/base";
@@ -174,19 +175,31 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
                     storeOp: 'store',
                 }]
         };
-
-        let valuesDC: IV_DrawCommand = {
-            scene: this.scene,
-            pipeline: pipeline,
-            uniform: uniforms,
-            renderPassDescriptor: () => { return rpd; },
-            drawMode: {
-                vertexCount: 4
-            },
+        let valuesDC: IV_BaseDrawCommand = {
             device: this.device,
+            drawInfo: {
+                pipeline: pipeline,
+                bindGroups: uniforms,
+                renderPassDescriptor: () => { return rpd; },
+                drawMode: {
+                    vertexCount: 4
+                },
+            },
             label: "DeferRender: " + UUID,
         }
-        this.DDC[UUID].push(new DrawCommand(valuesDC));
+        this.DDC[UUID].push(new BaseDrawCommand(valuesDC));
+        // let valuesDC: IV_DrawCommand = {
+        //     scene: this.scene,
+        //     pipeline: pipeline,
+        //     uniform: uniforms,
+        //     renderPassDescriptor: () => { return rpd; },
+        //     drawMode: {
+        //         vertexCount: 4
+        //     },
+        //     device: this.device,
+        //     label: "DeferRender: " + UUID,
+        // }
+        // this.DDC[UUID].push(new DrawCommand(valuesDC));
     }
 
 
