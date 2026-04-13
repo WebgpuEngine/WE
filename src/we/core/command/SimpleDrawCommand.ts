@@ -324,7 +324,10 @@ export class SimpleDrawCommand {
             layoutNumber++;
         }
     }
-
+    submit() {
+        let commandBuffer = this.update()
+        this.device.queue.submit([commandBuffer]);
+    }
     update(): GPUCommandBuffer {
         return this.dowhole();
     }

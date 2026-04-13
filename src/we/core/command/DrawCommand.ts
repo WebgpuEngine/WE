@@ -32,7 +32,8 @@ interface I_DrawInputValueTarget {
  */
 export interface IV_DrawCommand extends IV_BaseDrawCommand {
     scene: Scene,
-    baseInfo?: {
+    /**基础信息 */
+    baseInfo: {
         parent?: BaseEntity,
         /**material 
          * 1、有值：渲染material
@@ -42,7 +43,7 @@ export interface IV_DrawCommand extends IV_BaseDrawCommand {
         /**draw 目标，
          * 1、有值：camera或light
          */
-        traget?: I_DrawInputValueTarget
+        traget: I_DrawInputValueTarget
     },
 }
 
@@ -61,9 +62,9 @@ export class DrawCommand extends BaseDrawCommand {
         if (input.scene != undefined) this.scene = input.scene;
         else throw new Error("DrawCommand: scene 不能为空");
         if (input.baseInfo?.traget) this.traget = input.baseInfo.traget;
-        // else throw new Error("DrawCommand: baseInfo.traget 不能为空");
+        else throw new Error("DrawCommand: baseInfo.traget 不能为空");
         if (input.baseInfo?.parent) this.parent = input.baseInfo.parent;
-        // else throw new Error("DrawCommand: baseInfo.parent 不能为空");
+        else throw new Error("DrawCommand: baseInfo.parent 不能为空");
         if (input.baseInfo?.material) this.material = input.baseInfo.material;
     }
 

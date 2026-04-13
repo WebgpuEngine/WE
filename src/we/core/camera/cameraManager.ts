@@ -136,8 +136,8 @@ export class CameraManager extends ECSManager<BaseCamera> {
             backGroudColor: camera.backGroundColor,
             depthClearValue: this.scene.reversedZ.cleanValue
         };
-        if (camera.name) {
-            gbuffersOption.name = camera.name;
+        if (camera.Name) {
+            gbuffersOption.name = camera.Name;
         }
         // this.GBufferManager.initGBuffer(camera.Name || camera.ID.toString(), gbuffersOption);//使用UUID，太多了，不好改
         this.GBufferManager.initGBuffer(camera.UUID, gbuffersOption);
@@ -395,7 +395,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
      * @returns 相机
      */
     getCameraByName(name: string) {
-        return this.list.find(camera => camera.name == name);
+        return this.list.find(camera => camera.Name == name);
     }
 
     /**

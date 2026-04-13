@@ -17,6 +17,9 @@ export class CopyCommandT2T {
 
     update(): GPUCommandBuffer {
         const commandEncoder = this.device.createCommandEncoder();
+        return this.copy(commandEncoder);
+    }
+    copy(commandEncoder: GPUCommandEncoder) {
         let commandBuffer: GPUCommandBuffer;
         if (this.input.A instanceof GPUTexture && this.input.B instanceof GPUTexture) {
             commandEncoder.copyTextureToTexture(
