@@ -33,12 +33,12 @@ export enum E_renderPassName {
      */
     shadowmapTransparent = "shadowmapTransparent",
 
-    /**
-     * 延迟渲染的深度渲染通道
-     * 1、单像素深度渲染，用于延迟渲染的深度测试（后续使用forward进行正常渲染，单像素模式）
-     * 2、此模式不能解决GPU编译时间成本、光照与阴影的简单多变种问题
-     * 3、淘汰
-     */
+    // /**
+    //  * 延迟渲染的深度渲染通道
+    //  * 1、单像素深度渲染，用于延迟渲染的深度测试（后续使用forward进行正常渲染，单像素模式）
+    //  * 2、此模式不能解决GPU编译时间成本、光照与阴影的简单多变种问题
+    //  * 3、淘汰
+    //  */
     // depth = "depth",
     /**
      * MSAA通道，用于MSAA抗锯齿。
@@ -279,16 +279,16 @@ export class RenderManager {
         this.RC[E_renderPassName.material],
         this.RC[E_renderPassName.renderTarget],
     ]
-    /**
-     * TTP早期测试使用
-     */
-    // DCG: DrawCommandGenerator;
-    /**
-     * RPD的loadOp计数器
-     */
-    cameraRendered: {
-        [name: string]: number
-    } = {};
+    // /**
+    //  * TTP早期测试使用
+    //  */
+    // // DCG: DrawCommandGenerator;
+    // /**
+    //  * RPD的loadOp计数器
+    //  */
+    // cameraRendered: {
+    //     [name: string]: number
+    // } = {};
 
     commandEncoder!: GPUCommandEncoder;
 
@@ -340,7 +340,6 @@ export class RenderManager {
      * 每帧清除
      */
     clean() {
-        this.cameraRendered = {};
         this.RC[E_renderPassName.compute] = [];
         this.RC[E_renderPassName.texture] = [];
         this.RC[E_renderPassName.material] = [];
@@ -392,7 +391,7 @@ export class RenderManager {
             if (kind == E_renderPassName.forward ||
                 kind == E_renderPassName.transparent ||
                 kind == E_renderPassName.MSAA ||
-                kind == E_renderPassName.defer ||
+                // kind == E_renderPassName.defer ||
                 kind == E_renderPassName.sprite
                 // kind == E_renderPassName.spriteTransparent
             ) {
@@ -406,6 +405,9 @@ export class RenderManager {
             case E_renderPassName.shadowmapTransparent:
             case E_renderPassName.transparent:
                 // case E_renderPassName.spriteTransparent:
+                if (!this.RC[kind][_UUID!]) {
+                    this.RC[kind][_UUID!] = [];
+                }
                 this.RC[kind][_UUID!].push(command);
                 break;
 
@@ -413,6 +415,9 @@ export class RenderManager {
             case E_renderPassName.forward:
             case E_renderPassName.MSAA:
             case E_renderPassName.sprite:
+                if (!this.RC[kind][_UUID!]) {
+                    this.RC[kind][_UUID!] = new Map();
+                }
                 if (!this.RC[kind][_UUID!].has(pipeline!)) {
                     this.RC[kind][_UUID!].set(pipeline!, new Map());
                 }
@@ -422,6 +427,9 @@ export class RenderManager {
             case E_renderPassName.defer:
             case E_renderPassName.toneMapping:
             case E_renderPassName.postprocess:
+                if (!this.RC[kind][_UUID!]) {
+                    this.RC[kind][_UUID!] = [];
+                }
                 this.RC[kind][_UUID!].push(command);
                 break;
 

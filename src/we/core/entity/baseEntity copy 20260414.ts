@@ -77,7 +77,7 @@ export abstract class BaseEntity extends NodeSpace {
     /** 顶点属性的插值模式       
      */
     locationInterpolate: I_locationInterpolate | undefined;
-
+    
     /** 获取字符串化的顶点属性的插值模式       ：cache shader module ,pipeline使用
      */
     getStringOfLocationInterpolate(): string {
@@ -451,23 +451,13 @@ export abstract class BaseEntity extends NodeSpace {
         // this.outSideInstance.push(this);//临时代码
 
         await super.init(scene);
-        // 初始化common uniform
         this.intUniformCommonEntity();
-        // 初始化storage buffer list
-        this.checkStorageBuffer(this.storageBufferList);
-
         // this.updateInstanceBuffer();
         // this.updateWorldMatrixBuffer();
         // this.updateJointMatrixBuffer();
 
         this.transparent = this.getTransparent();
         this.DCG = this.scene.DCG;//new DrawCommandGenerator({ scene: this.scene, parent: this });
-
-        //检查是否有新摄像机，有进行更新
-        this.createCameraDC();
-        //检查是否有新光源，有进行更新
-        this.createLightsDC();
-
         this._state = E_lifeState.finished;
         // return this.renderID + 1;
     }
@@ -586,10 +576,8 @@ export abstract class BaseEntity extends NodeSpace {
         if (this._isDestroy) return;
         this.flagOutsideInstanceCountChange = false;
         /**
-         * 外部实例数量变化处理的意义：
-         * 1、instance 增加，处理storagebuffer，下一步可以进行正常的update
-         * 2、instance 减少，处理storage pointer。
-         *     特殊情况： 当全部删除时，无法进行update。所以需要在此进行相关的storage pointer的处理。
+         * 1、instance 增加，可以进行正常的update
+         * 2、instance 减少，当全部删除时，无法进行update。需要进行相关的storage pointer的处理
          * 3、instance 保持不变，进行正常的update
          */
         if (this.outSideInstance.length !== this.outSideInstanceCountPreFrame) {
@@ -616,9 +604,9 @@ export abstract class BaseEntity extends NodeSpace {
         this.updateInstanceBuffer();            //更新instance buffer
         this.updateWorldMatrixBuffer(clock);    //更新world matrix buffer
         //检查是否有新摄像机，有进行更新
-        // this.checkUpgradeCameras();
+        this.checkUpgradeCameras();
         //检查是否有新光源，有进行更新
-        // this.checkUpgradeLights();
+        this.checkUpgradeLights();
     }
 
     /**
@@ -722,7 +710,7 @@ export abstract class BaseEntity extends NodeSpace {
      * 
      * @param parent 
      */
-    createCameraDC() {
+    upgradeCameras() {
         for (let camera of this.scene.cameraManager.list) {
             const id = camera.UUID;
             let already: boolean
@@ -759,7 +747,7 @@ export abstract class BaseEntity extends NodeSpace {
     /**更新(创建)关于lights的DCCC commands
      * 
      */
-    createLightsDC() {
+    upgradeLights() {
         for (let i of this.scene.lightsManager.getShdowMapsStructArray()) {
             const id = i.light_id.toString();
             let UUID = this.scene.lightsManager.getUUIDByID(i.light_id);
@@ -805,7 +793,7 @@ export abstract class BaseEntity extends NodeSpace {
         const countsOfCamerasCommand = Object.keys(this.cameraDC).length;
         const countsOfCamera = this.scene.cameraManager.count();
         if (countsOfCamera > countsOfCamerasCommand) {
-            this.createCameraDC();
+            this.upgradeCameras()
         }
     }
     /**检查是否有新光源，有进行更新 */
@@ -813,7 +801,7 @@ export abstract class BaseEntity extends NodeSpace {
         const countsOfCamerasCommand = Object.keys(this.shadowmapDC).length;
         const countsOfCameraActors = this.scene.lightsManager.getShdowMapsStructArray().length;
         if (countsOfCameraActors > countsOfCamerasCommand) {//比较的是shadowmap的数量
-            this.createLightsDC();
+            this.upgradeLights()
         }
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

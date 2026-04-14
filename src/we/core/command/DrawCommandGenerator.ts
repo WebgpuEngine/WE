@@ -1881,6 +1881,9 @@ export class DrawCommandGenerator {
                     // console.error("获取UUID失败");
                     this.errorUUID();
             }
+            else {
+                throw new Error("fragment targets 为空或未设置DCG生成参数种的获取途径。");
+            }
             //3.4.3 透明处理,alpha blend
             if (values.transparent?.type == E_TransparentType.alpha && values.transparent.blend) {
                 for (let i = 0; i < values.transparent.blend.length; i++) {
