@@ -1,7 +1,12 @@
 
 import { I_drawMode, I_drawModeIndexed, I_viewport, T_drawMode } from "./base";
 
-
+export interface I_drawCallOption {
+    passEncoder: GPURenderPassEncoder,
+    renderPassName?: string,
+    mergeID?: string,
+    drawModeData?: I_drawMode[] | I_drawModeIndexed[],
+}
 /**
  * DrawCommand input value 
  */
@@ -176,13 +181,14 @@ export class BaseDrawCommand {
     }
     doWithPipeline(passEncoder: GPURenderPassEncoder) {
         passEncoder.setPipeline(this.pipeline);
-        this.doDraw(passEncoder);
+        this.doDraw({ passEncoder });
     }
     /**
      * 绘制命令编码
-     * @param passEncoder 
+     * @param option I_drawCallOption
      */
-    doDraw(passEncoder: GPURenderPassEncoder) {
+    doDraw(option: I_drawCallOption) {
+        let passEncoder = option.passEncoder;
         for (let i in this.vertexBuffers) {
             const verticesBuffer = this.vertexBuffers[i];
             if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)

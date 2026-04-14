@@ -1,7 +1,8 @@
 import { E_renderForDC } from "../base/coreDefine";
-import { commmandType, I_drawMode, I_drawModeIndexed, I_PipelineStructure, T_rpdInfomationOfMSAA } from "../command/base";
-import { BaseDrawCommand } from "../command/BaseDrawCommand";
+import { commmandType, I_drawMode, I_drawModeIndexed } from "../command/base";
+import { BaseDrawCommand, I_drawCallOption } from "../command/BaseDrawCommand";
 import { ComputeCommand } from "../command/ComputeCommand";
+import { CopyCommand } from "../command/compyCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { SimpleDrawCommand } from "../command/SimpleDrawCommand";
@@ -11,7 +12,11 @@ import { Scene } from "./scene";
 
 /**
  * 渲染通道
- * 备注：这个也是渲染的通道的执行的时间线顺序
+ * 一顺序：
+ * 1、具有内容线顺序
+ * 2、具有时间线顺序
+ * 
+ * 二、stage
  * 1、depth,forwar,transparent,sprite,spriteTransparent,defer这些都是world stage的。world starge 隐式=stage0;
  * 2、world stage 是按照camera（一个或多个）进行渲染的。也可以理解为：每个camera都有一个world stage。
  */
@@ -65,7 +70,21 @@ export enum E_renderPassName {
      */
     forward = "forward",
     /**
+     * todo：20260414，是否启用需要再考虑，是否有必要，是否会增加复杂性
      * 延迟渲染之前的quad渲染，用于提升渲染性能
+     * 一、定位
+     * 1、提升绘制性能，将需要大量计算的GPU操作，使用quad模式集中处理
+     * 2、避免forward中的大量重复计算（减少overDraw）
+     * 3、绘制的内容是FS（是替换、混合等，可以包括color、normal、albedo等），VS是quad模式（worldPosition来自camera GBuffer的worldPosition）
+     * 4、用途，包括PBR参数的FS shder：
+     *      A、包括normal、albedo等内容的投影纹理、贴花等；
+     *      B、其他（需要更改PBR参数）大量需要重复像素计算的；
+     * 
+     * 二、RPD 和GBuffer
+     * 1、RPD是与forward通道中的RPD不同，不输出worldPosition buffer
+     * 2、写入除worldPosition之外的GBuffer。
+     * 
+     * 二、draw的内容
      * 1、draw的内容是需要在defer通道中进行处理。
      * 2、用途： 投影纹理，贴花纹理等，
      * 3、可以写入多个GBuffer，color,normal，albedo等。depth视情况而定，原则上不写入。
@@ -76,10 +95,13 @@ export enum E_renderPassName {
      */
     defer = "defer",
     /**
+     * todo：20260414，可以启用，未实现，需要增加一个renderPass的识别并分配到渲染通道
      * 延迟渲染之后quad渲染，用于提升渲染性能.
-     * 1、draw的内容自行处理光照与阴影。
-     * 2、用途： 投影纹理，贴花纹理等，
-     * 3、可以写入多个GBuffer，color,normal，albedo等。depth视情况而定，原则上不写入。
+     * 1、RPD只包括color，进行混合操作。
+     * 2、没有PBR相关参数的操作。
+     * 3、用途：
+     *      A、只进行颜色覆盖，与alpha混合的FS shader。
+     *      B、比如：投影纹理，贴花等
      */
     quadDrawAfterDeferRender = "quadDrawAfterDeferRender",
     /**
@@ -89,17 +111,18 @@ export enum E_renderPassName {
     /**
      * 不参与world stage深度测试的，不透明2D精灵通道。（参与深度测试的sprite在正常的forward中）
      * 1、不透明sprite，只为在world其他实体之上的sprite
-     * 2、这个通道内，不透明的sprite按照depth绘制（开启depthTest，写入depth）
+     * 2、这个通道内，sprite（不透明和透明一致处理），写入GBuffer，alpha！=0，即写入
      * 3、这个通道sprite不具有光照与阴影（至少目前）
      */
     sprite = "sprite",
-    /**
-     * 不参与world stage深度测试的，透明2D精灵通道。（参与深度测试的sprite在正常的transparent通道中）
-     * 1、不透明sprite，只为在world其他实体之上的sprite
-     * 2、这个通道内，不透明的sprite按照transparent通道的绘规则绘制（开启depthTest，不写入depth）
-     * 3、这个通道sprite不具有光照与阴影（至少目前）
-     */
-    spriteTransparent = "spriteTransparent",
+    //20260414 取消spriteTransparent通道
+    // /**
+    //  * 不参与world stage深度测试的，透明2D精灵通道。（参与深度测试的sprite在正常的transparent通道中）
+    //  * 1、不透明sprite，只为在world其他实体之上的sprite
+    //  * 2、这个通道内，不透明的sprite按照transparent通道的绘规则绘制（开启depthTest，不写入depth）
+    //  * 3、这个通道sprite不具有光照与阴影（至少目前）
+    //  */
+    // spriteTransparent = "spriteTransparent",
 
     /**
      * 色调映射通道，用于色调映射。
@@ -222,7 +245,7 @@ export class RenderManager {
         [E_renderPassName.defer]: I_renderDrawOfQuad,
         [E_renderPassName.transparent]: I_renderDrawOfDistancesLine,
         [E_renderPassName.sprite]: I_renderDrawCommand,
-        [E_renderPassName.spriteTransparent]: I_renderDrawOfDistancesLine,
+        // [E_renderPassName.spriteTransparent]: I_renderDrawOfDistancesLine,
         [E_renderPassName.toneMapping]: I_renderDrawOfQuad,
         [E_renderPassName.postprocess]: I_renderDrawOfQuad,
         [E_renderPassName.stage1]: commmandType[],
@@ -240,7 +263,7 @@ export class RenderManager {
             [E_renderPassName.defer]: {},
             [E_renderPassName.transparent]: {},
             [E_renderPassName.sprite]: {},
-            [E_renderPassName.spriteTransparent]: {},
+            // [E_renderPassName.spriteTransparent]: {},
             [E_renderPassName.toneMapping]: {},
             [E_renderPassName.postprocess]: {},
             [E_renderPassName.stage1]: [],
@@ -296,9 +319,9 @@ export class RenderManager {
         if (!this.RC[E_renderPassName.sprite][UUID]) {
             this.RC[E_renderPassName.sprite][UUID] = new Map();
         }
-        if (!this.RC[E_renderPassName.spriteTransparent][UUID]) {
-            this.RC[E_renderPassName.spriteTransparent][UUID] = [];
-        }
+        // if (!this.RC[E_renderPassName.spriteTransparent][UUID]) {
+        //     this.RC[E_renderPassName.spriteTransparent][UUID] = [];
+        // }
     }
     /**
      * 初始化光源的shadow map 渲染通道,初始化包括：shadowmapOpacity,shadowmapTransparent
@@ -335,7 +358,7 @@ export class RenderManager {
             this.RC[E_renderPassName.toneMapping][UUID as E_renderPassName] = [];
             this.RC[E_renderPassName.postprocess][UUID as E_renderPassName] = [];
             this.RC[E_renderPassName.transparent][UUID as E_renderPassName] = [];
-            this.RC[E_renderPassName.spriteTransparent][UUID as E_renderPassName] = [];
+            // this.RC[E_renderPassName.spriteTransparent][UUID as E_renderPassName] = [];
         }
         this.RC[E_renderPassName.stage1] = [];
         this.RC[E_renderPassName.stage2] = [];
@@ -353,8 +376,8 @@ export class RenderManager {
                 kind == E_renderPassName.transparent ||
                 kind == E_renderPassName.MSAA ||
                 kind == E_renderPassName.defer ||
-                kind == E_renderPassName.sprite ||
-                kind == E_renderPassName.spriteTransparent
+                kind == E_renderPassName.sprite
+                // kind == E_renderPassName.spriteTransparent
             ) {
                 throw new Error(`渲染通道为${kind}时，必须有camera ID`);
             }
@@ -370,8 +393,8 @@ export class RenderManager {
                 kind == E_renderPassName.transparent ||
                 kind == E_renderPassName.MSAA ||
                 kind == E_renderPassName.defer ||
-                kind == E_renderPassName.sprite ||
-                kind == E_renderPassName.spriteTransparent
+                kind == E_renderPassName.sprite
+                // kind == E_renderPassName.spriteTransparent
             ) {
                 throw new Error(`渲染通道为${kind}时，必须有pipeline和drawData`);
             }
@@ -382,7 +405,7 @@ export class RenderManager {
         switch (kind) {
             case E_renderPassName.shadowmapTransparent:
             case E_renderPassName.transparent:
-            case E_renderPassName.spriteTransparent:
+                // case E_renderPassName.spriteTransparent:
                 this.RC[kind][_UUID!].push(command);
                 break;
 
@@ -437,32 +460,30 @@ export class RenderManager {
         // }
 
         //不透明shadowmap
-        this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpacity]);
+        this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpacity], E_renderPassName.shadowmapOpacity);
 
         //透明shadowmap
         // this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
 
         //不透明enity
-        this.renderForwaredDC(this.RC[E_renderPassName.forward]);
+        this.renderForwaredDC(this.RC[E_renderPassName.forward], E_renderPassName.forward);
 
         //MSAA,未开启MSAA
-        this.renderForwaredDC(this.RC[E_renderPassName.MSAA]);
+        this.renderForwaredDC(this.RC[E_renderPassName.MSAA], E_renderPassName.MSAA);
 
         //defer render
-        await this.renderDeferDC(this.RC[E_renderPassName.defer]);
+        await this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
 
         //透明enity
-        await this.renderTransParentDC(this.RC[E_renderPassName.transparent]);
+        // await this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
 
         // //sprite
         // await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
-        // //透明sprite
-        // await this.renderTimelineDC(this.RC[E_renderPassName.spriteTransparent]);
 
         //toneMapping
-        await this.doCommand(this.RC[E_renderPassName.toneMapping]);
+        await this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
         //pp
-        await this.doCommand(this.RC[E_renderPassName.postprocess]);
+        await this.renderComplexQuad(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
 
         // //stage1
         // await this.doCommand(this.RC[E_renderPassName.stage1]);
@@ -473,58 +494,117 @@ export class RenderManager {
     }
 
     /**
-     * 1、每个camera的
-     * 
+     * 前向渲染:forward，TO，MSAA info，shadowmapOpacity
+     * 1、不使用异步模式；
+     * 2、每个camera的在第一个绘制增加一个透明像素绘制，防止场景清空后，没有submit命令，GBuffer的texture保持上一帧的问题；     
      * @param commands 
      */
-    async renderForwaredDC(commands: I_renderDrawCommand) {
-        for (let UUID in commands) {
-            let perOne = commands[UUID];
-            let flagUUID = UUID;        //标记UUID，MSAA时UUID 会和forward的UUID在计数器中冲突
-            if (MSAA != undefined) flagUUID = MSAA + UUID;
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            // defer 合并提交有问题（待查），但forward 和msaa 都没问题，
-            //20260308 ，解决。原因，复用tonemapping GPUTexture产生的问题。GPU和CPU效率有大幅提升
-            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-            for (let perCommand of perOne) {
-                if (MSAA != undefined) {
-                    if (MSAA == "MSAA")
-                        this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                    else {
-                        this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                        // this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                    }
+    renderForwaredDC(commands: I_renderDrawCommand, renderPassName: E_renderPassName) {
+        /**
+         *for camears by ID
+         *  1 获取RPD：loadOp这时为clear
+         *  2 生成 passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
+         *  3 执行一个透明像素绘制，在左上角，深度为最远，写入完整的GBuffer序列；
+         *  4 遍历每个pipeline，
+         *      4.1  设置pipeline
+         *      4.2  遍历每个drawCommand
+         *          4.2.1执行DC.doDraw(),
+         *              A、参数：
+         *                 cameraID（bindgroup0使用，或传入BG0），
+         *                 drawMode的实例化数据(draw 使用)，
+         *                 E_renderPassName类型（materialType使用获取bindgroup 2）
+         * 
+         *  5、设置loadOp为“load”，后续绘制时，不再需要更改loadOp；
+         * 
+         */
+        for (let mergeID in commands) {
+            let perMapOfPipelineOfCamera = commands[mergeID];
+            //1 获取RPD
+            let rpd: GPURenderPassDescriptor;
+            let uuid: string = mergeID;
+            if (uuid.indexOf("__") != -1 && renderPassName == E_renderPassName.shadowmapOpacity) {
+                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.light);
+            }
+            else {
+                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
+            }
+            //2 生成 passEncoder
+            let passEncoder: GPURenderPassEncoder = this.commandEncoder.beginRenderPass(rpd);
+
+            //3 绘制一个透明像素
+            // todo
+
+            //4 遍历每个pipeline，
+            for (let [perPipeLine, dcMap] of perMapOfPipelineOfCamera) {
+                //4.1  设置pipeline
+                passEncoder.setPipeline(perPipeLine);
+                //4.2  遍历每个drawCommand
+                for (let [perDrawCommand, drawModeData] of dcMap) {
+                    let optionOfDraw: I_drawCallOption = {
+                        passEncoder,
+                        renderPassName,
+                        mergeID,
+                        drawModeData,
+                    };
+                    //4.2.1执行DC.doDraw(),
+                    perDrawCommand.doDraw(optionOfDraw);
+                }
+            }
+            //5 设置loadOp为“load”，后续绘制时，不再需要更改loadOp；
+            for (let perColorAttachment of rpd.colorAttachments) {
+                if (perColorAttachment)
+                    perColorAttachment.loadOp = "load";
+            }
+        }
+    }
+    /**
+     * 绘制复合命令
+     * 1、包括：绘制，计算，复制命令
+     * 2、基本上每个命令（都是没有共性的），都需要设置RPD，或者设置ComputePass，或者设置CopyCommand。
+     * 3、不管理RPD的loadOp状态，由command类自行管理；
+     * 
+     * @param list  合并绘制命令的列表
+         * @param renderPassName 
+     */
+    renderComplexQuad(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
+        for (let id in list) {
+            let perSetOfCommand = list[id];
+            // let rpd: GPURenderPassDescriptor = this.scene.getRenderPassDescriptor(id, E_renderForDC.camera);
+            for (let perCommand of perSetOfCommand) {
+                if (perCommand instanceof SimpleDrawCommand || perCommand instanceof BaseDrawCommand) {
+                    perCommand.doWithRPD(this.commandEncoder);
+                }
+                else if (perCommand instanceof ComputeCommand) {
+                    perCommand.doWithComputePass(this.commandEncoder);
+                }
+                else if (perCommand instanceof CopyCommand) {
+                    perCommand.copy(this.commandEncoder);
+                }
+            }
+        }
+    }
+    /**相同RPD情况下的绘制命令 */
+    renderQuadDC(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
+        for (let id in list) {
+            let perSetOfCommand = list[id];
+            // let rpd: GPURenderPassDescriptor = this.scene.getRenderPassDescriptor(id, E_renderForDC.camera);
+            for (let perCommand of perSetOfCommand) {
+                if (perCommand instanceof SimpleDrawCommand || perCommand instanceof BaseDrawCommand) {
+                    perCommand.doWithRPD(this.commandEncoder);
                 }
                 else {
-                    this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
+                    throw new Error("renderQuadDC: not support command type");
                 }
-                let commandBuffer = await perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-                this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-            }
-            //submit part
-            if (submitCommand.length > 0) {
-                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-                if (MSAA == "MSAA") {
-                    await this.device.queue.onSubmittedWorkDone();
-                    this.scene.cameraManager.resolveMSAA(UUID);
-                }
-            }
-        }
-    }
-    async renderDeferDC(list: I_renderDrawCommand) {
-        for (let i in list) {
-            let perOne = list[i];
-            for (let perCommand of perOne) {
-                await perCommand.submit();
-            }
 
+            }
         }
     }
 
 
-
-    async doCommand(list: commmandType[]) {
+    /** 执行命令集合
+     * 1、命令集合为数组
+     */
+    doCommand(list: commmandType[], renderPassName: E_renderPassName) {
         for (let perCommand of list) {
             if (perCommand instanceof SimpleDrawCommand) {
                 perCommand.doWithRPD(this.commandEncoder);
@@ -536,35 +616,35 @@ export class RenderManager {
                 perCommand.doWithComputePass(this.commandEncoder);
             }
             else if (perCommand instanceof CopyCommandT2T) {
-                let commandBuffer = await perCommand.copy(this.commandEncoder);
+                perCommand.copy(this.commandEncoder);
             }
         }
 
     }
-    /**
-     * timelineDC,只有渲染DC
-     * @param list 渲染列表
-     */
-    async renderTimelineDC(list: I_renderDrawCommand) {
-        for (let i in list) {
-            let submitCommand: GPUCommandBuffer[] = [];
-            let perOne = list[i];
-            let UUID = i;
-            let isLight = false;
-            if (UUID.indexOf("__") != -1) {
-                isLight = true;
-            }
-            for (let perCommand of perOne) {
+    // /**
+    //  * timelineDC,只有渲染DC
+    //  * @param list 渲染列表
+    //  */
+    // renderTimelineDC(list: I_renderDrawCommand) {
+    //     for (let i in list) {
+    //         let submitCommand: GPUCommandBuffer[] = [];
+    //         let perOne = list[i];
+    //         let UUID = i;
+    //         let isLight = false;
+    //         if (UUID.indexOf("__") != -1) {
+    //             isLight = true;
+    //         }
+    //         for (let perCommand of perOne) {
 
-                this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
-                let commandBuffer = await perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-                this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
-            }
-            if (submitCommand.length > 0)
-                this.device.queue.submit(submitCommand);
-        }
-    }
+    //             this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //             let commandBuffer = await perCommand.update();
+    //             submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
+    //             this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
+    //         }
+    //         if (submitCommand.length > 0)
+    //             this.device.queue.submit(submitCommand);
+    //     }
+    // }
 
     /**
      * TT
@@ -743,176 +823,153 @@ export class RenderManager {
 
 
 
+
+
     // /**
-    //  * TT RPD 适配RPD的loadOp
-    //  * @param UUID 
-    //  * @param countOfUUID 
-    //  * @returns 
+    //  * TTPF 适配RPD的loadOp
+    //  * 1、在TTPF渲染之前有forward渲染，此时有GBuffer的内容，且loadOp已经=load
+    //  * 2、纯透明entity，或测试透明的示例，可能没有过渲染，且GBuffer没有被clear过，是上一帧内容。这时就需要将loadOp更改为：clear
+    //  * @param UUID string 
+    //  * @param countOfUUID number 
+    //  * @returns number
     //  */
-    // autoChangeTT_RPD_loadOP(UUID: string, countOfUUID: number): number {
-    //     let rpd = this.scene.cameraManager.getTT_RenderRPD(UUID);
+    // autoChangeTTPF_RPD_loadOP(UUID: string, countOfUUID: number): number {
+    //     let kind: E_renderForDC = E_renderForDC.camera;
+    //     if (UUID.indexOf("__") != -1) {
+    //         kind = E_renderForDC.light;
+    //     }
+    //     let rpd;
+    //     if (kind == E_renderForDC.camera)
+    //         rpd = this.scene.cameraManager.GBufferManager.getGBufferColorRPD_TTPF(UUID);
+    //     else
+    //         rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
+
+    //     if (countOfUUID == undefined || countOfUUID == 0) {//没有记录，增加UUID记录
+    //         countOfUUID = 0;
+    //         if (rpd !== false) {                                        //forward render loadOp="clear"
+    //             for (let perColorAttachment of rpd.colorAttachments) {
+    //                 if (perColorAttachment)
+    //                     perColorAttachment.loadOp = "clear";
+    //             }
+    //         }
+    //     }
+    //     else if (countOfUUID == 1) {// forward render
+    //         if (rpd !== false) {
+    //             for (let perColorAttachment of rpd.colorAttachments) {
+    //                 if (perColorAttachment)
+    //                     perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
+    //             }
+    //         }
+    //     }
+    //     // console.log(rpd.colorAttachments[0].loadOp);
+
+    //     return countOfUUID;
+    // }
+    // /**
+    //  * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
+    //  * @param UUID 相机或灯光的UUID
+    //  * @param countOfUUID 相机或灯光的渲染次数
+    //  * @returns 相机或灯光的渲染次数
+    //  */
+    // autoChangeMSAA_RPD_loadOP(UUID: string, countOfUUID: number): number {
+
+    //     let rpd = this.scene.cameraManager.getRPD_MSAA_ByUUID(UUID);
+
     //     if (countOfUUID == undefined) {//没有记录，增加UUID记录
-    //         countOfUUID = 0;//A
+    //         countOfUUID = 0;
     //         for (let perColorAttachment of rpd.colorAttachments) {
     //             if (perColorAttachment)
     //                 perColorAttachment.loadOp = "clear";
     //         }
+    //         rpd.depthStencilAttachment!.depthLoadOp = "clear";
     //     }
-
-    //     else if (countOfUUID == 1) {
+    //     else if (countOfUUID == 1) {// forward render
     //         for (let perColorAttachment of rpd.colorAttachments) {
     //             if (perColorAttachment)
-    //                 perColorAttachment.loadOp = "load";
+    //                 perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
     //         }
+    //         rpd.depthStencilAttachment!.depthLoadOp = "load";
     //     }
-
     //     return countOfUUID;
     // }
-    /**
-     * TTPF 适配RPD的loadOp
-     * 1、在TTPF渲染之前有forward渲染，此时有GBuffer的内容，且loadOp已经=load
-     * 2、纯透明entity，或测试透明的示例，可能没有过渲染，且GBuffer没有被clear过，是上一帧内容。这时就需要将loadOp更改为：clear
-     * @param UUID string 
-     * @param countOfUUID number 
-     * @returns number
-     */
-    autoChangeTTPF_RPD_loadOP(UUID: string, countOfUUID: number): number {
-        let kind: E_renderForDC = E_renderForDC.camera;
-        if (UUID.indexOf("__") != -1) {
-            kind = E_renderForDC.light;
-        }
-        let rpd;
-        if (kind == E_renderForDC.camera)
-            rpd = this.scene.cameraManager.GBufferManager.getGBufferColorRPD_TTPF(UUID);
-        else
-            rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
+    // autoChangeMSAAinfo_RPD_loadOP(UUID: string, countOfUUID: number): number {
 
-        if (countOfUUID == undefined || countOfUUID == 0) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            if (rpd !== false) {                                        //forward render loadOp="clear"
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "clear";
-                }
-            }
-        }
-        else if (countOfUUID == 1) {// forward render
-            if (rpd !== false) {
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-                }
-            }
-        }
-        // console.log(rpd.colorAttachments[0].loadOp);
+    //     let rpd = this.scene.cameraManager.getRPD_MSAAInfo_ByUUID(UUID);
 
-        return countOfUUID;
-    }
-    /**
-     * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
-     * @param UUID 相机或灯光的UUID
-     * @param countOfUUID 相机或灯光的渲染次数
-     * @returns 相机或灯光的渲染次数
-     */
-    autoChangeMSAA_RPD_loadOP(UUID: string, countOfUUID: number): number {
-
-        let rpd = this.scene.cameraManager.getRPD_MSAA_ByUUID(UUID);
-
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            for (let perColorAttachment of rpd.colorAttachments) {
-                if (perColorAttachment)
-                    perColorAttachment.loadOp = "clear";
-            }
-            rpd.depthStencilAttachment!.depthLoadOp = "clear";
-        }
-        else if (countOfUUID == 1) {// forward render
-            for (let perColorAttachment of rpd.colorAttachments) {
-                if (perColorAttachment)
-                    perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-            }
-            rpd.depthStencilAttachment!.depthLoadOp = "load";
-        }
-        return countOfUUID;
-    }
-    autoChangeMSAAinfo_RPD_loadOP(UUID: string, countOfUUID: number): number {
-
-        let rpd = this.scene.cameraManager.getRPD_MSAAInfo_ByUUID(UUID);
-
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            for (let perColorAttachment of rpd.colorAttachments) {
-                if (perColorAttachment)
-                    perColorAttachment.loadOp = "clear";
-            }
-            /**
-             * 20251018，MSAA的depth数据进行resolve（先compute，在render 从朋友）后，有精度损失。放弃深度对比方法。
-             * 将load改为clear
-             */
-            rpd.depthStencilAttachment!.depthLoadOp = "clear";
-        }
-        else if (countOfUUID == 1) {// forward render
-            for (let perColorAttachment of rpd.colorAttachments) {
-                if (perColorAttachment)
-                    perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-            }
-            rpd.depthStencilAttachment!.depthLoadOp = "load";
-        }
-        return countOfUUID;
-    }
-    /**
-     * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
-     * @param UUID 相机或灯光的UUID
-     * @param countOfUUID 相机或灯光的渲染次数
-     * @returns 相机或灯光的渲染次数
-     */
-    autoChangeForwaredRPD_loadOP(UUID: string, countOfUUID: number): number {
-        let kind: E_renderForDC = E_renderForDC.camera;
-        if (UUID.indexOf("__") != -1) {
-            kind = E_renderForDC.light;
-        }
-        let rpd;
-        if (kind == E_renderForDC.camera)
-            rpd = this.scene.cameraManager.getRPDByUUID(UUID);
-        else
-            rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            //MSAA 存在，GBuffer的color和depth是已经有了MSAA reslove后的数据，其他buffer没有
-            //light 无 MSAA
-            if (this.scene.MSAA && kind == E_renderForDC.camera) {
-                if (rpd !== false) {                                        //forward render loadOp="clear"
-                    for (let i in rpd.colorAttachments) {
-                        let perColorAttachment = (rpd.colorAttachments as GPURenderPassColorAttachment[])[parseInt(i)];
-                        if (parseInt(i) === 0)
-                            perColorAttachment.loadOp = "load";
-                        else
-                            perColorAttachment.loadOp = "clear";
-                    }
-                    rpd.depthStencilAttachment!.depthLoadOp = "load";
-                }
-            }
-            else {
-                if (rpd !== false) {                                        //forward render loadOp="clear"
-                    for (let perColorAttachment of rpd.colorAttachments) {
-                        if (perColorAttachment)
-                            perColorAttachment.loadOp = "clear";
-                    }
-                    rpd.depthStencilAttachment!.depthLoadOp = "clear";
-                }
-            }
-        }
-        else if (countOfUUID == 1) {// forward render
-            if (rpd !== false) {
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-                }
-                rpd.depthStencilAttachment!.depthLoadOp = "load";
-            }
-        }
-        return countOfUUID;
-    }
+    //     if (countOfUUID == undefined) {//没有记录，增加UUID记录
+    //         countOfUUID = 0;
+    //         for (let perColorAttachment of rpd.colorAttachments) {
+    //             if (perColorAttachment)
+    //                 perColorAttachment.loadOp = "clear";
+    //         }
+    //         /**
+    //          * 20251018，MSAA的depth数据进行resolve（先compute，在render 从朋友）后，有精度损失。放弃深度对比方法。
+    //          * 将load改为clear
+    //          */
+    //         rpd.depthStencilAttachment!.depthLoadOp = "clear";
+    //     }
+    //     else if (countOfUUID == 1) {// forward render
+    //         for (let perColorAttachment of rpd.colorAttachments) {
+    //             if (perColorAttachment)
+    //                 perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
+    //         }
+    //         rpd.depthStencilAttachment!.depthLoadOp = "load";
+    //     }
+    //     return countOfUUID;
+    // }
+    // /**
+    //  * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
+    //  * @param UUID 相机或灯光的UUID
+    //  * @param countOfUUID 相机或灯光的渲染次数
+    //  * @returns 相机或灯光的渲染次数
+    //  */
+    // autoChangeForwaredRPD_loadOP(UUID: string, countOfUUID: number): number {
+    //     let kind: E_renderForDC = E_renderForDC.camera;
+    //     if (UUID.indexOf("__") != -1) {
+    //         kind = E_renderForDC.light;
+    //     }
+    //     let rpd;
+    //     if (kind == E_renderForDC.camera)
+    //         rpd = this.scene.cameraManager.getRPDByUUID(UUID);
+    //     else
+    //         rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
+    //     if (countOfUUID == undefined) {//没有记录，增加UUID记录
+    //         countOfUUID = 0;
+    //         //MSAA 存在，GBuffer的color和depth是已经有了MSAA reslove后的数据，其他buffer没有
+    //         //light 无 MSAA
+    //         if (this.scene.MSAA && kind == E_renderForDC.camera) {
+    //             if (rpd !== false) {                                        //forward render loadOp="clear"
+    //                 for (let i in rpd.colorAttachments) {
+    //                     let perColorAttachment = (rpd.colorAttachments as GPURenderPassColorAttachment[])[parseInt(i)];
+    //                     if (parseInt(i) === 0)
+    //                         perColorAttachment.loadOp = "load";
+    //                     else
+    //                         perColorAttachment.loadOp = "clear";
+    //                 }
+    //                 rpd.depthStencilAttachment!.depthLoadOp = "load";
+    //             }
+    //         }
+    //         else {
+    //             if (rpd !== false) {                                        //forward render loadOp="clear"
+    //                 for (let perColorAttachment of rpd.colorAttachments) {
+    //                     if (perColorAttachment)
+    //                         perColorAttachment.loadOp = "clear";
+    //                 }
+    //                 rpd.depthStencilAttachment!.depthLoadOp = "clear";
+    //             }
+    //         }
+    //     }
+    //     else if (countOfUUID == 1) {// forward render
+    //         if (rpd !== false) {
+    //             for (let perColorAttachment of rpd.colorAttachments) {
+    //                 if (perColorAttachment)
+    //                     perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
+    //             }
+    //             rpd.depthStencilAttachment!.depthLoadOp = "load";
+    //         }
+    //     }
+    //     return countOfUUID;
+    // }
 
 
 

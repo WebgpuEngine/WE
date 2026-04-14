@@ -6,7 +6,7 @@ import { E_TransparentType } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, } from "./base";
-import { BaseDrawCommand, IV_BaseDrawCommand } from "./BaseDrawCommand";
+import { BaseDrawCommand, I_drawCallOption, IV_BaseDrawCommand } from "./BaseDrawCommand";
 
 
 
@@ -121,7 +121,9 @@ export class DrawCommand extends BaseDrawCommand {
         }
         return super.update();
     }
-    override doDraw(passEncoder: GPURenderPassEncoder) {
+    // override doDraw(passEncoder: GPURenderPassEncoder) {
+    override  doDraw(option: I_drawCallOption) {
+        let passEncoder = option.passEncoder;
         for (let i in this.vertexBuffers) {
             const verticesBuffer = this.vertexBuffers[i];
             if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
@@ -136,27 +138,31 @@ export class DrawCommand extends BaseDrawCommand {
             passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
         }
 
-        for (let i in this.bindGroups) {
-            passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+        if (option.renderPassName && option.mergeID && option.drawModeData) {
+            throw new Error("Method not implemented");
         }
-
-        // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
-        if (typeof this.drawMode === "function") {
-            if (this.traget !== undefined) {
-                let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.traget.UUID, this.traget.type);
-                this.drawInstacnceArray(passEncoder, drawModeTemp);
-            }
-            else {
-                throw new Error("drawMode is  function and  must be have system input value ");
-            }
-        }
-        // 绘制实例 :多个instance数组。测试模拟merge
-        else if (Array.isArray(this.drawMode)) {
-            this.drawInstacnceArray(passEncoder, this.drawMode);
-        }
-        // 绘制实例 :单个instance。测试模拟single instance模式，raw模式
         else {
-            this.drawInstacnce(passEncoder, this.drawMode as I_drawMode | I_drawModeIndexed);
+            for (let i in this.bindGroups) {
+                passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+            }
+            // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
+            if (typeof this.drawMode === "function") {
+                if (this.traget !== undefined) {
+                    let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.traget.UUID, this.traget.type);
+                    this.drawInstacnceArray(passEncoder, drawModeTemp);
+                }
+                else {
+                    throw new Error("drawMode is  function and  must be have system input value ");
+                }
+            }
+            // 绘制实例 :多个instance数组。测试模拟merge
+            else if (Array.isArray(this.drawMode)) {
+                this.drawInstacnceArray(passEncoder, this.drawMode);
+            }
+            // 绘制实例 :单个instance。测试模拟single instance模式，raw模式
+            else {
+                this.drawInstacnce(passEncoder, this.drawMode as I_drawMode | I_drawModeIndexed);
+            }
         }
     }
 

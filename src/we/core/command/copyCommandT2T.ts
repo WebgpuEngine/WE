@@ -1,3 +1,4 @@
+import { CopyCommand } from "./compyCommand";
 
 export interface optionCopyT2T {
     A: GPUTexture | GPUTexelCopyTextureInfo,
@@ -6,11 +7,11 @@ export interface optionCopyT2T {
     device: GPUDevice
 }
 
-export class CopyCommandT2T {
-    name = "copy";
-    device: GPUDevice;
+
+export class CopyCommandT2T extends CopyCommand {
     input: optionCopyT2T;
     constructor(input: optionCopyT2T) {
+        super();
         this.device = input.device;
         this.input = input;
     }
