@@ -1,13 +1,10 @@
 import { E_renderForDC } from "../base/coreDefine";
 import { BaseEntity } from "../entity/baseEntity";
-import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
-import { Mesh } from "../entity/mesh/mesh";
-import { E_TransparentType } from "../material/base";
+import { E_TransparentType, T_materialTypeForBindGroup } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, } from "./base";
 import { BaseDrawCommand, I_drawCallOption, IV_BaseDrawCommand } from "./BaseDrawCommand";
-
 
 
 
@@ -17,11 +14,11 @@ export interface I_DrawInputValueMaterial {
     /**material类型 
      * 1、不同类型的material的type，其bind group不同
     */
-    type: "opacity" | "TO" | "TT" | "TTP" | "TTPF",
+    type: T_materialTypeForBindGroup,
     /**透明类型 :透明材质才需要.todo：备用
     */
     transparentType?: E_TransparentType,
-    dynamic: boolean
+    // dynamic: boolean
 }
 interface I_DrawInputValueTarget {
     UUID?: string,
@@ -149,7 +146,7 @@ export class DrawCommand extends BaseDrawCommand {
                 }
                 else if (i == '2') {
                     if (this.material !== undefined)
-                        passEncoder.setBindGroup(parseInt(i), this.material!.owner.getBindGroupAndBindGroupLayout().bindGroup);
+                        passEncoder.setBindGroup(parseInt(i), this.material!.owner.getBindGroupAndBindGroupLayout(this.material!.type).bindGroup);
                     else
                         passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
                 }

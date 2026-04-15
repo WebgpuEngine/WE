@@ -196,13 +196,14 @@ export enum E_TextureType {
  * 材质的输出Bundle
  * I_singleShaderTemplate_Final中包括dynamic 参数
  */
-export type I_materialBundleOutput = I_EntityBundleOutput
-// export interface I_materialBundleOutput {
-//     bindingNumber: number,
-//     uniformGroup: T_uniformOneGroup,//这里与mesh的uniformGroup是不同的，是一个bind group，而不是多个
-//     // singleShaderTemplateFinal: I_singleShaderTemplate_Final,
-//     shaderTemplateFinal: I_ShaderTemplate_Final,
-// }
+// export type I_materialBundleOutput = I_EntityBundleOutput
+/**DC 动态获取material的bind group使用的类型 */
+export type T_materialTypeForBindGroup = "opacity" | "TO" | "TT" | "TTP" | "TTPF";
+
+export interface I_materialBundleOutput extends I_EntityBundleOutput {
+    materialType: T_materialTypeForBindGroup,
+
+}
 export interface I_BundleOfMaterialForMSAA {
     MSAA: I_materialBundleOutput,
     inforForward: I_materialBundleOutput

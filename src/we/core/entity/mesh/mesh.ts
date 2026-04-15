@@ -162,7 +162,7 @@ export class Mesh extends EntityBundleMaterial {
             this._materialWireframe = new WireFrameMaterial({
                 color: this._wireframe.wireFrameColor as weColor4,
             })
-            await this._materialWireframe.init(this.scene,this);
+            await this._materialWireframe.init(this.scene, this);
         }
         // this._state = E_lifeState.finished;
     }
@@ -249,6 +249,12 @@ export class Mesh extends EntityBundleMaterial {
                 UUID: scope.UUID,
                 ID: scope.ID,
                 renderID: scope.ID,
+            }
+        }
+        if (bundle.fsBundle) {
+            valueDC.system!.material = {
+                owner: scope._materialWireframe,
+                type: bundle.fsBundle.materialType,
             }
         }
         return valueDC;

@@ -7,6 +7,7 @@ import { BaseLight } from "../light/baseLight";
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { IV_NodeSpace } from "../organization/nodeSpace";
+import { I_materialBundleOutput } from "../material/base";
 
 export enum E_entityType {
     mesh = "mesh",
@@ -218,5 +219,5 @@ export interface I_ShadowMapValueOfDC {
  */
 export interface I_vsfsBundle {
     vsBundle: I_EntityBundleOutput,
-    fsBundle?: I_EntityBundleOutput
+    fsBundle?: I_materialBundleOutput
 }

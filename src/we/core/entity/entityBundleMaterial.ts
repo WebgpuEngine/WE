@@ -764,12 +764,16 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 type: renderType,
                 parent: scope,
             },
-            parent: scope,
-
             IDS: {
                 UUID: scope.UUID,
                 ID: scope.ID,
                 renderID: scope.ID,
+            }
+        }
+        if (bundle.fsBundle) {
+            valueDC.system!.material = {
+                owner: scope._material,
+                type: bundle.fsBundle.materialType,                
             }
         }
         if (scope._dynamicAttribute) {
@@ -865,7 +869,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO MSAA info:" + valueDC.label;
                 else
                     valueDC.label = "opacity MSAA info:" + valueDC.label;
-                dc = this.DCG.generateDrawCommand(valueDC);
+                dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             }
         }
         else {//正常的前向渲染输出,只输出一个DC（defer 或  forward）
@@ -897,7 +901,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     valueDC.label = "TO:" + valueDC.label;
                 else
                     valueDC.label = "opacity:" + valueDC.label;
-                dc = this.DCG.generateDrawCommand(valueDC);
+                dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             }
         }
         return dc;

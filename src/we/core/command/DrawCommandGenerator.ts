@@ -335,66 +335,66 @@ export class DrawCommandGenerator {
     clear() {
         console.warn("DrawCommandGenerator.clear() 未实现");
     }
-    /**     更新DC的GPU资源     */
-    upadate() {
-        this.updateUniform();
-    }
-    /**更新uniform中数据 */
+    // /**     更新DC的GPU资源     */
+    // upadate() {
+    //     this.updateUniform();
+    // }
+    // /**更新uniform中数据 */
 
-    updateUniform() {
-        for (let i of this.inputDC) {//所有的DrawCommand
-            if (i.data.uniforms) {//更新uniform，如果有uniform
-                let systemFlag = true;
-                if (i.system) {
-                    systemFlag = true;
-                }
-                else systemFlag = false
-                for (let perGroup of i.data.uniforms) {
-                    if (perGroup != undefined && (Array.isArray(perGroup) && perGroup.length > 0))//判断是当前的bindgroup否有uniform
-                        for (let perEntry of perGroup)
-                            if ("data" in perEntry && "update" in perEntry && perEntry.update === true) {//需要更新,只更新数据
-                                if (this.resources.has(perEntry, "uniformBuffer")) {
-                                    let buffer: GPUBuffer = this.resources.get(perEntry, "uniformBuffer");
-                                    if (buffer) {
-                                        updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformArrayBufferEntry).data)
-                                    }
-                                    else {
-                                        console.warn(i, perGroup, perEntry, "获取uiform对应的GPUBuffer资源获取失败");
-                                    }
-                                }
-                                else {
-                                    console.warn(i, perGroup, perEntry, "查询uiform对应的GPUBuffer资源获取失败");
-                                }
-                            }
-                }
-            }
-        }
-    }
-    /**
-     * 更新uniform 数据的GPUBuffer
-     * 1、立即更新模式。（与每帧的update相同，但可以一帧按需更新多次）
-     * 2、TTPF需要使用
-     * @param perEntry I_uniformArrayBufferEntry
-     * 
-     * 说明：20260313
-     * 1、原来设计是更新TTPF使用，20260313TTPF已经改为由公共资源管理，不再使用此函数更新。
-     * 2、功能保留，用于指定更新其他uniform数据。
-     * 3、参数目前指定的类型，看需求可以改变，
-     */
-    updateUniformOfGPUBuffer(perEntry: I_uniformArrayBufferEntry) {
-        if (this.resources.has(perEntry, "uniformBuffer")) {
-            let buffer: GPUBuffer = this.resources.get(perEntry, "uniformBuffer");
-            if (buffer) {
-                updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformArrayBufferEntry).data)
-            }
-            else {
-                console.warn(perEntry, "获取uiform对应的GPUBuffer资源获取失败");
-            }
-        }
-        else {
-            console.warn(perEntry, "查询uiform对应的GPUBuffer资源获取失败");
-        }
-    }
+    // updateUniform() {
+    //     for (let i of this.inputDC) {//所有的DrawCommand
+    //         if (i.data.uniforms) {//更新uniform，如果有uniform
+    //             let systemFlag = true;
+    //             if (i.system) {
+    //                 systemFlag = true;
+    //             }
+    //             else systemFlag = false
+    //             for (let perGroup of i.data.uniforms) {
+    //                 if (perGroup != undefined && (Array.isArray(perGroup) && perGroup.length > 0))//判断是当前的bindgroup否有uniform
+    //                     for (let perEntry of perGroup)
+    //                         if ("data" in perEntry && "update" in perEntry && perEntry.update === true) {//需要更新,只更新数据
+    //                             if (this.resources.has(perEntry, "uniformBuffer")) {
+    //                                 let buffer: GPUBuffer = this.resources.get(perEntry, "uniformBuffer");
+    //                                 if (buffer) {
+    //                                     updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformArrayBufferEntry).data)
+    //                                 }
+    //                                 else {
+    //                                     console.warn(i, perGroup, perEntry, "获取uiform对应的GPUBuffer资源获取失败");
+    //                                 }
+    //                             }
+    //                             else {
+    //                                 console.warn(i, perGroup, perEntry, "查询uiform对应的GPUBuffer资源获取失败");
+    //                             }
+    //                         }
+    //             }
+    //         }
+    //     }
+    // }
+    // /**
+    //  * 更新uniform 数据的GPUBuffer
+    //  * 1、立即更新模式。（与每帧的update相同，但可以一帧按需更新多次）
+    //  * 2、TTPF需要使用
+    //  * @param perEntry I_uniformArrayBufferEntry
+    //  * 
+    //  * 说明：20260313
+    //  * 1、原来设计是更新TTPF使用，20260313TTPF已经改为由公共资源管理，不再使用此函数更新。
+    //  * 2、功能保留，用于指定更新其他uniform数据。
+    //  * 3、参数目前指定的类型，看需求可以改变，
+    //  */
+    // updateUniformOfGPUBuffer(perEntry: I_uniformArrayBufferEntry) {
+    //     if (this.resources.has(perEntry, "uniformBuffer")) {
+    //         let buffer: GPUBuffer = this.resources.get(perEntry, "uniformBuffer");
+    //         if (buffer) {
+    //             updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformArrayBufferEntry).data)
+    //         }
+    //         else {
+    //             console.warn(perEntry, "获取uiform对应的GPUBuffer资源获取失败");
+    //         }
+    //     }
+    //     else {
+    //         console.warn(perEntry, "查询uiform对应的GPUBuffer资源获取失败");
+    //     }
+    // }
 
     /**
      * 生成DrawCommand
