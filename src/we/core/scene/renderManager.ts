@@ -422,8 +422,8 @@ export class RenderManager {
                 isLight = true;
             }
             for (let perCommand of perOne) {
-
                 this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
+
                 let commandBuffer = await perCommand.update();
                 submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
                 this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
@@ -455,15 +455,17 @@ export class RenderManager {
                     this.renderTTP(UUID, perCommand);
                 }
                 else {//否则，是单个透明物体，直接渲染
+                    // console.log("TT render:", this.cameraRendered[UUID]);
                     this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
                     this.cameraRendered[UUID]++;//更改 TT loadOP计数器
                     perCommand.submit();  // 渲染
+                    // console.log(perCommand.label);
                 }
             }
             //模拟的TTP渲染
             // await this.renderTTP(UUID, perOne as commmandType[]);//这里是透明渲染DC的渲染TTP的单纯渲染TTP的测试，相对于上面的for中的array直接传入
-
         }// end for of camera UUID
+        // debugger;
     }
     /**
      * TTP+TTPF
@@ -653,8 +655,12 @@ export class RenderManager {
                     }
                 }
                 else {
+                    // console.log("第一次 forward render:", this.cameraRendered[UUID]);
+
                     this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
                 }
+                // console.log("forward render:", this.cameraRendered[UUID]);
+
                 let commandBuffer = await perCommand.update();
                 submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
                 this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
@@ -731,7 +737,7 @@ export class RenderManager {
             this.renderForwaredDC(this.RC[E_renderPassName.forward], "MSAAinfo");
             // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->forward :", timerNow - timerLast);
         }
-        else{
+        else {
             this.renderForwaredDC(this.RC[E_renderPassName.forward]);
             // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->forward :", timerNow - timerLast);
         }
@@ -774,7 +780,7 @@ export class RenderManager {
             this.device.queue.submit(submitCommand);
     }
 
- 
+
     /**
      * TTPF 适配RPD的loadOp
      * 1、在TTPF渲染之前有forward渲染，此时有GBuffer的内容，且loadOp已经=load
@@ -883,6 +889,8 @@ export class RenderManager {
             rpd = this.scene.cameraManager.getRPDByUUID(UUID);
         else
             rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
+
+        // console.log("color attachment loadOp 未更状态:", rpd.colorAttachments[0].loadOp);
         if (countOfUUID == undefined) {//没有记录，增加UUID记录
             countOfUUID = 0;
             //MSAA 存在，GBuffer的color和depth是已经有了MSAA reslove后的数据，其他buffer没有
@@ -918,9 +926,10 @@ export class RenderManager {
                 rpd.depthStencilAttachment!.depthLoadOp = "load";
             }
         }
+        // console.log("color attachment loadOp 已更状态:", rpd.colorAttachments[0].loadOp);
         return countOfUUID;
     }
 
 
-     
+
 }

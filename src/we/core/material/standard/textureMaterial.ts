@@ -183,6 +183,8 @@ export class TextureMaterial extends BaseMaterial {
     getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
         let binding = startBinding;
         let groupAndBindingString = "";
+        this.unifromEntryLayout = [];// 每次重置layout
+
         let uniform1: T_uniformOneGroup = [];
         let layout: GPUBindGroupLayoutEntry[] = [];
         {//uniform GPUBuffer
@@ -274,6 +276,8 @@ export class TextureMaterial extends BaseMaterial {
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialTextureFS_MSAA, startBinding);
         let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialTextureFS_MSAAinfo, startBinding);
+        MSAA.materialType = "opacity";
+        inforForward.materialType = "opacity";
         return { MSAA, inforForward };
     }
     getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
@@ -281,15 +285,22 @@ export class TextureMaterial extends BaseMaterial {
     }
     /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
     getFS_TO(_startBinding: number): I_materialBundleOutput {
-        return this.getOpacity_Forward(_startBinding);
+        let output = this.getOpacity_Forward(_startBinding);
+        output.materialType = "TO";
+        return output;
     }
     getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        return this.getOpacity_MSAA(startBinding);
+        let output = this.getOpacity_MSAA(startBinding);
+        output.MSAA.materialType = "TO";
+        output.inforForward.materialType = "TO";
+        return output;
     }
     getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpacity_DeferColor(startBinding);
+        let output = this.getOpacity_DeferColor(startBinding);
+        output.materialType = "TO";
+        return output;
     }
-    
+
     /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
@@ -297,7 +308,9 @@ export class TextureMaterial extends BaseMaterial {
         let replaceList = new Map<string, string | (() => string)>();
         // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
         // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
-        return this.formatSHT(template, replaceList, startBinding);
+        let output = this.formatSHT(template, replaceList, startBinding);
+        output.materialType = "TT";
+        return output;
     }
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         let template = SHT_materialTexture_TTPF_FS;
@@ -317,6 +330,7 @@ export class TextureMaterial extends BaseMaterial {
                 output.bindingNumber = uniformBundle.bindingNumber;
                 output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
             }
+            output.materialType = "TTPF";
             return output;
         }
         else {

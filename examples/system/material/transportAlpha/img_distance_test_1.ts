@@ -33,7 +33,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [-9, 6, 6],
+  position: [-16, 6, 16],
   // position: [0, 0.1, 5],
 
   lookAt: [0, 0, 0],
@@ -51,10 +51,10 @@ let planeGeometry = new PlaneGeometry({
 
 let geometry = new SphereGeometry();
 
-let colorMaterial1 = new ColorMaterial({
-  color: [1, 0.5, 0.5, 0.51],
-});
-let textureMaterial = new TextureMaterial({
+let colorMaterialRed = new ColorMaterial({ color: [1, 0.5, 0.5, 0.1], });
+let colorMaterialGreen = new ColorMaterial({ color: [0, 1, 0, .1] });
+let colorMaterialBlue = new ColorMaterial({ color: [0, 0, 1, .1] });
+let textureMaterialAlpha = new TextureMaterial({
   texture: "/resource/images/img/we3D_alpha.png",
   transparent: {
     type: E_TransparentType.alpha,
@@ -62,18 +62,22 @@ let textureMaterial = new TextureMaterial({
     alphaTest: 0.50,
   }
 });
-
-
-let colorMaterial2 = new ColorMaterial({
-  color: [0, 1, 0, 1]
+let textureMaterial = new TextureMaterial({
+  texture: "/resource/images/img/we3D.png",
+  // transparent: {
+  //   type: E_TransparentType.alpha,
+  //   // opacity: 0.5,
+  //   alphaTest: 0.50,
+  // }
 });
 
-let inputMesh1: IV_MeshEntity = {
-  name:"WE3D",
+
+let inputMeshWE3DAlpha: IV_MeshEntity = {
+  name: "WE3DAlpha",
   attributes: {
     geometry: planeGeometry,
   },
-  material: textureMaterial,
+  material: textureMaterialAlpha,
   // material: colorMaterial2,
   position: [0, 0, -2],
 
@@ -81,36 +85,39 @@ let inputMesh1: IV_MeshEntity = {
     cullMode: "none",
   }
 }
-let mesh1 = new Mesh(inputMesh1);
-window.meshOfWE3D = mesh1;
-await scene.add(mesh1);
-
-
-
-
-let inputMesh2: IV_MeshEntity = {
-  name:"red",
+let inputMeshWE3D: IV_MeshEntity = {
+  name: "WE3D",
   attributes: {
     geometry: planeGeometry,
   },
-  material: colorMaterial1,
-  position: [0, 0, 2],
+  material: textureMaterial,
+  // material: colorMaterial2,
+  position: [0, 0, -8],
+
+  primitive: {
+    cullMode: "none",
+  }
+}
+
+let inputMeshRed: IV_MeshEntity = {
+  name: "red",
+  attributes: {
+    geometry: planeGeometry,
+  },
+  material: colorMaterialRed,
+  position: [0, 0, 0],
 
   // rotate: [1, 0, 0, Math.PI / 2],
   primitive: {
     cullMode: "none",
   }
 }
-
-let mesh2 = new Mesh(inputMesh2);
-await scene.add(mesh2);
-
-let inputMesh3: IV_MeshEntity = {
-  name:"green",
+let inputMeshGreen: IV_MeshEntity = {
+  name: "green",
   attributes: {
     geometry: planeGeometry,
   },
-  material: colorMaterial2,
+  material: colorMaterialGreen,
   position: [0, 0, -4],
 
   // rotate: [1, 0, 0, Math.PI / 2],
@@ -118,6 +125,30 @@ let inputMesh3: IV_MeshEntity = {
     cullMode: "none",
   }
 }
-let mesh3 = new Mesh(inputMesh3);
-await scene.add(mesh3);
+let inputMeshBlue: IV_MeshEntity = {
+  name: "blue",
+  attributes: {
+    geometry: planeGeometry,
+  },
+  material: colorMaterialBlue,
+  position: [0, 0, -6],
 
+  // rotate: [1, 0, 0, Math.PI / 2],
+  primitive: {
+    cullMode: "none",
+  }
+}
+
+let meshRed = new Mesh(inputMeshRed);
+let meshGreen = new Mesh(inputMeshGreen);
+let meshBlue = new Mesh(inputMeshBlue);
+let meshWE3D = new Mesh(inputMeshWE3D);
+let meshWE3DAlpha = new Mesh(inputMeshWE3DAlpha);
+window.meshOfWE3D = meshWE3D;
+
+
+await scene.add(meshBlue);
+await scene.add(meshGreen);
+await scene.add(meshWE3D);
+// await scene.add(meshWE3DAlpha);
+await scene.add(meshRed);

@@ -255,13 +255,13 @@ export class ColorMaterial extends BaseMaterial {
 
     /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
     getFS_TT(_renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
-        return this.generateBundleOutput(SHT_materialColor_TT_FS, startBinding);
+        let output = this.generateBundleOutput(SHT_materialColor_TT_FS, startBinding);
+        output.materialType = "TT";
+        return output;
     }
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         let template = SHT_materialColor_TTPF_FS;
         let replaceList = new Map<string, string | (() => string)>();
-
-
         // let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
         if (renderObject instanceof BaseCamera) {
             // replaceList.set("$fsOutputColor", replaceValue);
@@ -273,6 +273,7 @@ export class ColorMaterial extends BaseMaterial {
                 output.bindingNumber = uniformBundle.bindingNumber;
                 output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
             }
+            output.materialType = "TTPF";
             return output;
         }
         else {
@@ -294,6 +295,7 @@ export class ColorMaterial extends BaseMaterial {
             let replaceList = new Map<string, string | (() => string)>();
             // replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
             let output = this.formatSHT(template, replaceList, 0);
+            output.materialType = "TTP";
             return output;
         }
         //light shadow map TT
@@ -302,10 +304,6 @@ export class ColorMaterial extends BaseMaterial {
         }
     }
 
-
-    // _destroy(): void {
-
-    // }
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");
     }

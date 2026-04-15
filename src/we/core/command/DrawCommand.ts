@@ -103,6 +103,7 @@ export class DrawCommand extends BaseDrawCommand {
         }
     }
     override  doDraw(option: I_drawCallOption) {
+        // console.log(this.label);
         let passEncoder = option.passEncoder;
         for (let i in this.vertexBuffers) {
             const verticesBuffer = this.vertexBuffers[i];
@@ -167,6 +168,7 @@ export class DrawCommand extends BaseDrawCommand {
                 if (this.traget !== undefined) {
                     let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.traget.UUID, this.traget.type);
                     this.drawInstacnceArray(passEncoder, drawModeTemp);
+                    // console.log(this.label);
                 }
                 else {
                     throw new Error("drawMode is  function and  must be have system input value ");

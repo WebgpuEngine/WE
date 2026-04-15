@@ -75,12 +75,6 @@ export abstract class BaseMaterial extends RootGPU {
 
     /** 材质的公用uniform 对应的layout */
     unifromEntryLayout: GPUBindGroupLayoutEntry[] = [];
-    // /** 材质的公用uniform  */
-    // uniformEntry: T_uniformOneGroup = [];
-    // /** 材质的uniform GPU Buffer */
-    // uniformGPUBuffer!: GPUBuffer;
-    // /** 材质的uniform CPU Buffer */
-    // unifromCPUBuffer!: ArrayBuffer;
 
     /** 材质的uniform  Buffer 的指针，用于快速访问 */
     uniformPointer!: I_pointerStruct;
@@ -261,7 +255,7 @@ export abstract class BaseMaterial extends RootGPU {
         if (this.bindGroupLayout[materialType] == undefined) {
             //创建BindGroupLayout
             this.bindGroupLayout[materialType] = this.device.createBindGroupLayout({
-                label: `${this.type}:${this.ID} `,
+                label: `${this.kind}:${this.ID} :${materialType}`,
                 entries: this.unifromEntryLayout
             });
             //////////////////////////////////////////////////
@@ -305,7 +299,7 @@ export abstract class BaseMaterial extends RootGPU {
             }
             //初始化BindGroup描述
             let bindGroupDesc: GPUBindGroupDescriptor = {
-                label: `${this.type}:${this.ID} `,
+                label: `${this.kind}:${this.ID} :${materialType}`,
                 layout: this.bindGroupLayout[materialType],
                 entries: bindGroupEntry,
             }
@@ -557,9 +551,8 @@ export abstract class BaseMaterial extends RootGPU {
         // renderObject?: BaseCamera
     ): I_materialBundleOutput {
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        //获取固定uniform序列
+        //获取固定uniform序列,这个输出是独立的对象，不是this中的引用；因为多个TTTT会用到公共数据，如果引用现有的，会写入新的uniform entry，从而shader保存
         let uniformBundle: I_UniformBundleOfMaterial = this.getUniformEntryBundleOfCommon(startBinding);
-        this.unifromEntryBundle_Common = uniformBundle;
 
         // if (isTTPF === true) {
         //     if (!renderObject) {

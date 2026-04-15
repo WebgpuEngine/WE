@@ -722,6 +722,7 @@ export class PBRMaterial extends BaseMaterial {
             return this.unifromEntryBundle_Common;
         }
         else {
+            this.unifromEntryLayout = [];// 每次重置layout
             let groupAndBindingString: string = "";
             let binding: number = startBinding;
             let uniform1: T_uniformOneGroup = [];

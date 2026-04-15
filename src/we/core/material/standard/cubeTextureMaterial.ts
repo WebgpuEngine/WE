@@ -122,17 +122,23 @@ export class CubeTextureMaterial extends TextureMaterial {
         }
         else
             template = SHT_materialCubePositionTextureFS;
-        return this.generateBundleOutput(template, startBinding);
+        let output = this.generateBundleOutput(template, startBinding);
+        output.materialType = "opacity";
+        return output;
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         if (this.cubeType == "sky") {
             let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
             let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
+            MSAA.materialType = "opacity";
+            inforForward.materialType = "opacity";
             return { MSAA, inforForward };
         }
         else {
             let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAA, startBinding);
             let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
+            MSAA.materialType = "opacity";
+            inforForward.materialType = "opacity";
             return { MSAA, inforForward };
         }
     }

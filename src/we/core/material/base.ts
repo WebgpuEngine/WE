@@ -9,18 +9,18 @@ import { BaseTexture } from "../texture/baseTexture";
 
 export enum E_MaterialType {
     /** 颜色材质 */
-    color = "color",
-    vertex = "vertex",
+    color = "colorMaterial",
+    vertex = "vertex", 
     /** 纹理材质 */
-    texture = "texture",
-    cube = "cube",
-    cubeSky = "cubeSky",
-    video = "video",
-    wireframe = "wireframe",
+    texture = "textureMaterial" ,
+    cube = "cubeMaterial",
+    cubeSky = "cubeSkyMaterial",
+    video = "videoMaterial",
+    wireframe = "wireframeMaterial",
     /** PBR材质 */
-    PBR = "PBR",
+    PBR = "PBRMaterial",
     /** 冯氏材质 */
-    Phong = "Phong",
+    Phong = "PhongMaterial",
 }
 
 /** 透明材质的类型 */
@@ -202,7 +202,6 @@ export type T_materialTypeForBindGroup = "opacity" | "TO" | "TT" | "TTP" | "TTPF
 
 export interface I_materialBundleOutput extends I_EntityBundleOutput {
     materialType: T_materialTypeForBindGroup,
-
 }
 export interface I_BundleOfMaterialForMSAA {
     MSAA: I_materialBundleOutput,

@@ -213,6 +213,8 @@ export class PhongMaterial extends BaseMaterial {
     let groupAndBindingString: string = "";
     let binding: number = startBinding;
     let uniform1: T_uniformOneGroup = [];
+    this.unifromEntryLayout = [];// 每次重置layout
+
     ///////////group binding
     ////group binding  texture 字符串
     {
