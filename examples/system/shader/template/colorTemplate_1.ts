@@ -39,5 +39,5 @@ await c1.init({
   parent: scene,
 });
 
-let a=c1.getOpaqueCodeFS(1);
+let a=c1.generateBundleOutput(1);
 console.log(a);

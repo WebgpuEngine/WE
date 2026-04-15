@@ -523,6 +523,12 @@ export abstract class BaseMaterial extends RootGPU {
         let min = Math.ceil(size / 256) || 1;
         return min * 256;
     }
+
+    /**
+     * 将SHT对象中add部分转为字符串
+     * @param addPart 
+     * @returns 
+     */
     convertAddPartOfSHT(addPart: I_shaderTemplateAdd[]): string {
         let code: string = "";
         for (let perOne of addPart) {
@@ -765,30 +771,8 @@ export abstract class BaseMaterial extends RootGPU {
             }
         }
     }
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Opacity 部分
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * 通过SHT获取不透明的FSbundle代码
-     * 注意事项：
-     * 1、SHT需要兼容所有的使用者，尽量参数化
-     * 2、shader需要更复杂的适配，可读性下降
-     * 3、如果有不能兼容或特殊的功能，按需使用定制的其他function实现）
-     * 使用者：
-     * 1、 getOpacity_Forward()
-     * 2、getOpacity_MSAA
-     * 3、getOpacity_DeferColorOfMSAA
-     * 4、getOpacity_DeferColor
-     * 5、getFS_TO
-     * 6、getFS_TO_MSAA
-     * 7、getFS_TO_DeferColorOfMSAA
-     * 8、getFS_TO_DeferColor
-     * @param template  I_ShaderTemplate
-     * @param startBinding number
-     * @returns I_materialBundleOutput
-     */
-    abstract getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput;
-    
+    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
+
     /**
      * 获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
      * 涉及三个部分：
@@ -814,6 +798,31 @@ export abstract class BaseMaterial extends RootGPU {
      */
     abstract getOpacity_DeferColor(startBinding?: number): I_materialBundleOutput;
 
+    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
+
+    /**
+     * 透明材质的不透明code （ transparent  opaque ）
+     * @param _startBinding binding开始值
+     * @returns 
+     */
+    abstract getFS_TO(_startBinding: number): I_materialBundleOutput;
+
+    /**
+     * MSAA 材质（color及光影计算部分）输出shader模板
+     * @param startBinding 
+     * @returns { MSAA: I_materialBundleOutput, inforForward: I_materialBundleOutput }
+     *  1、MSAA：只输出color和depth
+     *  2、inforForward:输出其他GBuffer信息
+     */
+    abstract getFS_TO_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
+
+
+    /**
+     * 延迟渲染的shader模板输出（即、不包括光影部分的shader）
+     * @param startBinding 
+     * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
+     */
+    abstract getFS_TO_DeferColor(startBinding?: number): I_materialBundleOutput;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //TTTT 功能实现部分
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -867,12 +876,8 @@ export abstract class BaseMaterial extends RootGPU {
         }
         return TTTT;
     }
-    /**
-     * 透明材质的不透明code （ transparent  opaque ）
-     * @param _startBinding binding开始值
-     * @returns 
-     */
-    abstract getFS_TO(_startBinding: number): I_materialBundleOutput;
+
+    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
     /**
      * 透明材质的code（ transparent ）
      * @param _startBinding 
@@ -884,23 +889,6 @@ export abstract class BaseMaterial extends RootGPU {
      * @param _startBinding binding开始值
      */
     abstract getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput;
-
-    /**
-     * MSAA 材质（color及光影计算部分）输出shader模板
-     * @param startBinding 
-     * @returns { MSAA: I_materialBundleOutput, inforForward: I_materialBundleOutput }
-     *  1、MSAA：只输出color和depth
-     *  2、inforForward:输出其他GBuffer信息
-     */
-    abstract getFS_TO_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
-
-
-    /**
-     * 延迟渲染的shader模板输出（即、不包括光影部分的shader）
-     * @param startBinding 
-     * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
-     */
-    abstract getFS_TO_DeferColor(startBinding?: number): I_materialBundleOutput;
 
     /**
      * 格式化TTP的shader代码，并返回

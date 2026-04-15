@@ -124,134 +124,6 @@ export class ColorMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
-
-    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        let template = SHT_materialColorFS;
-        let replaceList = new Map<string, string | (() => string)>();
-        // replaceList.set("$fsOutputColor", ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
-        let output = this.formatSHT(template, replaceList, startBinding);
-        return output;
-        // return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
-    }
-    /**
-     *  不透明材质的Oqa
-     * @param _startBinding 
-     * @returns 
-     */
-    getOpaqueCodeFS(template: I_ShaderTemplate, _startBinding: number): I_materialBundleOutput {
-        let replaceList = new Map<string, string | (() => string)>();
-        let output = this.formatSHT(template, replaceList, _startBinding);
-        return output;
-        // let uniform1: T_uniformOneGroup = [];
-        // let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        // for (let i in template) {
-        //     let perPartSHT = template[i] as I_ShaderTemplate;
-        //     if (i == "scene") {
-        //         let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
-        //         shaderTemplateFinal[i] = shader.scene;
-        //     }
-        //     else if (i == "material") {
-        //         let code: string = "";
-        //         code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
-        //         for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
-        //             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-        //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
-        //             }
-        //             //$color
-        //             if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-        //                 // let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-        //                 // code = code.replace(perOne.replace, replaceValue);
-        //             }
-        //         }
-        //         shaderTemplateFinal[i] = {
-        //             templateString: code,
-        //             groupAndBindingString: "",
-        //             owner: perPartSHT.owner,
-        //         }
-        //     }
-        // }
-        // return { uniformGroup: uniform1, shaderTemplateFinal, bindingNumber: _startBinding };
-    }
-    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialColorFS_MSAA_info, startBinding);
-        return { MSAA, inforForward };
-    }
-    //同MSAA
-    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        return this.getOpacity_MSAA(startBinding);
-    }
-    //同Forward
-    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpacity_Forward(startBinding);
-    }
-    //color 不需要
-    getFS_TO(startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-        // return this.getOpaqueCodeFS(SHT_materialColorFS, startBinding);
-    }
-    //color 不需要
-    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
-    }
-    //color 不需要
-    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
-    }
-    //color 不需要
-    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-
-
-    getFS_TT(_renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialColor_TT_FS, startBinding);
-    }
-
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialColor_TTPF_FS;
-        let replaceList = new Map<string, string | (() => string)>();
-
-
-        // let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-        if (renderObject instanceof BaseCamera) {
-            // replaceList.set("$fsOutputColor", replaceValue);
-            let output = this.formatSHT(template, replaceList, 0);
-            output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
-            {//获取当前材质的TTPF的输出uniform bundle 。
-                let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
-                (output.uniformGroup as T_uniformEntries[]).push(...uniformBundle.entry as T_uniformEntries[]);
-                output.bindingNumber = uniformBundle.bindingNumber;
-                output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
-            }
-            return output;
-        }
-        else {
-            throw new Error("Method not implemented.");
-        }
-    }
-
-    /**
-     * 格式化TP的shader代码，并返回
-     * @param renderObject 渲染对象，相机或阴影映射
-     * @returns 
-     */
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-        let template: I_ShaderTemplate;
-        let code: string = "";
-        if (renderObject instanceof BaseCamera) {
-            //camera 的TTP  SHT
-            template = SHT_materialColor_TTP_FS;
-            let replaceList = new Map<string, string | (() => string)>();
-            // replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
-            let output = this.formatSHT(template, replaceList, 0);
-            return output;
-        }
-        //light shadow map TT
-        else {
-            throw new Error("ColorMaterial TTP 级别透明阴影 todo");
-        }
-    }
     /**
      * ColorMaterial 的公用uniform，所以返回的都是空数组和空字符串
      * @param startBinding 
@@ -303,8 +175,136 @@ export class ColorMaterial extends BaseMaterial {
         return unifromEntryBundle_Common;
     }
 
+    /**
+     *  不透明材质的Oqa
+     * @param _startBinding 
+     * @returns 
+     */
+    generateBundleOutput(template: I_ShaderTemplate, _startBinding: number): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(template, replaceList, _startBinding);
+        return output;
+        // let uniform1: T_uniformOneGroup = [];
+        // let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+        // for (let i in template) {
+        //     let perPartSHT = template[i] as I_ShaderTemplate;
+        //     if (i == "scene") {
+        //         let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
+        //         shaderTemplateFinal[i] = shader.scene;
+        //     }
+        //     else if (i == "material") {
+        //         let code: string = "";
+        //         code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
+        //         for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
+        //             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+        //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
+        //             }
+        //             //$color
+        //             if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+        //                 // let replaceValue: string = ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        //                 // code = code.replace(perOne.replace, replaceValue);
+        //             }
+        //         }
+        //         shaderTemplateFinal[i] = {
+        //             templateString: code,
+        //             groupAndBindingString: "",
+        //             owner: perPartSHT.owner,
+        //         }
+        //     }
+        // }
+        // return { uniformGroup: uniform1, shaderTemplateFinal, bindingNumber: _startBinding };
+    }
+
+    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
+    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
+        let template = SHT_materialColorFS;
+        let replaceList = new Map<string, string | (() => string)>();
+        // replaceList.set("$fsOutputColor", ` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+        let output = this.formatSHT(template, replaceList, startBinding);
+        return output;
+        // return this.generateBundleOutput(SHT_materialColorFS, startBinding);
+    }
+
+    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialColorFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialColorFS_MSAA_info, startBinding);
+        return { MSAA, inforForward };
+    }
+
+    //同Forward
+    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+        return this.getOpacity_Forward(startBinding);
+    }
+    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
+
+    //color 不需要
+    getFS_TO(startBinding: number): I_materialBundleOutput {
+        throw new Error("Method not implemented.");
+        // return this.generateBundleOutput(SHT_materialColorFS, startBinding);
+    }
+    //color 不需要
+    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+        throw new Error("Method not implemented.");
+    }
+    //color 不需要
+    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+        throw new Error("Method not implemented.");
+    }
+
+
+
+    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
+    getFS_TT(_renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
+        return this.generateBundleOutput(SHT_materialColor_TT_FS, startBinding);
+    }
+    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+        let template = SHT_materialColor_TTPF_FS;
+        let replaceList = new Map<string, string | (() => string)>();
+
+
+        // let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+        if (renderObject instanceof BaseCamera) {
+            // replaceList.set("$fsOutputColor", replaceValue);
+            let output = this.formatSHT(template, replaceList, 0);
+            output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
+            {//获取当前材质的TTPF的输出uniform bundle 。
+                let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
+                (output.uniformGroup as T_uniformEntries[]).push(...uniformBundle.entry as T_uniformEntries[]);
+                output.bindingNumber = uniformBundle.bindingNumber;
+                output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
+            }
+            return output;
+        }
+        else {
+            throw new Error("Method not implemented.");
+        }
+    }
+
+    /**
+     * 格式化TP的shader代码，并返回
+     * @param renderObject 渲染对象，相机或阴影映射
+     * @returns 
+     */
+    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
+        let template: I_ShaderTemplate;
+        let code: string = "";
+        if (renderObject instanceof BaseCamera) {
+            //camera 的TTP  SHT
+            template = SHT_materialColor_TTP_FS;
+            let replaceList = new Map<string, string | (() => string)>();
+            // replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+            let output = this.formatSHT(template, replaceList, 0);
+            return output;
+        }
+        //light shadow map TT
+        else {
+            throw new Error("ColorMaterial TTP 级别透明阴影 todo");
+        }
+    }
+
+
     // _destroy(): void {
-       
+
     // }
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");
@@ -315,53 +315,5 @@ export class ColorMaterial extends BaseMaterial {
     loadJSON(json: any): void {
         throw new Error("Method not implemented.");
     }
-    // getBindGroupAndBindGroupLayout(): I_bindGroupAndGroupLayout {
-    //     let createBindGroup = false;
-    //     //undefined，创建
-    //     if (this.bindGroup == undefined && this.bindGroupLayout == undefined) {
-    //         let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-    //             label: `colorMaterial:${this.ID}`,
-    //             entries: [
-    //                 {//@group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
-    //                     binding: 0,
-    //                     visibility: GPUShaderStage.FRAGMENT,
-    //                     buffer: {
-    //                         type: "uniform"
-    //                     }
-    //                 },
 
-    //             ]
-    //         }
-    //         this.bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);;
-    //         //////////////////////////////////////////////////
-    //         //bind group  
-    //         createBindGroup = true;
-    //     }
-    //     else if (this.uniformPointer != undefined &&
-    //         this.uniformPointer.rebuildTime == this.scene.clock.now
-    //     ) {
-    //         createBindGroup = true;
-
-    //     }
-    //     else {
-
-    //     }
-    //     //创建或更新bind group
-    //     if (createBindGroup === true) {
-    //         let entries: GPUBindGroupEntry[] = [{
-    //             binding: 0,
-    //             resource: this.uniformPointer.gpuBufferView,
-    //         }];
-    //         let bindGroupDescriptor: GPUBindGroupDescriptor = {
-    //             label: `colorMaterial:${this.ID}`,
-    //             layout: this.bindGroupLayout,
-    //             entries: entries
-    //         }
-    //         this.bindGroup = this.device.createBindGroup(bindGroupDescriptor);
-    //     }
-    //     return {
-    //         bindGroup: this.bindGroup,
-    //         bindGroupLayout: this.bindGroupLayout
-    //     }
-    // }
 }

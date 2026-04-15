@@ -26,7 +26,7 @@ export class ShadowMapMaterial extends BaseMaterial {
             return this.getTransparentCodeFS(startBinding);
         }
         else {
-            return this.getOpaqueCodeFS(startBinding);
+            return this.generateBundleOutput(startBinding);
         }
 
     }
@@ -35,7 +35,7 @@ export class ShadowMapMaterial extends BaseMaterial {
      * @param _startBinding 
      * @returns 
      */
-    getOpaqueCodeFS(_startBinding: number): I_materialBundleOutput {
+    generateBundleOutput(_startBinding: number): I_materialBundleOutput {
         let template = SHT_materialColorFS;
 
         let uniform1: T_uniformGroups = [];

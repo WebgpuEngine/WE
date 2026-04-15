@@ -84,17 +84,7 @@ export class VideoMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
-    getTTFS(renderObject: BaseCamera | BaseLight, _startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    getTOFS(_startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        let template = SHT_materialVideoTextureFS;
-        return this.getOpaqueCodeFS(template, startBinding);
 
-    }
     getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
@@ -174,7 +164,7 @@ export class VideoMaterial extends BaseMaterial {
         return unifromEntryBundle_Common;
     }
 
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
+    generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
         let dynamic: boolean = false;
         if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture)
             dynamic = true;
@@ -204,34 +194,38 @@ export class VideoMaterial extends BaseMaterial {
         return output;
 
     }
+    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
+    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
+        let template = SHT_materialVideoTextureFS;
+        return this.generateBundleOutput(template, startBinding);
+    }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialVideoTextureFS_MSAA_info, startBinding);
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
-    }
+
     getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         return this.getOpacity_Forward(startBinding);
     }
+    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
 
-    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
+
     getFS_TO(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
+
+    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
+        throw new Error("Method not implemented.");
+    }
+    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
     formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {

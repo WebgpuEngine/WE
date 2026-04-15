@@ -111,7 +111,7 @@ export class CubeTextureMaterial extends TextureMaterial {
         };
         return unifromEntryBundle_Common;
     }
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
+    generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
         let replaceList = new Map<string, string | (() => string)>();
         return this.formatSHT(template, replaceList, startBinding);
     }
@@ -122,17 +122,17 @@ export class CubeTextureMaterial extends TextureMaterial {
         }
         else
             template = SHT_materialCubePositionTextureFS;
-        return this.getOpaqueCodeFS(template, startBinding);
+        return this.generateBundleOutput(template, startBinding);
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         if (this.cubeType == "sky") {
-            let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
-            let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
+            let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
+            let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
             return { MSAA, inforForward };
         }
         else {
-            let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubePositionTextureFS_MSAA, startBinding);
-            let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
+            let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAA, startBinding);
+            let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
             return { MSAA, inforForward };
         }
     }

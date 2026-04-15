@@ -701,7 +701,6 @@ export class PBRMaterial extends BaseMaterial {
         return textureInstace!;
     }
 
-
     _destroy(): void {
         for (let key in this.textures) {
             let texture = this.textures[key];
@@ -710,7 +709,9 @@ export class PBRMaterial extends BaseMaterial {
             }
         }
     }
-
+    setTO(): void {
+        // throw new Error("Method not implemented.");
+    }
     /**
      * 通用部分的uniform绑定
      * @param startBinding 
@@ -804,44 +805,34 @@ export class PBRMaterial extends BaseMaterial {
      * @param startBinding 绑定的起始位置
      * @returns I_materialBundleOutput
      */
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
+    generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
         let replaceList = new Map<string, string | (() => string)>();
         return this.formatSHT(template, replaceList, startBinding);
     }
+    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
     getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialPBRFS, startBinding);
+        return this.generateBundleOutput(SHT_materialPBRFS, startBinding);
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_MSAA_info, startBinding);
         return { MSAA, inforForward };
     }
-    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_defer_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialPBRFS_MSAA_info, startBinding);
-        return { MSAA, inforForward };
-    }
+    // getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+    //     let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_defer_MSAA, startBinding);
+    //     let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_MSAA_info, startBinding);
+    //     return { MSAA, inforForward };
+    // }
     getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialPBRFS_defer, startBinding);
+        return this.generateBundleOutput(SHT_materialPBRFS_defer, startBinding);
     }
-
+    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
     /**
-     * PBR的透明，目前只考虑alpha透明，不考虑物理透明。
-     * @param renderObject 
-     * @param _startBinding 
-     */
-    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    /**
-     * todo,20251022,Blend部分未配置
-     * 透明PBR的不透明部分。与不透明基本相同，只是需要判断透明情况（alpha透明，不考虑物理透明），不透明部分为1.0（按照alpha 或alpha test进行）。
-     * @param _startBinding number
-     * @return I_materialBundleOutput
-     */
+    * todo,20251022,Blend部分未配置
+    * 透明PBR的不透明部分。与不透明基本相同，只是需要判断透明情况（alpha透明，不考虑物理透明），不透明部分为1.0（按照alpha 或alpha test进行）。
+    * @param _startBinding number
+    * @return I_materialBundleOutput
+    */
     getFS_TO(_startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
@@ -861,27 +852,23 @@ export class PBRMaterial extends BaseMaterial {
     getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
         throw new Error("Method not implemented.");
     }
+    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
     /**
-     * 延迟渲染的不透明部分的MSAA。与不透明的MSAA基本相同，只是在shader（SHT）中增加alpha test判断。
-     * @param startBinding number 
-     * @return I_BundleOfMaterialForMSAA
+     * PBR的透明，目前只考虑alpha透明，不考虑物理透明。
+     * @param renderObject 
+     * @param _startBinding 
      */
-    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
+        throw new Error("Method not implemented.");
+    }
+    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
 
     formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getTTFS(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    getTOFS(_startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    setTO(): void {
-        // throw new Error("Method not implemented.");
-    }
+
     updateSelf(clock: Clock): void {
     }
     saveJSON() {

@@ -24,6 +24,8 @@ import { BaseCamera } from "../../camera/baseCamera";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { createUniformBuffer } from "../../command/baseFunction";
+import { I_pointerCreateParams } from "../../bufferBlock/pointer";
+import { E_BOLBufferType } from "../../bufferBlock/base";
 
 
 
@@ -147,23 +149,28 @@ export class TextureMaterial extends BaseMaterial {
     }
 
     writeUniformBuffer(update: boolean = false) {
+        if (this.uniformPointer == undefined) {
+            let pointerParams: I_pointerCreateParams = {
+                name: `uniform ${this.kind} material: ${this.UUID}`,
+                byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
+                type: E_BOLBufferType.uniform,
+                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+            };
+            this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
+        }
+        let offset = this.uniformPointer.offset;
+        let unifromCPUBuffer = this.uniformPointer.cpuBuffer;
         const uniform_texture_materialViews = {
-            has_opacity_percent: new Float32Array(this.unifromCPUBuffer, 0, 1),
-            opacity: new Float32Array(this.unifromCPUBuffer, 4, 1),
-            has_alphaTest: new Int32Array(this.unifromCPUBuffer, 8, 1),
-            alphaTest: new Float32Array(this.unifromCPUBuffer, 12, 1),
+            has_opacity_percent: new Float32Array(unifromCPUBuffer, offset + 0, 1),
+            opacity: new Float32Array(unifromCPUBuffer, offset + 4, 1),
+            has_alphaTest: new Int32Array(unifromCPUBuffer, offset + 8, 1),
+            alphaTest: new Float32Array(unifromCPUBuffer, offset + 12, 1),
         };
         uniform_texture_materialViews.has_opacity_percent[0] = this.hasOpacity ? 1.0 : 0.0;
         uniform_texture_materialViews.opacity[0] = this.Opacity;
         uniform_texture_materialViews.has_alphaTest[0] = this.hasAlphaTest ? 1 : 0;
         uniform_texture_materialViews.alphaTest[0] = this.AlphaTest;
-
-        if (update) {
-            this.device.queue.writeBuffer(this.uniformGPUBuffer, 0, this.unifromCPUBuffer);
-        }
-        else {
-            this.uniformGPUBuffer = createUniformBuffer(this.device, `colorMaterial:${this.UUID}`, this.unifromCPUBuffer);
-        }
+        this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
     }
     setTO(): void {
         this.hasOpaqueOfTransparent = true;
@@ -182,7 +189,8 @@ export class TextureMaterial extends BaseMaterial {
             // groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_uniform_texture: uniform_texture_material;\n `;
             let uniformBuffer: GPUBindGroupEntry = {
                 binding: binding,
-                resource: this.uniformGPUBuffer,
+                // resource: this.uniformGPUBuffer,
+                resource: this.uniformPointer.gpuBufferView
             };
             let uniformBufferLayout: GPUBindGroupLayoutEntry = {
                 binding: binding,
@@ -249,38 +257,40 @@ export class TextureMaterial extends BaseMaterial {
         };
         return unifromEntryBundle_Common;
     }
+
+    generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        return this.formatSHT(template, replaceList, startBinding);
+    }
+    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
     /**
      * 获取前向渲染的不透明材质的bundle，用于生成DC
      * @param startBinding 起始binding
      * @returns 前向渲染的bundle
      */
     getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpaqueCodeFS(SHT_materialTextureFS, startBinding);
-    }
-    getOpaqueCodeFS(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        let replaceList = new Map<string, string | (() => string)>();
-        return this.formatSHT(template, replaceList, startBinding);
+        return this.generateBundleOutput(SHT_materialTextureFS, startBinding);
     }
     getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialTextureFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.getOpaqueCodeFS(SHT_materialTextureFS_MSAAinfo, startBinding);
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialTextureFS_MSAA, startBinding);
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialTextureFS_MSAAinfo, startBinding);
         return { MSAA, inforForward };
-    }
-    getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
     }
     getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
-    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
+    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
+    getFS_TO(_startBinding: number): I_materialBundleOutput {
+        return this.getOpacity_Forward(_startBinding);
     }
-    getFS_TO_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
+    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+        return this.getOpacity_MSAA(startBinding);
     }
     getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
+        return this.getOpacity_DeferColor(startBinding);
     }
+    
+    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
     getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         let template = SHT_materialTexture_TT_FS;
@@ -313,9 +323,7 @@ export class TextureMaterial extends BaseMaterial {
             throw new Error("Method not implemented.");
         }
     }
-    getFS_TO(_startBinding: number): I_materialBundleOutput {
-        return this.getOpacity_Forward(_startBinding);
-    }
+
     formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
         let template: I_ShaderTemplate;
         let code: string = "";
