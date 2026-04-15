@@ -10,12 +10,11 @@ import {
     I_ShadowMapValueOfDC,
     I_locationInterpolate,
 } from "./base";
-import { E_lifeState, weVec2 } from "../base/coreDefine";
+import { E_lifeState, E_renderForDC, weVec2 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
-import { DrawCommand } from "../command/DrawCommand";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseLight } from "../light/baseLight";
-import { I_bindGroupAndGroupLayout } from "../command/base";
+import { I_bindGroupAndGroupLayout, I_drawMode, I_drawModeIndexed } from "../command/base";
 import { I_ShaderTemplate } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
@@ -34,6 +33,22 @@ export abstract class BaseEntity extends NodeSpace {
     ////////////////////////////////////////////////////////////////////
     //基础属性
     input: IV_BaseEntity;
+    /** 渲染通道
+     * 1、默认：undefined
+     *   A、即：forward 、MSAA、transparent、defer四个通道，按照material类型分类
+     *   B、sprite通道
+     *       当sprite的onTop属性为true时，使用sprite通道，否则使用上述默认通道，
+     * 2、其他通道（即，不再上述四个通道）
+     *   A、主要是quda通道为主，非quad看情况而定
+     *   B、包括：
+     *          quadDrawBeforeDeferRender
+     *          quadDrawAfterDeferRender
+     *          
+     *          stage1
+     *          stage2
+     *          ui
+     */
+    renderPass: E_renderPassName | undefined;
     /**内部实例化数量，默认为1 */
     instance: I_entityInstance = {
         numInstances: 1,
@@ -236,13 +251,17 @@ export abstract class BaseEntity extends NodeSpace {
      * 2、由entityManager调度给renderManager
      */
     cameraDC: {
-        [name: string]: {
-            // [E_renderPassName.depth]: DrawCommand[],
-            [E_renderPassName.MSAA]: BaseDrawCommand[],
-            [E_renderPassName.forward]: BaseDrawCommand[],
-            [E_renderPassName.transparent]: BaseDrawCommand[],
-        }
-    } = {};
+        // [name: string]: {
+        // [E_renderPassName.depth]: DrawCommand[],
+        [E_renderPassName.MSAA]: BaseDrawCommand[],
+        [E_renderPassName.forward]: BaseDrawCommand[],
+        [E_renderPassName.transparent]: BaseDrawCommand[],
+        // }
+    } = {
+            MSAA: [],
+            forward: [],
+            transparent: [],
+        };
 
     /**
      * light的shadow map DC 队列 
@@ -250,13 +269,16 @@ export abstract class BaseEntity extends NodeSpace {
      * 2、由entityManager调度给renderManager
      */
     shadowmapDC: {
-        [name: string]: {
-            // depth: DrawCommand[],
-            // transparent: DrawCommand[],
-            [E_renderPassName.shadowmapOpacity]: BaseDrawCommand[],
-            [E_renderPassName.shadowmapTransparent]: BaseDrawCommand[],
+        // [name: string]: {
+        // depth: DrawCommand[],
+        // transparent: DrawCommand[],
+        [E_renderPassName.shadowmapOpacity]: BaseDrawCommand[],
+        [E_renderPassName.shadowmapTransparent]: BaseDrawCommand[],
+        // }
+    } = {
+            shadowmapOpacity: [],
+            shadowmapTransparent: [],
         }
-    } = {}
     /**
      * DrawCommand 生成器
      */
@@ -285,14 +307,14 @@ export abstract class BaseEntity extends NodeSpace {
     /**延迟渲染的深度渲染：单像素模延迟 ，不透明*/
     // abstract createDeferDepthDC(camera: BaseCamera): void
     /**前向渲染 不透明 */
-    abstract createForwardDC(camera: BaseCamera): void
+    abstract createForwardDC(): void
     /**透明渲染 */
-    abstract createTransparent(camera: BaseCamera): void
+    abstract createTransparent(): void
 
     /**渲染shadowmap 不透明*/
-    abstract createShadowMapDC(input: I_ShadowMapValueOfDC): void
+    abstract createShadowMapDC(): void
     /**渲染shadowmap 透明模式 */
-    abstract createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void
+    abstract createShadowMapTransparentDC(): void
 
     /**获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
      * 涉及三个部分：
@@ -302,8 +324,13 @@ export abstract class BaseEntity extends NodeSpace {
      * @param startBinding 
      * @returns  uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput
-
+    abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput;
+    /**判断在camera或light的可见性 ，并获取实例化的drawMode数组*/
+    abstract getDrawModeArrayOfInstances(
+        UUID: string,
+        kind: E_renderForDC,
+        wireFrameDrawModeTemplate?: I_drawMode | I_drawModeIndexed
+    ): I_drawMode[] | I_drawModeIndexed[];
 
     inputValues: IV_BaseEntity;
 
@@ -465,9 +492,21 @@ export abstract class BaseEntity extends NodeSpace {
         this.DCG = this.scene.DCG;//new DrawCommandGenerator({ scene: this.scene, parent: this });
 
         //检查是否有新摄像机，有进行更新
-        this.createCameraDC();
+        // this.createCameraDC();
+        if (this.transparent === true) {
+            this.createTransparent();
+        }
+        else {
+            this.createForwardDC();
+        }
         //检查是否有新光源，有进行更新
-        this.createLightsDC();
+        // this.createLightsDC();
+        // if (this.transparent === true) {
+        //     this.createShadowMapTransparentDC();
+        // }
+        // else {
+        //     this.createShadowMapDC();
+        // }
 
         this._state = E_lifeState.finished;
         // return this.renderID + 1;
@@ -706,8 +745,15 @@ export abstract class BaseEntity extends NodeSpace {
     }
     /** 清除DCC 渲染队列*/
     clearDC() {
-        this.cameraDC = {};
-        this.shadowmapDC = {};
+        this.cameraDC = {
+            MSAA: [],
+            forward: [],
+            transparent: [],
+        };
+        this.shadowmapDC = {
+            shadowmapOpacity: [],
+            shadowmapTransparent: [],
+        }
     }
     // /**
     //  */

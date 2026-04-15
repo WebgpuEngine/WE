@@ -1,3 +1,4 @@
+import { E_renderForDC } from "../base/coreDefine";
 import { ECSManager } from "../organization/manager";
 import { NodeObject } from "../organization/nodeObject";
 import { pickupTargetOfIDs } from "../pickup/base";
@@ -5,6 +6,8 @@ import { Clock } from "../scene/clock";
 import { RenderManager, E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { BaseEntity } from "./baseEntity";
+import { EntityBundleMaterial } from "./entityBundleMaterial";
+import { Mesh } from "./mesh/mesh";
 
 export class EntityManager extends ECSManager<BaseEntity> {
     instances: Map<BaseEntity, NodeObject[]> = new Map();
@@ -43,26 +46,49 @@ export class EntityManager extends ECSManager<BaseEntity> {
             ) {//&& entity.enable === true && entity.visible === true
                 entity.update(clock);
                 //camera
-                for (let UUID in entity.cameraDC) {//一个entity的所有camera
-                    let perCamera = entity.cameraDC[UUID];
-                    for (let i in perCamera) {//单个camera
-                        for (let i_pass in perCamera[i as keyof typeof perCamera]) { //单个pass：forward，deferDepth，transparent
-                            let perDC = perCamera[i as keyof typeof perCamera][parseInt(i_pass)];       //单个drawCommand
-                            this.renderManager.push(perDC, i as E_renderPassName, UUID);
+                for (let perCamera of this.scene.cameraManager.list) {
+                    let instanaceArray = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);
+                    // let instanaceArrayOfw = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);
+                    if (instanaceArray.length > 0) {
+                        for (let i_renderPass in entity.cameraDC) {
+                            for (let i_DC in entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC]) {
+                                let perDC = entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC][parseInt(i_DC)];
+                                if (perDC.label.indexOf("wireFrame") == -1) {
+                                    this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, instanaceArray);
+                                } else {
+                                    let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();
+                                    if (wireFrameInstanceAarray && wireFrameInstanceAarray.length > 0)
+                                        this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, wireFrameInstanceAarray);
+                                    else
+                                        throw new Error("线框的DrawModeArray为空");
+                                }
+                            }
                         }
                     }
                 }
+                // for (let UUID in entity.cameraDC) {//一个entity的所有camera
+                //     let perCamera = entity.cameraDC[UUID];
+                //     for (let i in perCamera) {//单个camera
+                //         for (let i_pass in perCamera[i as keyof typeof perCamera]) { //单个pass：forward，deferDepth，transparent
+                //             let perDC = perCamera[i as keyof typeof perCamera][parseInt(i_pass)];       //单个drawCommand
+                //             this.renderManager.push(perDC, i as E_renderPassName, UUID);
+                //         }
+                //     }
+                // }
                 //shadowmap
-                for (let UUID in entity.shadowmapDC) {//一个entity的所有shadowmap
-                    let perShadowmap = entity.shadowmapDC[UUID];
-                    this.scene.renderManager.initRenderCommandForLight(UUID);
-                    for (let i in perShadowmap) {//单个shadowmap
-                        for (let i_pass in perShadowmap[i as keyof typeof perShadowmap]) { //单个pass：deth，transparent
-                            let perDC = perShadowmap[i as keyof typeof perShadowmap][parseInt(i_pass)];       //单个drawCommand
-                            this.renderManager.push(perDC, i as E_renderPassName, UUID);
-                        }
-                    }
-                }
+
+                // for (let perCamera of this.scene.cameraManager.list) { }
+
+                // for (let UUID in entity.shadowmapDC) {//一个entity的所有shadowmap
+                //     let perShadowmap = entity.shadowmapDC[UUID];
+                //     this.scene.renderManager.initRenderCommandForLight(UUID);
+                //     for (let i in perShadowmap) {//单个shadowmap
+                //         for (let i_pass in perShadowmap[i as keyof typeof perShadowmap]) { //单个pass：deth，transparent
+                //             let perDC = perShadowmap[i as keyof typeof perShadowmap][parseInt(i_pass)];       //单个drawCommand
+                //             this.renderManager.push(perDC, i as E_renderPassName, UUID);
+                //         }
+                //     }
+                // }
             }
         }
     }

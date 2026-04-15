@@ -204,6 +204,8 @@ export class ComputeCommand {
         }
         // Finish encoding and submit the commands
         const commandBuffer = encoder.finish();
+        console.warn("CommandEncoder finish");
+
         return commandBuffer;
     }
     doWithComputePass(encoder: GPUCommandEncoder) {

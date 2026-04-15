@@ -32,7 +32,9 @@ export class CopyCommandT2T extends CopyCommand {
                 },
                 [this.input.size.width, this.input.size.height]
             );
-            commandBuffer = commandEncoder.finish();
+        //     commandBuffer = commandEncoder.finish();
+        // debugger;
+
             // this.device.queue.submit([commandBuffer]);
         }
         else if ((this.input.A as GPUTexelCopyTextureInfo).texture && (this.input.B as GPUTexelCopyTextureInfo).texture) {
@@ -43,7 +45,9 @@ export class CopyCommandT2T extends CopyCommand {
                 ,
                 [this.input.size.width, this.input.size.height]
             );
-            commandBuffer = commandEncoder.finish();
+        //     commandBuffer = commandEncoder.finish();
+        // debugger;
+
             // this.device.queue.submit([commandBuffer]);
         }
         else if (this.input.A instanceof GPUTexture && (this.input.B as GPUTexelCopyTextureInfo).texture) {
@@ -55,7 +59,8 @@ export class CopyCommandT2T extends CopyCommand {
                 ,
                 [this.input.size.width, this.input.size.height]
             );
-            commandBuffer = commandEncoder.finish();
+        //     commandBuffer = commandEncoder.finish();
+        // debugger;
             // this.device.queue.submit([commandBuffer]);
         }
         else if ((this.input.A as GPUTexelCopyTextureInfo).texture && this.input.B instanceof GPUTexture) {
@@ -66,13 +71,14 @@ export class CopyCommandT2T extends CopyCommand {
                 },
                 [this.input.size.width, this.input.size.height]
             );
-            commandBuffer = commandEncoder.finish();
+        // debugger;
+        //     commandBuffer = commandEncoder.finish();
             // this.device.queue.submit([commandBuffer]);
         }
         else {
             throw new Error("CopyCommandT2T: A or B is not GPUTexture or GPUTexelCopyTextureInfo");
         }
-        return commandBuffer;
+        // return commandBuffer;
     }
     async submit() {
         let commandBuffer = await this.update();

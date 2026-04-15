@@ -1,22 +1,22 @@
 import { E_renderForDC } from "../base/coreDefine";
-import { commmandType, I_PipelineStructure, T_rpdInfomationOfMSAA } from "../command/base";
+import { commmandType, I_drawMode, I_drawModeIndexed } from "../command/base";
+import { BaseDrawCommand, I_drawCallOption } from "../command/BaseDrawCommand";
+import { ComputeCommand } from "../command/ComputeCommand";
+import { CopyCommand } from "../command/compyCommand";
+import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
+import { SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { V_TransparentGBufferNames } from "../gbuffers/base";
 import { Scene } from "./scene";
 
-/**
- * 合批命令
- * command：绘制命令
- * pipeline：绘制命令对应的pipeline：Map集合
- */
-export interface run_commandAndPipeline {
-    DCCC: commmandType[],
-    pipeline: Map<I_PipelineStructure, commmandType[]>,
-}
 
 /**
  * 渲染通道
- * 备注：这个也是渲染的通道的执行的时间线顺序
+ * 一顺序：
+ * 1、具有内容线顺序
+ * 2、具有时间线顺序
+ * 
+ * 二、stage
  * 1、depth,forwar,transparent,sprite,spriteTransparent,defer这些都是world stage的。world starge 隐式=stage0;
  * 2、world stage 是按照camera（一个或多个）进行渲染的。也可以理解为：每个camera都有一个world stage。
  */
@@ -25,16 +25,21 @@ export enum E_renderPassName {
     texture = "texture",
     material = "material",
     renderTarget = "renderTarget",
+    /**操作等同于forward，只是没有FS */
     shadowmapOpacity = "shadowmapOpacity",
+    /**
+     * 等同于透明渲染，需要按照距离进行排序
+     * 1、每个shadowMap的到实体的距离是不同的
+     */
     shadowmapTransparent = "shadowmapTransparent",
 
-    /**
-     * 延迟渲染的深度渲染通道
-     * 1、单像素深度渲染，用于延迟渲染的深度测试（后续使用forward进行正常渲染，单像素模式）
-     * 2、此模式不能解决GPU编译时间成本、光照与阴影的简单多变种问题
-     * 3、淘汰
-     */
-    depth = "depth",
+    // /**
+    //  * 延迟渲染的深度渲染通道
+    //  * 1、单像素深度渲染，用于延迟渲染的深度测试（后续使用forward进行正常渲染，单像素模式）
+    //  * 2、此模式不能解决GPU编译时间成本、光照与阴影的简单多变种问题
+    //  * 3、淘汰
+    //  */
+    // depth = "depth",
     /**
      * MSAA通道，用于MSAA抗锯齿。
      * 1、webGPU的MSAA目前（1.0版本）不支持r32unint ,rgba32float。
@@ -46,38 +51,78 @@ export enum E_renderPassName {
      */
     MSAA = "MSAA",
     /**
-     * 前向渲染通道，用于正常的渲染。
-     * 一、MSAA
-     *      1、无MSAA：正常输出
-     *      2、有MSAA：
-     *          A、需要在MSAA通道之后，进行resolve操作。（resolve操作在forward之前在MSAA的最后进行）
-     *          B、使用的DC是适配MSAA的DC（只有id,normal,position,albedo.RMAO等基础信息）
-     * 二、forward
-     *      1、无defer：正常输出
-     *      2、有defer：这时enity使用的材质是只有进行颜色（颜色和纹理）处理的模式，光影由之后的defer处理。
-     * 三、MSAA与defer 不冲突
+     * 前向渲染通道，用于正常的渲染。前向渲染通道可以被forward,TO,MSAA info 使用.
+     * 一、按照RPD-->pipeline-->Draw的方案进行渲染。
+     * 1、RPD：即每个camera或light+index
+     * 2、pipeline：pipeline的队列。
+     * 3、Draw：draw命令。
+     *  A、全部是instance draw，即使instance数量为1
+     *  B、可见性剔除也需要考虑，camera + Entity => BVH => instance 实例（可见性剔除后的）。
+     * 
+     * 二、备注（距离方案思考）
+     * 1、可以按照距离排序，从近到远绘制，减少overDraw
+     * 2、如果按照从近到远排序：
+     *  A、排序在renderManager中获取,并同时进行可见性管理调用，得到新的需要绘制的DC队列。
+     *  B、队列是全部的DC。
+     * 3、还需要考虑instance draw， pipeline 排序等因素。
+     *  A、instance draw，按照最近距离原则
+     *  B、pipeline 排序，就基本没有了，邻近距离形成pipeline集合的概率 是否有性能提升是其一，可以考虑（均衡over draw 和pipeline 切换的性能成本）。
      */
     forward = "forward",
-
+    /**
+     * todo：20260414，是否启用需要再考虑，是否有必要，是否会增加复杂性
+     * 延迟渲染之前的quad渲染，用于提升渲染性能
+     * 一、定位
+     * 1、提升绘制性能，将需要大量计算的GPU操作，使用quad模式集中处理
+     * 2、避免forward中的大量重复计算（减少overDraw）
+     * 3、绘制的内容是FS（是替换、混合等，可以包括color、normal、albedo等），VS是quad模式（worldPosition来自camera GBuffer的worldPosition）
+     * 4、用途，包括PBR参数的FS shder：
+     *      A、包括normal、albedo等内容的投影纹理、贴花等；
+     *      B、其他（需要更改PBR参数）大量需要重复像素计算的；
+     * 
+     * 二、RPD 和GBuffer
+     * 1、RPD是与forward通道中的RPD不同，不输出worldPosition buffer
+     * 2、写入除worldPosition之外的GBuffer。
+     * 
+     * 二、draw的内容
+     * 1、draw的内容是需要在defer通道中进行处理。
+     * 2、用途： 投影纹理，贴花纹理等，
+     * 3、可以写入多个GBuffer，color,normal，albedo等。depth视情况而定，原则上不写入。
+     */
+    quadDrawBeforeDeferRender = "quadDrawBeforeDeferRender",
     /**
      * 延迟通道，统一处理光照与阴影
      */
     defer = "defer",
+    /**
+     * todo：20260414，可以启用，未实现，需要增加一个renderPass的识别并分配到渲染通道
+     * 延迟渲染之后quad渲染，用于提升渲染性能.
+     * 1、RPD只包括color，进行混合操作。
+     * 2、没有PBR相关参数的操作。
+     * 3、用途：
+     *      A、只进行颜色覆盖，与alpha混合的FS shader。
+     *      B、比如：投影纹理，贴花等
+     */
+    quadDrawAfterDeferRender = "quadDrawAfterDeferRender",
+    /**
+     * 透明层，按距离绘制
+     */
     transparent = "transparent",
     /**
      * 不参与world stage深度测试的，不透明2D精灵通道。（参与深度测试的sprite在正常的forward中）
      * 1、不透明sprite，只为在world其他实体之上的sprite
-     * 2、这个通道内，不透明的sprite按照depth绘制（开启depthTest，写入depth）
+     * 2、这个通道内，sprite（不透明和透明一致处理），写入GBuffer，alpha！=0，即写入
      * 3、这个通道sprite不具有光照与阴影（至少目前）
      */
     sprite = "sprite",
-    /**
-     * 不参与world stage深度测试的，透明2D精灵通道。（参与深度测试的sprite在正常的transparent通道中）
-     * 1、不透明sprite，只为在world其他实体之上的sprite
-     * 2、这个通道内，不透明的sprite按照transparent通道的绘规则绘制（开启depthTest，不写入depth）
-     * 3、这个通道sprite不具有光照与阴影（至少目前）
-     */
-    spriteTransparent = "spriteTransparent",
+    //20260414 取消spriteTransparent通道
+    // /**
+    //  * 不参与world stage深度测试的，透明2D精灵通道。（参与深度测试的sprite在正常的transparent通道中）
+    //  * 1、不透明sprite，只为在world其他实体之上的sprite
+    //  * 2、这个通道内，不透明的sprite按照transparent通道的绘规则绘制（开启depthTest，不写入depth）
+    //  * 3、这个通道sprite不具有光照与阴影（至少目前）
+    //  */
+    // spriteTransparent = "spriteTransparent",
 
     /**
      * 色调映射通道，用于色调映射。
@@ -106,44 +151,68 @@ export enum E_renderPassName {
      * UI隐式=stage3
      */
     ui = "ui",
-    /**
-     * output通道，
-     * 考虑方向：
-     * 1、UI与world的合并
-     * 2、多viewport或多camera的合并
-     * 3、可视化工作，单独的纹理可视化，layout的可视化等
-     */
-    output = "output",
+    // /**
+    //  * output通道，
+    //  * 考虑方向：
+    //  * 1、UI与world的合并
+    //  * 2、多viewport或多camera的合并
+    //  * 3、可视化工作，单独的纹理可视化，layout的可视化等
+    //  */
+    // output = "output",
 }
 /**DrawCommand 通道 
  * 1、pipelineOrder：按照pipeline结构进行分类的命令队列
  * 2、dynmaicOrder：动态命令队列，不进行分类与优化
 */
+// interface I_renderDrawCommand {
+//     [name: string]: commmandType[],
+// }
 interface I_renderDrawCommand {
-    [name: string]: commmandType[],
+    [name: string]:                                                             // camera|light,RPD层
+    Map<
+        GPURenderPipeline,                                                      // pipeline层
+        Map<                                                                    // DrawCommand层
+            BaseDrawCommand,// DrawCommand,
+            I_drawMode[] | I_drawModeIndexed[]                                   //instance 队列值
+        >
+    >
 }
-/**
- * 通用的渲染通道
- * 是否正确需要验证，20250915
- * 透明shadowmap通道
- */
-interface I_renderDrawOfTimeline {
-    [name: string]: commmandType[]
-}
+// type T_renderDrawByPipeline =
+//     Map<
+//         string,                                                                     // camera|light,RPD层
+//         Map<
+//             GPURenderPipeline,                                                      // pipeline层
+//             Map<                                                                    // DrawCommand层
+//                 DrawCommand,
+//                 I_drawMode[] | I_drawModeIndexed[]                     //instance 队列值
+//             >
+//         >
+//     >;
+
+
 
 /**
- * 透明通道的命令 type 类型，
+ * 一、透明通道的距离绘制命令队列，
+ * 1、按照距离进行排序，每个camera与entity的距离是不同的；
+ * 2、所以只能camera进行RPD切换，再按照距离进行pipeline的绘制；无法进行合并pipeline的操作；
+ * 
+ * 二、透明通道的命令 type 类型，
  * 1、透明通道的命令是一个数组，或者是一个命令
  * 2、一个command是按照距离的标准进行排序的
  * 3、一个数组队列，是进行pixcel级别的绘制，表示有包围盒重叠
  */
-export type T_transparentCommand = commmandType[] | commmandType;
+interface I_renderDrawOfDistancesLine {
+    [name: string]: (commmandType[] | commmandType)[]
+}
 
-/**
- * 透明通道的距离绘制命令队列，
+/**quad 类型通道
+ * 1、name：通道名称，RPD区分，即：不同的camera
+ * 2、pipeline基本不同
+ * 3、draw基本一次
+ * 4、可能存在多种形式的command形式，需要使用commmandType
  */
-export interface I_renderDrawOfDistancesLine {
-    [name: string]: T_transparentCommand[]
+interface I_renderDrawOfQuad {
+    [name: string]: commmandType[]
 }
 /**
  * 渲染管理器
@@ -164,21 +233,24 @@ export class RenderManager {
         [E_renderPassName.texture]: commmandType[],
         [E_renderPassName.material]: commmandType[],
         [E_renderPassName.renderTarget]: commmandType[],
-        [E_renderPassName.shadowmapOpacity]: I_renderDrawOfTimeline,
-        [E_renderPassName.shadowmapTransparent]: I_renderDrawOfTimeline,
-        [E_renderPassName.depth]: I_renderDrawCommand,
-        [E_renderPassName.MSAA]: I_renderDrawCommand,
+        [E_renderPassName.shadowmapOpacity]: I_renderDrawCommand,
+        [E_renderPassName.shadowmapTransparent]: I_renderDrawOfDistancesLine,
+        // [E_renderPassName.depth]: I_renderDrawCommand,
+        /**
+         * 前向渲染通道：forward,TO,MSAA info
+         */
         [E_renderPassName.forward]: I_renderDrawCommand,
-        [E_renderPassName.defer]: I_renderDrawOfTimeline,
+        [E_renderPassName.MSAA]: I_renderDrawCommand,
+        [E_renderPassName.sprite]: I_renderDrawCommand,
+        [E_renderPassName.defer]: I_renderDrawOfQuad,
         [E_renderPassName.transparent]: I_renderDrawOfDistancesLine,
         [E_renderPassName.sprite]: I_renderDrawCommand,
-        [E_renderPassName.spriteTransparent]: I_renderDrawOfTimeline,
-        [E_renderPassName.toneMapping]: commmandType[],
-        [E_renderPassName.postprocess]: commmandType[],
+        // [E_renderPassName.spriteTransparent]: I_renderDrawOfDistancesLine,
+        [E_renderPassName.toneMapping]: I_renderDrawOfQuad,
+        [E_renderPassName.postprocess]: I_renderDrawOfQuad,
         [E_renderPassName.stage1]: commmandType[],
         [E_renderPassName.stage2]: commmandType[],
         [E_renderPassName.ui]: commmandType[],
-        [E_renderPassName.output]: commmandType[],
     } = {
             [E_renderPassName.compute]: [],
             [E_renderPassName.texture]: [],
@@ -186,19 +258,17 @@ export class RenderManager {
             [E_renderPassName.renderTarget]: [],
             [E_renderPassName.shadowmapOpacity]: {},
             [E_renderPassName.shadowmapTransparent]: {},
-            [E_renderPassName.depth]: {},
             [E_renderPassName.MSAA]: {},
             [E_renderPassName.forward]: {},
             [E_renderPassName.defer]: {},
             [E_renderPassName.transparent]: {},
             [E_renderPassName.sprite]: {},
-            [E_renderPassName.spriteTransparent]: {},
-            [E_renderPassName.toneMapping]: [],
-            [E_renderPassName.postprocess]: [],
+            // [E_renderPassName.spriteTransparent]: {},
+            [E_renderPassName.toneMapping]: {},
+            [E_renderPassName.postprocess]: {},
             [E_renderPassName.stage1]: [],
             [E_renderPassName.stage2]: [],
             [E_renderPassName.ui]: [],
-            [E_renderPassName.output]: [],
         };
     /**
      * 前四个连续的渲染通道，为了render时，省些代码
@@ -209,21 +279,29 @@ export class RenderManager {
         this.RC[E_renderPassName.material],
         this.RC[E_renderPassName.renderTarget],
     ]
-    /**
-     * TTP早期测试使用
-     */
-    // DCG: DrawCommandGenerator;
+    // /**
+    //  * TTP早期测试使用
+    //  */
+    // // DCG: DrawCommandGenerator;
+    // /**
+    //  * RPD的loadOp计数器
+    //  */
+    // cameraRendered: {
+    //     [name: string]: number
+    // } = {};
+
+    commandEncoder!: GPUCommandEncoder;
+
     /**
      * RPD的loadOp计数器
      */
     cameraRendered: {
         [name: string]: number
     } = {};
+
     constructor(scene: Scene) {
         this.scene = scene;
         this.device = scene.device;
-        //TTP早期测试使用
-        // this.DCG = new DrawCommandGenerator({ scene });
     }
     /**
      * 初始化相机的渲染通道(通道内不是单一commmandType[]情况的)
@@ -231,14 +309,12 @@ export class RenderManager {
      * @param UUID 
      */
     initRenderCommandForCamera(UUID: string) {
-        if (!this.RC[E_renderPassName.depth][UUID]) {
-            this.RC[E_renderPassName.depth][UUID] = [];
-        }
+
         if (!this.RC[E_renderPassName.MSAA][UUID]) {
-            this.RC[E_renderPassName.MSAA][UUID] = [];
+            this.RC[E_renderPassName.MSAA][UUID] = new Map();
         }
         if (!this.RC[E_renderPassName.forward][UUID]) {
-            this.RC[E_renderPassName.forward][UUID] = [];
+            this.RC[E_renderPassName.forward][UUID] = new Map();
         }
         if (!this.RC[E_renderPassName.defer][UUID]) {
             this.RC[E_renderPassName.defer][UUID] = [];
@@ -248,12 +324,11 @@ export class RenderManager {
         }
 
         if (!this.RC[E_renderPassName.sprite][UUID]) {
-            this.RC[E_renderPassName.sprite][UUID] = [];
+            this.RC[E_renderPassName.sprite][UUID] = new Map();
         }
-        if (!this.RC[E_renderPassName.spriteTransparent][UUID]) {
-            this.RC[E_renderPassName.spriteTransparent][UUID] = [];
-        }
-
+        // if (!this.RC[E_renderPassName.spriteTransparent][UUID]) {
+        //     this.RC[E_renderPassName.spriteTransparent][UUID] = [];
+        // }
     }
     /**
      * 初始化光源的shadow map 渲染通道,初始化包括：shadowmapOpacity,shadowmapTransparent
@@ -261,7 +336,7 @@ export class RenderManager {
      */
     initRenderCommandForLight(UUID: string) {
         if (!this.RC[E_renderPassName.shadowmapOpacity][UUID]) {
-            this.RC[E_renderPassName.shadowmapOpacity][UUID] = [];
+            this.RC[E_renderPassName.shadowmapOpacity][UUID] = new Map();
         }
         if (!this.RC[E_renderPassName.shadowmapTransparent][UUID]) {
             this.RC[E_renderPassName.shadowmapTransparent][UUID] = [];
@@ -279,53 +354,22 @@ export class RenderManager {
         this.RC[E_renderPassName.renderTarget] = [];
 
         for (let UUID in this.RC[E_renderPassName.shadowmapOpacity]) {
-            this.RC[E_renderPassName.shadowmapOpacity][UUID as E_renderPassName] = [];
-        }
-        for (let UUID in this.RC[E_renderPassName.shadowmapTransparent]) {
+            this.RC[E_renderPassName.shadowmapOpacity][UUID as E_renderPassName].clear();
             this.RC[E_renderPassName.shadowmapTransparent][UUID as E_renderPassName] = [];
         }
-        for (let UUID in this.RC[E_renderPassName.depth]) {
-            // let cameraCommand = this.RC[E_renderPassName.depth][UUID as E_renderPassName];
-            // cameraCommand.pipelineOrder.clear();
-            // cameraCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.depth][UUID as E_renderPassName] = [];
-        }
-        for (let UUID in this.RC[E_renderPassName.MSAA]) {
-            // let cameraCommand = this.RC[E_renderPassName.MSAA][UUID as E_renderPassName];
-            // cameraCommand.pipelineOrder.clear();
-            // cameraCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.MSAA][UUID as E_renderPassName] = [];
-        }
         for (let UUID in this.RC[E_renderPassName.forward]) {
-            // let cameraCommand = this.RC[E_renderPassName.forward][UUID as E_renderPassName];
-            // cameraCommand.pipelineOrder.clear();
-            // cameraCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.forward][UUID as E_renderPassName] = [];
-        }
-
-        for (let UUID in this.RC[E_renderPassName.defer]) {
+            this.RC[E_renderPassName.forward][UUID as E_renderPassName].clear();
+            this.RC[E_renderPassName.MSAA][UUID as E_renderPassName].clear();
+            this.RC[E_renderPassName.sprite][UUID as E_renderPassName].clear();
             this.RC[E_renderPassName.defer][UUID as E_renderPassName] = [];
-        }
-
-        for (let UUID in this.RC[E_renderPassName.transparent]) {
+            this.RC[E_renderPassName.toneMapping][UUID as E_renderPassName] = [];
+            this.RC[E_renderPassName.postprocess][UUID as E_renderPassName] = [];
             this.RC[E_renderPassName.transparent][UUID as E_renderPassName] = [];
+            // this.RC[E_renderPassName.spriteTransparent][UUID as E_renderPassName] = [];
         }
-
-        for (let UUID in this.RC[E_renderPassName.sprite]) {
-            // let spriteCommand = this.RC[E_renderPassName.sprite][UUID as E_renderPassName];
-            // spriteCommand.pipelineOrder.clear();
-            // spriteCommand.dynmaicOrder = [];
-            this.RC[E_renderPassName.sprite][UUID as E_renderPassName] = [];
-        }
-        for (let UUID in this.RC[E_renderPassName.spriteTransparent]) {
-            this.RC[E_renderPassName.spriteTransparent][UUID as E_renderPassName] = [];
-        }
-        this.RC[E_renderPassName.toneMapping] = [];
-        this.RC[E_renderPassName.postprocess] = [];
         this.RC[E_renderPassName.stage1] = [];
         this.RC[E_renderPassName.stage2] = [];
         this.RC[E_renderPassName.ui] = [];
-        this.RC[E_renderPassName.output] = [];
     }
 
     /**
@@ -333,105 +377,300 @@ export class RenderManager {
      * @param command 绘制命令
      * @param kind 渲染通道
      */
-    push(command: commmandType, kind: E_renderPassName, _UUID?: string) {
+    push(command: commmandType | DrawCommand, kind: E_renderPassName, _UUID?: string, pipeline?: GPURenderPipeline, drawData?: I_drawMode[] | I_drawModeIndexed[]) {
         if (!_UUID) {
-            if (kind == E_renderPassName.forward || kind == E_renderPassName.transparent || kind == E_renderPassName.depth) {
-                if (this.scene.cameraManager.defaultCamera)
-                    _UUID = this.scene.cameraManager.defaultCamera.UUID;
-                else {
-                    console.warn("渲染通道为forward、transparent、depth时，必须有默认相机");
-                    return;
-                }
+            if (kind == E_renderPassName.forward ||
+                kind == E_renderPassName.transparent ||
+                kind == E_renderPassName.MSAA ||
+                kind == E_renderPassName.defer ||
+                kind == E_renderPassName.sprite
+                // kind == E_renderPassName.spriteTransparent
+            ) {
+                throw new Error(`渲染通道为${kind}时，必须有camera ID`);
+            }
+            else if (kind == E_renderPassName.shadowmapOpacity || kind == E_renderPassName.shadowmapTransparent) {
+                throw new Error(`渲染通道为${kind}时，必须有light mergeID`);
+            }
+            else if (kind == E_renderPassName.toneMapping || kind == E_renderPassName.postprocess) {
+                throw new Error(`渲染通道为${kind}时，必须有camera ID`);
             }
         }
-        let flag;
+        if (!pipeline || !drawData) {
+            if (kind == E_renderPassName.forward ||
+                kind == E_renderPassName.transparent ||
+                kind == E_renderPassName.MSAA ||
+                // kind == E_renderPassName.defer ||
+                kind == E_renderPassName.sprite
+                // kind == E_renderPassName.spriteTransparent
+            ) {
+                throw new Error(`渲染通道为${kind}时，必须有pipeline和drawData`);
+            }
+            else if (kind == E_renderPassName.shadowmapOpacity || kind == E_renderPassName.shadowmapTransparent) {
+                throw new Error(`渲染通道为${kind}时，必须有pipeline和drawData`);
+            }
+        }
         switch (kind) {
-            case E_renderPassName.compute:
-                this.RC[E_renderPassName.compute].push(command);
-                break;
-            case E_renderPassName.texture:
-                this.RC[E_renderPassName.texture].push(command);
-                break;
-            case E_renderPassName.material:
-                this.RC[E_renderPassName.material].push(command);
-                break;
-            case E_renderPassName.renderTarget:
-                this.RC[E_renderPassName.renderTarget].push(command);
-                break;
-            case E_renderPassName.shadowmapOpacity:
-                this.RC[E_renderPassName.shadowmapOpacity][_UUID!].push(command);
-                break;
             case E_renderPassName.shadowmapTransparent:
-                this.RC[E_renderPassName.shadowmapTransparent][_UUID!].push(command);
-                break;
-            case E_renderPassName.MSAA:
-                this.RC[E_renderPassName.MSAA][_UUID!].push(command);
-                break;
-            case E_renderPassName.forward:
-                this.RC[E_renderPassName.forward][_UUID!].push(command);
-                break;
-            case E_renderPassName.sprite:
-                this.RC[E_renderPassName.sprite][_UUID!].push(command);
-                break;
-            case E_renderPassName.depth:
-                this.RC[E_renderPassName.depth][_UUID!].push(command);
-                break;
-            case E_renderPassName.defer:
-                this.RC[E_renderPassName.defer][_UUID!].push(command);
-                break;
             case E_renderPassName.transparent:
-                this.RC[E_renderPassName.transparent][_UUID!].push(command);
+                // case E_renderPassName.spriteTransparent:
+                if (!this.RC[kind][_UUID!]) {
+                    this.RC[kind][_UUID!] = [];
+                }
+                this.RC[kind][_UUID!].push(command);
                 break;
-            case E_renderPassName.spriteTransparent:
-                this.RC[E_renderPassName.spriteTransparent][_UUID!].push(command);
+
+            case E_renderPassName.shadowmapOpacity:
+            case E_renderPassName.forward:
+            case E_renderPassName.MSAA:
+            case E_renderPassName.sprite:
+                if (!this.RC[kind][_UUID!]) {
+                    this.RC[kind][_UUID!] = new Map();
+                }
+                if (!this.RC[kind][_UUID!].has(pipeline!)) {
+                    this.RC[kind][_UUID!].set(pipeline!, new Map());
+                }
+                this.RC[kind][_UUID!].get(pipeline!)!.set(command as DrawCommand, drawData!);
                 break;
+
+            case E_renderPassName.defer:
             case E_renderPassName.toneMapping:
-                this.RC[E_renderPassName.toneMapping].push(command);
-                break;
             case E_renderPassName.postprocess:
-                this.RC[E_renderPassName.postprocess].push(command);
+                if (!this.RC[kind][_UUID!]) {
+                    this.RC[kind][_UUID!] = [];
+                }
+                this.RC[kind][_UUID!].push(command);
                 break;
+
+            case E_renderPassName.compute:
+            case E_renderPassName.texture:
+            case E_renderPassName.material:
+            case E_renderPassName.renderTarget:
             case E_renderPassName.stage1:
-                this.RC[E_renderPassName.stage1].push(command);
-                break;
             case E_renderPassName.stage2:
-                this.RC[E_renderPassName.stage2].push(command);
-                break;
             case E_renderPassName.ui:
-                this.RC[E_renderPassName.ui].push(command);
-                break;
-            case E_renderPassName.output:
-                this.RC[E_renderPassName.output].push(command);
+                this.RC[kind].push(command);
                 break;
             default:
-                break;
+                throw new Error(`渲染通道为${kind}，不支持推送绘制命令`);
         }
+    }
+    _performanceCount: number = 100;
+    __outputCountOfRun: number = 0;
+    /**
+     * 渲染
+     * 1、按照渲染属性进行，按照各自通道的规则执行
+     * 2、在各自通道根据情况更改loadOp；
+     * 3、DC类按照其内部的通道的camera进行分组，
+     *      A、pipeline通道按照其内部的规则进行合批，
+     *      B、dynmaicOrder不合批，直接提交，
+     *      C、timeLineDC按照其内部的规则进行。(目前无合批，20251016)
+     *      D、阴影通道之间具有时间线（先不透明，再透明）
+     * 3、其他渲染通道直接提交commandBuffer数组
+     * 
+     */
+    async render() {
+        this.commandEncoder = this.device.createCommandEncoder({ label: "RenderManager" });
+
+        // for (let onePass of this.listCommandType) {
+        //     this.doCommand(onePass);
+        // }
+
+        //不透明shadowmap
+        this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpacity], E_renderPassName.shadowmapOpacity);
+
+        //透明shadowmap
+        // this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
+
+        //不透明enity
+        this.renderForwaredDC(this.RC[E_renderPassName.forward], E_renderPassName.forward);
+
+        //MSAA,未开启MSAA
+        this.renderForwaredDC(this.RC[E_renderPassName.MSAA], E_renderPassName.MSAA);
+
+        //defer render
+        await this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
+
+        //透明enity
+        // await this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
+
+        // //sprite
+        // await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
+
+        //toneMapping
+        await this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
+        //pp
+        await this.renderComplexQuad(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
+
+        // //stage1
+        // await this.doCommand(this.RC[E_renderPassName.stage1]);
+        // //stage2
+        // await this.doCommand(this.RC[E_renderPassName.stage2]);
+        // //ui
+        // await this.doCommand(this.RC[E_renderPassName.ui]);
+        this.device.queue.submit([this.commandEncoder.finish()]);
+
     }
 
     /**
-     * timelineDC,只有渲染DC
-     * @param list 渲染列表
+     * 前向渲染:forward，TO，MSAA info，shadowmapOpacity
+     * 1、不使用异步模式；
+     * 2、每个camera的在第一个绘制增加一个透明像素绘制，防止场景清空后，没有submit命令，GBuffer的texture保持上一帧的问题；     
+     * @param commands 
      */
-    async renderTimelineDC(list: I_renderDrawOfTimeline) {
-        for (let i in list) {
-            let submitCommand: GPUCommandBuffer[] = [];
-            let perOne = list[i];
-            let UUID = i;
-            let isLight = false;
-            if (UUID.indexOf("__") != -1) {
-                isLight = true;
+    renderForwaredDC(commands: I_renderDrawCommand, renderPassName: E_renderPassName) {
+        /**
+         *for camears by ID
+         *  1 获取RPD：loadOp这时为clear
+         *  2 生成 passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
+         *  3 执行一个透明像素绘制，在左上角，深度为最远，写入完整的GBuffer序列；
+         *  4 遍历每个pipeline，
+         *      4.1  设置pipeline
+         *      4.2  遍历每个drawCommand
+         *          4.2.1执行DC.doDraw(),
+         *              A、参数：
+         *                 cameraID（bindgroup0使用，或传入BG0），
+         *                 drawMode的实例化数据(draw 使用)，
+         *                 E_renderPassName类型（materialType使用获取bindgroup 2）
+         * 
+         *  5、设置loadOp为“load”，后续绘制时，不再需要更改loadOp；
+         * 
+         */
+        for (let mergeID in commands) {
+            let perMapOfPipelineOfCamera = commands[mergeID];
+            //1 获取RPD
+            let rpd: GPURenderPassDescriptor;
+            let uuid: string = mergeID;
+            if (uuid.indexOf("__") != -1 && renderPassName == E_renderPassName.shadowmapOpacity) {
+                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.light);
             }
-            for (let perCommand of perOne) {
-                this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
+            else {
+                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
+            }
+            this.autoChangeRPDloadOP(rpd, mergeID);
+            // console.warn(`renderForwaredDC: ${mergeID},loadOp: ${rpd.colorAttachments[0]!.loadOp}`);
+            // debugger;
+            
+            //2 生成 passEncoder
+            let passEncoder: GPURenderPassEncoder = this.commandEncoder.beginRenderPass(rpd);
+            // console.warn(`renderForwaredDC: ${mergeID},loadOp: ${rpd.colorAttachments[0]!.loadOp}`);
+            // debugger;
 
-                let commandBuffer = await perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-                this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
+            //3 绘制一个透明像素
+            // todo
+
+            //4 遍历每个pipeline，
+            for (let [perPipeLine, dcMap] of perMapOfPipelineOfCamera) {
+                //4.1  设置pipeline
+                passEncoder.setPipeline(perPipeLine);
+                //4.2  遍历每个drawCommand
+                for (let [perDrawCommand, drawModeData] of dcMap) {
+                    let optionOfDraw: I_drawCallOption = {
+                        passEncoder,
+                        renderPassName,
+                        mergeID,
+                        drawModeData,
+                    };
+                    //4.2.1执行DC.doDraw(),
+                    perDrawCommand.doDraw(optionOfDraw);
+                }
             }
-            if (submitCommand.length > 0)
-                this.device.queue.submit(submitCommand);
+            passEncoder.end();
+
+            //5 设置loadOp为“load”，后续绘制时，不再需要更改loadOp；
+            for (let perColorAttachment of rpd.colorAttachments) {
+                if (perColorAttachment)
+                    perColorAttachment.loadOp = "load";
+            }
         }
     }
+    /**
+     * 绘制复合命令
+     * 1、包括：绘制，计算，复制命令
+     * 2、基本上每个命令（都是没有共性的），都需要设置RPD，或者设置ComputePass，或者设置CopyCommand。
+     * 3、不管理RPD的loadOp状态，由command类自行管理；
+     * 
+     * @param list  合并绘制命令的列表
+         * @param renderPassName 
+     */
+    renderComplexQuad(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
+        for (let id in list) {
+            let perSetOfCommand = list[id];
+            // let rpd: GPURenderPassDescriptor = this.scene.getRenderPassDescriptor(id, E_renderForDC.camera);
+            for (let perCommand of perSetOfCommand) {
+                if (perCommand instanceof SimpleDrawCommand || perCommand instanceof BaseDrawCommand) {
+                    perCommand.doWithRPD(this.commandEncoder);
+                }
+                else if (perCommand instanceof ComputeCommand) {
+                    perCommand.doWithComputePass(this.commandEncoder);
+                }
+                else if (perCommand instanceof CopyCommand) {
+                    perCommand.copy(this.commandEncoder);
+                }
+            }
+        }
+    }
+    /**相同RPD情况下的绘制命令 */
+    renderQuadDC(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
+        for (let id in list) {
+            let perSetOfCommand = list[id];
+            // let rpd: GPURenderPassDescriptor = this.scene.getRenderPassDescriptor(id, E_renderForDC.camera);
+            for (let perCommand of perSetOfCommand) {
+                if (perCommand instanceof SimpleDrawCommand || perCommand instanceof BaseDrawCommand) {
+                    perCommand.doWithRPD(this.commandEncoder);
+                }
+                else {
+                    throw new Error("renderQuadDC: not support command type");
+                }
+
+            }
+        }
+    }
+
+
+    /** 执行命令集合
+     * 1、命令集合为数组
+     */
+    doCommand(list: commmandType[], renderPassName: E_renderPassName) {
+        for (let perCommand of list) {
+            if (perCommand instanceof SimpleDrawCommand) {
+                perCommand.doWithRPD(this.commandEncoder);
+            }
+            else if (perCommand instanceof BaseDrawCommand) {
+                perCommand.doWithRPD(this.commandEncoder);
+            }
+            else if (perCommand instanceof ComputeCommand) {
+                perCommand.doWithComputePass(this.commandEncoder);
+            }
+            else if (perCommand instanceof CopyCommandT2T) {
+                perCommand.copy(this.commandEncoder);
+            }
+        }
+
+    }
+    // /**
+    //  * timelineDC,只有渲染DC
+    //  * @param list 渲染列表
+    //  */
+    // renderTimelineDC(list: I_renderDrawCommand) {
+    //     for (let i in list) {
+    //         let submitCommand: GPUCommandBuffer[] = [];
+    //         let perOne = list[i];
+    //         let UUID = i;
+    //         let isLight = false;
+    //         if (UUID.indexOf("__") != -1) {
+    //             isLight = true;
+    //         }
+    //         for (let perCommand of perOne) {
+
+    //             this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //             let commandBuffer = await perCommand.update();
+    //             submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
+    //             this.cameraRendered[UUID]++;//更改camera forward loadOP计数器
+    //         }
+    //         if (submitCommand.length > 0)
+    //             this.device.queue.submit(submitCommand);
+    //     }
+    // }
 
     /**
      * TT
@@ -455,17 +694,15 @@ export class RenderManager {
                     this.renderTTP(UUID, perCommand);
                 }
                 else {//否则，是单个透明物体，直接渲染
-                    // console.log("TT render:", this.cameraRendered[UUID]);
                     this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
                     this.cameraRendered[UUID]++;//更改 TT loadOP计数器
                     perCommand.submit();  // 渲染
-                    // console.log(perCommand.label);
                 }
             }
             //模拟的TTP渲染
             // await this.renderTTP(UUID, perOne as commmandType[]);//这里是透明渲染DC的渲染TTP的单纯渲染TTP的测试，相对于上面的for中的array直接传入
+
         }// end for of camera UUID
-        // debugger;
     }
     /**
      * TTP+TTPF
@@ -610,326 +847,38 @@ export class RenderManager {
         // }
     }
 
-    async renderForwaredDC(commands: I_renderDrawCommand, MSAA?: T_rpdInfomationOfMSAA) {
-        // let cameraRendered: {
-        //     [name: string]: number
-        // } = {};
-        for (let UUID in commands) {
-            let perOne = commands[UUID];
-            let flagUUID = UUID;        //标记UUID，MSAA时UUID 会和forward的UUID在计数器中冲突
-            if (MSAA != undefined) flagUUID = MSAA + UUID;
-
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //单组提交，defer，forward，msaa都没问题
-            // for (let perCommand of perOne) {
-            //     if (MSAA != undefined) {
-            //         if (MSAA == "MSAA")
-            //             this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //         else {
-            //             this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //         }
-            //     }
-            //     else {
-            //         this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-            //     }
-            //     this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-            //     perCommand.submit();
-            // }
-            // //MSAA  resolve part,并且过滤掉空数组
-            // if (MSAA == "MSAA" && perOne.length > 0) {
-            //     this.scene.cameraManager.resolveMSAA(UUID);
-            // }
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            // defer 合并提交有问题（待查），但forward 和msaa 都没问题，
-            //20260308 ，解决。原因，复用tonemapping GPUTexture产生的问题。GPU和CPU效率有大幅提升
-            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-            for (let perCommand of perOne) {
-                if (MSAA != undefined) {
-                    if (MSAA == "MSAA")
-                        this.cameraRendered[flagUUID] = this.autoChangeMSAA_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                    else {
-                        this.cameraRendered[flagUUID] = this.autoChangeMSAAinfo_RPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                        // this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                    }
-                }
-                else {
-                    // console.log("第一次 forward render:", this.cameraRendered[UUID]);
-
-                    this.cameraRendered[flagUUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[flagUUID]);
-                }
-                // console.log("forward render:", this.cameraRendered[UUID]);
-
-                let commandBuffer = await perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-                this.cameraRendered[flagUUID]++;//更改camera forward loadOP计数器
-            }
-            //submit part
-            if (submitCommand.length > 0) {
-                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-                if (MSAA == "MSAA") {
-                    await this.device.queue.onSubmittedWorkDone();
-                    this.scene.cameraManager.resolveMSAA(UUID);
-                }
-            }
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        }
-    }
-    async renderDeferDC(list: I_renderDrawOfTimeline) {
-        for (let i in list) {
-            let perOne = list[i];
-            for (let perCommand of perOne) {
-                await perCommand.submit();
-            }
-
-        }
-    }
-
-    _performanceCount: number = 100;
-    __outputCountOfRun: number = 0;
-    /**
-     * 渲染
-     * 1、按照渲染属性进行，按照各自通道的规则执行
-     * 2、在各自通道根据情况更改loadOp；
-     * 3、DC类按照其内部的通道的camera进行分组，
-     *      A、pipeline通道按照其内部的规则进行合批，
-     *      B、dynmaicOrder不合批，直接提交，
-     *      C、timeLineDC按照其内部的规则进行。(目前无合批，20251016)
-     *      D、阴影通道之间具有时间线（先不透明，再透明）
-     * 3、其他渲染通道直接提交commandBuffer数组
-     * 
-     */
-    async render() {
-        let outputFlage = true;
-        if (this.__outputCountOfRun++ > this._performanceCount) {
-            outputFlage = false;
-        }
-        let timerNow = Date.now();
-        let timerLast = timerNow;
-
-        for (let onePass of this.listCommandType) {
-            // let submitCommand: GPUCommandBuffer[] = [];
-            // for (let perCommand of onePass) {
-            //     submitCommand.push(perCommand.update());//webGPU的commandBuffer时一次性的
-            // }
-            // this.device.queue.submit(submitCommand);
-            this.doCommand(onePass);
-        }
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->4in1:", timerNow - timerLast);
-
-        //不透明shadowmap
-        this.renderTimelineDC(this.RC[E_renderPassName.shadowmapOpacity]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->shadowmapOpacity :", timerNow - timerLast);
-
-        //透明shadowmap
-        this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->shadowmapTransparent :", timerNow - timerLast);
-        //defer render Of depth
-        this.renderForwaredDC(this.RC[E_renderPassName.depth]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->depth :", timerNow - timerLast);
-        //不透明enity
-        if (this.scene.MSAA === true)//开启MSAA，forward
-        {        //MSAA,未开启MSAA
-            // this.doCommand(this.RC[E_renderPassName.MSAA]);
-            this.renderForwaredDC(this.RC[E_renderPassName.MSAA], "MSAA");
-            this.renderForwaredDC(this.RC[E_renderPassName.forward], "MSAAinfo");
-            // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->forward :", timerNow - timerLast);
-        }
-        else {
-            this.renderForwaredDC(this.RC[E_renderPassName.forward]);
-            // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->forward :", timerNow - timerLast);
-        }
-        //defer render
-        await this.renderDeferDC(this.RC[E_renderPassName.defer]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->defer :", timerNow - timerLast);
-        //透明enity
-        await this.renderTransParentDC(this.RC[E_renderPassName.transparent]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->transparent :", timerNow - timerLast);
-        //sprite
-        await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->sprite :", timerNow - timerLast);
-        //透明sprite
-        await this.renderTimelineDC(this.RC[E_renderPassName.spriteTransparent]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->spriteTransparent :", timerNow - timerLast);
-
-        //toneMapping
-        await this.doCommand(this.RC[E_renderPassName.toneMapping]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->toneMapping :", timerNow - timerLast);
-        //pp
-        await this.doCommand(this.RC[E_renderPassName.postprocess]);
-        // timerLast = timerNow; timerNow = Date.now(); if (outputFlage) console.log("      render->postprocess :", timerNow - timerLast);
-        //stage1
-        await this.doCommand(this.RC[E_renderPassName.stage1]);
-        //stage2
-        await this.doCommand(this.RC[E_renderPassName.stage2]);
-        //ui
-        await this.doCommand(this.RC[E_renderPassName.ui]);
-        //output
-        await this.doCommand(this.RC[E_renderPassName.output]);
-    }
-    async doCommand(list: commmandType[]) {
-        let submitCommand = [];
-        for (let perCommand of list) {
-            let commandBuffer = await perCommand.update();
-            submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-        }
-        if (submitCommand.length > 0)
-
-            this.device.queue.submit(submitCommand);
-    }
-
-
-    /**
-     * TTPF 适配RPD的loadOp
-     * 1、在TTPF渲染之前有forward渲染，此时有GBuffer的内容，且loadOp已经=load
-     * 2、纯透明entity，或测试透明的示例，可能没有过渲染，且GBuffer没有被clear过，是上一帧内容。这时就需要将loadOp更改为：clear
-     * @param UUID string 
-     * @param countOfUUID number 
-     * @returns number
-     */
-    autoChangeTTPF_RPD_loadOP(UUID: string, countOfUUID: number): number {
-        let kind: E_renderForDC = E_renderForDC.camera;
-        if (UUID.indexOf("__") != -1) {
-            kind = E_renderForDC.light;
-        }
-        let rpd;
-        if (kind == E_renderForDC.camera)
-            rpd = this.scene.cameraManager.GBufferManager.getGBufferColorRPD_TTPF(UUID);
-        else
-            rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
-
-        if (countOfUUID == undefined || countOfUUID == 0) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            if (rpd !== false) {                                        //forward render loadOp="clear"
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "clear";
-                }
-            }
-        }
-        else if (countOfUUID == 1) {// forward render
-            if (rpd !== false) {
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-                }
-            }
-        }
-        // console.log(rpd.colorAttachments[0].loadOp);
-
-        return countOfUUID;
-    }
-    /**
-     * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
-     * @param UUID 相机或灯光的UUID
-     * @param countOfUUID 相机或灯光的渲染次数
-     * @returns 相机或灯光的渲染次数
-     */
-    autoChangeMSAA_RPD_loadOP(UUID: string, countOfUUID: number): number {
-
-        let rpd = this.scene.cameraManager.getRPD_MSAA_ByUUID(UUID);
-
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
+    autoChangeRPDloadOP(rpd: GPURenderPassDescriptor, mergeID: string) {
+        let countOfUUID: number = this.checkChangeRPDloadOP(mergeID);
+        if (countOfUUID == 0) {
             countOfUUID = 0;
             for (let perColorAttachment of rpd.colorAttachments) {
                 if (perColorAttachment)
                     perColorAttachment.loadOp = "clear";
             }
-            rpd.depthStencilAttachment!.depthLoadOp = "clear";
+            if (rpd.depthStencilAttachment) {
+                rpd.depthStencilAttachment!.depthLoadOp = "clear";
+            }
         }
-        else if (countOfUUID == 1) {// forward render
+        else {// forward render
             for (let perColorAttachment of rpd.colorAttachments) {
                 if (perColorAttachment)
                     perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
             }
-            rpd.depthStencilAttachment!.depthLoadOp = "load";
-        }
-        return countOfUUID;
-    }
-    autoChangeMSAAinfo_RPD_loadOP(UUID: string, countOfUUID: number): number {
-
-        let rpd = this.scene.cameraManager.getRPD_MSAAInfo_ByUUID(UUID);
-
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            for (let perColorAttachment of rpd.colorAttachments) {
-                if (perColorAttachment)
-                    perColorAttachment.loadOp = "clear";
-            }
-            /**
-             * 20251018，MSAA的depth数据进行resolve（先compute，在render 从朋友）后，有精度损失。放弃深度对比方法。
-             * 将load改为clear
-             */
-            rpd.depthStencilAttachment!.depthLoadOp = "clear";
-        }
-        else if (countOfUUID == 1) {// forward render
-            for (let perColorAttachment of rpd.colorAttachments) {
-                if (perColorAttachment)
-                    perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-            }
-            rpd.depthStencilAttachment!.depthLoadOp = "load";
-        }
-        return countOfUUID;
-    }
-    /**
-     * 自动适配相机或灯光的渲染次数，第一次渲染时loadOp="clear"，第二次渲染时loadOp="load"
-     * @param UUID 相机或灯光的UUID
-     * @param countOfUUID 相机或灯光的渲染次数
-     * @returns 相机或灯光的渲染次数
-     */
-    autoChangeForwaredRPD_loadOP(UUID: string, countOfUUID: number): number {
-        let kind: E_renderForDC = E_renderForDC.camera;
-        if (UUID.indexOf("__") != -1) {
-            kind = E_renderForDC.light;
-        }
-        let rpd;
-        if (kind == E_renderForDC.camera)
-            rpd = this.scene.cameraManager.getRPDByUUID(UUID);
-        else
-            rpd = this.scene.lightsManager.gettShadowMapRPD_ByMergeID(UUID);
-
-        // console.log("color attachment loadOp 未更状态:", rpd.colorAttachments[0].loadOp);
-        if (countOfUUID == undefined) {//没有记录，增加UUID记录
-            countOfUUID = 0;
-            //MSAA 存在，GBuffer的color和depth是已经有了MSAA reslove后的数据，其他buffer没有
-            //light 无 MSAA
-            if (this.scene.MSAA && kind == E_renderForDC.camera) {
-                if (rpd !== false) {                                        //forward render loadOp="clear"
-                    for (let i in rpd.colorAttachments) {
-                        let perColorAttachment = (rpd.colorAttachments as GPURenderPassColorAttachment[])[parseInt(i)];
-                        if (parseInt(i) === 0)
-                            perColorAttachment.loadOp = "load";
-                        else
-                            perColorAttachment.loadOp = "clear";
-                    }
-                    rpd.depthStencilAttachment!.depthLoadOp = "load";
-                }
-            }
-            else {
-                if (rpd !== false) {                                        //forward render loadOp="clear"
-                    for (let perColorAttachment of rpd.colorAttachments) {
-                        if (perColorAttachment)
-                            perColorAttachment.loadOp = "clear";
-                    }
-                    rpd.depthStencilAttachment!.depthLoadOp = "clear";
-                }
-            }
-        }
-        else if (countOfUUID == 1) {// forward render
-            if (rpd !== false) {
-                for (let perColorAttachment of rpd.colorAttachments) {
-                    if (perColorAttachment)
-                        perColorAttachment.loadOp = "load";                 //forward render loadOp="load"   
-                }
+            if (rpd.depthStencilAttachment) {
                 rpd.depthStencilAttachment!.depthLoadOp = "load";
             }
         }
-        // console.log("color attachment loadOp 已更状态:", rpd.colorAttachments[0].loadOp);
-        return countOfUUID;
     }
 
+    checkChangeRPDloadOP(mergeID: string): number {
+        if (this.cameraRendered[mergeID] == undefined) {
+            this.cameraRendered[mergeID] = 0;
+        }
+        else {
+            this.cameraRendered[mergeID]++;
+        }
+        return this.cameraRendered[mergeID];
+    }
 
 
 }

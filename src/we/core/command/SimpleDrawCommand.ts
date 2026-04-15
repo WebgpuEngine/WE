@@ -337,6 +337,8 @@ export class SimpleDrawCommand {
             const commandEncoder = device.createCommandEncoder({ label: this.label });
             this.doWithRPD(commandEncoder);
             const commandBuffer = commandEncoder.finish();
+            console.warn("CommandEncoder finish");
+
             return commandBuffer;
         }
         else {

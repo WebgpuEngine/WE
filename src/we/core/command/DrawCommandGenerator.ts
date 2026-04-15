@@ -466,13 +466,13 @@ export class DrawCommandGenerator {
             if (values.system.material) {
                 commandOption.baseInfo!.material = values.system.material;
             }
-            let UUID = this.checkUUID(values);
-            if (UUID) {
-                commandOption.baseInfo!.traget = {
-                    UUID,
-                    type: values.system.type,
-                }
+            // let UUID = this.checkUUID(values);
+
+            commandOption.baseInfo!.traget = {
+                // UUID,
+                type: values.system.type,
             }
+
             //6 创建DC
             let drawCommand = new DrawCommand(commandOption);
             return drawCommand;

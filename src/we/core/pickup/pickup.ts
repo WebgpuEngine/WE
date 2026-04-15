@@ -204,7 +204,10 @@ export class Pickup extends BaseInputControl {
         commandEncoder.copyTextureToBuffer(source, destination, size);
 
         const commandBuffer = commandEncoder.finish();
+        console.warn("CommandEncoder finish");
+
         this.device.queue.submit([commandBuffer]);
+        console.warn("CommandEncoder submit");
         // Read the results
         await this.resultBuffer.mapAsync(GPUMapMode.READ);
         const result = new Uint32Array(this.resultBuffer.getMappedRange().slice(0));
@@ -223,7 +226,7 @@ export class Pickup extends BaseInputControl {
                 this.eventValues.mouseValue.shiftKey = (event as PointerEvent).shiftKey;
                 let mouse = event as MouseEvent;
                 // console.log(mouse.x, mouse.y);
-                    const rect = this.scene.canvas.getBoundingClientRect();
+                const rect = this.scene.canvas.getBoundingClientRect();
 
                 if (mouse) {
                     this.pickupKey.x = mouse.x - rect.x;

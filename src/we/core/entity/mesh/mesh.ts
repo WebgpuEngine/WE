@@ -181,7 +181,27 @@ export class Mesh extends EntityBundleMaterial {
             }
         }
     }
-
+    /**
+     * 生成线框的DrawModeArray
+     * @returns I_drawMode[] | I_drawModeIndexed[]
+     */
+    generateWireFrameDrawModeArray() {
+        if (this._wireframe != undefined) {
+            let drawMode: I_drawModeIndexed = {
+                indexCount: 0,
+                instanceCount: 1,
+                firstIndex: 0,
+                baseVertex: 0,
+                firstInstance: 0,
+            }
+            if (this._wireframe.indices) {
+                drawMode.indexCount = this._wireframe.indexCount;
+                drawMode.instanceCount = this.instance.numInstances;
+            }
+            let instanaceArray = this.fillDrawDataToAarray(this._visibleInstanceIDBundle, drawMode);
+            return instanaceArray;
+        }
+    }
     /**
      * 生成线框的DrawCommand的input value
      * @param type 渲染类型
@@ -189,7 +209,7 @@ export class Mesh extends EntityBundleMaterial {
      * @param bundle 实体的uniform和shader模板
      * @returns IV_DrawCommand
      */
-    generateWireFrameInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh): IV_DC {
+    generateWireFrameInputValueOfDC(type: E_renderForDC, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh): IV_DC {
         if (scope == undefined) scope = this;
         let drawMode: I_drawModeIndexed = {
             indexCount: 0,
@@ -242,7 +262,7 @@ export class Mesh extends EntityBundleMaterial {
 
             system: {
                 parent: scope,
-                UUID,
+                // UUID,
                 type//: E_renderForDC.camera
             },
             IDS: {
@@ -264,34 +284,34 @@ export class Mesh extends EntityBundleMaterial {
      * 为每个camera创建前向渲染的DrawCommand
      * @param camera 
      */
-    override createForwardDC(camera: BaseCamera): void {
+    override createForwardDC(): void {
         if (this._wireframe.wireFrameOnly !== true) {
-            super.createForwardDC(camera);
+            super.createForwardDC();
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
-            let UUID = camera.UUID;
-            let dc = this.generateOpacityDC(UUID, SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
-            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+            // let UUID = camera.UUID;
+            let dc = this.generateOpacityDC(SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
+            this.cameraDC[E_renderPassName.forward].push(dc);
         }
     }
 
-    createTransparent(camera: BaseCamera): void {
+    createTransparent(): void {
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
-            super.createTransparent(camera);
+            super.createTransparent();
         }
         //wireframe 前向渲染,暂时不考虑wireframe 透明渲染
         if (this._wireframe.enable) {
-            let UUID = camera.UUID;
+            // let UUID = camera.UUID;
             let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
             let uniformsMaterial = this._materialWireframe.getOpacity_Forward(bundle.bindingNumber);
             // if (uniformsMaterial) {
             //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
             //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
             // }
-            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, UUID, { vsBundle: bundle, fsBundle: uniformsMaterial });
+            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial });
             let dc = this.DCG.generateDrawCommand(valueDC);
-            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+            this.cameraDC[E_renderPassName.forward].push(dc);
         }
     }
 

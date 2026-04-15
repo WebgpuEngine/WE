@@ -25,7 +25,9 @@ export interface IV_BaseDrawCommand {
          *      A、有：从parent.getDrawModeArrayOfInstances中获取drawMode序列
          *      B、无：判断索引模式还是非索引模式，生成drawMode序列
         */
-        drawMode?: T_drawMode,// I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[],// | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]),
+        drawMode?: 
+        // T_drawMode,
+         I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[],// | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]),
         pipeline: GPURenderPipeline,
         /**顶点缓冲区 
          * 1、没有：需要绑定undefiend，
@@ -136,6 +138,7 @@ export class BaseDrawCommand {
             const commandEncoder = device.createCommandEncoder({ label: this.label });
             this.doWithRPD(commandEncoder);
             const commandBuffer = commandEncoder.finish();
+            console.warn("CommandEncoder finish");
             return commandBuffer;
         }
         else {

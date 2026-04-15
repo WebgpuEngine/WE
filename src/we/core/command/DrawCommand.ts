@@ -88,10 +88,12 @@ export class DrawCommand extends BaseDrawCommand {
     }
     override dowhole() {
         let device = this.device;
-            const commandEncoder = device.createCommandEncoder({ label: this.label });
-            this.doWithRPD(commandEncoder);
-            const commandBuffer = commandEncoder.finish();
-            return commandBuffer;
+        const commandEncoder = device.createCommandEncoder({ label: this.label });
+        this.doWithRPD(commandEncoder);
+        const commandBuffer = commandEncoder.finish();
+        console.warn("CommandEncoder finish");
+
+        return commandBuffer;
     }
     override doWithRPD(commandEncoder: GPUCommandEncoder) {
         if (this.renderPassDescriptor == undefined) {
@@ -160,7 +162,14 @@ export class DrawCommand extends BaseDrawCommand {
             throw new Error("DrawCommand doDraw: traget is undefined and mergeID is undefined");
         }
         if (option.renderPassName && option.mergeID && option.drawModeData) {
-            throw new Error("Method not implemented");
+            // throw new Error("Method not implemented");
+            if (Array.isArray(option.drawModeData)) {
+                this.drawInstacnceArray(passEncoder, option.drawModeData);
+            }
+            // 绘制实例 :单个instance。测试模拟single instance模式，raw模式
+            else {
+                this.drawInstacnce(passEncoder, option.drawModeData as I_drawMode | I_drawModeIndexed);
+            }
         }
         else {
             // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
