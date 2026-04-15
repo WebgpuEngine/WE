@@ -6,7 +6,7 @@
  */
 
 import { V_weLinearFormat } from "../base/coreDefine";
-import { E_GBufferNames, I_GBuffer, I_GBufferGroup, I_TransparentGBufferGroup, V_ForwardGBufferNames, V_MsaaGBufferNames, V_TransparentGBufferNames } from "./base";
+import { E_GBufferNames, getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA, getColorAttachmentTargetsOfMSAAinfo, getColorAttachmentTargetsOfToneMapping, I_GBuffer, I_GBufferGroup, I_TransparentGBufferGroup, V_ForwardGBufferNames, V_MsaaGBufferNames, V_TransparentGBufferNames } from "./base";
 
 
 export interface IV_GBuffer {
@@ -108,15 +108,13 @@ export class GBuffers {
         let depthClearValue = input.depthClearValue;
 
         let colorAttachments: GPURenderPassColorAttachment[] = [];
-        let forward_ColorAttachmentTargets: GPUColorTargetState[] = [];
 
         let gbuffers: I_GBuffer = {};
         let gbuffersMSAA: I_GBuffer = {};
         let RPD_forward: GPURenderPassDescriptor;
         let RPD_MSAAinfo_colorAttachments: GPURenderPassColorAttachment[] = [];
-        let MSAAinfo_colorAttachmentTargets: GPUColorTargetState[] = [];
 
-        //gbuffers
+        //forward gbuffers
         {
             for (let key in V_ForwardGBufferNames) {
                 let perOneBuffer = V_ForwardGBufferNames[key];
@@ -159,9 +157,8 @@ export class GBuffers {
                             loadOp: 'clear',
                             storeOp: 'store',
                         });
-                        MSAAinfo_colorAttachmentTargets.push({ format: perOneBuffer.format });
+                        // MSAAinfo_colorAttachmentTargets.push({ format: perOneBuffer.format });
                     }
-                    forward_ColorAttachmentTargets.push({ format: perOneBuffer.format });
                 }
                 gbuffers[key] = texture;
             }
@@ -190,10 +187,7 @@ export class GBuffers {
             let finalRender = {
                 toneMappingTexture: toneMappingTexture,
                 rpdToneMapping: rpdToneMapping,
-                toneMappingColorAttachmentTargets:
-                    [
-                        { format: V_ForwardGBufferNames[E_GBufferNames.color].format }
-                    ],
+                toneMappingColorAttachmentTargets: getColorAttachmentTargetsOfToneMapping(),
             };
             //GBuffer RPD
             RPD_forward = {
@@ -217,7 +211,7 @@ export class GBuffers {
             this.GBuffer[id] = {
                 forward: {
                     RPD: RPD_forward,
-                    colorAttachmentTargets: forward_ColorAttachmentTargets,
+                    colorAttachmentTargets: getColorAttachmentTargetsOfForward(),
                     GBuffer: gbuffers,
                     deferColor: textureDeferColor,
                 },
@@ -226,7 +220,7 @@ export class GBuffers {
         }
         //MSAA
         if (isMSAA) {
-            let colorAttachmentTargets: GPUColorTargetState[] = [];
+            // let colorAttachmentTargets: GPUColorTargetState[] = [];
             let colorAttachments: GPURenderPassColorAttachment[] = [];
 
             for (let key in V_MsaaGBufferNames) {
@@ -246,7 +240,7 @@ export class GBuffers {
                         loadOp: 'clear',//非depth ，clear 
                         storeOp: 'store',
                     });
-                    colorAttachmentTargets.push({ format: perOneBuffer.format });
+                    // colorAttachmentTargets.push({ format: perOneBuffer.format });
                 }
                 gbuffersMSAA[key] = texture;
             }
@@ -272,10 +266,10 @@ export class GBuffers {
             this.GBuffer[id].MSAA = {
                 GBuffer: gbuffersMSAA,
                 RPD_MSAA: RPD_MSAA,
-                colorAttachmentTargetsMSAA: colorAttachmentTargets,
+                colorAttachmentTargetsMSAA: getColorAttachmentTargetsOfMSAA(),
 
                 RPD_MSAAinfo: RPD_MSAAinfo,// RPD_forward,// RPD_MSAAinfo,
-                colorAttachmentTargetsMSAAinfo: MSAAinfo_colorAttachmentTargets// forward_ColorAttachmentTargets,// MSAAinfo_colorAttachmentTargets,
+                colorAttachmentTargetsMSAAinfo: getColorAttachmentTargetsOfMSAAinfo(),// MSAAinfo_colorAttachmentTargets,
             }
         }
         //defer  depth

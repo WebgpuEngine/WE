@@ -7,31 +7,6 @@ export interface I_drawCallOption {
     mergeID?: string,
     drawModeData?: I_drawMode[] | I_drawModeIndexed[],
 }
-/**
- * DrawCommand input value 
- */
-// export interface IV_BaseDrawCommand {
-//     label: string,
-//     scene: Scene,
-//     pipeline: GPURenderPipeline,
-//     vertexBuffers?: I_VertexBufferEntry[],//20260114 修改GPUBuffer[]为interface[]
-//     indexBuffer?: I_VertexBufferEntry | undefined,
-//     indexFormat?: GPUIndexFormat,
-//     uniform?: GPUBindGroup[],
-//         /**draw mode 定义
-//          * 1、有值：按照 draw mode 定义了绘制的顶点数量，实例化数量，从第几个顶点开始绘制，从第几个实例开始绘制
-//          * 2、无值判断是否有baseInfo.parent:
-//          *      A、有：从parent.getDrawModeArrayOfInstances中获取drawMode序列
-//          *      B、无：判断索引模式还是非索引模式，生成drawMode序列
-//         */
-//     drawMode: T_drawMode,
-//     viewport?: I_viewport,
-//     renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
-//     system?: {
-//         UUID: string,
-//         type: E_renderForDC,//"camera" | "light"
-//     },
-// }
 export interface IV_BaseDrawCommand {
     device: GPUDevice,
     label: string,

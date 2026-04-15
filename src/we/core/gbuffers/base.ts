@@ -11,11 +11,6 @@ import { Scene } from "../scene/scene"
 export interface I_GBuffer {
     [name: string]: GPUTexture
 };
-// /**多cameras中，多个摄像机对应的GBuffer */
-// export interface I_GBufferGroup {
-//     /**name= camera  的 id */
-//     [name: string]: I_GBuffer,
-// }
 /**GBuffer的组成描述 */
 export interface I_GBufferStruct {
     format: GPUTextureFormat,
@@ -23,6 +18,7 @@ export interface I_GBufferStruct {
     usage: number,
     uniformType?: string,
 }
+/**GBuffer的名称枚举 ,用于保障GBuffer的名称的一致性*/
 export enum E_GBufferNames {
     depth = "depth",
     color = "color",
@@ -249,68 +245,34 @@ export interface I_GBufferBundle {
     uniformGroup: T_uniformGroups,
 }
 
-/**
- * 暂未使用：20250928
- * 获取GBuffer的uniform的bundle 
- * 1、获取相机对应的texture的GBuffer的uniform的bundle
- * 2、根据相机对应的texture的GBuffer的uniform的bundle，获取相机对应的texture的GBuffer的uniform的bundle的字符串
- * 3、Map机对应的texture的GBuffer的uniform的layout
- * @param binding ：绑定的起始位置
- * @param scene ：场景
- * @param camera ：相机
- * @returns I_GBufferBundle
- */
-export function getOpacity_GBufferOfUniformOfDefer(binding: number, scene: Scene, camera: BaseCamera): I_GBufferBundle {
-    let bundle: I_GBufferBundle = {
-        binding: binding,
-        groupAndBindingString: "",
-        uniformGroup: [],
+
+export function getColorAttachmentTargetsOfToneMapping(): GPUColorTargetState[] {
+    return [{ format: V_ForwardGBufferNames[E_GBufferNames.color].format }];
+}
+export function getColorAttachmentTargetsOfForward(): GPUColorTargetState[] {
+    let colorAttachmentTargets: GPUColorTargetState[] = [];
+    for (let key in V_ForwardGBufferNames) {
+        let perOneBuffer = V_ForwardGBufferNames[key];
+        if (key != E_GBufferNames.depth) colorAttachmentTargets.push({ format: perOneBuffer.format });
     }
-    Object.entries(V_ForwardGBufferNames).forEach(([name, struct]) => {
-        let texture = scene.cameraManager.getGBufferTextureByUUID(camera.UUID, name as E_GBufferNames);
-        let uniform: GPUBindGroupEntry = {
-            binding: binding,
-            resource: texture.createView(),
-        }
-        //uniform texture layout
-        let sampleType: GPUTextureSampleType;
-        switch (name) {
-            case "depth":
-                sampleType = "depth";
-                break;
-            case "color":
-                sampleType = "float";
-                break;
-            case "id":
-                sampleType = "uint";
-                break;
-            case "RMAO":
-                sampleType = "float";
-                break;
-            case "normal":
-                sampleType = "float";
-                break;
-            case "worldPosition":
-                sampleType = "float";
-                break;
-            default:
-                throw new Error("GBuffer name not found");
-                break;
-        }
-        let uniformTextureLayout: GPUBindGroupLayoutEntry = {
-            binding: binding,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            texture: {
-                sampleType,
-                viewDimension: "2d",
-                // multisampled: false,
-            },
-        };
-        //添加到resourcesGPU的Map中
-        scene.resourcesGPU.set(uniform, uniformTextureLayout)
-        bundle.uniformGroup.push(uniform);
-        bundle.groupAndBindingString += `uniform texture2D u_${name} : binding = ${binding};\n`;
-        binding++;
-    })
-    return bundle;
+    return colorAttachmentTargets;
+}
+
+
+export function getColorAttachmentTargetsOfMSAAinfo(): GPUColorTargetState[] {
+    let colorAttachmentTargets: GPUColorTargetState[] = [];
+    for (let key in V_ForwardGBufferNames) {
+        let perOneBuffer = V_ForwardGBufferNames[key];
+        if (key != E_GBufferNames.depth && key != E_GBufferNames.color) colorAttachmentTargets.push({ format: perOneBuffer.format });
+    }
+    return colorAttachmentTargets;
+}
+
+export function getColorAttachmentTargetsOfMSAA(): GPUColorTargetState[] {
+    let colorAttachmentTargets: GPUColorTargetState[] = [];
+    for (let key in V_MsaaGBufferNames) {
+        let perOneBuffer = V_MsaaGBufferNames[key];
+        if (key != E_GBufferNames.depth) colorAttachmentTargets.push({ format: perOneBuffer.format });
+    }
+    return colorAttachmentTargets;
 }

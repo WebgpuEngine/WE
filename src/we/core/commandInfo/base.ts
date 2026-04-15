@@ -4,6 +4,7 @@ import { I_VertexBufferEntry } from "../command/BaseDrawCommand"
 import { BaseEntity } from "../entity/baseEntity"
 import { E_TransparentType } from "../material/base"
 import { BaseMaterial } from "../material/baseMaterial"
+import { E_renderPassName } from "../scene/renderManager"
 
 export interface I_weDrawStruct {
     /**
@@ -34,7 +35,8 @@ export interface I_weDrawStruct {
         traget: {
             UUID: string,
             type: E_renderForDC,//"camera" | "light"
-        }
+        },
+        renderPassName: E_renderPassName,
     },
     drawInfo: {
         viewport?: {

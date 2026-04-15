@@ -22,6 +22,7 @@ import { MD5 } from "../../reExport/md5";
 import { E_BOLBufferType } from "../bufferBlock/base";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
+import { getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA } from "../gbuffers/base";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
@@ -1503,16 +1504,24 @@ export class DrawCommandGenerator {
         DC_bindGroupLayouts: GPUBindGroupLayout[],
     } {
         //2、bindgroup部分
-
-        let DC_bindGroups: GPUBindGroup[] = [];
+        let DC_bindGroups: (GPUBindGroup | undefined)[] = [];
         let DC_bindGroupLayouts: GPUBindGroupLayout[] = [];
         let layoutNumber = 0;           //uniform的BindGroupLayout数量，最多4个
         //2.1 、获取 BindGroup 0 以及其layout。camera 和light都从各自的体系获得
         if (values.system) {
             let UUID = this.checkUUID(values);
             if (UUID) {
-                let { bindGroup, bindGroupLayout } = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(UUID, values.system.type);
-                DC_bindGroups.push(bindGroup);
+                DC_bindGroups.push(undefined);//在DC中动态绑定
+                let bindGroupLayout: GPUBindGroupLayout;
+                if (values.system.type == E_renderForDC.camera) {
+                    bindGroupLayout = this.scene.getBindGroupLayoutZeroOfCamera();
+                }
+                else if (values.system.type == E_renderForDC.light) {
+                    bindGroupLayout = this.scene.getBindGroupLayoutZeroOfLight();
+                }
+                else {
+                    throw new Error("system type not support");
+                }
                 DC_bindGroupLayouts.push(bindGroupLayout);
                 layoutNumber++;
             }
@@ -1840,18 +1849,6 @@ export class DrawCommandGenerator {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;
                     }
                     else {
-                        // let FS_SHT = (values.render.fragment.code as I_ShaderTemplate_Final);
-                        // if (FS_SHT) {
-                        //     codeFS = this.convertSHT2ShaderCode(FS_SHT);
-                        // }
-                        // else {
-                        //     throw new Error("fragment code SHT模板中material不能为空");
-                        // }
-                        // flagFS = "fs"
-                        // moduleFS = this.device.createShaderModule({
-                        //     label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
-                        //     code: codeFS,
-                        // })
                         moduleFS = this.createShaderModule(values);
                         this.resources.shaderModuleOfString.set(nameOfMaterial, moduleFS);
                     }
@@ -1866,20 +1863,14 @@ export class DrawCommandGenerator {
             }
             //如果没有指定targets,则使用默认的targets
             else if (values.system && values.render.fragment.targets == undefined) {//获取camera CATs
-                let UUID = this.checkUUID(values);
-                if (UUID) {
-                    if (this.MSAA) {
-                        if (values.system.MSAA != undefined)
-                            targets = this.scene.getColorAttachmentTargets(UUID, values.system.type, values.system.MSAA);
-                        else
-                            throw new Error("MSAA渲染,需要在system中指定MSAA");
-                    }
+                if (this.MSAA) {
+                    if (values.system.MSAA != undefined)
+                        targets = getColorAttachmentTargetsOfMSAA();
                     else
-                        targets = this.scene.getColorAttachmentTargets(UUID, values.system.type);
+                        throw new Error("MSAA渲染,需要在system中指定MSAA");
                 }
                 else
-                    // console.error("获取UUID失败");
-                    this.errorUUID();
+                    targets = getColorAttachmentTargetsOfForward();
             }
             else {
                 throw new Error("fragment targets 为空或未设置DCG生成参数种的获取途径。");
@@ -2010,10 +2001,7 @@ export class DrawCommandGenerator {
             values.render.primitive?.cullMode as string,
             values.render.primitive?.stripIndexFormat as string,
             values.render.primitive?.frontFace as string,
-            // unclipped:values.render.primitive?.unclipped
-            //depthStencil
             depthStencilFlag,
-            //multisample
             multisampleFlag,
         ]
         let nameOfCacheFlag = cacheFlag.toString();

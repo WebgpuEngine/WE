@@ -321,7 +321,7 @@ export class Scene {
         size?: I_BolSize,
         /** BOL重建百分比 */
         rebuildPecent?: I_BolRebulidPercent,
-    }|undefined ;
+    } | undefined;
 
     constructor(value: IV_Scene) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -937,213 +937,159 @@ export class Scene {
     getSystemBindGroupAndBindGroupLayoutForZero(UUID: string, kind: E_renderForDC): I_bindGroupAndGroupLayout {
         let bindGroup: GPUBindGroup;
         let bindGroupLayout: GPUBindGroupLayout;
-        let generate = true;
-        if (this.resourcesGPU.systemGroup0ByID.has(UUID)) {
-            bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID)!;
-            if (this.resourcesGPU.systemGroupToGroupLayout.has(bindGroup)) {
-                bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup)!;
-                generate = false;
-            }
+        if (kind == E_renderForDC.light) {
+            bindGroupLayout = this.getBindGroupLayoutZeroOfLight();
+            bindGroup = this.getBindGroupZeroOfLight(UUID);
         }
-        let systemUniform: T_uniformGroups;
-        let entriesGroupLayout: GPUBindGroupLayoutEntry[] = []
-        let entriesGroup: GPUBindGroupEntry[] = [];
-        if (generate) {
-            let workFor = "";
-            if (kind == E_renderForDC.light) {
-                workFor = " light ";
-                let light = this.lightsManager.getLightByMergeID(UUID);
-                // return this.lightsManager.getLightBindGroupAndBindGroupLayoutByMergeID(id);
-                let mvpGPUBuffer = this.lightsManager.getOneLightMVP_ByMergeID(UUID);
-                if (!mvpGPUBuffer) {
-                    throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,mvpGPUBuffer is undefined");
-                }
-                ////////////////////////////////
-                //camera uniform 
-                let uniformMVP: GPUBindGroupEntry = {
-                    binding: 0,
-                    resource: {
-                        buffer: mvpGPUBuffer,//更新在perlight的updateSelf()中更新MVP,lightmanager.updateSytemUniformOfShadowMap()更结构中的GPUBuffer
-                    }
-                };
-                let uniformMVPLayout: GPUBindGroupLayoutEntry = {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: {
-                        type: "uniform"
-                    }
-                };
-                entriesGroupLayout.push(uniformMVPLayout);
-                entriesGroup.push(uniformMVP);
-
-            }
-            else {
-                workFor = " camera ";
-                let camera = this.cameraManager.getCameraByUUID(UUID);
-                if (camera) {
-                    /////////////////////////////////
-                    //保留，Map操作
-                    // if (this.resourcesGPU.systemGroup0ByID.has(UUID)) {
-                    //     bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID)!;
-                    //     if(!bindGroup){
-                    //         throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,bindGroup is undefined");
-                    //     }
-                    //     bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup)!;
-                    //     if(!bindGroupLayout){
-                    //         throw new Error("getSystemBindGroupAndBindGroupLayoutForZero error,bindGroupLayout is undefined");
-                    //     }
-                    // }
-                    // else 
-                    {
-                        ////////////////////////////////
-                        //camera uniform 
-                        let uniformMVP: GPUBindGroupEntry = {
-                            binding: 0,
-                            resource: {
-                                buffer: camera.systemUniformBuffersOfGPU,//更新在perlight的updateSelf（）中
-                            }
-                        };
-                        let uniformMVPLayout: GPUBindGroupLayoutEntry = {
-                            binding: 0,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: {
-                                type: "uniform"
-                            }
-                        };
-                        entriesGroupLayout.push(uniformMVPLayout);
-                        entriesGroup.push(uniformMVP);
-                        ////////////////////////////////////
-                        //lights uniform 
-                        let uniformLights: GPUBindGroupEntry = {
-                            binding: 1,
-                            resource: {
-                                buffer: this.lightsManager.getLightsUniformForSystem(),//更新在lightManager.update()
-                            }
-                        };
-                        let uniformLightsLayout: GPUBindGroupLayoutEntry = {
-                            binding: 1,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: {
-                                type: "uniform"
-                            }
-                        };
-                        entriesGroupLayout.push(uniformLightsLayout);
-                        entriesGroup.push(uniformLights);
-
-                        //////////////////////////////////
-                        //shadow map matrix uniform 
-                        let shadowMapMatrix: GPUBindGroupEntry = {
-                            binding: 2,
-                            resource: {
-                                buffer: this.lightsManager.getShadowMapUniformForSystem(),//更新在lightManager.update()
-                            }
-                        };
-                        let shadowMapMatrixLayout: GPUBindGroupLayoutEntry = {
-                            binding: 2,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: {
-                                type: "uniform"
-                            }
-                        };
-                        entriesGroupLayout.push(shadowMapMatrixLayout);
-                        entriesGroup.push(shadowMapMatrix);
-
-                        //////////////////////////////////
-                        //shadow map depth texture
-                        let shadowMapTextures: GPUBindGroupEntry = {
-                            binding: 3,
-                            resource: this.lightsManager.shadowMapTexture.createView({ dimension: "2d-array" }),
-
-                        };
-                        let shadowMapTexturesLayout: GPUBindGroupLayoutEntry = {
-                            binding: 3,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            texture: {
-                                sampleType: "depth",
-                                viewDimension: "2d-array",
-                                multisampled: false,
-                            }
-                        };
-                        entriesGroupLayout.push(shadowMapTexturesLayout);
-                        entriesGroup.push(shadowMapTextures);
-
-                        //////////////////////////////////
-                        //shadow map sampler 
-                        let samplerName = "system shadow map sampler : less ";
-                        let sampler: GPUSampler;
-                        let samplerLayout: GPUSamplerBindingLayout;
-                        if (this.resourcesGPU.samplerOfString.has(samplerName)) {
-                            sampler = this.resourcesGPU.samplerOfString.get(samplerName)!;
-                            samplerLayout = this.resourcesGPU.samplerToBindGroupLayoutEntry.get(sampler)!;
-                        }
-                        else {
-                            if (this.reversedZ.isReversedZ === true) {
-                                sampler = this.device.createSampler({
-                                    compare: "greater-equal",
-                                });
-                            }
-                            else {
-                                sampler = this.device.createSampler({
-                                    compare: 'less',
-                                });
-                            }
-                            this.resourcesGPU.samplerOfString.set(samplerName, sampler);
-                            samplerLayout = {
-                                type: "comparison"
-                            }
-                            this.resourcesGPU.samplerToBindGroupLayoutEntry.set(sampler, samplerLayout);
-                        }
-                        if (!sampler || !samplerLayout) {
-                            throw new Error("shadow map sampler or sampler layout is underfined")
-                        }
-                        let shadowMapSampler: GPUBindGroupEntry = {
-                            binding: 4,
-                            resource: sampler
-
-                        };
-                        let shadowMapSamplerayout: GPUBindGroupLayoutEntry = {
-                            binding: 4,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            sampler: samplerLayout
-                        };
-                        entriesGroupLayout.push(shadowMapSamplerayout);
-                        entriesGroup.push(shadowMapSampler);
-                        // //////////////////////////////////////////////////
-                        // //bind group zero  保留，Map操作
-                        // let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                        //     entries: entriesGroupLayout
-                        // }
-                        // bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
-
-                        // let bindGroupDescriptor: GPUBindGroupDescriptor = {
-                        //     layout: bindGroupLayout,
-                        //     entries: entriesGroup
-                        // }
-                        // bindGroup = this.device.createBindGroup(bindGroupDescriptor);
-                        // this.resourcesGPU.systemGroup0ByID.set(UUID, bindGroup);
-                        // this.resourcesGPU.systemGroupToGroupLayout.set(bindGroup, bindGroupLayout);
-                    }
-                }
-                else
-                    throw new Error("获取Camera失败");
-            }
-            //////////////////////////////////////////////////
-            //bind group zero 
-            let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
-                label: "System BGLD(0)@" + this.clock.now + workFor + UUID,
-                entries: entriesGroupLayout
-            }
-            bindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
-            let bindGroupDescriptor: GPUBindGroupDescriptor = {
-                label: "System BGD(0)@" + this.clock.now + workFor + UUID,
-                layout: bindGroupLayout,
-                entries: entriesGroup
-            }
-            bindGroup = this.device.createBindGroup(bindGroupDescriptor);
-            this.resourcesGPU.systemGroup0ByID.set(UUID, bindGroup);
-            this.resourcesGPU.systemGroupToGroupLayout.set(bindGroup, bindGroupLayout);
+        else if (kind == E_renderForDC.camera) {
+            bindGroupLayout = this.getBindGroupLayoutZeroOfCamera();
+            bindGroup = this.getBindGroupZeroOfCamera(UUID);
         }
         return { bindGroup: bindGroup!, bindGroupLayout: bindGroupLayout! };
+    }
+    _bindGroupLayoutZeroOfCamera!: GPUBindGroupLayout;
+    _bindGroupZeroOfCamera: { [key: string]: GPUBindGroup } = {};
+    getBindGroupLayoutZeroOfCamera(): GPUBindGroupLayout {
+        if (this._bindGroupLayoutZeroOfCamera === undefined) {
+            let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+                label: "System BGLD(0) Camera",
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        texture: {
+                            sampleType: "depth",
+                            viewDimension: "2d-array",
+                            multisampled: false,
+                        }
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        sampler: {
+                            type: "comparison"
+                        }
+                    }
+                ]
+            }
+            this._bindGroupLayoutZeroOfCamera = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+        }
+        return this._bindGroupLayoutZeroOfCamera;
+    }
+    getBindGroupZeroOfCamera(UUID: string): GPUBindGroup {
+        if (this._bindGroupZeroOfCamera[UUID] == undefined) {
+            let camera = this.cameraManager.getCameraByUUID(UUID);
+            if (camera) {
+                let entriesGroup: GPUBindGroupEntry[] = [
+                    { //camera uniform MVP
+                        binding: 0,
+                        resource: {
+                            buffer: camera.systemUniformBuffersOfGPU,//更新在perlight的updateSelf（）中
+                        }
+                    },
+                    { //lights uniform 
+                        binding: 1,
+                        resource: {
+                            buffer: this.lightsManager.getLightsUniformForSystem(),//更新在lightManager.update()
+                        }
+                    },
+                    {//shadow map matrix uniform 
+                        binding: 2,
+                        resource: {
+                            buffer: this.lightsManager.getShadowMapUniformForSystem(),//更新在lightManager.update()
+                        }
+                    },
+                    { //shadow map depth texture
+                        binding: 3,
+                        resource: this.lightsManager.shadowMapTexture.createView({ dimension: "2d-array" }),
+                    },
+                    {//shadow map sampler 
+                        binding: 4,
+                        resource:
+                            this.reversedZ.isReversedZ ?
+                                this.device.createSampler({
+                                    compare: "greater-equal",
+                                })
+                                :
+                                this.device.createSampler({
+                                    compare: 'less',
+                                })
+                    }
+                ];
+                let bindGroupDescriptor: GPUBindGroupDescriptor = {
+                    label: "System BGD(0) Camera:" + UUID,
+                    layout: this.getBindGroupLayoutZeroOfCamera(),
+                    entries: entriesGroup,
+                }
+                this._bindGroupZeroOfCamera[UUID] = this.device.createBindGroup(bindGroupDescriptor);
+            }
+            else
+                throw new Error("获取Camera失败");
+        }
+        return this._bindGroupZeroOfCamera[UUID];
+    }
+    _bindGroupLayoutZeroOfLight!: GPUBindGroupLayout;
+    _bindGroupZeroOfLight: { [key: string]: GPUBindGroup } = {};
+    getBindGroupLayoutZeroOfLight(): GPUBindGroupLayout {
+        if (this._bindGroupLayoutZeroOfLight === undefined) {
+            let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
+                label: "System BGLD(0) Light",
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                        buffer: {
+                            type: "uniform"
+                        }
+                    }
+                ]
+            }
+            this._bindGroupLayoutZeroOfLight = this.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+        }
+        return this._bindGroupLayoutZeroOfLight;
+    }
+    getBindGroupZeroOfLight(UUID: string): GPUBindGroup {
+        if (this._bindGroupZeroOfLight[UUID] == undefined) {
+            let mvpGPUBuffer = this.lightsManager.getOneLightMVP_ByMergeID(UUID);
+            if (!mvpGPUBuffer) {
+                throw new Error("getBindGroup0OfLight error,mvpGPUBuffer is undefined");
+            }
+            let bindGroupDescriptor: GPUBindGroupDescriptor = {
+                label: "System BGD(0) Light:" + UUID,
+                layout: this.getBindGroupLayoutZeroOfLight(),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: mvpGPUBuffer,//更新在perlight的updateSelf()中更新MVP,lightmanager.updateSytemUniformOfShadowMap()更结构中的GPUBuffer
+                        }
+                    }
+                ]
+            }
+            this._bindGroupZeroOfLight[UUID] = this.device.createBindGroup(bindGroupDescriptor);
+        }
+        return this._bindGroupZeroOfLight[UUID];
     }
     /**
      * 1、 刷新系统BindGroup和BindGroupLayout
@@ -1151,15 +1097,17 @@ export class Scene {
      * 2、重建deferRender的DC
      */
     refreshSystemBindGroupAndBindGroupLayoutZeroForCamera() {
+        this._bindGroupZeroOfCamera = {};
         for (let perCamera of this.cameraManager.list) {
-            let UUID = perCamera.UUID;
-            let kind: E_renderForDC = E_renderForDC.camera;
-            let bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID);
-            // let bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup!);
-            this.resourcesGPU.systemGroupToGroupLayout.delete(bindGroup!);
-            this.resourcesGPU.systemGroup0ByID.delete(UUID);
-            this.getSystemBindGroupAndBindGroupLayoutForZero(UUID, kind);
-            bindGroup = undefined;
+            // let UUID = perCamera.UUID;
+            // let kind: E_renderForDC = E_renderForDC.camera;
+            // let bindGroup = this.resourcesGPU.systemGroup0ByID.get(UUID);
+            // // let bindGroupLayout = this.resourcesGPU.systemGroupToGroupLayout.get(bindGroup!);
+            // this.resourcesGPU.systemGroupToGroupLayout.delete(bindGroup!);
+            // this.resourcesGPU.systemGroup0ByID.delete(UUID);
+            // this.getSystemBindGroupAndBindGroupLayoutForZero(UUID, kind);
+            // bindGroup = undefined;
+            this.getBindGroupZeroOfCamera(perCamera.UUID);
         }
         this.cameraManager.deferDCG.clear();
         for (let perCamera of this.cameraManager.list) {
@@ -1200,42 +1148,42 @@ export class Scene {
                 throw new Error("获取RPD失败");
         }
     }
-    /**
-     * 获取颜色附件目标，DCG使用
-     * @param UUID 
-     * @param kind 
-     * @returns GPUColorTargetState[]
-     */
-    getColorAttachmentTargets(UUID: string, kind: E_renderForDC, _MSAA?: T_rpdInfomationOfMSAA): GPUColorTargetState[] {
-        if (kind == E_renderForDC.camera) {
-            if (this.MSAA) {
-                if (_MSAA == undefined)
-                    throw new Error("MSAA渲染,需要在system中指定MSAA");
-                else {
-                    if (_MSAA == "MSAA")
-                        return this.cameraManager.getColorAttachmentTargetsMSAA(UUID);
-                    else {
-                        return this.cameraManager.getColorAttachmentTargetsMSAAinfo(UUID);
-                    }
-                }
-            }
-            else {
-                let CATs = this.cameraManager.getColorAttachmentTargetsByUUID(UUID)
-                if (CATs)
-                    return CATs;
-                else
-                    throw new Error("获取ColorAttachmentTargets失败");
-            }
-        }
-        else {//depth没有GPUColorTargetState，不会产生此调用；透明的有GPUColorTargetState
-            let CATs = this.lightsManager.getColorAttachmentTargetsByMergeID(UUID)
-            if (CATs)
-                return CATs;
-            else
-                throw new Error("获取ColorAttachmentTargets失败");
-        }
-    }
-
+    // /**
+    //  * 获取颜色附件目标，DCG使用
+    //  * @param UUID 
+    //  * @param kind 
+    //  * @returns GPUColorTargetState[]
+    //  */
+    // getColorAttachmentTargets(UUID: string, kind: E_renderForDC, _MSAA?: T_rpdInfomationOfMSAA): GPUColorTargetState[] {
+    //     if (kind == E_renderForDC.camera) {
+    //         if (this.MSAA) {
+    //             if (_MSAA == undefined)
+    //                 throw new Error("MSAA渲染,需要在system中指定MSAA");
+    //             else {
+    //                 if (_MSAA == "MSAA")
+    //                     return this.cameraManager.getColorAttachmentTargetsMSAA(UUID);
+    //                 else {
+    //                     return this.cameraManager.getColorAttachmentTargetsMSAAinfo(UUID);
+    //                 }
+    //             }
+    //         }
+    //         else {
+    //             let CATs = this.cameraManager.getColorAttachmentTargetsByUUID(UUID)
+    //             if (CATs)
+    //                 return CATs;
+    //             else
+    //                 throw new Error("获取ColorAttachmentTargets失败");
+    //         }
+    //     }
+    //     else {//depth没有GPUColorTargetState，不会产生此调用；透明的有GPUColorTargetState
+    //         let CATs = this.lightsManager.getColorAttachmentTargetsByMergeID(UUID)
+    //         if (CATs)
+    //             return CATs;
+    //         else
+    //             throw new Error("获取ColorAttachmentTargets失败");
+    //     }
+    // }
+  
     /**
      * scene的system的shader模板格式化
      * 1、只有camera会调用；
