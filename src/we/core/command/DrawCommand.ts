@@ -11,7 +11,7 @@ import { BaseDrawCommand, I_drawCallOption, IV_BaseDrawCommand } from "./BaseDra
 
 
 
-interface I_DrawInputValueMaterial {
+export interface I_DrawInputValueMaterial {
     /**material 所有者 */
     owner: BaseMaterial,
     /**material类型 
@@ -24,7 +24,7 @@ interface I_DrawInputValueMaterial {
     dynamic: boolean
 }
 interface I_DrawInputValueTarget {
-    UUID: string,
+    UUID?: string,
     type: E_renderForDC,//"camera" | "light"
 }
 /**
@@ -42,8 +42,9 @@ export interface IV_DrawCommand extends IV_BaseDrawCommand {
         material?: I_DrawInputValueMaterial
         /**draw 目标，
          * 1、有值：camera或light
+         * 2、无值：NDC等
          */
-        traget: I_DrawInputValueTarget
+        traget?: I_DrawInputValueTarget
     },
 }
 
@@ -88,40 +89,22 @@ export class DrawCommand extends BaseDrawCommand {
 
         this._isDestroy = true;
     }
-
-    override update(): GPUCommandBuffer {
-        /**
-         * 目标：
-         * 1、为DC绑定camera的bindGroup0（动态增加光源的阴影贴图后，shadowmap textture 会重建，原来绑定的会失效）
-         * 2、透明的shadowmap渲染，预计也可能有类似的问题。（如果是copy 到公用的uniform depth texture的方式，应该没有此问题）todo
-         */
-        if (this.traget && this.traget.type === E_renderForDC.camera) {
-            let bindGroupBundle = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.traget.UUID, this.traget.type);
-            this.bindGroups[0] = bindGroupBundle.bindGroup;
-        }
-        // 如果有parent(entity)，则绑定parent的bindGroup0; PP的DC也有parent
-        if (this.parent !== undefined && this.parent.type === "entity") {
-            let bindGroupBundle = this.parent.getBindGroupAndBindGroupLayout();
-            this.bindGroups[1] = bindGroupBundle.bindGroup;
-
-            if (this.traget && this.traget.type == E_renderForDC.camera) {
-                if (this.label.includes("wireframe")) {
-                    if ((this.parent as Mesh)._materialWireframe) {
-                        let { bindGroup, bindGroupLayout } = (this.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
-                        this.bindGroups[2] = bindGroup;
-                    }
-                }
-                else {
-                    if ((this.parent as EntityBundleMaterial)._material) {
-                        let { bindGroup, bindGroupLayout } = (this.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout();
-                        this.bindGroups[2] = bindGroup;
-                    }
-                }
-            }
-        }
-        return super.update();
+    override dowhole() {
+        let device = this.device;
+            const commandEncoder = device.createCommandEncoder({ label: this.label });
+            this.doWithRPD(commandEncoder);
+            const commandBuffer = commandEncoder.finish();
+            return commandBuffer;
     }
-    // override doDraw(passEncoder: GPURenderPassEncoder) {
+    override doWithRPD(commandEncoder: GPUCommandEncoder) {
+        if (this.renderPassDescriptor == undefined) {
+            let rpd = this.scene.getRenderPassDescriptor(this.traget.UUID, this.traget.type);
+            let passEncoder: GPURenderPassEncoder = commandEncoder.beginRenderPass(rpd);
+
+            this.doWithPipeline(passEncoder);
+            passEncoder.end();
+        }
+    }
     override  doDraw(option: I_drawCallOption) {
         let passEncoder = option.passEncoder;
         for (let i in this.vertexBuffers) {
@@ -138,13 +121,50 @@ export class DrawCommand extends BaseDrawCommand {
             passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
         }
 
+        if (this.traget == undefined) {
+            for (let i in this.bindGroups) {
+                passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+            }
+        }
+        else if (this.inputValues.baseInfo?.traget
+            // && option.mergeID
+        ) {
+            for (let i in this.bindGroups) {
+                if (i == '0') {
+                    let group0;
+                    if (option.mergeID !== undefined)  //renderManager 运行时传入的UUID
+                        group0 = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(option.mergeID, this.traget.type).bindGroup;
+                    else if (this.traget.UUID !== undefined)//DCG 创建DC 初始化传入的UUID
+                        group0 = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(this.traget.UUID, this.traget.type).bindGroup;
+                    else {
+                        throw new Error("DrawCommand doDraw: traget.UUID is undefined , mergeID is undefined");
+                    }
+                    passEncoder.setBindGroup(parseInt(i), group0);
+                }
+                else if (i == '1') {
+                    if (this.parent !== undefined)
+                        passEncoder.setBindGroup(parseInt(i), this.parent.getBindGroupAndBindGroupLayout().bindGroup);
+                    else
+                        passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                }
+                else if (i == '2') {
+                    if (this.material !== undefined)
+                        passEncoder.setBindGroup(parseInt(i), this.material!.owner.getBindGroupAndBindGroupLayout().bindGroup);
+                    else
+                        passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                }
+                else if (i == '3') {
+                    passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                }
+            }
+        }
+        else {
+            throw new Error("DrawCommand doDraw: traget is undefined and mergeID is undefined");
+        }
         if (option.renderPassName && option.mergeID && option.drawModeData) {
             throw new Error("Method not implemented");
         }
         else {
-            for (let i in this.bindGroups) {
-                passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
-            }
             // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
             if (typeof this.drawMode === "function") {
                 if (this.traget !== undefined) {

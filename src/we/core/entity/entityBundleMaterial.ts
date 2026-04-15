@@ -761,9 +761,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             },
             system: {
                 UUID,
-                type: renderType
+                type: renderType,
+                parent: scope,
             },
             parent: scope,
+
             IDS: {
                 UUID: scope.UUID,
                 ID: scope.ID,

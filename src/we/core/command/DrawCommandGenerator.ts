@@ -7,7 +7,7 @@
 import { Scene } from "../scene/scene";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
 import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
-import { DrawCommand, IV_DrawCommand } from "./DrawCommand";
+import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { AA } from "../scene/base";
@@ -16,7 +16,7 @@ import { BaseCamera } from "../camera/baseCamera";
 import { E_TransparentType, I_TransparentOptionOfMaterial } from "../material/base";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
-import { I_IndexBufferEntry, I_VertexBufferEntry } from "./BaseDrawCommand";
+import { BaseDrawCommand, I_IndexBufferEntry, I_VertexBufferEntry } from "./BaseDrawCommand";
 import { I_pointerCreateParams, I_pointerStruct, Pointers, T_pointerDataType } from "../bufferBlock/pointer";
 import { MD5 } from "../../reExport/md5";
 import { E_BOLBufferType } from "../bufferBlock/base";
@@ -277,20 +277,20 @@ export interface IV_DC {
      * 没有system：NDC模式
      */
     system?: {
-        /**
-         * camera可以不设置ID，使用default camera
-         */
-        UUID?: string,
         type: E_renderForDC,//"camera" | "light"
+        /** DC的UUID从renderManager运行时获取，可以不设置ID*/
+        UUID?: string,
         MSAA?: T_rpdInfomationOfMSAA,
+        /**
+         * DC的parent，
+         * 1、entity的bindGroup占用bindGroup1的位置；
+         * 2、如果存在parent，bindgroup和bindgrouplayout通过parent.getBindGroupAndBindGroupLayout()获取
+         * 2、如果没有父实体，则entity的bindGroup使用data中的uniform数据生成bindgroup；同时layout 通过cache获取
+         */
+        parent?: BaseEntity,
+        material?: I_DrawInputValueMaterial,
     },
-    /**
-     * DC的parent，
-     * 1、entity的bindGroup占用bindGroup1的位置；
-     * 2、如果存在parent，bindgroup和bindgrouplayout通过parent.getBindGroupAndBindGroupLayout()获取
-     * 2、如果没有父实体，则entity的bindGroup使用data中的uniform数据生成bindgroup；同时layout 通过cache获取
-     */
-    parent?: BaseEntity,
+
     /**
      * 渲染RPD描述符，
      * 1、如果有同级别中的system存在，则按照camera或light，去scene中获取
@@ -401,7 +401,7 @@ export class DrawCommandGenerator {
      * @param values 
      * @returns 
      */
-    generateDrawCommand(values: IV_DC): DrawCommand {
+    generateDrawCommand(values: IV_DC): BaseDrawCommand {
         this.inputDC.push(values);//保存每个DC的init参数，为了后续的更新uniform使用（如果其中有update选项）
         //1、buffer资源
         let { DC_vertexBuffers, DC_indexBuffer, DC_vertexNames, DC_localtions, DC_verticesBufferLayout } = this.initVertexPart(values);
@@ -416,58 +416,10 @@ export class DrawCommandGenerator {
         //4、pipeline 部分
         let pipeline = this.initPipeLine(values, { vs: vertex, name: vertexName }, { fs: fragment, name: fragmentName }, DC_bindGroupLayouts);
 
-        //4、GPURenderPassDescriptor
-        let renderPassDescriptor = () => {
-            let renderPassDescriptor: GPURenderPassDescriptor;
-            //1、如果有rpd描述。
-            if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor != "function") {
-                renderPassDescriptor = values.renderPassDescriptor;
-            }
-            //2、如果有rpd函数。
-            else if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor == "function") {
-                renderPassDescriptor = values.renderPassDescriptor();
-            }
-            //3\ 增加一个MSAA 的NDC
-            else if (this.scene.finalTarget.NDC == true && values.system?.MSAA) {
-                // if (values.system?.MSAA)
-                renderPassDescriptor = this.scene.getRenderPassDescriptorForNDC();
-            }
-            //4、如果没有rpd描述，且有system。
-            else if (values.system && values.renderPassDescriptor == undefined) {
-                let UUID = this.checkUUID(values);
-                if (UUID) {
-                    if (this.MSAA) {
-                        // if (values.system.MSAA != undefined)
-                        renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
-                        // else
-                        //     throw new Error("MSAA渲染,需要在system中指定MSAA");
-                    }
-                    else
-                        renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type);
-                }
-                else {
-                    this.errorUUID();// throw new Error("获取UUID失败");
-                }
-            }
-            //5、NDC，raw模式
-            else {
-                renderPassDescriptor = this.scene.getRenderPassDescriptorForNDC();
-            }
-            return renderPassDescriptor!;
-        }
+
+
 
         //5、传参，生产DC
-        // let commandOption: IV_DrawCommand = {
-        //     scene: this.scene,
-        //     device: this.device,
-        //     pipeline,
-        //     vertexBuffers: DC_vertexBuffers,
-        //     drawMode: values.render.drawMode,
-        //     label: values.label,
-        //     uniform: DC_bindGroups,
-        //     renderPassDescriptor,
-        //     // dynamic: values.dynamic || false,
-        // }
         let commandOption: IV_DrawCommand = {
             device: this.device,
             scene: this.scene,
@@ -478,34 +430,10 @@ export class DrawCommandGenerator {
                 vertexBuffers: DC_vertexBuffers,
                 //  indexBuffer: DC_indexBuffer,
                 bindGroups: DC_bindGroups,
-                renderPassDescriptor,
             },
             baseInfo: {},
         }
-
-        //5.1 为了适配动态增加光源后的阴影贴图的动态更新。
-        //在BaseDrawCommand.doEncoder()中，会动态绑定system0
-        if (values.system) {
-            let UUID = this.checkUUID(values);
-            if (UUID) {
-                commandOption.baseInfo!.traget = {
-                    UUID,
-                    type: values.system.type,
-                }
-            }
-        }
-
-        //5.2 传输ID
-        // if (values.IDS) {
-        //     commandOption.IDS = values.IDS;
-        // }
-        //5.3 传输transparentType。（20251206 未在DC中发现具有使用情况，应该是早期参数，暂时保留）
-        // if (values.transparent) {
-        //     if (values.transparent.type) {
-        //         commandOption.transparentType = values.transparent.type;
-        //     }
-        // }
-        //5.4 viewport
+        // viewport
         if (values.render.viewport) commandOption.drawInfo.viewport = values.render.viewport;
         else {
             let camera = this.getCamera(values);
@@ -513,47 +441,87 @@ export class DrawCommandGenerator {
                 commandOption.drawInfo.viewport = camera.viewport;
             }
         }
-        //20260403 注释掉 dynamicUniform 参数
-        ////5.5 动态bindGroup情况，如果dynamicUniform参数，DC会根据dynamicUniform参数，动态绑定bindGroup。
-        // if (values.dynamic && values.dynamic.fs === true) {
-        //     /**
-        //      * 动态uniform，每帧都需要更新的uniform，例如：视频纹理的External模式，也可以扩展。
-        //      * 1、如果有system，dynamicUniform 是material的uniform，数组下标=2
-        //      * 2、如果没有system，dynamicUniform 是当前uniform，数组下标=0
-        //      */
-        //     let layoutNumber = 0;
-        //     if (values.system) {
-        //         layoutNumber = 2;
-        //     }
-        //     commandOption.dynamicUniform = {
-        //         //全部bindGroupLayout
-        //         bindGroupLayout: DC_bindGroupLayouts,
-        //         //适用传入的uniform，从2开始，即不包括(system0，entity1),只包括material2及之后的uniform3
-        //         bindGroupsUniform: values.data.uniforms!,
-        //         //指定动态组的序号
-        //         layoutNumber: layoutNumber,
-        //     };
-        // }
-        //5.6 indexBuffer
+        // indexBuffer
         if (DC_indexBuffer) {
             commandOption.drawInfo.indexBuffer = DC_indexBuffer;
             if ("buffer" in values.data.indices!) {
                 commandOption.drawInfo.indexFormat = values.data.indices.format;
             }
         }
-        //5.7 parent 
-        if (values.parent) {
-            commandOption.baseInfo!.parent = values.parent;
-        }
-        // if (values.parent !== undefined) {
-        //     commandOption.baseInfo!.parent = values.parent;
+        // // parent 
+        // if (values.system?.parent) {
+        //     commandOption.baseInfo!.parent = values.system?.parent;
         // }
-        if (values.material) {
-            commandOption.baseInfo!.material = values.material;
+        // // material
+        // if (values.material) {
+        //     commandOption.baseInfo!.material = values.material;
+        // }
+        //5.1 为了适配动态增加光源后的阴影贴图的动态更新。
+        //在BaseDrawCommand.doEncoder()中，会动态绑定system0
+        if (values.system) {
+            if (values.system.parent) {
+                commandOption.baseInfo!.parent = values.system.parent;
+            }
+            // material
+            if (values.system.material) {
+                commandOption.baseInfo!.material = values.system.material;
+            }
+            let UUID = this.checkUUID(values);
+            if (UUID) {
+                commandOption.baseInfo!.traget = {
+                    UUID,
+                    type: values.system.type,
+                }
+            }
+            //6 创建DC
+            let drawCommand = new DrawCommand(commandOption);
+            return drawCommand;
         }
-        //6 创建DC
-        let drawCommand = new DrawCommand(commandOption);
-        return drawCommand;
+        else {
+            //4、GPURenderPassDescriptor
+            let renderPassDescriptor = () => {
+                let renderPassDescriptor: GPURenderPassDescriptor;
+                //1、如果有rpd描述。
+                if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor != "function") {
+                    renderPassDescriptor = values.renderPassDescriptor;
+                }
+                //2、如果有rpd函数。
+                else if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor == "function") {
+                    renderPassDescriptor = values.renderPassDescriptor();
+                }
+                //3\ 增加一个MSAA 的NDC
+                else if (this.scene.finalTarget.NDC == true && values.system?.MSAA) {
+                    // if (values.system?.MSAA)
+                    renderPassDescriptor = this.scene.getRenderPassDescriptorForNDC();
+                }
+                //4、如果没有rpd描述，且有system。
+                else if (values.system && values.renderPassDescriptor == undefined) {
+                    let UUID = this.checkUUID(values);
+                    if (UUID) {
+                        if (this.MSAA) {
+                            // if (values.system.MSAA != undefined)
+                            renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
+                            // else
+                            //     throw new Error("MSAA渲染,需要在system中指定MSAA");
+                        }
+                        else
+                            renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type);
+                    }
+                    else {
+                        this.errorUUID();// throw new Error("获取UUID失败");
+                    }
+                }
+                //5、NDC，raw模式
+                else {
+                    renderPassDescriptor = this.scene.getRenderPassDescriptorForNDC();
+                }
+                return renderPassDescriptor!;
+            }
+            commandOption.drawInfo.renderPassDescriptor = renderPassDescriptor;
+            //6 创建DC
+            let drawCommand = new BaseDrawCommand(commandOption);
+            return drawCommand;
+        }
     }
 
     /**
@@ -841,14 +809,14 @@ export class DrawCommandGenerator {
 
     formatLocationStringOfAttribute(values: IV_DC, location: number, name: string, format: string): string {
         //@location(4) @interpolate(flat) entityID : u32,
-        // if (values.parent && values.parent.locationInterpolate) {
-        //     if (values.parent.locationInterpolate.all) {
-        //         return `@location(${location}) @interpolate(${values.parent.locationInterpolate.all.type},${values.parent.locationInterpolate.all.sampling}) ${name} : ${format} ,`;
+        // if (values.system?.parent && values.system?.parent.locationInterpolate) {
+        //     if (values.system?.parent.locationInterpolate.all) {
+        //         return `@location(${location}) @interpolate(${values.system?.parent.locationInterpolate.all.type},${values.system?.parent.locationInterpolate.all.sampling}) ${name} : ${format} ,`;
         //     }
         //     else {
-        //         for (let key in values.parent.locationInterpolate) {
+        //         for (let key in values.system?.parent.locationInterpolate) {
         //             if (key == name) {
-        //                 return `@location(${location}) @interpolate(${values.parent.locationInterpolate[key].type},${values.parent.locationInterpolate[key].sampling}) ${name} : ${format} ,`;
+        //                 return `@location(${location}) @interpolate(${values.system?.parent.locationInterpolate[key].type},${values.system?.parent.locationInterpolate[key].sampling}) ${name} : ${format} ,`;
         //             }
         //         }
         //     }
@@ -973,7 +941,7 @@ export class DrawCommandGenerator {
                         // else {
                         //     vertexBuffer = this.resources.verticesDynamic.get(value) as GPUBuffer;
                         // }
-                        if (values.parent) values.parent.vertexPointers[lowKey] = { gpuBuffer: vertexBuffer };
+                        if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { gpuBuffer: vertexBuffer };
 
                         // vertexBuffer = pointerOfVertex.gpuBufferView;
                         vertexBufferEntry = {
@@ -1037,8 +1005,8 @@ export class DrawCommandGenerator {
                     locationString += this.formatLocationStringOfAttribute(values, location_i, lowKey, wgsl_value_format);
 
 
-                    if (values.parent && values.parent.vertexPointers[lowKey]) {
-                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    if (values.system?.parent && values.system?.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
                     else {
                         //判断是否以及存在顶点GPUBuffer
@@ -1055,8 +1023,8 @@ export class DrawCommandGenerator {
                                 sourceData: { data: value },
                             }
                         };
-                        pointerOfVertex = this.pointers.createPointer(pointerParams, values.parent);
-                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        pointerOfVertex = this.pointers.createPointer(pointerParams, values.system?.parent);
+                        if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
                         // this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                         // }
                         // else {
@@ -1155,8 +1123,8 @@ export class DrawCommandGenerator {
                             console.warn("顶点属性" + lowKey + "的类型" + arrayBuffertype + "未被支持.按照float32x3处理");
                             break;
                     }
-                    if (values.parent && values.parent.vertexPointers[lowKey]) {
-                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    if (values.system?.parent && values.system?.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
                     else {
                         let pointerParams: I_pointerCreateParams = {
@@ -1169,7 +1137,7 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
 
                         //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                         // }
@@ -1267,8 +1235,8 @@ export class DrawCommandGenerator {
                     // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
                     // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
                     // this.resources.set(value, vertexBuffer, "vertices");
-                    if (values.parent && values.parent.vertexPointers[lowKey]) {
-                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    if (values.system?.parent && values.system?.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
                     else {
                         let pointerParams: I_pointerCreateParams = {
@@ -1281,7 +1249,7 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
                         //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                         // }
                         // else {
@@ -1325,8 +1293,8 @@ export class DrawCommandGenerator {
                         locationString += ` @location(${location_i}) ${item.name.toLowerCase()} : ${wgsl_value_format}  ,`;
                         location_i++;//合并属性，每个属性都要增加一个location
                     }
-                    if (values.parent && values.parent.vertexPointers[lowKey]) {
-                        pointerOfVertex = values.parent.vertexPointers[lowKey].pointer!;
+                    if (values.system?.parent && values.system?.parent.vertexPointers[lowKey]) {
+                        pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
                     else {
                         // let md5OfVertexOfArray = MD5.hex(value.data);
@@ -1344,7 +1312,7 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
-                        if (values.parent) values.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
+                        if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
                         //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                         // }
                         // else {
@@ -1371,7 +1339,7 @@ export class DrawCommandGenerator {
                 //顶点数据是GPUBuffer数据的
                 // else if ("format" in value && value.buffer instanceof GPUBuffer) {
                 else if (isVSGPUBufferBundle(value)) {
-                    if (values.parent) values.parent.vertexPointers[lowKey] = { gpuBuffer: value };
+                    if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { gpuBuffer: value };
 
                     let format = value.format;
                     let arrayStride = value.arrayStride;
@@ -1443,8 +1411,8 @@ export class DrawCommandGenerator {
                     // let md5OfIndicesOfArray = MD5.hex(values.data.indices);
                     if (values.data.indices && values.data.indices.length > 0) {
 
-                        if (values.parent && values.parent.vertexPointers["index" + wireFrame]) {
-                            index = values.parent.vertexPointers["index" + wireFrame].pointer!;
+                        if (values.system?.parent && values.system?.parent.vertexPointers["index" + wireFrame]) {
+                            index = values.system?.parent.vertexPointers["index" + wireFrame].pointer!;
                         }
                         else {
                             // if (!this.resources.hasIndices(md5OfIndicesOfArray)) {
@@ -1458,7 +1426,7 @@ export class DrawCommandGenerator {
                                 }
                             };
                             index = this.pointers.createPointer(pointerParams);
-                            if (values.parent) values.parent.vertexPointers["index" + wireFrame] = { pointer: index };
+                            if (values.system?.parent) values.system.parent.vertexPointers["index" + wireFrame] = { pointer: index };
                             // this.resources.setIndices(md5OfIndicesOfArray, index);
                             // }
                             // else {
@@ -1485,7 +1453,7 @@ export class DrawCommandGenerator {
                             // offset:,
                             // offset: indexBundle.buffer.size,
                         };
-                        if (values.parent) values.parent.vertexPointers.index = { gpuBuffer: indexBundle };
+                        if (values.system?.parent) values.system.parent.vertexPointers.index = { gpuBuffer: indexBundle };
                     }
                 }
             }
@@ -1500,7 +1468,7 @@ export class DrawCommandGenerator {
      * @returns GPUBindGroup[] and GPUBindGroupLayout[]
      */
     initUniformPart(values: IV_DC): {
-        DC_bindGroups: GPUBindGroup[],
+        DC_bindGroups: (GPUBindGroup | undefined)[],
         DC_bindGroupLayouts: GPUBindGroupLayout[],
     } {
         //2、bindgroup部分
@@ -1526,23 +1494,23 @@ export class DrawCommandGenerator {
                 layoutNumber++;
             }
         }
-        if (values.parent) {
-            let { bindGroup, bindGroupLayout } = values.parent.getBindGroupAndBindGroupLayout();
+        if (values.system?.parent) {
+            let { bindGroup, bindGroupLayout } = values.system?.parent.getBindGroupAndBindGroupLayout();
             DC_bindGroups.push(bindGroup);
             DC_bindGroupLayouts.push(bindGroupLayout);
             layoutNumber++;
             if (values.system?.type == E_renderForDC.camera) {
                 if (values.label.includes("wireframe")) {
-                    if ((values.parent as Mesh)._materialWireframe) {
-                        let { bindGroup, bindGroupLayout } = (values.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
+                    if ((values.system?.parent as Mesh)._materialWireframe) {
+                        let { bindGroup, bindGroupLayout } = (values.system?.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
                         DC_bindGroups.push(bindGroup);
                         DC_bindGroupLayouts.push(bindGroupLayout);
                         layoutNumber++;
                     }
                 }
                 else {
-                    if ((values.parent as EntityBundleMaterial)._material) {
-                        let { bindGroup, bindGroupLayout } = (values.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout();
+                    if ((values.system?.parent as EntityBundleMaterial)._material) {
+                        let { bindGroup, bindGroupLayout } = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout();
                         DC_bindGroups.push(bindGroup);
                         DC_bindGroupLayouts.push(bindGroupLayout);
                         layoutNumber++;
@@ -1770,8 +1738,8 @@ export class DrawCommandGenerator {
     } {
         //VS location 输出插值模式
         let locationInterpolateString = "";
-        if (values.parent) {
-            locationInterpolateString = values.parent.getStringOfLocationInterpolate();
+        if (values.system?.parent) {
+            locationInterpolateString = values.system?.parent.getStringOfLocationInterpolate();
         }
 
         // 3.1 反射顶点名称到shader code的顶点属性的占位符中

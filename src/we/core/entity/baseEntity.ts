@@ -27,6 +27,7 @@ import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
 import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_BOLBufferType } from "../bufferBlock/base";
+import { BaseDrawCommand } from "../command/BaseDrawCommand";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -237,9 +238,9 @@ export abstract class BaseEntity extends NodeSpace {
     cameraDC: {
         [name: string]: {
             // [E_renderPassName.depth]: DrawCommand[],
-            [E_renderPassName.MSAA]: DrawCommand[],
-            [E_renderPassName.forward]: DrawCommand[],
-            [E_renderPassName.transparent]: DrawCommand[],
+            [E_renderPassName.MSAA]: BaseDrawCommand[],
+            [E_renderPassName.forward]: BaseDrawCommand[],
+            [E_renderPassName.transparent]: BaseDrawCommand[],
         }
     } = {};
 
@@ -252,8 +253,8 @@ export abstract class BaseEntity extends NodeSpace {
         [name: string]: {
             // depth: DrawCommand[],
             // transparent: DrawCommand[],
-            [E_renderPassName.shadowmapOpacity]: DrawCommand[],
-            [E_renderPassName.shadowmapTransparent]: DrawCommand[],
+            [E_renderPassName.shadowmapOpacity]: BaseDrawCommand[],
+            [E_renderPassName.shadowmapTransparent]: BaseDrawCommand[],
         }
     } = {}
     /**

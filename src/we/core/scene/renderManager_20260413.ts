@@ -172,7 +172,7 @@ interface I_renderDrawCommand {
     Map<
         GPURenderPipeline,                                                      // pipeline层
         Map<                                                                    // DrawCommand层
-            DrawCommand,
+            BaseDrawCommand,// DrawCommand,
             I_drawMode[] | I_drawModeIndexed[]                                   //instance 队列值
         >
     >

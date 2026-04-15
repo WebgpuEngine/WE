@@ -1,17 +1,12 @@
 import { E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { I_drawModeIndexed, T_uniformEntries, T_uniformGroups } from "../../command/base";
-import { DrawCommand } from "../../command/DrawCommand";
+import { I_drawModeIndexed, T_uniformGroups } from "../../command/base";
 import { IV_DC } from "../../command/DrawCommandGenerator";
-import { mergeLightUUID } from "../../light/lightsManager";
-import { I_TransparentOptionOfMaterial } from "../../material/base";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 import { SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/wireFrameVS";
-import { E_entityType, I_EntityAttributes, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { E_entityType, IV_BaseEntity, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -167,7 +162,7 @@ export class Mesh extends EntityBundleMaterial {
             this._materialWireframe = new WireFrameMaterial({
                 color: this._wireframe.wireFrameColor as weColor4,
             })
-            await this._materialWireframe.init(this.scene);
+            await this._materialWireframe.init(this.scene,this);
         }
         // this._state = E_lifeState.finished;
     }
@@ -244,8 +239,9 @@ export class Mesh extends EntityBundleMaterial {
                     topology: "line-list",
                 },
             },
-            parent: scope,
+
             system: {
+                parent: scope,
                 UUID,
                 type//: E_renderForDC.camera
             },
@@ -300,7 +296,7 @@ export class Mesh extends EntityBundleMaterial {
      * @returns wireframe 索引数组
      */
     createWrieFrame(position: number[], indeices: number[]) {
-        
+
         let list: { [name: string]: number[] };
         list = {};
         if (indeices.length == 0) {//如果没有索引，就按三角形来创建线框

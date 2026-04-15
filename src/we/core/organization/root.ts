@@ -7,7 +7,7 @@ import { ECSManager } from "./manager";
 
 
 export interface I_UUID {
-    _manager: any ;
+    _manager: any;
     UUID: string,
     _id: number,
     _isDestroy: boolean,
@@ -53,7 +53,7 @@ export abstract class RootGPU implements I_UUID {
      */
     type!: string;
 
-    _manager: ECSManager<RootGPU>|undefined;
+    _manager: ECSManager<RootGPU> | undefined;
 
     // /**
     //  * 映射列表，用于存储映射关系，例如：[texture, bindGroupEntry]
@@ -83,7 +83,7 @@ export abstract class RootGPU implements I_UUID {
     _readyForGPU!: boolean;
     constructor(input?: I_Update) {
         this.ID = WeGenerateID();
-        this.UUID=this.ID.toString();
+        this.UUID = this.ID.toString();
         // this.UUID = WeGenerateUUID();
         if (input) this.inputValues = input;
         if (input?.name) {
@@ -109,7 +109,7 @@ export abstract class RootGPU implements I_UUID {
      * @param renderID 
      * @returns 
      */
-    async init(scene: Scene): Promise<any> {
+    async init(scene: Scene, option?: any): Promise<any> {
         await this.setRootENV(scene);
         await this.readyForGPU();
     }
@@ -139,7 +139,7 @@ export abstract class RootGPU implements I_UUID {
             }
         }
         this._destroy();
-        if(this._manager){
+        if (this._manager) {
             this._manager.remove(this);
         }
     }
@@ -159,7 +159,7 @@ export abstract class RootGPU implements I_UUID {
         if (this.needUpdateuserDefine) {
             this.inputValues.update!(this);
         }
-        if (updateSelftFN ) {
+        if (updateSelftFN) {
             this.updateSelf(clock);                         //更新自身
             this.lastUpdaeTime = clock.now;                     //更新最后一次更新时间
         }
