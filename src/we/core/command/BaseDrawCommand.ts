@@ -26,8 +26,8 @@ export interface IV_BaseDrawCommand {
          *      B、无：判断索引模式还是非索引模式，生成drawMode序列
         */
         drawMode?: 
-        // T_drawMode,
-         I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[],// | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]),
+        T_drawMode,
+        //  I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[],// | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]),
         pipeline: GPURenderPipeline,
         /**顶点缓冲区 
          * 1、没有：需要绑定undefiend，

@@ -92,7 +92,7 @@ export function isDrawModeVertex(drawMode: any): drawMode is I_drawMode {
     return "vertexCount" in drawMode;
 }
 
-export type T_drawMode = I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]);
+export type T_drawMode = I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[] ;//| ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]);
 //draw mode end
 /////////////////////////////////////////////////////////////////////////////////////////////////
 

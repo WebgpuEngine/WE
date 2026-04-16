@@ -1,4 +1,5 @@
 import { E_renderForDC } from "../base/coreDefine";
+import { mergeLightUUID } from "../light/lightsManager";
 import { ECSManager } from "../organization/manager";
 import { NodeObject } from "../organization/nodeObject";
 import { pickupTargetOfIDs } from "../pickup/base";
@@ -6,7 +7,6 @@ import { Clock } from "../scene/clock";
 import { RenderManager, E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { BaseEntity } from "./baseEntity";
-import { EntityBundleMaterial } from "./entityBundleMaterial";
 import { Mesh } from "./mesh/mesh";
 
 export class EntityManager extends ECSManager<BaseEntity> {
@@ -47,16 +47,15 @@ export class EntityManager extends ECSManager<BaseEntity> {
                 entity.update(clock);
                 //camera
                 for (let perCamera of this.scene.cameraManager.list) {
-                    let instanaceArray = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);
-                    // let instanaceArrayOfw = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);
-                    if (instanaceArray.length > 0) {
-                        for (let i_renderPass in entity.cameraDC) {
-                            for (let i_DC in entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC]) {
+                    let instanaceArray = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);                  //获取可见性
+                    if (instanaceArray.length > 0) {    //如果有可见性
+                        for (let i_renderPass in entity.cameraDC) {     //遍历所有renderPass
+                            for (let i_DC in entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC]) {       //遍历所有DC
                                 let perDC = entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC][parseInt(i_DC)];
-                                if (perDC.label.indexOf("wireFrame") == -1) {
+                                if (perDC.label.indexOf("wireFrame") == -1) {                                               //如果不是线框
                                     this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, instanaceArray);
-                                } else {
-                                    let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();
+                                } else {                                               //如果是线框
+                                    let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();        //生成线框的DrawModeArray
                                     if (wireFrameInstanceAarray && wireFrameInstanceAarray.length > 0)
                                         this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, wireFrameInstanceAarray);
                                     else
@@ -66,29 +65,23 @@ export class EntityManager extends ECSManager<BaseEntity> {
                         }
                     }
                 }
-                // for (let UUID in entity.cameraDC) {//一个entity的所有camera
-                //     let perCamera = entity.cameraDC[UUID];
-                //     for (let i in perCamera) {//单个camera
-                //         for (let i_pass in perCamera[i as keyof typeof perCamera]) { //单个pass：forward，deferDepth，transparent
-                //             let perDC = perCamera[i as keyof typeof perCamera][parseInt(i_pass)];       //单个drawCommand
-                //             this.renderManager.push(perDC, i as E_renderPassName, UUID);
-                //         }
-                //     }
-                // }
                 //shadowmap
-
-                // for (let perCamera of this.scene.cameraManager.list) { }
-
-                // for (let UUID in entity.shadowmapDC) {//一个entity的所有shadowmap
-                //     let perShadowmap = entity.shadowmapDC[UUID];
-                //     this.scene.renderManager.initRenderCommandForLight(UUID);
-                //     for (let i in perShadowmap) {//单个shadowmap
-                //         for (let i_pass in perShadowmap[i as keyof typeof perShadowmap]) { //单个pass：deth，transparent
-                //             let perDC = perShadowmap[i as keyof typeof perShadowmap][parseInt(i_pass)];       //单个drawCommand
-                //             this.renderManager.push(perDC, i as E_renderPassName, UUID);
-                //         }
-                //     }
-                // }
+                for (let i of this.scene.lightsManager.getShdowMapsStructArray()) { //所有shadowmap：light + matrix_self_index（point light有6个）
+                    let perLight = this.scene.lightsManager.getLightByID(i.light_id);
+                    if (perLight) {
+                        let uuid = this.scene.lightsManager.getUUIDByID(i.light_id);
+                        let mergeID = mergeLightUUID(uuid, i.matrix_self_index);
+                        let instanaceArray = entity.getDrawModeArrayOfInstances(mergeID, E_renderForDC.light);
+                        //遍历shadowmap 的render pass，获得DC集合
+                        for (let i_renderPass in entity.shadowmapDC) {
+                            //遍历DC集合
+                            for (let i_DC in entity.shadowmapDC[i_renderPass as keyof typeof entity.shadowmapDC]) {
+                                let perDC = entity.shadowmapDC[i_renderPass as keyof typeof entity.shadowmapDC][parseInt(i_DC)];
+                                this.renderManager.push(perDC, i_renderPass as E_renderPassName, mergeID, perDC.pipeline, instanaceArray);//线框无DC
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -140,14 +133,4 @@ export class EntityManager extends ECSManager<BaseEntity> {
             throw new Error("Entity not found");
         }
     }
-    // getEntityByRenderID(renderID: number): BaseEntity {
-    //     let entity = this.list.find((entity) => entity.renderID == renderID);
-    //     if (entity) {
-    //         return entity;
-    //     }
-    //     else {
-    //         throw new Error("Entity not found");
-    //     }
-    // }
-
 }

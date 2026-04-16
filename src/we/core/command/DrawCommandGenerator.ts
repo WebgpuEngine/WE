@@ -6,19 +6,17 @@
 
 import { Scene } from "../scene/scene";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
-import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, updataOneUniformBuffer } from "./baseFunction";
+import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup } from "./baseFunction";
 import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { AA } from "../scene/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
-import { BaseCamera } from "../camera/baseCamera";
 import { E_TransparentType, I_TransparentOptionOfMaterial } from "../material/base";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseDrawCommand, I_IndexBufferEntry, I_VertexBufferEntry } from "./BaseDrawCommand";
 import { I_pointerCreateParams, I_pointerStruct, Pointers, T_pointerDataType } from "../bufferBlock/pointer";
-import { MD5 } from "../../reExport/md5";
 import { E_BOLBufferType } from "../bufferBlock/base";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
@@ -34,7 +32,6 @@ export interface IV_DrawCommandGenerator {
  * 顶点属性的bundle（有更加详细的数据说明），用于绑定到DC的vertex buffer
  */
 export interface I_vsAttribute {
-    // shaderLocation: 0,//这个在function，自动增加计算
     /**
      * 顶点相关的各类数据
      * date of vertex attribute
@@ -69,22 +66,7 @@ export interface I_vsAttribute {
     offset?: 0,
 }
 export type I_baseGPUBufferBundle = I_VertexBufferEntry;
-// export interface I_baseGPUBufferBundle {
-//     name: string,
-//     buffer: GPUBuffer,
-//     /**
-//      * bytesize
-//      * 读取数据的大小，默认=count*arrayStride
-//      * default: count*arrayStride
-//      */
-//     byteSize: number,
-//     /**
-//     * 从buffer的offset开始读取数据,比如一个大的GPUBuffer，包括了多个vertex attribute和index attribute，还可能包括uniform数据
-//     *  from offset to size，exp:one big GPUBuffer, include vertex attribute and index attribute and uniform data
-//     * default: 0
-//     */
-//     offset: number,
-// }
+
 /**
  * 顶点属性的bundle，用于绑定到DC的vertex buffer
  * 1、gltf使用
@@ -167,15 +149,6 @@ export interface I_vsAttributeMerge {
 export function isI_vsAttributeMerge(attr: T_vsAttribute): attr is I_vsAttributeMerge {
     return (attr as I_vsAttributeMerge).mergeAttribute !== undefined;
 }
-/**
- * 单个vertex属性的合并格式
- * per one attribute format and offset in merge attribute
- */
-// export interface I_vsAttributeMergeAttribute {
-//     name: string,
-//     format: GPUVertexFormat,
-//     offset: number
-// }
 
 /**
  * 顶点属性的类型:三种类型
@@ -189,8 +162,6 @@ export type T_indexAttribute = number[] | I_indexGPUBufferBundle
  * @system  系统参数:camera 或 light
  */
 export interface IV_DC {
-
-
     dynamic?:
     {
         /** 动态更新vs属性
@@ -208,15 +179,7 @@ export interface IV_DC {
      * 是否透明渲染,包括alpha 透明，物理透明
      */
     transparent?: I_TransparentOptionOfMaterial,
-    //没有意义，取消，因为transparent pass 透明渲染是在forward之后，这时候loadOP已经是load模式
-    // /**
-    //  * 是否透明渲染
-    //  * 默认：false;forward pass 透明渲染需要开启
-    //  * 如果是true，有2种情况：
-    //  * 1、透明的不透明渲染，走的也是forward pass，这时，loadOP需要=load。
-    //  * 2、透明的透明渲染，走的是transparent pass
-    //  */
-    // transparent?: boolean,
+
     label: string,
     /**
      * ID组,TT使用，用于获取entity的Blend参数
@@ -235,8 +198,6 @@ export interface IV_DC {
          */
         uniforms?: T_uniformGroups[],//vs 部分有会 vertex texture
         unifromLayout?: T_BindGroupLayout[],
-
-
     },
     render: {
         // code: string,//这里需要进行VS 属性的映射替换
@@ -262,7 +223,12 @@ export interface IV_DC {
              */
             targets?: GPUColorTargetState[],
         },
-        drawMode: T_drawMode,
+        /**
+         * drawMode
+         * 1、DrawCommand，不需要，其drawMode数据由运行时的renderManager传递给DC。（DC均由entity产生）
+         * 2、BaseDrawCommand，需要，由于简单绘制，比如：quad，测试用例等。
+         */
+        drawMode?: T_drawMode,
         primitive?: GPUPrimitiveState,
         // multisample?: GPUMultisampleState,
         /**
@@ -279,7 +245,7 @@ export interface IV_DC {
     system?: {
         type: E_renderForDC,//"camera" | "light"
         /** DC的UUID从renderManager运行时获取，可以不设置ID*/
-        UUID?: string,
+        // UUID?: string,
         MSAA?: T_rpdInfomationOfMSAA,
         /**
          * DC的parent，
@@ -290,7 +256,6 @@ export interface IV_DC {
         parent?: BaseEntity,
         material?: I_DrawInputValueMaterial,
     },
-
     /**
      * 渲染RPD描述符，
      * 1、如果有同级别中的system存在，则按照camera或light，去scene中获取
@@ -298,14 +263,7 @@ export interface IV_DC {
      *  A、若有本项，则使用
      *  B、没有，则去scene中获取NDC的RPD
      */
-    renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
-    // /**
-    //  * 材质 shader模块的名称
-    //  * 1、用于shader module的Map 操作的key
-    //  * 2、如果没有，则不进行Map操作，直接创建使用
-    //  */
-    // shaderModuleName?: string,
-
+    renderPassDescriptor?: GPURenderPassDescriptor,// | (() => GPURenderPassDescriptor),
 }
 
 export class DrawCommandGenerator {
@@ -332,70 +290,6 @@ export class DrawCommandGenerator {
         this.clock = this.scene.clock;
         this.pointers = this.scene.pointers;
     }
-    clear() {
-        console.warn("DrawCommandGenerator.clear() 未实现");
-    }
-    // /**     更新DC的GPU资源     */
-    // upadate() {
-    //     this.updateUniform();
-    // }
-    // /**更新uniform中数据 */
-
-    // updateUniform() {
-    //     for (let i of this.inputDC) {//所有的DrawCommand
-    //         if (i.data.uniforms) {//更新uniform，如果有uniform
-    //             let systemFlag = true;
-    //             if (i.system) {
-    //                 systemFlag = true;
-    //             }
-    //             else systemFlag = false
-    //             for (let perGroup of i.data.uniforms) {
-    //                 if (perGroup != undefined && (Array.isArray(perGroup) && perGroup.length > 0))//判断是当前的bindgroup否有uniform
-    //                     for (let perEntry of perGroup)
-    //                         if ("data" in perEntry && "update" in perEntry && perEntry.update === true) {//需要更新,只更新数据
-    //                             if (this.resources.has(perEntry, "uniformBuffer")) {
-    //                                 let buffer: GPUBuffer = this.resources.get(perEntry, "uniformBuffer");
-    //                                 if (buffer) {
-    //                                     updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformArrayBufferEntry).data)
-    //                                 }
-    //                                 else {
-    //                                     console.warn(i, perGroup, perEntry, "获取uiform对应的GPUBuffer资源获取失败");
-    //                                 }
-    //                             }
-    //                             else {
-    //                                 console.warn(i, perGroup, perEntry, "查询uiform对应的GPUBuffer资源获取失败");
-    //                             }
-    //                         }
-    //             }
-    //         }
-    //     }
-    // }
-    // /**
-    //  * 更新uniform 数据的GPUBuffer
-    //  * 1、立即更新模式。（与每帧的update相同，但可以一帧按需更新多次）
-    //  * 2、TTPF需要使用
-    //  * @param perEntry I_uniformArrayBufferEntry
-    //  * 
-    //  * 说明：20260313
-    //  * 1、原来设计是更新TTPF使用，20260313TTPF已经改为由公共资源管理，不再使用此函数更新。
-    //  * 2、功能保留，用于指定更新其他uniform数据。
-    //  * 3、参数目前指定的类型，看需求可以改变，
-    //  */
-    // updateUniformOfGPUBuffer(perEntry: I_uniformArrayBufferEntry) {
-    //     if (this.resources.has(perEntry, "uniformBuffer")) {
-    //         let buffer: GPUBuffer = this.resources.get(perEntry, "uniformBuffer");
-    //         if (buffer) {
-    //             updataOneUniformBuffer(this.device, buffer, (perEntry as I_uniformArrayBufferEntry).data)
-    //         }
-    //         else {
-    //             console.warn(perEntry, "获取uiform对应的GPUBuffer资源获取失败");
-    //         }
-    //     }
-    //     else {
-    //         console.warn(perEntry, "查询uiform对应的GPUBuffer资源获取失败");
-    //     }
-    // }
-
     /**
      * 生成DrawCommand
      * @param values 
@@ -435,12 +329,12 @@ export class DrawCommandGenerator {
         }
         // viewport
         if (values.render.viewport) commandOption.drawInfo.viewport = values.render.viewport;
-        else {
-            let camera = this.getCamera(values);
-            if (camera) {
-                commandOption.drawInfo.viewport = camera.viewport;
-            }
-        }
+        // else {
+        //     // let camera = this.getCamera(values);
+        //     // if (camera) {
+        //         commandOption.drawInfo.viewport = camera.viewport;
+        //     // }
+        // }
         // indexBuffer
         if (DC_indexBuffer) {
             commandOption.drawInfo.indexBuffer = DC_indexBuffer;
@@ -448,14 +342,6 @@ export class DrawCommandGenerator {
                 commandOption.drawInfo.indexFormat = values.data.indices.format;
             }
         }
-        // // parent 
-        // if (values.system?.parent) {
-        //     commandOption.baseInfo!.parent = values.system?.parent;
-        // }
-        // // material
-        // if (values.material) {
-        //     commandOption.baseInfo!.material = values.material;
-        // }
         //5.1 为了适配动态增加光源后的阴影贴图的动态更新。
         //在BaseDrawCommand.doEncoder()中，会动态绑定system0
         if (values.system) {
@@ -466,13 +352,9 @@ export class DrawCommandGenerator {
             if (values.system.material) {
                 commandOption.baseInfo!.material = values.system.material;
             }
-            // let UUID = this.checkUUID(values);
-
             commandOption.baseInfo!.traget = {
-                // UUID,
                 type: values.system.type,
-            }
-
+            };
             //6 创建DC
             let drawCommand = new DrawCommand(commandOption);
             return drawCommand;
@@ -482,35 +364,35 @@ export class DrawCommandGenerator {
             let renderPassDescriptor = () => {
                 let renderPassDescriptor: GPURenderPassDescriptor;
                 //1、如果有rpd描述。
-                if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor != "function") {
+                if (values.renderPassDescriptor != undefined) {
                     renderPassDescriptor = values.renderPassDescriptor;
                 }
-                //2、如果有rpd函数。
-                else if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor == "function") {
-                    renderPassDescriptor = values.renderPassDescriptor();
-                }
+                // //2、如果有rpd函数。
+                // else if (values.renderPassDescriptor != undefined && typeof values.renderPassDescriptor == "function") {
+                //     renderPassDescriptor = values.renderPassDescriptor();
+                // }
                 //3\ 增加一个MSAA 的NDC
                 else if (this.scene.finalTarget.NDC == true && values.system?.MSAA) {
                     // if (values.system?.MSAA)
                     renderPassDescriptor = this.scene.getRenderPassDescriptorForNDC();
                 }
-                //4、如果没有rpd描述，且有system。
-                else if (values.system && values.renderPassDescriptor == undefined) {
-                    let UUID = this.checkUUID(values);
-                    if (UUID) {
-                        if (this.MSAA) {
-                            // if (values.system.MSAA != undefined)
-                            renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
-                            // else
-                            //     throw new Error("MSAA渲染,需要在system中指定MSAA");
-                        }
-                        else
-                            renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type);
-                    }
-                    else {
-                        this.errorUUID();// throw new Error("获取UUID失败");
-                    }
-                }
+                // //4、如果没有rpd描述，且有system。
+                // else if (values.system && values.renderPassDescriptor == undefined) {
+                //     let UUID = this.checkUUID(values);
+                //     if (UUID) {
+                //         if (this.MSAA) {
+                //             // if (values.system.MSAA != undefined)
+                //             renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type, values.system.MSAA);
+                //             // else
+                //             //     throw new Error("MSAA渲染,需要在system中指定MSAA");
+                //         }
+                //         else
+                //             renderPassDescriptor = this.scene.getRenderPassDescriptor(UUID, values.system.type);
+                //     }
+                //     else {
+                //         this.errorUUID();// throw new Error("获取UUID失败");
+                //     }
+                // }
                 //5、NDC，raw模式
                 else {
                     renderPassDescriptor = this.scene.getRenderPassDescriptorForNDC();
@@ -524,46 +406,46 @@ export class DrawCommandGenerator {
         }
     }
 
-    /**
-     * 获取camera从scene中根据UUID
-     * @param values 
-     * @returns BaseCamera | false
-     */
-    getCamera(values: IV_DC): BaseCamera | false {
-        if (values.system?.type == E_renderForDC.camera) {
-            let UUID = this.checkUUID(values);
-            if (UUID) {
-                let camera = this.scene.cameraManager.getCameraByUUID(UUID);
-                if (camera)
-                    return camera;
-            }
-        }
-        return false;
-    }
+    // /**
+    //  * 获取camera从scene中根据UUID
+    //  * @param values 
+    //  * @returns BaseCamera | false
+    //  */
+    // getCamera(values: IV_DC): BaseCamera | false {
+    //     if (values.system?.type == E_renderForDC.camera) {
+    //         let UUID = this.checkUUID(values);
+    //         if (UUID) {
+    //             let camera = this.scene.cameraManager.getCameraByUUID(UUID);
+    //             if (camera)
+    //                 return camera;
+    //         }
+    //     }
+    //     return false;
+    // }
 
-    errorUUID() {
-        throw new Error("获取UUID失败");
-    }
-    /**
-     * 检查UUID,如果没有UUID，根据system.type，返回默认相机的UUID。
-     * @param values IV_DC
-     * @returns  string | false
-     */
-    checkUUID(values: IV_DC): string | false {
-        if (values.system) {
-            let UUID = values.system.UUID;
-            if (values.system.type === E_renderForDC.camera && values.system.UUID == undefined) {//相机没有UUID，默认使用默认相机
-                if (this.scene.cameraManager.DefaultCamera)
-                    UUID = this.scene.cameraManager.DefaultCamera.UUID;
-            }
-            if (UUID != undefined)
-                return UUID;
-            else
-                // throw new Error("获取UUID失败,DCG未收到camera UUID,get default camera UUID fail");
-                return false;
-        }
-        return false
-    }
+    // errorUUID() {
+    //     throw new Error("获取UUID失败");
+    // }
+    // /**
+    //  * 检查UUID,如果没有UUID，根据system.type，返回默认相机的UUID。
+    //  * @param values IV_DC
+    //  * @returns  string | false
+    //  */
+    // checkUUID(values: IV_DC): string | false {
+    //     if (values.system) {
+    //         let UUID = values.system.UUID;
+    //         if (values.system.type === E_renderForDC.camera && values.system.UUID == undefined) {//相机没有UUID，默认使用默认相机
+    //             if (this.scene.cameraManager.DefaultCamera)
+    //                 UUID = this.scene.cameraManager.DefaultCamera.UUID;
+    //         }
+    //         if (UUID != undefined)
+    //             return UUID;
+    //         else
+    //             // throw new Error("获取UUID失败,DCG未收到camera UUID,get default camera UUID fail");
+    //             return false;
+    //     }
+    //     return false
+    // }
     /**
      * VS反射attribute属性到WGSL的结构体中，并按照SHT格式化vs shader代码.
      * @param templateFinal  shader模板
@@ -1471,61 +1353,60 @@ export class DrawCommandGenerator {
         DC_bindGroups: (GPUBindGroup | undefined)[],
         DC_bindGroupLayouts: GPUBindGroupLayout[],
     } {
-        //2、bindgroup部分
-        let DC_bindGroups: (GPUBindGroup | undefined)[] = [];
-        let DC_bindGroupLayouts: GPUBindGroupLayout[] = [];
+        //bindgroup部分
+        let DC_bindGroups: GPUBindGroup[] = new Array(4).fill(undefined);
+        let DC_bindGroupLayouts: GPUBindGroupLayout[] = new Array(4).fill(undefined);
         let layoutNumber = 0;           //uniform的BindGroupLayout数量，最多4个
-        //2.1 、获取 BindGroup 0 以及其layout。camera 和light都从各自的体系获得
+        // 存在system。赋值bindgroup：0，1，2；
         if (values.system) {
-            let UUID = this.checkUUID(values);
-            if (UUID) {
-                DC_bindGroups.push(undefined);//在DC中动态绑定
-                let bindGroupLayout: GPUBindGroupLayout;
-                if (values.system.type == E_renderForDC.camera) {
-                    bindGroupLayout = this.scene.getBindGroupLayoutZeroOfCamera();
-                }
-                else if (values.system.type == E_renderForDC.light) {
-                    bindGroupLayout = this.scene.getBindGroupLayoutZeroOfLight();
-                }
-                else {
-                    throw new Error("system type not support");
-                }
-                DC_bindGroupLayouts.push(bindGroupLayout);
-                layoutNumber++;
+            // DC_bindGroups[layoutNumber] = undefined;//在DC中动态绑定
+            let bindGroupLayout: GPUBindGroupLayout;
+            if (values.system.type == E_renderForDC.camera) {
+                bindGroupLayout = this.scene.getBindGroupLayoutZeroOfCamera();
             }
-        }
-        if (values.system?.parent) {
-            let { bindGroup, bindGroupLayout } = values.system?.parent.getBindGroupAndBindGroupLayout();
-            DC_bindGroups.push(bindGroup);
-            DC_bindGroupLayouts.push(bindGroupLayout);
+            else if (values.system.type == E_renderForDC.light) {
+                bindGroupLayout = this.scene.getBindGroupLayoutZeroOfLight();
+            }
+            else {
+                throw new Error("system type not support");
+            }
+            DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
             layoutNumber++;
-            if (values.system?.type == E_renderForDC.camera) {
-                if (values.label.includes("wireframe")) {
-                    if ((values.system?.parent as Mesh)._materialWireframe) {
-                        let { bindGroup, bindGroupLayout } = (values.system?.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
-                        DC_bindGroups.push(bindGroup);
-                        DC_bindGroupLayouts.push(bindGroupLayout);
-                        layoutNumber++;
+
+            if (values.system?.parent) {
+                let { bindGroup, bindGroupLayout } = values.system?.parent.getBindGroupAndBindGroupLayout();
+                DC_bindGroups[layoutNumber] = bindGroup;
+                DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
+                layoutNumber++;
+                if (values.system?.type == E_renderForDC.camera) {
+                    if (values.label.includes("wireframe")) {
+                        if ((values.system?.parent as Mesh)._materialWireframe) {
+                            let { bindGroup, bindGroupLayout } = (values.system?.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
+                            DC_bindGroups[layoutNumber] = bindGroup;
+                            DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
+                            layoutNumber++;
+                        }
                     }
-                }
-                else {
-                    if ((values.system?.parent as EntityBundleMaterial)._material) {
-                        let { bindGroup, bindGroupLayout } = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout();
-                        DC_bindGroups.push(bindGroup);
-                        DC_bindGroupLayouts.push(bindGroupLayout);
-                        layoutNumber++;
+                    else {
+                        if ((values.system?.parent as EntityBundleMaterial)._material) {
+                            let { bindGroup, bindGroupLayout } = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout();
+                            DC_bindGroups[layoutNumber] = bindGroup;
+                            DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
+                            layoutNumber++;
+                        }
                     }
                 }
             }
         }
+
         /**
          * 1、20260403 在material中增加了getBindGroupAndBindGroupLayout（）方法，用于获取material的BindGroup和BindGroupLayout
          * 2、此处代码功能
          *      A、为bindgroup 4，预留参考
          *      B、为NDC模式和PP等使用，即：基础测试功能部分，和直接生成DC的模式（没有entity和material）使用
          */
-        //2.2、创建其他uniforms的BindGroup和BindGroupLayout
-        if (values.data.uniforms) {
+        //不存在system，按照uniforms 创建BindGroup和BindGroupLayout
+        else if (values.data.uniforms) {
             for (let i in values.data.uniforms) {
                 //如果bindGroupLayout数量超过4个，就跳出循环
                 if (layoutNumber > 3) {

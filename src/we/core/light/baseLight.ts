@@ -490,7 +490,7 @@ export abstract class BaseLight extends NodeObject {
      * @param node 节点
      * @returns 是否在BVH中可见
      */
-    getVisibleInBVH(node: NodeObject): boolean {
+    getVisibleInBVH(node: NodeObject, mergeID: string): boolean {
         return true;
     }
 }

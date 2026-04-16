@@ -32,7 +32,7 @@ import { Scene } from "../scene/scene";
 import { AmbientLight, IV_AmbientLight } from "./ambientLight";
 import { BaseLight, E_lightType, lightStructSize } from "./baseLight";
 import { I_bindGroupAndGroupLayout } from "../command/base";
-import { E_renderForDC, V_layerOfShadowMapTransparnet, V_shadowMapSize, V_weLinearFormat } from "../base/coreDefine";
+import { V_layerOfShadowMapTransparnet, V_shadowMapSize, V_weLinearFormat } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { ECSManager } from "../organization/manager";
 
@@ -206,7 +206,7 @@ export class LightsManager extends ECSManager<BaseLight> {
         });
         this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
         this.shadowMapCopyTransparentDepthTexture = this.device.createTexture({
-            label: "LightsManager shadowMapCopyTransparentDepthTexture",
+            label: "未使用 shadowMap CopyTransparentDepthTexture",
             size: {
                 width: V_shadowMapSize,
                 height: V_shadowMapSize,
@@ -254,7 +254,7 @@ export class LightsManager extends ECSManager<BaseLight> {
             this.shadowMapTexture.destroy();
         }
         const shadowmapTextureDesc: GPUTextureDescriptor = {
-            label: "LightsManager shadowmap depth texture"+new Date().getTime(),
+            label: "shadowmap texture array",
             size: {
                 width: V_shadowMapSize,
                 height: V_shadowMapSize,
@@ -312,7 +312,7 @@ export class LightsManager extends ECSManager<BaseLight> {
                 one.updateShdowMapValues(this.shadowIndexID, count, count);
                 // this.shadowIndexID ++;
             }
-            this.shadowMapTexture = this.generateShadowMapTexture(this.shadowIndexID+count);//todo 20250105,目前是固定的，后期改成动态
+            this.shadowMapTexture = this.generateShadowMapTexture(this.shadowIndexID + count);//todo 20250105,目前是固定的，后期改成动态
 
             //这里有个问题，即使是使用async/await，也出现得不到matrixp[],所以更改为现在的初始化为单位矩阵
             // let MVPs = one.getMVP();//获取MVP，并for
@@ -839,7 +839,7 @@ export class LightsManager extends ECSManager<BaseLight> {
     getShadowMapDepthTextureView_ByMergeID(mergeID: string): GPUTextureView {
         let { id, matrixIndex } = this.getIdAndMatrixIndexByMergeID(mergeID);
         return this.getShadowMapDepthTextureView_ByIdAndMatrixID(id, matrixIndex);
-    }    
+    }
     /**
      * 获取shadowMap的depth texture view，根据ID和matrixIndex
      * @param id 光源的ID

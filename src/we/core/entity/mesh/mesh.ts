@@ -253,7 +253,7 @@ export class Mesh extends EntityBundleMaterial {
                     }
                 },
                 // drawMode,
-                drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind, drawMode) },//wireframe 的drawMode 与mesh的数量不同
+                // drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind, drawMode) },//wireframe 的drawMode 与mesh的数量不同
 
                 primitive: {
                     topology: "line-list",

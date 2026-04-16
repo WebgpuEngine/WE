@@ -7,20 +7,16 @@ import {
     I_entityInstance,
     IV_BaseEntity,
     I_optionShadowEntity,
-    I_ShadowMapValueOfDC,
     I_locationInterpolate,
 } from "./base";
 import { E_lifeState, E_renderForDC, weVec2 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
-import { BaseCamera } from "../camera/baseCamera";
-import { BaseLight } from "../light/baseLight";
 import { I_bindGroupAndGroupLayout, I_drawMode, I_drawModeIndexed } from "../command/base";
 import { I_ShaderTemplate } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { E_renderPassName } from "../scene/renderManager";
-import { mergeLightUUID } from "../light/lightsManager";
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
@@ -501,12 +497,12 @@ export abstract class BaseEntity extends NodeSpace {
         }
         //检查是否有新光源，有进行更新
         // this.createLightsDC();
-        // if (this.transparent === true) {
-        //     this.createShadowMapTransparentDC();
-        // }
-        // else {
-        //     this.createShadowMapDC();
-        // }
+        if (this.transparent === true) {
+            this.createShadowMapTransparentDC();
+        }
+        else {
+            this.createShadowMapDC();
+        }
 
         this._state = E_lifeState.finished;
         // return this.renderID + 1;
@@ -755,116 +751,6 @@ export abstract class BaseEntity extends NodeSpace {
             shadowmapTransparent: [],
         }
     }
-    // /**
-    //  */
-    // onResize(): void {
-    //     for (let i in this.cameraDC) {
-    //         let perCameraDC = this.cameraDC[i];
-    //         // perCameraDC.transparent = [];
-    //     }
-    //     // this.upgradeCameras();
-    // }
-
-    /**更新(创建)关于cameras的DCCC commands
-     * 
-     * @param parent 
-     */
-    createCameraDC() {
-        for (let camera of this.scene.cameraManager.list) {
-            const id = camera.UUID;
-            let already: boolean
-            //判断透明还是不透明
-            if (this.transparent === true) {
-                // this.createDCCCForTransparent({ parent, id: "transparent", kind: E_renderForDC.transparent });
-                already = this.checkIdOfCommands(id, this.cameraDC);//获取是否已经存在
-            }
-            else {
-                already = this.checkIdOfCommands(id, this.cameraDC);//获取是否已经存在
-            }
-
-            if (already) {
-                continue;
-            }
-            else {
-                if (this.cameraDC[camera.UUID] == undefined) {
-                    this.cameraDC[camera.UUID] = {
-                        [E_renderPassName.forward]: [],
-                        // [E_renderPassName.depth]: [],
-                        [E_renderPassName.transparent]: [],
-                        [E_renderPassName.MSAA]: [],
-                    }
-                }
-                if (this.transparent === true) {
-                    this.createTransparent(camera);
-                }
-                else {
-                    this.createForwardDC(camera);
-                }
-            }
-        }
-    }
-    /**更新(创建)关于lights的DCCC commands
-     * 
-     */
-    createLightsDC() {
-        for (let i of this.scene.lightsManager.getShdowMapsStructArray()) {
-            const id = i.light_id.toString();
-            let UUID = this.scene.lightsManager.getUUIDByID(i.light_id);
-            let already: boolean;
-            // if (this.transparent === true) {
-            //     already = this.checkIdOfCommands(id, this.shadowmapDC);//获取是否已经存在 
-            // }
-            // else {
-            already = this.checkIdOfCommands(UUID, this.shadowmapDC);//获取是否已经存在
-            // }
-            if (already) {
-                continue;
-            }
-            else {
-                // this.shadowmapDC[UUID] = {
-                //     depth: [],
-                //     transparent: [],
-                // }
-                let perLight = this.scene.lightsManager.getLightByID(i.light_id);
-                if (!perLight) {
-                    throw new Error("light not found");
-                }
-                const valueOfLight: I_ShadowMapValueOfDC = {
-                    light: perLight as BaseLight,
-                    UUID: UUID,
-                    matrixIndex: i.matrix_self_index
-                };
-                this.shadowmapDC[mergeLightUUID(UUID, i.matrix_self_index)] = {
-                    [E_renderPassName.shadowmapOpacity]: [],
-                    [E_renderPassName.shadowmapTransparent]: [],
-                }
-                if (this.transparent === true) {
-                    this.createShadowMapTransparentDC(valueOfLight);
-                }
-                else {
-                    this.createShadowMapDC(valueOfLight);
-                }
-            }
-        }
-    }
-    /**检查是否有新摄像机，有进行更新 */
-    checkUpgradeCameras() {
-        const countsOfCamerasCommand = Object.keys(this.cameraDC).length;
-        const countsOfCamera = this.scene.cameraManager.count();
-        if (countsOfCamera > countsOfCamerasCommand) {
-            this.createCameraDC();
-        }
-    }
-    /**检查是否有新光源，有进行更新 */
-    checkUpgradeLights() {
-        const countsOfCamerasCommand = Object.keys(this.shadowmapDC).length;
-        const countsOfCameraActors = this.scene.lightsManager.getShdowMapsStructArray().length;
-        if (countsOfCameraActors > countsOfCamerasCommand) {//比较的是shadowmap的数量
-            this.createLightsDC();
-        }
-    }
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // pointer 相关
 
     intUniformCommonEntity() {
         let offsetSize = Math.ceil(this._entityCommonByteSize / this.uniformOffsetStrideSize) * this.uniformOffsetStrideSize;

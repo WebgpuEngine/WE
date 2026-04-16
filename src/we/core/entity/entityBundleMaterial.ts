@@ -9,24 +9,22 @@
  * 3、非共性或功能不相同的，各自实现
  */
 import { E_lifeState, E_renderForDC } from "../base/coreDefine";
-import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed, T_uniformEntries } from "../command/base";
+import { I_drawMode, I_drawModeIndexed, isDrawModeIndexed } from "../command/base";
 import { DrawCommand } from "../command/DrawCommand";
 import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC, I_vsAttribute } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { BaseLight } from "../light/baseLight";
-import { I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../material/base";
+import { I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate, WGSL_st_output } from "../shadermanagemnet/base";
-import { I_EntityAttributes, IV_BaseEntity, I_EntityBundleOutput, I_vsfsBundle, I_ShadowMapValueOfDC, E_entityType } from "./base";
+import { I_EntityAttributes, IV_BaseEntity, I_EntityBundleOutput, I_vsfsBundle, E_entityType } from "./base";
 import { BaseEntity } from "./baseEntity";
 import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
-import { BaseCamera } from "../camera/baseCamera";
 import { SHT_MeshVS } from "../shadermanagemnet/mesh/meshVS";
 import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
 import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
-import { mergeLightUUID } from "../light/lightsManager";
 import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
 import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPositionsNoIndex } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
@@ -188,28 +186,20 @@ export abstract class EntityBundleMaterial extends BaseEntity {
 
                 //3.1  更新cameraDC队列
                 for (let i in this.cameraDC) {
-                    let perGroupDC = this.cameraDC[i];
-                    const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
-                    for (let perArrayDC of dcGroups) {
-                        for (let perDC of perArrayDC) {
-                            for (let perVertexBuffer of perDC.vertexBuffers) {
-                                if (perVertexBuffer.name == name) {
-                                    perVertexBuffer.buffer = vertexBufferNew;
-                                }
+                    for (let perDC of this.cameraDC[i as keyof typeof this.cameraDC]) {
+                        for (let perVertexBuffer of perDC.vertexBuffers) {
+                            if (perVertexBuffer.name == name) {
+                                perVertexBuffer.buffer = vertexBufferNew;
                             }
                         }
                     }
                 }
                 //3.2 更新shadowmapDC队列
                 for (let i in this.shadowmapDC) {
-                    let perGroupDC = this.shadowmapDC[i];
-                    const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
-                    for (let perArrayDC of dcGroups) {
-                        for (let perDC of perArrayDC) {
-                            for (let perVertexBuffer of perDC.vertexBuffers) {
-                                if (perVertexBuffer.name == name) {
-                                    perVertexBuffer.buffer = vertexBufferNew;
-                                }
+                    for (let perDC of this.shadowmapDC[i as keyof typeof this.shadowmapDC]) {
+                        for (let perVertexBuffer of perDC.vertexBuffers) {
+                            if (perVertexBuffer.name == name) {
+                                perVertexBuffer.buffer = vertexBufferNew;
                             }
                         }
                     }
@@ -256,10 +246,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     indexBuffer = createIndexBuffer(this.device, `${this.ID} rebuild indices `, new Uint32Array(data));
                     //3.1 更新cameraDC队列
                     for (let i in this.cameraDC) {
-                        let perGroupDC = this.cameraDC[i];
-                        const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
-                        for (let perArrayDC of dcGroups) {
-                            for (let perDC of perArrayDC) {
+                            for (let perDC of this.cameraDC[i as keyof typeof this.cameraDC]) {
                                 if (perDC.label.includes(wireFrame) && isWireFrame === false) {
                                     continue;
                                 }
@@ -267,14 +254,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                                     perDC.indexBuffer.buffer = indexBuffer;
                                 }
                             }
-                        }
                     }
                     //3.2 更新shadowmapDC队列
                     for (let i in this.shadowmapDC) {
-                        let perGroupDC = this.shadowmapDC[i];
-                        const dcGroups = Object.values(perGroupDC); // DrawCommand[][]
-                        for (let perArrayDC of dcGroups) {
-                            for (let perDC of perArrayDC) {
+                            for (let perDC of this.shadowmapDC[i as keyof typeof this.shadowmapDC]) {
                                 if (perDC.label.includes(wireFrame) && isWireFrame === false) {
                                     continue;
                                 }
@@ -282,7 +265,6 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                                     perDC.indexBuffer.buffer = indexBuffer;
                                 }
                             }
-                        }
                     }
                     this._vertexAndIndexBuffersUpdated = true;
                 }
@@ -641,7 +623,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             else if (kind == E_renderForDC.light) {
                 let light = this.scene.lightsManager.getLightByMergeID(UUID);
                 if (light != false && light instanceof BaseLight)
-                    visibleInBVH = light.getVisibleInBVH(perNode);
+                    visibleInBVH = light.getVisibleInBVH(perNode, UUID);
             }
             if (visibleInBVH && visibleOfNode && enableOfNode) {
                 for (let j = 0; j < this.instance.numInstances; j++) {
@@ -706,6 +688,12 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         //5、返回
         return instanceDrawArray;
     }
+    /**
+     * 按照实例ID bundle数据，填充drawMode数组
+     * @param visibleInstanceIDBundle 
+     * @param drawMode 
+     * @returns 
+     */
     fillDrawDataToAarray(visibleInstanceIDBundle: { count: number, firstInstance: number }[], drawMode: I_drawMode | I_drawModeIndexed) {
         let instanceDrawArray: I_drawMode[] | I_drawModeIndexed[] = [];
         for (let perPart of visibleInstanceIDBundle) {
@@ -778,11 +766,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     },
                 },
                 fragment,
-                drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind) },
+                // drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind) },
                 primitive: scope._primitive,
             },
             system: {
-                // UUID,
+                // UUID: scope.UUID,
                 type: renderType,
                 parent: scope,
             },
@@ -967,6 +955,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
 
         let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vsBundle: bundle }, true);
+        valueDC.label = "shadowmap opacity:" + valueDC.label;
         // valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
         let dc = this.DCG.generateDrawCommand(valueDC);
         this.shadowmapDC[E_renderPassName.shadowmapOpacity].push(dc);
