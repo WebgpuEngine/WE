@@ -802,7 +802,7 @@ export class Scene {
                 await scope.update();
                 await scope.onAfterUpdate();
                 await scope.onBeforeRender();
-                await scope.render();
+                scope.render();
                 await scope.onAfterRender();
                 // await scope.renderToneMappingAndMSAA();//test 
                 await scope.showGBuffersVisualize();
@@ -817,10 +817,10 @@ export class Scene {
     async onRender() {
         this.updateUserDefineEvent(eventOfScene.onRender);
     }
-    async render() {
+    render() {
         this.onRender();
         // this.lightManger.render()
-        await this.renderManager.render();        //包括不透明和透明，depth
+        this.renderManager.render();        //包括不透明和透明，depth
     }
     /**每帧循环 onAfterRender 
      * 1、用户自定义事件
@@ -1183,7 +1183,7 @@ export class Scene {
     //             throw new Error("获取ColorAttachmentTargets失败");
     //     }
     // }
-  
+
     /**
      * scene的system的shader模板格式化
      * 1、只有camera会调用；

@@ -23,6 +23,7 @@ import { NodeSpace } from "../organization/nodeSpace";
 import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_BOLBufferType } from "../bufferBlock/base";
 import { BaseDrawCommand } from "../command/BaseDrawCommand";
+import { DrawCommand } from "../command/DrawCommand";
 
 
 export abstract class BaseEntity extends NodeSpace {
@@ -44,7 +45,6 @@ export abstract class BaseEntity extends NodeSpace {
      *          stage2
      *          ui
      */
-    renderPass: E_renderPassName | undefined;
     /**内部实例化数量，默认为1 */
     instance: I_entityInstance = {
         numInstances: 1,
@@ -241,40 +241,58 @@ export abstract class BaseEntity extends NodeSpace {
     deferRenderDepth!: boolean;
     //延迟渲染，color模式，todo：先绘制color，depth，材质集中在一起处理，需要一个shader进行处理，即，合批shader
     deferRenderColor!: boolean;
-    /**
-     * cameraDC 队列 
-     * 1、由enity生成(每个摄像机)
-     * 2、由entityManager调度给renderManager
-     */
-    cameraDC: {
-        // [name: string]: {
-        // [E_renderPassName.depth]: DrawCommand[],
-        [E_renderPassName.MSAA]: BaseDrawCommand[],
-        [E_renderPassName.forward]: BaseDrawCommand[],
-        [E_renderPassName.transparent]: BaseDrawCommand[],
-        // }
-    } = {
-            MSAA: [],
-            forward: [],
-            transparent: [],
-        };
+    // /**
+    //  * cameraDC 队列 
+    //  * 1、由enity生成(每个摄像机)
+    //  * 2、由entityManager调度给renderManager
+    //  */
+    // cameraDC: {
+    //     // [name: string]: {
+    //     // [E_renderPassName.depth]: DrawCommand[],
+    //     [E_renderPassName.MSAA]: BaseDrawCommand[],
+    //     [E_renderPassName.forward]: BaseDrawCommand[],
+    //     [E_renderPassName.transparent]: BaseDrawCommand[],
+    //     // }
+    // } = {
+    //         MSAA: [],
+    //         forward: [],
+    //         transparent: [],
+    //     };
 
-    /**
-     * light的shadow map DC 队列 
-     * 1、由enity生成(每个摄像机)
-     * 2、由entityManager调度给renderManager
-     */
-    shadowmapDC: {
-        // [name: string]: {
-        // depth: DrawCommand[],
-        // transparent: DrawCommand[],
-        [E_renderPassName.shadowmapOpacity]: BaseDrawCommand[],
-        [E_renderPassName.shadowmapTransparent]: BaseDrawCommand[],
-        // }
+    // /**
+    //  * light的shadow map DC 队列 
+    //  * 1、由enity生成(每个摄像机)
+    //  * 2、由entityManager调度给renderManager
+    //  */
+    // shadowmapDC: {
+    //     // [name: string]: {
+    //     // depth: DrawCommand[],
+    //     // transparent: DrawCommand[],
+    //     [E_renderPassName.shadowmapOpacity]: BaseDrawCommand[],
+    //     [E_renderPassName.shadowmapTransparent]: BaseDrawCommand[],
+    //     // }
+    // } = {
+    //         shadowmapOpacity: [],
+    //         shadowmapTransparent: [],
+    //     };
+
+    // renderPass: E_renderPassName | undefined;
+    renderPassArray: {
+        [E_renderPassName.sprite]: DrawCommand[],
+        [E_renderPassName.MSAA]: DrawCommand[],
+        [E_renderPassName.forward]: DrawCommand[],
+        [E_renderPassName.transparent]: DrawCommand[],
+        [E_renderPassName.shadowmapOpacity]: DrawCommand[],
+        [E_renderPassName.shadowmapTransparent]: DrawCommand[],
+        // [key in E_renderPassName]?: DrawCommand[]
     } = {
-            shadowmapOpacity: [],
-            shadowmapTransparent: [],
-        }
+            [E_renderPassName.sprite]: [],
+            [E_renderPassName.MSAA]: [],
+            [E_renderPassName.forward]: [],
+            [E_renderPassName.transparent]: [],
+            [E_renderPassName.shadowmapOpacity]: [],
+            [E_renderPassName.shadowmapTransparent]: [],
+        };
     /**
      * DrawCommand 生成器
      */
@@ -354,7 +372,11 @@ export abstract class BaseEntity extends NodeSpace {
         }
         // console.log(this.ID);
         this._state = E_lifeState.constructed;
-
+        // if (input.renderPass) {
+        //     this.renderPass = input.renderPass;
+        //     if (this.renderPassArray[this.renderPass] == undefined)
+        //         this.renderPassArray[this.renderPass] = [];
+        // }
     }
     abstract detachData(): void;
     _destroy(): void {
@@ -472,23 +494,22 @@ export abstract class BaseEntity extends NodeSpace {
         this.MSAA = scene.MSAA;
         this.deferColor = scene.deferRender.deferRenderColor;
 
-        // this.outSideInstance.push(this);//临时代码
-
         await super.init(scene);
         // 初始化common uniform
         this.intUniformCommonEntity();
         // 初始化storage buffer list
         this.checkStorageBuffer(this.storageBufferList);
 
-        // this.updateInstanceBuffer();
-        // this.updateWorldMatrixBuffer();
-        // this.updateJointMatrixBuffer();
-
         this.transparent = this.getTransparent();
         this.DCG = this.scene.DCG;//new DrawCommandGenerator({ scene: this.scene, parent: this });
 
+        this.createDrawCommands();
+        this._state = E_lifeState.finished;
+        // return this.renderID + 1;
+    }
+    /** 创建绘制命令 */
+    createDrawCommands() {
         //检查是否有新摄像机，有进行更新
-        // this.createCameraDC();
         if (this.transparent === true) {
             this.createTransparent();
         }
@@ -496,18 +517,13 @@ export abstract class BaseEntity extends NodeSpace {
             this.createForwardDC();
         }
         //检查是否有新光源，有进行更新
-        // this.createLightsDC();
         if (this.transparent === true) {
-            this.createShadowMapTransparentDC();
+            // this.createShadowMapTransparentDC();
         }
         else {
             this.createShadowMapDC();
         }
-
-        this._state = E_lifeState.finished;
-        // return this.renderID + 1;
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分
@@ -741,15 +757,23 @@ export abstract class BaseEntity extends NodeSpace {
     }
     /** 清除DCC 渲染队列*/
     clearDC() {
-        this.cameraDC = {
-            MSAA: [],
-            forward: [],
-            transparent: [],
+        // this.cameraDC = {
+        //     MSAA: [],
+        //     forward: [],
+        //     transparent: [],
+        // };
+        // this.shadowmapDC = {
+        //     shadowmapOpacity: [],
+        //     shadowmapTransparent: [],
+        // }
+        this.renderPassArray = {
+            [E_renderPassName.sprite]: [],
+            [E_renderPassName.MSAA]: [],
+            [E_renderPassName.forward]: [],
+            [E_renderPassName.transparent]: [],
+            [E_renderPassName.shadowmapOpacity]: [],
+            [E_renderPassName.shadowmapTransparent]: [],
         };
-        this.shadowmapDC = {
-            shadowmapOpacity: [],
-            shadowmapTransparent: [],
-        }
     }
 
     intUniformCommonEntity() {

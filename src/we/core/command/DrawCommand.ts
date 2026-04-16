@@ -100,10 +100,15 @@ export class DrawCommand extends BaseDrawCommand {
             let rpd = this.scene.getRenderPassDescriptor(this.traget.UUID, this.traget.type);
             let passEncoder: GPURenderPassEncoder = commandEncoder.beginRenderPass(rpd);
 
-            this.doWithPipeline(passEncoder);
+            this.doWithPipeline({ passEncoder });
             passEncoder.end();
         }
     }
+    // override doWithPipeline(option: I_drawCallOption) {
+    //     let passEncoder = option.passEncoder;
+    //     passEncoder.setPipeline(this.pipeline);
+    //     this.doDraw({ passEncoder });
+    // }
     override  doDraw(option: I_drawCallOption) {
         // console.log(this.label);
         let passEncoder = option.passEncoder;

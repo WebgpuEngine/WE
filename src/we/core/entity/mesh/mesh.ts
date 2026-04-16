@@ -292,7 +292,7 @@ export class Mesh extends EntityBundleMaterial {
         if (this._wireframe.enable) {
             // let UUID = camera.UUID;
             let dc = this.generateOpacityDC(SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
-            this.cameraDC[E_renderPassName.forward].push(dc);
+            this.renderPassArray[E_renderPassName.forward].push(dc);
         }
     }
 
@@ -311,7 +311,7 @@ export class Mesh extends EntityBundleMaterial {
             // }
             let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial });
             let dc = this.DCG.generateDrawCommand(valueDC);
-            this.cameraDC[E_renderPassName.forward].push(dc);
+            this.renderPassArray[E_renderPassName.forward].push(dc);
         }
     }
 

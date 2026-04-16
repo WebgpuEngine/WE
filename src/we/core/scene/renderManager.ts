@@ -190,7 +190,11 @@ interface I_renderDrawCommand {
 //     >;
 
 
-
+interface I_transparentDrawCommand {
+    command: BaseDrawCommand,
+    pipeline: GPURenderPipeline,
+    drawData: I_drawMode[] | I_drawModeIndexed[]
+}
 /**
  * 一、透明通道的距离绘制命令队列，
  * 1、按照距离进行排序，每个camera与entity的距离是不同的；
@@ -202,6 +206,7 @@ interface I_renderDrawCommand {
  * 3、一个数组队列，是进行pixcel级别的绘制，表示有包围盒重叠
  */
 interface I_renderDrawOfDistancesLine {
+    // [name: string]: (I_transparentDrawCommand[] | I_transparentDrawCommand)[]
     [name: string]: (commmandType[] | commmandType)[]
 }
 
@@ -468,7 +473,7 @@ export class RenderManager {
      * 3、其他渲染通道直接提交commandBuffer数组
      * 
      */
-    async render() {
+    render() {
         this.commandEncoder = this.device.createCommandEncoder({ label: "RenderManager" });
 
         // for (let onePass of this.listCommandType) {
@@ -488,18 +493,18 @@ export class RenderManager {
         this.renderForwaredDC(this.RC[E_renderPassName.MSAA], E_renderPassName.MSAA);
 
         //defer render
-        await this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
+        this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
 
         //透明enity
-        // await this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
+        // this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
 
         // //sprite
         // await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
 
         //toneMapping
-        await this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
+        this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
         //pp
-        await this.renderComplexQuad(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
+        this.renderComplexQuad(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
 
         // //stage1
         // await this.doCommand(this.RC[E_renderPassName.stage1]);
@@ -549,7 +554,7 @@ export class RenderManager {
             this.autoChangeRPDloadOP(rpd, mergeID);
             // console.warn(`renderForwaredDC: ${mergeID},loadOp: ${rpd.colorAttachments[0]!.loadOp}`);
             // debugger;
-            
+
             //2 生成 passEncoder
             let passEncoder: GPURenderPassEncoder = this.commandEncoder.beginRenderPass(rpd);
             // console.warn(`renderForwaredDC: ${mergeID},loadOp: ${rpd.colorAttachments[0]!.loadOp}`);
@@ -581,6 +586,47 @@ export class RenderManager {
                 if (perColorAttachment)
                     perColorAttachment.loadOp = "load";
             }
+        }
+    }
+    /**
+ * TT
+ * 透明渲染DC
+ * @param list 透明渲染列表
+ */
+    async renderTransParentDC(commands: I_renderDrawOfDistancesLine, renderPassName: E_renderPassName) {
+        for (let mergeID in commands) {
+            let list = commands[mergeID];
+            //1 获取RPD
+            let rpd: GPURenderPassDescriptor;
+            let uuid: string = mergeID;
+            if (uuid.indexOf("__") != -1 && renderPassName == E_renderPassName.shadowmapTransparent) {
+                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.light);
+            }
+            else {
+                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
+            }
+            this.autoChangeRPDloadOP(rpd, mergeID);
+            for (let i in list) {//camera UUID
+                // let submitCommand: GPUCommandBuffer[] = [];
+                let perOne = list[i];
+                let UUID = i;
+                //2 for 单个camera的command
+
+                //正常TT渲染
+                for (let perCommand of perOne) {
+                    if (Array.isArray(perCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
+                        this.renderTTP(UUID, perCommand);
+                    }
+                    else {//否则，是单个透明物体，直接渲染
+                        this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
+                        this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+                        perCommand.submit();  // 渲染
+                    }
+                }
+                //模拟的TTP渲染
+                // await this.renderTTP(UUID, perOne as commmandType[]);//这里是透明渲染DC的渲染TTP的单纯渲染TTP的测试，相对于上面的for中的array直接传入
+
+            }// end for of camera UUID
         }
     }
     /**
@@ -672,38 +718,7 @@ export class RenderManager {
     //     }
     // }
 
-    /**
-     * TT
-     * 透明渲染DC
-     * @param list 透明渲染列表
-     */
-    async renderTransParentDC(list: I_renderDrawOfDistancesLine) {
-        // let cameraRendered: {
-        //     [name: string]: number
-        // } = {};
-        // await this.device.queue.onSubmittedWorkDone();
-        for (let i in list) {//camera UUID
-            // let submitCommand: GPUCommandBuffer[] = [];
-            let perOne = list[i];
-            let UUID = i;
-            //2 for 单个camera的command
 
-            //正常TT渲染
-            for (let perCommand of perOne) {
-                if (Array.isArray(perCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
-                    this.renderTTP(UUID, perCommand);
-                }
-                else {//否则，是单个透明物体，直接渲染
-                    this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
-                    this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-                    perCommand.submit();  // 渲染
-                }
-            }
-            //模拟的TTP渲染
-            // await this.renderTTP(UUID, perOne as commmandType[]);//这里是透明渲染DC的渲染TTP的单纯渲染TTP的测试，相对于上面的for中的array直接传入
-
-        }// end for of camera UUID
-    }
     /**
      * TTP+TTPF
      * 透明渲染DC

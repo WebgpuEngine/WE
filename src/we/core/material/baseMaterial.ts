@@ -851,8 +851,8 @@ export abstract class BaseMaterial extends RootGPU {
 
         let TT: I_materialBundleOutput = this.getFS_TT(renderObject, startBinding);;
         let TO: I_materialBundleOutput;
-        let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
-        let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
+        // let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
+        // let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
         // // TT = this.getFS_TT(renderObject, startBinding);
         // // TTP = this.getFS_TTP(renderObject, startBinding);
         let TTTT: {
@@ -861,7 +861,7 @@ export abstract class BaseMaterial extends RootGPU {
         } =
         {
             TT,
-            TTP, TTPF
+            // TTP, TTPF
         };
         if (this.hasOpaqueOfTransparent) {
             TO = this.getFS_TO(startBinding);

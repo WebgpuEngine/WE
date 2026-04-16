@@ -153,11 +153,12 @@ export class BaseDrawCommand {
                 passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor());
             else
                 passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-            this.doWithPipeline(passEncoder);
+            this.doWithPipeline({ passEncoder });
             passEncoder.end();
         }
     }
-    doWithPipeline(passEncoder: GPURenderPassEncoder) {
+    doWithPipeline(option: I_drawCallOption) {
+        let passEncoder = option.passEncoder;
         passEncoder.setPipeline(this.pipeline);
         this.doDraw({ passEncoder });
     }

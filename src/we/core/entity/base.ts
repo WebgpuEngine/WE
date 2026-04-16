@@ -1,5 +1,3 @@
-import { E_renderForDC } from "../base/coreDefine";
-import { Scene } from "../scene/scene";
 import { T_indexAttribute, T_vsAttribute } from "../command/DrawCommandGenerator";
 import { I_drawMode, I_drawModeIndexed, T_uniformOneGroup } from "../command/base";
 import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
@@ -8,6 +6,7 @@ import { BaseMaterial } from "../material/baseMaterial";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { IV_NodeSpace } from "../organization/nodeSpace";
 import { I_materialBundleOutput } from "../material/base";
+import { E_renderPassName } from "../scene/renderManager";
 
 export enum E_entityType {
     mesh = "mesh",
@@ -148,6 +147,12 @@ export interface IV_BaseEntity extends IV_NodeSpace {
      *    B、后续使用setVertexBuffer() 和setIndexBuffer()来重新绑定顶点数据和索引数据。
     */
     dynamicAttribute?: boolean,
+    // /**自定义渲染pass
+    //  * 1、默认通道包括：forward，MSAA，transparent，shadowmapOpacity，shadowmapTransparent,不需要设置
+    //  * 2、sprite非top模式：使用默认通道；top模式使用sprite通道
+    //  * 3、自定义通道：按需设置，不会使用默认通道
+    //  */
+    // renderPass?: E_renderPassName 
 }
 
 

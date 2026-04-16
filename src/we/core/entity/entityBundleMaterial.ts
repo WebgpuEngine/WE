@@ -29,7 +29,6 @@ import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
 import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPositionsNoIndex } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
 
-type pologyMode = "triangle" | "line" | "point";
 
 export abstract class EntityBundleMaterial extends BaseEntity {
     /**mesh的geometry内部对象，获取attribute使用 */
@@ -112,172 +111,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
     }
 
-    /**
-     * 动态更新顶点数据和索引数据的标志位
-     *   1、更新后，this.getDrawModeTemplate()需要重新生成drawMode数据，因为长度可以变化了
-     */
-    _vertexAndIndexBuffersUpdated: boolean = false;
-    /**是否支持动态attribute数据 */
-    _dynamicAttribute: boolean = false;
 
-    /**
-     * 更新顶点数据，
-     * 1、如果是数组形式，直接更新
-     * 2、如果是I_vsAttribute，更新data   
-     * 3、其他暂时不支持，没有必要
-     * @param name 顶点数据的名称
-     * @param data 顶点数据
-     * @param option 顶点数据的类型和步长
-     * @returns 
-     */
-    setVertexBuffer(name: string, data: number[], option?: { type?: "float32" | "int32" | "uint32", stride?: number }) {
-        if (this._dynamicAttribute && this.vertexPointers[name]) {//必须判断vertexPointers[name]是否存在，否则会报错(创建后，visible=false ，没有进行创建DC)，
-            let replaceTarget = this.attributes.vertices[name];
-            // if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isI_vsAttributeMerge(replaceTarget)) {
-            if (Array.isArray(replaceTarget)) {
-                /*
-                 * 一、更新this.attributes.vertices[name]
-                 * 1、是数组形式
-                 * 2、是I_vsAttribute： if ("format" in value && "data" in value)
-                 *
-                 * 二、GPUBuffer
-                 * 1、删除旧的vertexBuffer，
-                 * 2、创建新的vertexBuffer
-                 *  
-                 * 三、更新this.cameraDC
-                 *  
-                 * 四、更新shadowmapDC
-                 * 
-                 */
-                //1.1 更新this.attributes.vertices[name]
-                if ("format" in replaceTarget && "data" in replaceTarget) {
-                    (this.attributes.vertices[name] as I_vsAttribute).data = data;
-                }
-                else {
-                    this.attributes.vertices[name] = data;
-                }
-
-                //2.1 删除旧的vertexBuffer
-                // let vertexBuffer = this.resourcesGPU.verticesDynamic.get(replaceTarget);
-                let vertexBuffer = this.vertexPointers[name].gpuBuffer;
-                // this.resourcesGPU.verticesDynamic.delete(replaceTarget);
-                vertexBuffer.destroy();
-
-                let arrayBuffer;
-                if (option?.type == "int32") {
-                    arrayBuffer = new Int32Array(data);
-                }
-                else if (option?.type == "uint32") {
-                    arrayBuffer = new Uint32Array(data);
-                }
-                else if (option?.type == "float32") {
-                    arrayBuffer = new Float32Array(data);
-                }
-                else {
-                    arrayBuffer = new Float32Array(data);
-                    // console.warn(" setVertexAndIndexBuffers(), 只支持int32, uint32, float32类型设置.");
-                    // return;
-                }
-                //2.2 创建新的vertexBuffer
-                let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
-                // this.resourcesGPU.verticesDynamic.set(this.attributes.vertices[name], vertexBufferNew);
-                this.vertexPointers[name].gpuBuffer = vertexBufferNew;
-
-
-                //3.1  更新cameraDC队列
-                for (let i in this.cameraDC) {
-                    for (let perDC of this.cameraDC[i as keyof typeof this.cameraDC]) {
-                        for (let perVertexBuffer of perDC.vertexBuffers) {
-                            if (perVertexBuffer.name == name) {
-                                perVertexBuffer.buffer = vertexBufferNew;
-                            }
-                        }
-                    }
-                }
-                //3.2 更新shadowmapDC队列
-                for (let i in this.shadowmapDC) {
-                    for (let perDC of this.shadowmapDC[i as keyof typeof this.shadowmapDC]) {
-                        for (let perVertexBuffer of perDC.vertexBuffers) {
-                            if (perVertexBuffer.name == name) {
-                                perVertexBuffer.buffer = vertexBufferNew;
-                            }
-                        }
-                    }
-                }
-                this._vertexAndIndexBuffersUpdated = true;
-            } else {
-                console.warn(" setVertexAndIndexBuffers(), 只支持数组形式的顶点数据.");
-                return;
-            }
-        }
-        else {
-            console.log("setVertexAndIndexBuffers(),需要在初始化参数中设置dynamicAttribute为true");
-        }
-    }
-    setIndexBuffer(data: number[], option?: { stride?: number, wireFrame?: boolean }) {
-        if (this._dynamicAttribute && this.vertexPointers.indices) {
-            let wireFrame = "wireframe";
-            let isWireFrame = false;
-            if (option?.wireFrame == true) {
-                isWireFrame = true;
-            }
-            if (this.attributes.indices) {
-                /**
-                 * 一、更新this.attributes.indices
-                 * 1、是数组形式
-                 *
-                 * 二、GPUBuffer
-                 * 1、删除旧的vertexBuffer，
-                 * 2、创建新的vertexBuffer
-                 *  
-                 * 三、更新this.cameraDC
-                 *  
-                 * 四、更新shadowmapDC
-                 * 
-                 */
-                let replaceTarget = this.attributes.indices;
-                if (Array.isArray(replaceTarget) && data.length > 0) {
-                    //1.1 更新this.attributes.indices
-                    this.attributes.indices = data;
-                    //2.1 删除旧的indexBuffer
-                    let indexBuffer = this.vertexPointers.indices.gpuBuffer;
-                    indexBuffer.destroy();
-                    //2.2 创建新的indexBuffer
-                    indexBuffer = createIndexBuffer(this.device, `${this.ID} rebuild indices `, new Uint32Array(data));
-                    //3.1 更新cameraDC队列
-                    for (let i in this.cameraDC) {
-                            for (let perDC of this.cameraDC[i as keyof typeof this.cameraDC]) {
-                                if (perDC.label.includes(wireFrame) && isWireFrame === false) {
-                                    continue;
-                                }
-                                if (perDC.indexBuffer) {
-                                    perDC.indexBuffer.buffer = indexBuffer;
-                                }
-                            }
-                    }
-                    //3.2 更新shadowmapDC队列
-                    for (let i in this.shadowmapDC) {
-                            for (let perDC of this.shadowmapDC[i as keyof typeof this.shadowmapDC]) {
-                                if (perDC.label.includes(wireFrame) && isWireFrame === false) {
-                                    continue;
-                                }
-                                if (perDC.indexBuffer) {
-                                    perDC.indexBuffer.buffer = indexBuffer;
-                                }
-                            }
-                    }
-                    this._vertexAndIndexBuffersUpdated = true;
-                }
-                else {
-                    console.warn("setIndexBuffer(), 只支持数组形式的索引数据.");
-                    return;
-                }
-            }
-        }
-        else {
-            console.log("setIndexBuffer(),需要在初始化参数中设置dynamicAttribute为true");
-        }
-    }
 
     detachData(): void {
         this.inputValues.attributes.geometry = undefined;
@@ -369,7 +203,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
         return 0;
     }
-
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 处理shader代码
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 获取st_output的代码，根据当前entity的locationInterpolate进行替换
      * @returns string
@@ -434,47 +270,6 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @returns uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
     getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
-        //uniform 部分
-        // let bindingNumber = startBinding;
-        // let uniform1: T_uniformOneGroup = [];
-
-        // let unifrom10: I_uniformArrayBufferEntry = {
-        //     label: this.Name + " uniform at group(1) binding(0)",
-        //     binding: bindingNumber,
-        //     size: this.getSizeOfUniformArrayBuffer(),
-        //     data: this.getUniformCommonEntityInfo(),
-        //     update: true,
-        // };
-        // let uniform10Layout: GPUBindGroupLayoutEntry = {
-        //     binding: bindingNumber,
-        //     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        //     buffer: {
-        //         type: "uniform"
-        //     }
-        // };
-
-        // let uniform10GroupAndBindingString = " @group(1) @binding(0) var<uniform> entity : ST_entity; \n ";
-        // this.scene.resourcesGPU.set(unifrom10, uniform10Layout);
-        // bindingNumber++;
-        // uniform1.push(unifrom10);
-        // //scene 和 entity 的shader模板部分
-        // let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-
-        // for (let i in SHT_VS) {
-        //     if (i == "scene") {
-        //         let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
-        //         shaderTemplateFinal.scene = shader.scene;
-        //     }
-        //     else if (i == "entity") {
-        //         shaderTemplateFinal.entity = {
-        //             templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
-        //             groupAndBindingString: uniform10GroupAndBindingString,
-        //             owner: this,
-        //         };
-        //     }
-        // }
-        // return { bindingNumber: bindingNumber, uniformGroup: uniform1, shaderTemplateFinal };
-
         /**
          * 1、VS与FS分离后，startBinding已经时VS自己的，没有变化；
          * 2、startBinding在entity细分之后，bindingNumber每种shader会不同，而且时固定的；不用后续的进行绑定
@@ -499,7 +294,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
         return { bindingNumber: bindingNumber, uniformGroup: this.bindGroup, shaderTemplateFinal };
     }
-
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 处理drawMode 模板
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * drawMode 模板,保存drawMode的模板,后续实例化时使用
      */
@@ -672,19 +469,6 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         // 数组：实例化的drawMode数组
         let instanceDrawArray: I_drawMode[] | I_drawModeIndexed[] = this.fillDrawDataToAarray(visibleInstanceIDBundle, drawMode);
         this._visibleInstanceIDBundle = visibleInstanceIDBundle;
-        // for (let perPart of visibleInstanceIDBundle) {
-        //     let instanceDraw: I_drawMode | I_drawModeIndexed = {
-        //         ...drawMode
-        //     };
-        //     instanceDraw.instanceCount = perPart.count;
-        //     instanceDraw.firstInstance = perPart.firstInstance;
-        //     if (isDrawModeIndexed(drawMode)) {
-        //         (instanceDrawArray as I_drawModeIndexed[]).push(instanceDraw as I_drawModeIndexed);
-        //     }
-        //     else {
-        //         (instanceDrawArray as I_drawMode[]).push(instanceDraw as I_drawMode);
-        //     }
-        // }
         //5、返回
         return instanceDrawArray;
     }
@@ -711,6 +495,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         }
         return instanceDrawArray;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 处理 IV_DC 参数
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * mesh 生成DrawCommand的input value
      * 1、透明材质的entity使用
@@ -811,6 +598,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             delete valueDC.render.fragment;
         return valueDC;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 生成DC
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 生成opacity DC，并push到对应队列
      * 
@@ -936,9 +726,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         else if (this.kind === E_entityType.points) {
             SHT_VS = SHT_PointVS;
         }
-        let dc = this.generateOpacityDC(SHT_VS);
+        let dc = this.generateOpacityDC(SHT_VS) as DrawCommand;
         // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
-        this.cameraDC[E_renderPassName.forward].push(dc);
+        this.renderPassArray[E_renderPassName.forward]!.push(dc);
     }
     /**
      * 为每个light创建阴影映射的DrawCommand
@@ -957,8 +747,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vsBundle: bundle }, true);
         valueDC.label = "shadowmap opacity:" + valueDC.label;
         // valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
-        let dc = this.DCG.generateDrawCommand(valueDC);
-        this.shadowmapDC[E_renderPassName.shadowmapOpacity].push(dc);
+        let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
+        this.renderPassArray[E_renderPassName.shadowmapOpacity]!.push(dc);
     }
     createShadowMapTransparentDC(): void {
         throw new Error("Method not implemented.");
@@ -977,8 +767,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         let uniformsMaterialTOTT = this._material.getTTTT();
         //TO
         if (uniformsMaterialTOTT.TO) {
-            let dc = this.generateOpacityDC(SHT_MeshVS, uniformsMaterialTOTT.TO);
-            this.cameraDC[E_renderPassName.forward].push(dc);
+            let dc = this.generateOpacityDC(SHT_MeshVS, uniformsMaterialTOTT.TO) as DrawCommand;
+            this.renderPassArray[E_renderPassName.forward]!.push(dc);
         }
         let dcTT: DrawCommand;
         //TT
@@ -996,7 +786,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             valueDC.label = "TT mesh:" + this.Name;
             // valueDC.label = this.ID.toString();
             dcTT = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
-            this.cameraDC[E_renderPassName.transparent].push(dcTT);
+            this.renderPassArray[E_renderPassName.transparent]!.push(dcTT);
         }
         // //TTP
         // if (uniformsMaterialTOTT.TTP) {
@@ -1070,5 +860,175 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         //     this.resourcesGPU.TT2TTPF.set(dcTT, dc);
         //     this.mapList.push({ key: dcTT, type: "TTPF", map: "TT2TTPF" });
         // }
+
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 动态更新顶点数据和索引数据
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * 动态更新顶点数据和索引数据的标志位
+     *   1、更新后，this.getDrawModeTemplate()需要重新生成drawMode数据，因为长度可以变化了
+     */
+    _vertexAndIndexBuffersUpdated: boolean = false;
+    /**是否支持动态attribute数据 */
+    _dynamicAttribute: boolean = false;
+
+    /**
+     * 更新顶点数据，
+     * 1、如果是数组形式，直接更新
+     * 2、如果是I_vsAttribute，更新data   
+     * 3、其他暂时不支持，没有必要
+     * @param name 顶点数据的名称
+     * @param data 顶点数据
+     * @param option 顶点数据的类型和步长
+     * @returns 
+     */
+    setVertexBuffer(name: string, data: number[], option?: { type?: "float32" | "int32" | "uint32", stride?: number }) {
+        if (this._dynamicAttribute && this.vertexPointers[name]) {//必须判断vertexPointers[name]是否存在，否则会报错(创建后，visible=false ，没有进行创建DC)，
+            let replaceTarget = this.attributes.vertices[name];
+            // if (isVSGPUBufferBundle(this.attributes.vertices[name]) && isI_vsAttributeMerge(replaceTarget)) {
+            if (Array.isArray(replaceTarget)) {
+                /*
+                 * 一、更新this.attributes.vertices[name]
+                 * 1、是数组形式
+                 * 2、是I_vsAttribute： if ("format" in value && "data" in value)
+                 *
+                 * 二、GPUBuffer
+                 * 1、删除旧的vertexBuffer，
+                 * 2、创建新的vertexBuffer
+                 *  
+                 * 三、更新this.cameraDC
+                 *  
+                 * 四、更新shadowmapDC
+                 * 
+                 */
+                //1.1 更新this.attributes.vertices[name]
+                if ("format" in replaceTarget && "data" in replaceTarget) {
+                    (this.attributes.vertices[name] as I_vsAttribute).data = data;
+                }
+                else {
+                    this.attributes.vertices[name] = data;
+                }
+
+                //2.1 删除旧的vertexBuffer
+                // let vertexBuffer = this.resourcesGPU.verticesDynamic.get(replaceTarget);
+                let vertexBuffer = this.vertexPointers[name].gpuBuffer;
+                // this.resourcesGPU.verticesDynamic.delete(replaceTarget);
+                vertexBuffer.destroy();
+
+                let arrayBuffer;
+                if (option?.type == "int32") {
+                    arrayBuffer = new Int32Array(data);
+                }
+                else if (option?.type == "uint32") {
+                    arrayBuffer = new Uint32Array(data);
+                }
+                else if (option?.type == "float32") {
+                    arrayBuffer = new Float32Array(data);
+                }
+                else {
+                    arrayBuffer = new Float32Array(data);
+                    // console.warn(" setVertexAndIndexBuffers(), 只支持int32, uint32, float32类型设置.");
+                    // return;
+                }
+                //2.2 创建新的vertexBuffer
+                let vertexBufferNew = createVerticesBuffer(this.device, `${this.ID} rebuild ${name} `, arrayBuffer);
+                // this.resourcesGPU.verticesDynamic.set(this.attributes.vertices[name], vertexBufferNew);
+                this.vertexPointers[name].gpuBuffer = vertexBufferNew;
+
+
+                //3.1  更新cameraDC队列
+                for (let i in this.renderPassArray) {
+                    for (let perDC of this.renderPassArray[i as keyof typeof this.renderPassArray]) {
+                        for (let perVertexBuffer of perDC.vertexBuffers) {
+                            if (perVertexBuffer.name == name) {
+                                perVertexBuffer.buffer = vertexBufferNew;
+                            }
+                        }
+                    }
+                }
+                // //3.2 更新shadowmapDC队列
+                // for (let i in this.shadowmapDC) {
+                //     for (let perDC of this.shadowmapDC[i as keyof typeof this.shadowmapDC]) {
+                //         for (let perVertexBuffer of perDC.vertexBuffers) {
+                //             if (perVertexBuffer.name == name) {
+                //                 perVertexBuffer.buffer = vertexBufferNew;
+                //             }
+                //         }
+                //     }
+                // }
+                this._vertexAndIndexBuffersUpdated = true;
+            } else {
+                console.warn(" setVertexAndIndexBuffers(), 只支持数组形式的顶点数据.");
+                return;
+            }
+        }
+        else {
+            console.log("setVertexAndIndexBuffers(),需要在初始化参数中设置dynamicAttribute为true");
+        }
+    }
+    setIndexBuffer(data: number[], option?: { stride?: number, wireFrame?: boolean }) {
+        if (this._dynamicAttribute && this.vertexPointers.indices) {
+            let wireFrame = "wireframe";
+            let isWireFrame = false;
+            if (option?.wireFrame == true) {
+                isWireFrame = true;
+            }
+            if (this.attributes.indices) {
+                /**
+                 * 一、更新this.attributes.indices
+                 * 1、是数组形式
+                 *
+                 * 二、GPUBuffer
+                 * 1、删除旧的vertexBuffer，
+                 * 2、创建新的vertexBuffer
+                 *  
+                 * 三、更新this.cameraDC
+                 *  
+                 * 四、更新shadowmapDC
+                 * 
+                 */
+                let replaceTarget = this.attributes.indices;
+                if (Array.isArray(replaceTarget) && data.length > 0) {
+                    //1.1 更新this.attributes.indices
+                    this.attributes.indices = data;
+                    //2.1 删除旧的indexBuffer
+                    let indexBuffer = this.vertexPointers.indices.gpuBuffer;
+                    indexBuffer.destroy();
+                    //2.2 创建新的indexBuffer
+                    indexBuffer = createIndexBuffer(this.device, `${this.ID} rebuild indices `, new Uint32Array(data));
+                    //3.1 更新cameraDC队列
+                    for (let i in this.renderPassArray) {
+                        for (let perDC of this.renderPassArray[i as keyof typeof this.renderPassArray]) {
+                            if (perDC.label.includes(wireFrame) && isWireFrame === false) {
+                                continue;
+                            }
+                            if (perDC.indexBuffer) {
+                                perDC.indexBuffer.buffer = indexBuffer;
+                            }
+                        }
+                    }
+                    // //3.2 更新shadowmapDC队列
+                    // for (let i in this.shadowmapDC) {
+                    //         for (let perDC of this.shadowmapDC[i as keyof typeof this.shadowmapDC]) {
+                    //             if (perDC.label.includes(wireFrame) && isWireFrame === false) {
+                    //                 continue;
+                    //             }
+                    //             if (perDC.indexBuffer) {
+                    //                 perDC.indexBuffer.buffer = indexBuffer;
+                    //             }
+                    //         }
+                    // }
+                    this._vertexAndIndexBuffersUpdated = true;
+                }
+                else {
+                    console.warn("setIndexBuffer(), 只支持数组形式的索引数据.");
+                    return;
+                }
+            }
+        }
+        else {
+            console.log("setIndexBuffer(),需要在初始化参数中设置dynamicAttribute为true");
+        }
     }
 }

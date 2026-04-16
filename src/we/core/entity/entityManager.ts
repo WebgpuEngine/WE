@@ -1,4 +1,5 @@
 import { E_renderForDC } from "../base/coreDefine";
+import { DrawCommand } from "../command/DrawCommand";
 import { mergeLightUUID } from "../light/lightsManager";
 import { ECSManager } from "../organization/manager";
 import { NodeObject } from "../organization/nodeObject";
@@ -43,45 +44,59 @@ export class EntityManager extends ECSManager<BaseEntity> {
                 entity.getInstancesCount() > 0 &&
                 entity.enable === true &&
                 entity.visible === true
-            ) {//&& entity.enable === true && entity.visible === true
+            ) {
                 entity.update(clock);
-                //camera
-                for (let perCamera of this.scene.cameraManager.list) {
-                    let instanaceArray = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);                  //获取可见性
-                    if (instanaceArray.length > 0) {    //如果有可见性
-                        for (let i_renderPass in entity.cameraDC) {     //遍历所有renderPass
-                            for (let i_DC in entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC]) {       //遍历所有DC
-                                let perDC = entity.cameraDC[i_renderPass as keyof typeof entity.cameraDC][parseInt(i_DC)];
-                                if (perDC.label.indexOf("wireFrame") == -1) {                                               //如果不是线框
-                                    this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, instanaceArray);
-                                } else {                                               //如果是线框
-                                    let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();        //生成线框的DrawModeArray
-                                    if (wireFrameInstanceAarray && wireFrameInstanceAarray.length > 0)
-                                        this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, wireFrameInstanceAarray);
-                                    else
-                                        throw new Error("线框的DrawModeArray为空");
+                //camera opacity 
+                if (entity.renderPassArray[E_renderPassName.forward].length > 0 ||
+                    entity.renderPassArray[E_renderPassName.sprite].length > 0 ||
+                    entity.renderPassArray[E_renderPassName.MSAA].length > 0
+                ) {
+                    for (let perCamera of this.scene.cameraManager.list) {
+                        let instanaceArray = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);                  //获取可见性
+                        if (instanaceArray.length > 0) {    //如果有可见性
+                            let dcArray = {
+                                [E_renderPassName.forward]: entity.renderPassArray[E_renderPassName.forward],
+                                [E_renderPassName.sprite]: entity.renderPassArray[E_renderPassName.sprite],
+                                [E_renderPassName.MSAA]: entity.renderPassArray[E_renderPassName.MSAA],
+                                // [E_renderPassName.shadowmapOpacity]: entity.renderPassArray[E_renderPassName.shadowmapOpacity],
+                            };
+                            for (let i_renderPass in dcArray) {     //遍历所有renderPass
+                                for (let perDC of dcArray[i_renderPass as keyof typeof dcArray]) {       //遍历所有DC
+                                    if (perDC.label.indexOf("wireFrame") == -1) {                                               //如果不是线框
+                                        this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, instanaceArray);
+                                    } else {                                               //如果是线框
+                                        let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();        //生成线框的DrawModeArray
+                                        if (wireFrameInstanceAarray && wireFrameInstanceAarray.length > 0)
+                                            this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, wireFrameInstanceAarray);
+                                        else
+                                            throw new Error("线框的DrawModeArray为空");
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                //shadowmap
-                for (let i of this.scene.lightsManager.getShdowMapsStructArray()) { //所有shadowmap：light + matrix_self_index（point light有6个）
-                    let perLight = this.scene.lightsManager.getLightByID(i.light_id);
-                    if (perLight) {
-                        let uuid = this.scene.lightsManager.getUUIDByID(i.light_id);
-                        let mergeID = mergeLightUUID(uuid, i.matrix_self_index);
-                        let instanaceArray = entity.getDrawModeArrayOfInstances(mergeID, E_renderForDC.light);
-                        //遍历shadowmap 的render pass，获得DC集合
-                        for (let i_renderPass in entity.shadowmapDC) {
+
+                //shadowmapOpacity
+                if (entity.renderPassArray[E_renderPassName.shadowmapOpacity].length > 0
+                ) {
+                    for (let i of this.scene.lightsManager.getShdowMapsStructArray()) { //所有shadowmap：light + matrix_self_index（point light有6个）
+                        let perLight = this.scene.lightsManager.getLightByID(i.light_id);
+                        if (perLight) {
+                            let uuid = this.scene.lightsManager.getUUIDByID(i.light_id);
+                            let mergeID = mergeLightUUID(uuid, i.matrix_self_index);
+                            let instanaceArray = entity.getDrawModeArrayOfInstances(mergeID, E_renderForDC.light);
+                            //遍历shadowmap 的render pass，获得DC集合
+                            let shadowMapDC = entity.renderPassArray[E_renderPassName.shadowmapOpacity];
                             //遍历DC集合
-                            for (let i_DC in entity.shadowmapDC[i_renderPass as keyof typeof entity.shadowmapDC]) {
-                                let perDC = entity.shadowmapDC[i_renderPass as keyof typeof entity.shadowmapDC][parseInt(i_DC)];
-                                this.renderManager.push(perDC, i_renderPass as E_renderPassName, mergeID, perDC.pipeline, instanaceArray);//线框无DC
+                            for (let i_DC in shadowMapDC) {
+                                let perDC = shadowMapDC[parseInt(i_DC)];
+                                this.renderManager.push(perDC, E_renderPassName.shadowmapOpacity, mergeID, perDC.pipeline, instanaceArray);//线框无DC
                             }
                         }
                     }
                 }
+
             }
         }
     }
