@@ -10,8 +10,11 @@ export class TextureManager extends ECSManager<BaseTexture> {
         this.checkDestroy();
         for (let i of this.list) {
             i.update(clock);
-            for(let j of i.commands){
-                this.scene.renderManager.push(j, E_renderPassName.texture);
+            for (let j of i.commands) {
+                this.scene.renderManager.push({
+                    command: j,
+                    kind: E_renderPassName.texture,
+                });
             }
         }
     }

@@ -63,14 +63,74 @@ export class EntityManager extends ECSManager<BaseEntity> {
                             for (let i_renderPass in dcArray) {     //遍历所有renderPass
                                 for (let perDC of dcArray[i_renderPass as keyof typeof dcArray]) {       //遍历所有DC
                                     if (perDC.label.indexOf("wireFrame") == -1) {                                               //如果不是线框
-                                        this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, instanaceArray);
+                                        this.renderManager.push(
+                                            {
+                                                command: perDC,
+                                                kind: i_renderPass as E_renderPassName,
+                                                uuid: perCamera.UUID,
+                                                pipeline: perDC.pipeline,
+                                                drawData: instanaceArray
+                                            }
+                                        );
                                     } else {                                               //如果是线框
                                         let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();        //生成线框的DrawModeArray
                                         if (wireFrameInstanceAarray && wireFrameInstanceAarray.length > 0)
-                                            this.renderManager.push(perDC, i_renderPass as E_renderPassName, perCamera.UUID, perDC.pipeline, wireFrameInstanceAarray);
+                                            this.renderManager.push(
+                                                {
+                                                    command: perDC,
+                                                    kind: i_renderPass as E_renderPassName,
+                                                    uuid: perCamera.UUID,
+                                                    pipeline: perDC.pipeline,
+                                                    drawData: wireFrameInstanceAarray
+                                                }
+                                            );
                                         else
                                             throw new Error("线框的DrawModeArray为空");
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (entity.renderPassArray[E_renderPassName.transparent].length > 0) {
+                    for (let perCamera of this.scene.cameraManager.list) {
+                        let instanaceArray = entity.getDrawModeArrayOfInstances(perCamera.UUID, E_renderForDC.camera);                  //获取可见性
+                        if (instanaceArray.length > 0) {    //如果有可见性
+                            let dcArray = {
+                                [E_renderPassName.transparent]: entity.renderPassArray[E_renderPassName.transparent]
+                            };
+                            for (let i_renderPass in dcArray) {     //遍历所有renderPass
+                                for (let perDC of dcArray[i_renderPass as keyof typeof dcArray]) {       //遍历所有DC
+                                    // if (perDC.label.indexOf("wireFrame") == -1) {                                               //线框是不透明的
+                                    this.renderManager.push(
+                                        {
+                                            command: perDC,
+                                            kind: i_renderPass as E_renderPassName,
+                                            uuid: perCamera.UUID,
+                                            pipeline: perDC.pipeline,
+                                            drawData: instanaceArray,
+                                            distance: 0
+                                        }
+                                    );
+                                    // } 
+                                    // else 
+                                    // {                                               //如果是线框
+                                    //     let wireFrameInstanceAarray = (entity as Mesh).generateWireFrameDrawModeArray();        //生成线框的DrawModeArray
+                                    //     if (wireFrameInstanceAarray && wireFrameInstanceAarray.length > 0)
+                                    //         this.renderManager.push(
+                                    //             {
+                                    //                 command: perDC, 
+                                    //                 kind: i_renderPass as E_renderPassName,
+                                    //                 uuid: perCamera.UUID,
+                                    //                 pipeline: perDC.pipeline,
+                                    //                 drawData: wireFrameInstanceAarray,
+                                    //                 distance: 0
+                                    //             }
+                                    //         );
+                                    //     else
+                                    //         throw new Error("线框的DrawModeArray为空");
+                                    // }
                                 }
                             }
                         }
@@ -91,7 +151,16 @@ export class EntityManager extends ECSManager<BaseEntity> {
                             //遍历DC集合
                             for (let i_DC in shadowMapDC) {
                                 let perDC = shadowMapDC[parseInt(i_DC)];
-                                this.renderManager.push(perDC, E_renderPassName.shadowmapOpacity, mergeID, perDC.pipeline, instanaceArray);//线框无DC
+                                this.renderManager.push(
+                                    {
+                                        command: perDC,
+                                        kind: E_renderPassName.shadowmapOpacity,
+                                        uuid: mergeID,
+                                        pipeline: perDC.pipeline,
+                                        drawData: instanaceArray,
+                                        distance: 0
+                                    }
+                                );//线框无DC
                             }
                         }
                     }

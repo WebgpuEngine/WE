@@ -212,12 +212,20 @@ export class CameraManager extends ECSManager<BaseCamera> {
         for (let camera of this.list) {
             let UUID = camera.UUID;
             for (let perToneMappingCommand of this.cameraDrawCommandOfFinalStep[UUID].toneMapping) {
-                this.scene.renderManager.push(perToneMappingCommand, E_renderPassName.toneMapping, UUID);
+                this.scene.renderManager.push({
+                    command: perToneMappingCommand, 
+                    kind: E_renderPassName.toneMapping,
+                    uuid: UUID,
+                });
             }
             // this.scene.renderManager.push(this.cameraDrawCommandOfFinalStep[UUID].defer!, E_renderPassName.defer, UUID);
             if (this.deferRender === true) {
                 for (let perCommand of this.deferDCG.DDC[UUID]) {
-                    this.scene.renderManager.push(perCommand, E_renderPassName.defer, UUID);
+                    this.scene.renderManager.push({
+                        command: perCommand, 
+                        kind: E_renderPassName.defer,
+                        uuid: UUID,
+                    });
                 }
             }
         }

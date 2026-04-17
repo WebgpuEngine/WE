@@ -193,7 +193,8 @@ interface I_renderDrawCommand {
 interface I_transparentDrawCommand {
     command: BaseDrawCommand,
     pipeline: GPURenderPipeline,
-    drawData: I_drawMode[] | I_drawModeIndexed[]
+    drawData: I_drawMode[] | I_drawModeIndexed[],
+    distance: number,
 }
 /**
  * 一、透明通道的距离绘制命令队列，
@@ -206,8 +207,8 @@ interface I_transparentDrawCommand {
  * 3、一个数组队列，是进行pixcel级别的绘制，表示有包围盒重叠
  */
 interface I_renderDrawOfDistancesLine {
-    // [name: string]: (I_transparentDrawCommand[] | I_transparentDrawCommand)[]
-    [name: string]: (commmandType[] | commmandType)[]
+    [name: string]: (I_transparentDrawCommand[] | I_transparentDrawCommand)[]
+    // [name: string]: (commmandType[] | commmandType)[]
 }
 
 /**quad 类型通道
@@ -218,6 +219,17 @@ interface I_renderDrawOfDistancesLine {
  */
 interface I_renderDrawOfQuad {
     [name: string]: commmandType[]
+}
+/**
+ * renderManage渲染通道接受的入参选项
+ */
+export interface I_renderPassOptions {
+    command: commmandType | DrawCommand,
+    kind: E_renderPassName,
+    uuid?: string
+    pipeline?: GPURenderPipeline,
+    drawData?: I_drawMode[] | I_drawModeIndexed[],
+    distance?: number,
 }
 /**
  * 渲染管理器
@@ -382,68 +394,79 @@ export class RenderManager {
      * @param command 绘制命令
      * @param kind 渲染通道
      */
-    push(command: commmandType | DrawCommand, kind: E_renderPassName, _UUID?: string, pipeline?: GPURenderPipeline, drawData?: I_drawMode[] | I_drawModeIndexed[]) {
-        if (!_UUID) {
-            if (kind == E_renderPassName.forward ||
-                kind == E_renderPassName.transparent ||
-                kind == E_renderPassName.MSAA ||
-                kind == E_renderPassName.defer ||
-                kind == E_renderPassName.sprite
+    push(option: I_renderPassOptions)
+    // command: commmandType | DrawCommand,
+    // kind: E_renderPassName,
+    // _UUID?: string,
+    // pipeline?: GPURenderPipeline,
+    // drawData?: I_drawMode[] | I_drawModeIndexed[],
+    {
+        if (!option.uuid) {
+            if (option.kind == E_renderPassName.forward ||
+                option.kind == E_renderPassName.transparent ||
+                option.kind == E_renderPassName.MSAA ||
+                option.kind == E_renderPassName.defer ||
+                option.kind == E_renderPassName.sprite
                 // kind == E_renderPassName.spriteTransparent
             ) {
-                throw new Error(`渲染通道为${kind}时，必须有camera ID`);
+                throw new Error(`渲染通道为${option.kind}时，必须有camera ID`);
             }
-            else if (kind == E_renderPassName.shadowmapOpacity || kind == E_renderPassName.shadowmapTransparent) {
-                throw new Error(`渲染通道为${kind}时，必须有light mergeID`);
+            else if (option.kind == E_renderPassName.shadowmapOpacity || option.kind == E_renderPassName.shadowmapTransparent) {
+                throw new Error(`渲染通道为${option.kind}时，必须有light mergeID`);
             }
-            else if (kind == E_renderPassName.toneMapping || kind == E_renderPassName.postprocess) {
-                throw new Error(`渲染通道为${kind}时，必须有camera ID`);
+            else if (option.kind == E_renderPassName.toneMapping || option.kind == E_renderPassName.postprocess) {
+                throw new Error(`渲染通道为${option.kind}时，必须有camera ID`);
             }
         }
-        if (!pipeline || !drawData) {
-            if (kind == E_renderPassName.forward ||
-                kind == E_renderPassName.transparent ||
-                kind == E_renderPassName.MSAA ||
+        if (!option.pipeline || !option.drawData) {
+            if (option.kind == E_renderPassName.forward ||
+                option.kind == E_renderPassName.transparent ||
+                option.kind == E_renderPassName.MSAA ||
                 // kind == E_renderPassName.defer ||
-                kind == E_renderPassName.sprite
+                option.kind == E_renderPassName.sprite
                 // kind == E_renderPassName.spriteTransparent
             ) {
-                throw new Error(`渲染通道为${kind}时，必须有pipeline和drawData`);
+                throw new Error(`渲染通道为${option.kind}时，必须有pipeline和drawData`);
             }
-            else if (kind == E_renderPassName.shadowmapOpacity || kind == E_renderPassName.shadowmapTransparent) {
-                throw new Error(`渲染通道为${kind}时，必须有pipeline和drawData`);
+            else if (option.kind == E_renderPassName.shadowmapOpacity || option.kind == E_renderPassName.shadowmapTransparent) {
+                throw new Error(`渲染通道为${option.kind}时，必须有pipeline和drawData`);
             }
         }
-        switch (kind) {
+        switch (option.kind) {
             case E_renderPassName.shadowmapTransparent:
             case E_renderPassName.transparent:
                 // case E_renderPassName.spriteTransparent:
-                if (!this.RC[kind][_UUID!]) {
-                    this.RC[kind][_UUID!] = [];
+                if (!this.RC[option.kind][option.uuid!]) {
+                    this.RC[option.kind][option.uuid!] = [];
                 }
-                this.RC[kind][_UUID!].push(command);
+                this.RC[option.kind][option.uuid!].push({
+                    command: option.command as DrawCommand,
+                    pipeline: option.pipeline!,
+                    drawData: option.drawData!,
+                    distance: option.distance!,
+                });
                 break;
 
             case E_renderPassName.shadowmapOpacity:
             case E_renderPassName.forward:
             case E_renderPassName.MSAA:
             case E_renderPassName.sprite:
-                if (!this.RC[kind][_UUID!]) {
-                    this.RC[kind][_UUID!] = new Map();
+                if (!this.RC[option.kind][option.uuid!]) {
+                    this.RC[option.kind][option.uuid!] = new Map();
                 }
-                if (!this.RC[kind][_UUID!].has(pipeline!)) {
-                    this.RC[kind][_UUID!].set(pipeline!, new Map());
+                if (!this.RC[option.kind][option.uuid!].has(option.pipeline!)) {
+                    this.RC[option.kind][option.uuid!].set(option.pipeline!, new Map());
                 }
-                this.RC[kind][_UUID!].get(pipeline!)!.set(command as DrawCommand, drawData!);
+                this.RC[option.kind][option.uuid!].get(option.pipeline!)!.set(option.command as DrawCommand, option.drawData!);
                 break;
 
             case E_renderPassName.defer:
             case E_renderPassName.toneMapping:
             case E_renderPassName.postprocess:
-                if (!this.RC[kind][_UUID!]) {
-                    this.RC[kind][_UUID!] = [];
+                if (!this.RC[option.kind][option.uuid!]) {
+                    this.RC[option.kind][option.uuid!] = [];
                 }
-                this.RC[kind][_UUID!].push(command);
+                this.RC[option.kind][option.uuid!].push(option.command);
                 break;
 
             case E_renderPassName.compute:
@@ -453,10 +476,10 @@ export class RenderManager {
             case E_renderPassName.stage1:
             case E_renderPassName.stage2:
             case E_renderPassName.ui:
-                this.RC[kind].push(command);
+                this.RC[option.kind].push(option.command);
                 break;
             default:
-                throw new Error(`渲染通道为${kind}，不支持推送绘制命令`);
+                throw new Error(`渲染通道为${option.kind}，不支持推送绘制命令`);
         }
     }
     _performanceCount: number = 100;
@@ -496,7 +519,7 @@ export class RenderManager {
         this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
 
         //透明enity
-        // this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
+        this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
 
         // //sprite
         // await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
@@ -606,27 +629,41 @@ export class RenderManager {
                 rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
             }
             this.autoChangeRPDloadOP(rpd, mergeID);
-            for (let i in list) {//camera UUID
-                // let submitCommand: GPUCommandBuffer[] = [];
-                let perOne = list[i];
-                let UUID = i;
-                //2 for 单个camera的command
+            //2 生成 passEncoder
+            let passEncoder: GPURenderPassEncoder = this.commandEncoder.beginRenderPass(rpd);
 
-                //正常TT渲染
-                for (let perCommand of perOne) {
-                    if (Array.isArray(perCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
-                        this.renderTTP(UUID, perCommand);
+            for (let perDrawCommand of list) {//camera UUID
+                let pipeline: GPURenderPipeline | undefined = undefined;
+
+                if (Array.isArray(perDrawCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
+                    pipeline = undefined;
+                    this.renderTTP(uuid, perDrawCommand);
+                }
+                else {//否则，是单个透明物体，直接渲染
+                    if (pipeline == undefined) {
+                        pipeline = perDrawCommand.pipeline;
+                        passEncoder.setPipeline(pipeline);
                     }
-                    else {//否则，是单个透明物体，直接渲染
-                        this.cameraRendered[UUID] = this.autoChangeForwaredRPD_loadOP(UUID, this.cameraRendered[UUID]);//TT的rpd使用的与标准的forward一样，只是关闭深度写入
-                        this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-                        perCommand.submit();  // 渲染
+                    else if (pipeline != perDrawCommand.pipeline) {
+                        pipeline = perDrawCommand.pipeline;
+                        passEncoder.setPipeline(pipeline);
                     }
+
+                    let optionOfDraw: I_drawCallOption = {
+                        passEncoder,
+                        renderPassName,
+                        mergeID,
+                        drawModeData: perDrawCommand.drawData,
+                    };
+                    //4.2.1执行DC.doDraw(),
+                    perDrawCommand.command.doDraw(optionOfDraw);
+
                 }
                 //模拟的TTP渲染
                 // await this.renderTTP(UUID, perOne as commmandType[]);//这里是透明渲染DC的渲染TTP的单纯渲染TTP的测试，相对于上面的for中的array直接传入
 
             }// end for of camera UUID
+            passEncoder.end();
         }
     }
     /**
@@ -725,7 +762,7 @@ export class RenderManager {
      * @param UUID camera UUID
      * @param list 透明渲染列表
      */
-    async renderTTP(UUID: string, list: commmandType[]) {
+    renderTTP(UUID: string, list: I_transparentDrawCommand[]) {
         //像素级别多层渲染排序
         /**
          *  1、 清空纹理，
@@ -758,7 +795,7 @@ export class RenderManager {
         //1 清空纹理
         this.scene.cameraManager.cleanValueOfTT(UUID);
         let listOfTTPF: DrawCommand[] = [];
-        await this.device.queue.onSubmittedWorkDone();
+        // await this.device.queue.onSubmittedWorkDone();
 
         let UUID_TTPF = UUID + new Date().getTime();
 

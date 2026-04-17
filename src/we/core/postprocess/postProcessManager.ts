@@ -12,7 +12,10 @@ export class PostProcessManager extends ECSManager<BasePostProcess> {
         for (let perOne of this.list) {
             perOne.update(clock);
             for (let perCommand of perOne.commands) {
-                this.scene.renderManager.push(perCommand, E_renderPassName.postprocess);
+                this.scene.renderManager.push({
+                    command: perCommand,
+                    kind: E_renderPassName.postprocess,
+                });
             }
         }
     }
