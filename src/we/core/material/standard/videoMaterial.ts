@@ -89,6 +89,8 @@ export class VideoMaterial extends BaseMaterial {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
         let uniform1: T_uniformOneGroup = [];
+        this.unifromEntryLayout = [];
+
         let code: string = "";
         ///////////group binding
         ////group binding  texture 字符串

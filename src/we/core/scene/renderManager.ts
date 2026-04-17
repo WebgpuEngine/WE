@@ -277,7 +277,7 @@ export class RenderManager {
         [E_renderPassName.sprite]: I_renderDrawCommand,
         // [E_renderPassName.spriteTransparent]: I_renderDrawOfDistancesLine,
         [E_renderPassName.toneMapping]: I_renderDrawOfQuad,
-        [E_renderPassName.postprocess]: I_renderDrawOfQuad,
+        [E_renderPassName.postprocess]: commmandType[],
         [E_renderPassName.stage1]: commmandType[],
         [E_renderPassName.stage2]: commmandType[],
         [E_renderPassName.ui]: commmandType[],
@@ -295,7 +295,7 @@ export class RenderManager {
             [E_renderPassName.sprite]: {},
             // [E_renderPassName.spriteTransparent]: {},
             [E_renderPassName.toneMapping]: {},
-            [E_renderPassName.postprocess]: {},
+            [E_renderPassName.postprocess]: [],
             [E_renderPassName.stage1]: [],
             [E_renderPassName.stage2]: [],
             [E_renderPassName.ui]: [],
@@ -393,10 +393,10 @@ export class RenderManager {
             this.RC[E_renderPassName.sprite][UUID as E_renderPassName].clear();
             this.RC[E_renderPassName.defer][UUID as E_renderPassName] = [];
             this.RC[E_renderPassName.toneMapping][UUID as E_renderPassName] = [];
-            this.RC[E_renderPassName.postprocess][UUID as E_renderPassName] = [];
             this.RC[E_renderPassName.transparent][UUID as E_renderPassName] = [];
             // this.RC[E_renderPassName.spriteTransparent][UUID as E_renderPassName] = [];
         }
+        this.RC[E_renderPassName.postprocess] = [];
         this.RC[E_renderPassName.stage1] = [];
         this.RC[E_renderPassName.stage2] = [];
         this.RC[E_renderPassName.ui] = [];
@@ -427,7 +427,9 @@ export class RenderManager {
             else if (option.kind == E_renderPassName.shadowmapOpacity || option.kind == E_renderPassName.shadowmapTransparent) {
                 throw new Error(`渲染通道为${option.kind}时，必须有light mergeID`);
             }
-            else if (option.kind == E_renderPassName.toneMapping || option.kind == E_renderPassName.postprocess) {
+            else if (option.kind == E_renderPassName.toneMapping //|| option.kind == E_renderPassName.postprocess
+
+            ) {
                 throw new Error(`渲染通道为${option.kind}时，必须有camera ID`);
             }
         }
@@ -475,13 +477,12 @@ export class RenderManager {
 
             case E_renderPassName.defer:
             case E_renderPassName.toneMapping:
-            case E_renderPassName.postprocess:
                 if (!this.RC[option.kind][option.uuid!]) {
                     this.RC[option.kind][option.uuid!] = [];
                 }
                 this.RC[option.kind][option.uuid!].push(option.command);
                 break;
-
+            case E_renderPassName.postprocess:
             case E_renderPassName.compute:
             case E_renderPassName.texture:
             case E_renderPassName.material:
@@ -540,7 +541,7 @@ export class RenderManager {
         //toneMapping
         this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
         //pp
-        this.renderComplexQuad(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
+        this.doCommand(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
 
         // //stage1
         // await this.doCommand(this.RC[E_renderPassName.stage1]);
@@ -723,8 +724,6 @@ export class RenderManager {
             }
         }
     }
-
-
     /** 执行命令集合
      * 1、命令集合为数组
      */

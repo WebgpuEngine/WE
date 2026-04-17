@@ -1,11 +1,4 @@
-import { E_renderForDC } from "../../base/coreDefine";
-import { BaseCamera } from "../../camera/baseCamera";
-import { mergeLightUUID } from "../../light/lightsManager";
-import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_LineVS } from "../../shadermanagemnet/mesh/linesVS";
-import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
-// import { SHT_MeshShadowMapVS, SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
-import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+import { E_entityType, IV_BaseEntity } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -61,8 +54,8 @@ export class Lines extends EntityBundleMaterial {
     /**
      * 20251021,lines目前不考虑透明问题,还是输出不透明
      */
-    override createTransparent(camera: BaseCamera): void {
-        this.createForwardDC(camera);
+    override createTransparent(): void {
+        this.createForwardDC();
     }
 
     saveJSON() {

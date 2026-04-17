@@ -59,6 +59,8 @@ export class CubeTextureMaterial extends TextureMaterial {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
         let uniform1: T_uniformOneGroup = [];
+        this.unifromEntryLayout = [];
+
         ///////////group binding
         ////group binding  texture 字符串
         groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_cubeTexture: texture_cube<f32>;\n `;

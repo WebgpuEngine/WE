@@ -1,12 +1,7 @@
 /**
  * 精灵
- * todo:20250915 onTop: 需要最后的通道合并，延迟，
  */
-import { BaseCamera } from "../../camera/baseCamera";
-import { DrawCommand } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
-import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
 import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
@@ -19,16 +14,6 @@ export interface IV_Sprite extends IV_BaseEntity {
 }
 
 export class Sprite extends EntityBundleMaterial {
-    override cameraDC: {
-        [name: string]: {
-            // [E_renderPassName.depth]: DrawCommand[],
-            [E_renderPassName.MSAA]: DrawCommand[],
-            [E_renderPassName.forward]: DrawCommand[],
-            [E_renderPassName.transparent]: DrawCommand[],
-            [E_renderPassName.sprite]: DrawCommand[],
-            [E_renderPassName.spriteTransparent]: DrawCommand[],
-        }
-    } = {};
     top: boolean = false;
     declare inputValues: IV_Sprite
     sprite = {
@@ -78,7 +63,7 @@ export class Sprite extends EntityBundleMaterial {
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
-        await this._material.init(this.scene);
+        await this._material.init(this.scene,this);
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
         }
@@ -90,19 +75,17 @@ export class Sprite extends EntityBundleMaterial {
      * 2、需要考虑top，以push到不同的组
      * @param camera 
      */
-    override createTransparent(camera: BaseCamera): void {
+    override createTransparent(): void {
         throw new Error("Method not implemented.");
      }
 
 
     /**sprite 不会投射阴影，也不会接收阴影 */
-    createShadowMapDC(input: I_ShadowMapValueOfDC): void { 
+    createShadowMapDC(): void { 
 
     }
     /**sprite 不会投射阴影，也不会接收阴影 */
-
-    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void { 
-        throw new Error("Method not implemented.");
+    createShadowMapTransparentDC(): void { 
     }
 
 

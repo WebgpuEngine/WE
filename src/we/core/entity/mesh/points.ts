@@ -1,4 +1,3 @@
-import { sup } from "../../../../@loaders.gl/draco/dist/draco-worker-node";
 import { weColor3, E_renderForDC } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { DrawCommand } from "../../command/DrawCommand";
@@ -198,9 +197,9 @@ export class Points extends EntityBundleMaterial {
      * @param scope this
      * @returns IV_DrawCommand
      */
-    generateEmuInputValueOfDC(type: E_renderForDC, UUID: string, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
+    generateEmuInputValueOfDC(type: E_renderForDC, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
         if (scope == undefined) scope = this;
-        let valueDC = super.generateInputValueOfDC(type, UUID, bundle, vsOnly, scope);
+        let valueDC = super.generateInputValueOfDC(type, bundle, vsOnly, scope);
         valueDC.render.primitive = {
             topology: "triangle-list",
             cullMode: scope._cullMode
@@ -213,26 +212,25 @@ export class Points extends EntityBundleMaterial {
      * emulate points 是以instance方式绘制
      * @param camera 
      */
-    override createForwardDC(camera: BaseCamera): void {
-        let UUID = camera.UUID;
+    override createForwardDC(): void {
         let dc: DrawCommand;
         if (this.emulate == "none") {
-            super.createForwardDC(camera);
+            super.createForwardDC();
         }
         else {
             if (this.emulate == "sprite") {
-                dc = this.generateOpacityDC(UUID, SHT_PointEmuSpriteVS, undefined, undefined, this.generateEmuInputValueOfDC);
+                dc = this.generateOpacityDC(SHT_PointEmuSpriteVS, undefined, undefined, this.generateEmuInputValueOfDC);
             }
             else {
-                dc = this.generateOpacityDC(UUID, SHT_PointVS, undefined, undefined, this.generateEmuInputValueOfDC);
+                dc = this.generateOpacityDC(SHT_PointVS, undefined, undefined, this.generateEmuInputValueOfDC);
             }
-            this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+            this.renderPassArray[E_renderPassName.forward].push(dc);
 
         }
     }
 
-    override createTransparent(camera: BaseCamera): void {
-        this.createForwardDC(camera);
+    override createTransparent(): void {
+        this.createForwardDC();
     }
     /**
      * 20260322 代码未测试
@@ -240,17 +238,15 @@ export class Points extends EntityBundleMaterial {
      * @param input 
      * @returns 
      */
-    override createShadowMapDC(input: I_ShadowMapValueOfDC): void {
+    override createShadowMapDC(): void {
         let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
         if (this.inputValues.shadow?.generate === false) {
             return;
         }
-        let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
-        //mesh VS 模板输出
 
 
-        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, UUID, { vsBundle: bundle }, true);
-        valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vsBundle: bundle }, true);
+        // valueDC.system.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
         if (this.emulate == "none") {
             valueDC.render.primitive = {
                 topology: "point-list",
@@ -263,10 +259,10 @@ export class Points extends EntityBundleMaterial {
                 cullMode: this._cullMode
             }
         }
-        let dc = this.DCG.generateDrawCommand(valueDC);
-        this.shadowmapDC[UUID][E_renderPassName.shadowmapOpacity].push(dc);
+        let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
+        this.renderPassArray[E_renderPassName.shadowmapOpacity].push(dc);
     }
-    createShadowMapTransparentDC(input: I_ShadowMapValueOfDC): void {
+    createShadowMapTransparentDC(): void {
         throw new Error("Method not implemented.");
     }
     saveJSON() {

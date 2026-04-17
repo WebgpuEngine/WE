@@ -1,6 +1,7 @@
 import { E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_drawModeIndexed, T_uniformGroups } from "../../command/base";
+import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
@@ -310,7 +311,7 @@ export class Mesh extends EntityBundleMaterial {
             //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
             // }
             let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial });
-            let dc = this.DCG.generateDrawCommand(valueDC);
+            let dc = this.DCG.generateDrawCommand(valueDC)  as DrawCommand;
             this.renderPassArray[E_renderPassName.forward].push(dc);
         }
     }

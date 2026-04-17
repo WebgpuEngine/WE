@@ -1,4 +1,4 @@
-import { BaseCamera } from "../../camera/baseCamera";
+import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
 import { SHT_MeshMorphTargetVS } from "../../shadermanagemnet/mesh/morphTargetVS";
 import { E_entityType } from "../base";
@@ -42,12 +42,11 @@ export class LinesMorphTarget extends MorphTargetEntity {
     _destroy(): void {
         throw new Error("Method not implemented.");
     }
-    override createForwardDC(camera: BaseCamera): void {
-        let UUID = camera.UUID;
-        let dc = this.generateOpacityDC(UUID, SHT_MeshMorphTargetVS);
-        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+    override createForwardDC(): void {
+        let dc = this.generateOpacityDC( SHT_MeshMorphTargetVS) as DrawCommand;
+        this.renderPassArray[E_renderPassName.forward].push(dc);
     }
-    override createTransparent(camera: BaseCamera): void {
-        this.createForwardDC(camera);
+    override createTransparent(): void {
+        this.createForwardDC();
     }
 }

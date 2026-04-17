@@ -1,6 +1,5 @@
-import { BaseCamera } from "../../camera/baseCamera";
+import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshMorphTargetVS } from "../../shadermanagemnet/mesh/morphTargetVS";
 import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
 import { E_entityType, IV_BaseEntity } from "../base";
 import { SkinsEntity } from "./skinsEntity";
@@ -21,16 +20,15 @@ export class MeshSkins extends SkinsEntity {
             };
         }
     }
-    createTransparent(camera: BaseCamera): void {
+    createTransparent(): void {
         throw new Error("Method not implemented.");
     }
     _destroy(): void {
         throw new Error("Method not implemented.");
     }
-    override createForwardDC(camera: BaseCamera): void {
-        let UUID = camera.UUID;
-        let dc = this.generateOpacityDC(UUID, SHT_MeshSkinsVS);
-        this.cameraDC[UUID][E_renderPassName.forward].push(dc);
+    override createForwardDC(): void {
+        let dc = this.generateOpacityDC( SHT_MeshSkinsVS) as DrawCommand;
+        this.renderPassArray[E_renderPassName.forward].push(dc);
     }
 
 }
