@@ -51,9 +51,9 @@ let planeGeometry = new PlaneGeometry({
 
 let geometry = new SphereGeometry();
 
-let colorMaterialRed = new ColorMaterial({ color: [1, 0.5, 0.5, 0.1], });
-let colorMaterialGreen = new ColorMaterial({ color: [0, 1, 0, .1] });
-let colorMaterialBlue = new ColorMaterial({ color: [0, 0, 1, .1] });
+let colorMaterialRed = new ColorMaterial({ color: [1, 0.5, 0.5, 0.51], });
+let colorMaterialGreen = new ColorMaterial({ color: [0, 1, 0, 0.51] });
+let colorMaterialBlue = new ColorMaterial({ color: [0, 0, 1, 0.51] });
 let textureMaterialAlpha = new TextureMaterial({
   texture: "/resource/images/img/we3D_alpha.png",
   transparent: {
@@ -79,7 +79,7 @@ let inputMeshWE3DAlpha: IV_MeshEntity = {
   },
   material: textureMaterialAlpha,
   // material: colorMaterial2,
-  position: [0, 0, -2],
+  // position: [0, 0, -2],
 
   primitive: {
     cullMode: "none",
@@ -92,7 +92,7 @@ let inputMeshWE3D: IV_MeshEntity = {
   },
   material: textureMaterial,
   // material: colorMaterial2,
-  position: [0, 0, -8],
+  // position: [0, 0, -8],
 
   primitive: {
     cullMode: "none",
@@ -105,7 +105,7 @@ let inputMeshRed: IV_MeshEntity = {
     geometry: planeGeometry,
   },
   material: colorMaterialRed,
-  position: [0, 0, 0],
+  // position: [0, 0, 0],
 
   // rotate: [1, 0, 0, Math.PI / 2],
   primitive: {
@@ -118,7 +118,7 @@ let inputMeshGreen: IV_MeshEntity = {
     geometry: planeGeometry,
   },
   material: colorMaterialGreen,
-  position: [0, 0, -4],
+  // position: [0, 0, -4],
 
   // rotate: [1, 0, 0, Math.PI / 2],
   primitive: {
@@ -131,7 +131,7 @@ let inputMeshBlue: IV_MeshEntity = {
     geometry: planeGeometry,
   },
   material: colorMaterialBlue,
-  position: [0, 0, -6],
+  // position: [0, 0, -6],
 
   // rotate: [1, 0, 0, Math.PI / 2],
   primitive: {
@@ -146,9 +146,9 @@ let meshWE3D = new Mesh(inputMeshWE3D);
 let meshWE3DAlpha = new Mesh(inputMeshWE3DAlpha);
 window.meshOfWE3D = meshWE3D;
 
+await scene.add({ entity: meshRed, position: [0, 0, 0] });
+await scene.add({ entity: meshGreen, position: [0, 0, -4] });
+await scene.add({ entity: meshBlue, position: [0, 0, -6] });
+await scene.add({ entity: meshWE3D, position: [0, 0, -8] });
+await scene.add({ entity: meshWE3DAlpha, position: [0, 0, -2] });
 
-await scene.add(meshBlue);
-await scene.add(meshGreen);
-await scene.add(meshWE3D);
-// await scene.add(meshWE3DAlpha);
-await scene.add(meshRed);

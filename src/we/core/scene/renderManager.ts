@@ -7,6 +7,7 @@ import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { V_TransparentGBufferNames } from "../gbuffers/base";
+import { NodeObject } from "../organization/nodeObject";
 import { Scene } from "./scene";
 
 
@@ -202,13 +203,18 @@ interface I_transparentDrawCommand {
  * 2、所以只能camera进行RPD切换，再按照距离进行pipeline的绘制；无法进行合并pipeline的操作；
  * 
  * 二、透明通道的命令 type 类型，
- * 1、透明通道的命令是一个数组，或者是一个命令
- * 2、一个command是按照距离的标准进行排序的
- * 3、一个数组队列，是进行pixcel级别的绘制，表示有包围盒重叠
+ * 1、透明通道的命令是一个数组，每个命令都有一个distance属性
+ * 2、TT需要： 按照距离从远到近进行排序
+ * 
+ * 
+ * todo：三、像素级别绘制
+ * 1、需要按照距离排序，并判断包围盒是否相交（相交的包围盒，建立一个新的集合）；
+ * 2、新建的集合参与TT的距离排序，并按照距离绘制；
+ * 3、绘制包围盒集合的透明实体时，使用TTP和TTPF对应新的集合，进行绘制；
  */
 interface I_renderDrawOfDistancesLine {
-    [name: string]: (I_transparentDrawCommand[] | I_transparentDrawCommand)[]
-    // [name: string]: (commmandType[] | commmandType)[]
+    [name: string]: I_transparentDrawCommand[]
+    // [name: string]: (I_transparentDrawCommand[] | I_transparentDrawCommand)[]
 }
 
 /**quad 类型通道
@@ -226,10 +232,17 @@ interface I_renderDrawOfQuad {
 export interface I_renderPassOptions {
     command: commmandType | DrawCommand,
     kind: E_renderPassName,
+    /**camera uuid or light mergeID */
     uuid?: string
+    /**pipeline */
     pipeline?: GPURenderPipeline,
+    /**draw 的数据 */
     drawData?: I_drawMode[] | I_drawModeIndexed[],
+    //透明通道的使用
+    /**entity的instance 与camera|light的距离 。透明通道的使用。*/
     distance?: number,
+    /**entity的nodeObject 。透明通道的使用。*/
+    nodeObject?: NodeObject,
 }
 /**
  * 渲染管理器
@@ -612,11 +625,11 @@ export class RenderManager {
         }
     }
     /**
- * TT
- * 透明渲染DC
- * @param list 透明渲染列表
- */
-    async renderTransParentDC(commands: I_renderDrawOfDistancesLine, renderPassName: E_renderPassName) {
+     * TT
+     * 透明渲染DC
+     * @param list 透明渲染列表
+     */
+    renderTransParentDC(commands: I_renderDrawOfDistancesLine, renderPassName: E_renderPassName) {
         for (let mergeID in commands) {
             let list = commands[mergeID];
             //1 获取RPD
@@ -631,7 +644,9 @@ export class RenderManager {
             this.autoChangeRPDloadOP(rpd, mergeID);
             //2 生成 passEncoder
             let passEncoder: GPURenderPassEncoder = this.commandEncoder.beginRenderPass(rpd);
-
+            //3 排序，按距离从远到近
+            list.sort((a, b) => b.distance - a.distance);
+            //4 遍历每个drawCommand
             for (let perDrawCommand of list) {//camera UUID
                 let pipeline: GPURenderPipeline | undefined = undefined;
 

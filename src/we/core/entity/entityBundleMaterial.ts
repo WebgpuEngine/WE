@@ -28,6 +28,8 @@ import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
 import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
 import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPositionsNoIndex } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
+import { NodeObject } from "../organization/nodeObject";
+import { vec3, Vec3 } from "wgpu-matrix";
 
 
 export abstract class EntityBundleMaterial extends BaseEntity {
@@ -494,6 +496,97 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
         }
         return instanceDrawArray;
+    }
+    /**
+     * 按照每个实例，获取drawMode数组。透明实体使用
+     * @param UUID 
+     * @param kind 
+     * @returns 
+     */
+    getDrawModeArrayOfPerInstance(
+        UUID: string,
+        kind: E_renderForDC,
+    ): {
+        instance: NodeObject,
+        distance: number,
+        drawData: I_drawMode[] | I_drawModeIndexed[]
+    }[] {
+        /**步骤
+         * 1、获取entity drawMode模板
+         * 2、可见性
+         *      A、确认NodeObject的自身（parent）的enable和visible；
+         *      B、确认当前渲染（摄像机、light）的BVH可见性
+         *      C、输出形成可见性instanceID数组
+         * 3、聚合bundle instance ID 连续的实例ID
+         * 4、实例化drawMode数组
+         * 5、返回
+         */
+        //1、获取entity drawMode模板
+        let drawMode: I_drawMode | I_drawModeIndexed = this.getDrawModeTemplate();
+        //2、可见性
+        // 可见的实例ID数组
+        // let visibleInstanceIDArray: number[] = [];
+        let visibleInstanceIDArray: ({
+            instance: NodeObject,
+            // instanceIdArray: number[],
+            distance: number,
+            drawData: I_drawMode[] | I_drawModeIndexed[]
+        })[] = [];
+
+        // 没有透明渲染，直接返回空数组，不进行可见性判断。
+        if (this.renderPassArray[E_renderPassName.transparent].length == 0) return visibleInstanceIDArray;
+
+        // 遍历所有实例ID：可见性可用性判断
+        // if (scope.attributes.indices) {
+        let iOfInstance = 0;
+        for (let i in this.outSideInstance) {
+            let visibleOfNode = true;
+            let enableOfNode = true;
+            let visibleInBVH = true;
+            let perNode = this.outSideInstance[i];
+            visibleOfNode = perNode.getVisibleAndParents();
+            enableOfNode = perNode.getEnableAndParents();
+            let worldPositionOfUUID: Vec3 | undefined;
+            if (kind == E_renderForDC.camera) {
+                let camera = this.scene.cameraManager.getCameraByUUID(UUID);
+                visibleInBVH = camera.getVisibleInBVH(perNode);
+                worldPositionOfUUID = camera.worldPosition;
+            }
+            else if (kind == E_renderForDC.light) {
+                let light = this.scene.lightsManager.getLightByMergeID(UUID);
+                if (light != false && light instanceof BaseLight) {
+                    worldPositionOfUUID = light.worldPosition;
+                    visibleInBVH = light.getVisibleInBVH(perNode, UUID);
+                }
+            }
+            if (visibleInBVH && visibleOfNode && enableOfNode) {
+                let distance = 0;
+                if (worldPositionOfUUID)
+                    distance = vec3.distance(perNode.worldPosition, worldPositionOfUUID);
+                visibleInstanceIDArray[iOfInstance] = {
+                    instance: this.outSideInstance[i],
+                    drawData: [],
+                    distance: distance,
+                };
+                let firstInstance = Number(i) * this.instance.numInstances;
+                let instanceDraw: I_drawMode | I_drawModeIndexed = {
+                    ...drawMode
+                };
+                instanceDraw.instanceCount = this.instance.numInstances;
+                instanceDraw.firstInstance = firstInstance;
+                if (isDrawModeIndexed(drawMode)) {
+                    (visibleInstanceIDArray[iOfInstance].drawData as I_drawModeIndexed[]).push(instanceDraw as I_drawModeIndexed);
+                }
+                else {
+                    (visibleInstanceIDArray[iOfInstance].drawData as I_drawMode[]).push(instanceDraw as I_drawMode);
+                }
+                iOfInstance++;
+            }
+        }
+
+
+        //5、返回
+        return visibleInstanceIDArray;
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 处理 IV_DC 参数

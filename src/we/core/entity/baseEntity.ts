@@ -22,7 +22,6 @@ import { NodeObject } from "../organization/nodeObject";
 import { NodeSpace } from "../organization/nodeSpace";
 import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_BOLBufferType } from "../bufferBlock/base";
-import { BaseDrawCommand } from "../command/BaseDrawCommand";
 import { DrawCommand } from "../command/DrawCommand";
 
 
@@ -345,6 +344,15 @@ export abstract class BaseEntity extends NodeSpace {
         kind: E_renderForDC,
         wireFrameDrawModeTemplate?: I_drawMode | I_drawModeIndexed
     ): I_drawMode[] | I_drawModeIndexed[];
+    /**获取每个实例的drawMode数组 ,透明渲染使用*/
+    abstract getDrawModeArrayOfPerInstance(
+        UUID: string,
+        kind: E_renderForDC,
+    ): {
+        instance: NodeObject,
+        distance: number,
+        drawData: I_drawMode[] | I_drawModeIndexed[]
+    }[]
 
     inputValues: IV_BaseEntity;
 
