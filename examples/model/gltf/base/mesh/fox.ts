@@ -20,7 +20,7 @@ let input: IV_Scene = {
   backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
   toneMapping: "linear",
-  deferRender: "color",
+  renderMode:"deferRender",
 
 };
 let scene = await initScene({

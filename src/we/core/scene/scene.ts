@@ -250,8 +250,14 @@ export class Scene {
     boundingSphere!: boundingSphere;
     Box3s: boundingBox[] = [];
     ////////////////////////////////////////////////////////////////////////////////
-    /**抗锯齿 */
-    AA: AA = {};
+    /**
+     * 渲染模式：
+     * 20260418:目前开发默认使用forwardRender
+     * 1、deferRender：延迟渲染，MSAA=false，默认
+     * 2、MSAARender：MSAA渲染，MSAA=true
+     * 3、forwardRender：前向渲染，MSAA=false
+     */
+    renderMode: "deferRender" | "MSAARender" | "forwardRender" = "forwardRender";
     /**是否使用MSAA */
     MSAA: boolean = false;
     ////////////////////////////////////////////////////////////////////////////////
@@ -333,8 +339,7 @@ export class Scene {
         this.clock = new Clock();
         this.inputValue = value;
         if (value.disableCanvasContext) this.disableCanvasContext = value.disableCanvasContext;
-        // this.deferRenderDepth = false;//为了测试方便,后期更改为:true,20241128
-        // this.deferRenderColor = false;//为了测试方便,后期更改为:true,20241128
+
         this._maxlightNumber = V_lightNumber;
         if (value.toneMapping) {
             this.E_ToneMappingType = value.toneMapping;
@@ -344,35 +349,20 @@ export class Scene {
         if (value.BOL) {
             this.BOL = value.BOL;
         }
-        if (value.AA) {
-            this.AA = value.AA;
-            if (value.AA.MSAA && value.AA.MSAA.enable === true) {
+        if (value.renderMode) {
+            this.renderMode = value.renderMode;
+            if (value.renderMode == "MSAARender") {
                 this.MSAA = true;
             }
             else {
                 this.MSAA = false;
             }
         }
-
+        console.log("WE3D renderMode:",this.renderMode);
         if (value.premultipliedAlpha !== undefined) {
             this.premultipliedAlpha = value.premultipliedAlpha;
         }
 
-        //是否由延迟渲染
-        if (value.deferRender) {
-            if (value.deferRender == "depth")
-                this.deferRender = {
-                    enable: true,
-                    deferRenderDepth: true,
-                    deferRenderColor: false
-                }
-            else if (value.deferRender == "color")
-                this.deferRender = {
-                    enable: true,
-                    deferRenderDepth: false,
-                    deferRenderColor: true
-                }
-        }
         //是否使用反向Z
         if (value.reversedZ !== undefined && typeof value.reversedZ == "boolean") {
             this.reversedZ = {
@@ -583,7 +573,7 @@ export class Scene {
      * @param height 高度
      */
     reSize(width: number, height: number) {
-        console.log("Scene reSize()", this.clock.now);
+        // console.log("Scene reSize()", this.clock.now);
         if (width != this.surface.size.width || height != this.surface.size.height) {
             this.surface.size.width = width;
             this.surface.size.height = height;

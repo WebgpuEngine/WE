@@ -5,13 +5,8 @@ export async function initScene(config: initSceneConfig) {
     let initValues = config.initConfig;
     if (config.loadConfig) {
         initValues.backgroudColor = config.loadConfig.weRender.backgroudColor;
-        if (config.loadConfig.weRender.AA) {
-            initValues.AA = config.loadConfig.weRender.AA;
-        }
         initValues.premultipliedAlpha = config.loadConfig.surface.premultipliedAlpha;
         initValues.surface = config.loadConfig.surface;
-
-
     }
     let scene = new Scene(initValues);
     await scene.init();

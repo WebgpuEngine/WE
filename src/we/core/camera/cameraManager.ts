@@ -75,7 +75,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
 
     constructor(input: IV_CameraManager) {
         super(input.scene);
-        this.deferRender = this.scene.deferRender.deferRenderColor;
+        this.deferRender = this.scene.renderMode == "deferRender"
         this.MSAA = this.scene.MSAA;
         this.GBufferManager = new GBuffers(this, this.scene.device);
         this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this, });
@@ -213,7 +213,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             let UUID = camera.UUID;
             for (let perToneMappingCommand of this.cameraDrawCommandOfFinalStep[UUID].toneMapping) {
                 this.scene.renderManager.push({
-                    command: perToneMappingCommand, 
+                    command: perToneMappingCommand,
                     kind: E_renderPassName.toneMapping,
                     uuid: UUID,
                 });
@@ -222,7 +222,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             if (this.deferRender === true) {
                 for (let perCommand of this.deferDCG.DDC[UUID]) {
                     this.scene.renderManager.push({
-                        command: perCommand, 
+                        command: perCommand,
                         kind: E_renderPassName.defer,
                         uuid: UUID,
                     });
@@ -817,112 +817,112 @@ export class CameraManager extends ECSManager<BaseCamera> {
         // this.RPD_ToneMapping = undefined;
     }
 
-//     /**
-//     * MSAA resolve 数据color 和 depth
-//     * 20251018 ：因为精度问题，放弃depth resolve。原因初步估计是精度损失，见备忘的excel            
-//     * @param UUID camera的UUID
-//     */
-//     resolveMSAA(UUID: string) {
-//         if (this.MSAA && this.GBufferManager.GBuffer[UUID].MSAA) {
-//             {//resolve MSAA color
-//                 const commandEncoder = this.device.createCommandEncoder();
-//                 // 启动 resolve 渲染通道：仅配置附件，不绑定管线、不绘制
-//                 const resolvePass = commandEncoder.beginRenderPass({
-//                     // 颜色 resolve：输入 MSAA 颜色，输出到单样本颜色
-//                     colorAttachments: [{
-//                         view: this.getMsaaGBufferTextureByUUID(UUID, E_GBufferNames.color), // 输入：MSAA 颜色纹理视图
-//                         resolveTarget: this.getGBufferTextureByUUID(UUID, E_GBufferNames.color), // 输出：resolve 目标（单样本）
-//                         loadOp: "load", // 读取已有的 MSAA 样本数据
-//                         storeOp: "discard" // 解析后可丢弃 MSAA 样本（若后续不再使用）
-//                     }],
-//                 });
-//                 // 无需调用 draw()！GPU 自动执行 resolve 操作
-//                 resolvePass.end(); // 结束通道，触发 resolve 数据写入
-//                 // 提交命令，完成 resolve
-//                 this.device.queue.submit([commandEncoder.finish()]);
-//             }
-//             /**
-//              * 20251018，MSAA的depth数据进行resolve（先compute，在render 从朋友）后，有精度损失。放弃深度对比方法。
-//              * 将false改为true
-//              */
-//             // {//resolve depth
-//             //     this.cameraMSAA_DepthStep[UUID].CC.submit();
-//             //     this.cameraMSAA_DepthStep[UUID].RCC.submit();
-//             // }
-//         }
-//         else
-//             throw new Error("MSAA 未定义或MSAA GBuffer不存在");
-//     }
-//     createComputeDepth(UUID: string): ComputeCommand {
-//         let computeCode = `
-// // 绑定组布局:输入MSAA深度纹理,输出单样本深度纹理
-// @group(0) @binding(0) var msaaDepth: texture_depth_multisampled_2d;
-// @group(0) @binding(1) var outputDepth: texture_storage_2d<r32float, write>;
+    //     /**
+    //     * MSAA resolve 数据color 和 depth
+    //     * 20251018 ：因为精度问题，放弃depth resolve。原因初步估计是精度损失，见备忘的excel            
+    //     * @param UUID camera的UUID
+    //     */
+    //     resolveMSAA(UUID: string) {
+    //         if (this.MSAA && this.GBufferManager.GBuffer[UUID].MSAA) {
+    //             {//resolve MSAA color
+    //                 const commandEncoder = this.device.createCommandEncoder();
+    //                 // 启动 resolve 渲染通道：仅配置附件，不绑定管线、不绘制
+    //                 const resolvePass = commandEncoder.beginRenderPass({
+    //                     // 颜色 resolve：输入 MSAA 颜色，输出到单样本颜色
+    //                     colorAttachments: [{
+    //                         view: this.getMsaaGBufferTextureByUUID(UUID, E_GBufferNames.color), // 输入：MSAA 颜色纹理视图
+    //                         resolveTarget: this.getGBufferTextureByUUID(UUID, E_GBufferNames.color), // 输出：resolve 目标（单样本）
+    //                         loadOp: "load", // 读取已有的 MSAA 样本数据
+    //                         storeOp: "discard" // 解析后可丢弃 MSAA 样本（若后续不再使用）
+    //                     }],
+    //                 });
+    //                 // 无需调用 draw()！GPU 自动执行 resolve 操作
+    //                 resolvePass.end(); // 结束通道，触发 resolve 数据写入
+    //                 // 提交命令，完成 resolve
+    //                 this.device.queue.submit([commandEncoder.finish()]);
+    //             }
+    //             /**
+    //              * 20251018，MSAA的depth数据进行resolve（先compute，在render 从朋友）后，有精度损失。放弃深度对比方法。
+    //              * 将false改为true
+    //              */
+    //             // {//resolve depth
+    //             //     this.cameraMSAA_DepthStep[UUID].CC.submit();
+    //             //     this.cameraMSAA_DepthStep[UUID].RCC.submit();
+    //             // }
+    //         }
+    //         else
+    //             throw new Error("MSAA 未定义或MSAA GBuffer不存在");
+    //     }
+    //     createComputeDepth(UUID: string): ComputeCommand {
+    //         let computeCode = `
+    // // 绑定组布局:输入MSAA深度纹理,输出单样本深度纹理
+    // @group(0) @binding(0) var msaaDepth: texture_depth_multisampled_2d;
+    // @group(0) @binding(1) var outputDepth: texture_storage_2d<r32float, write>;
 
-// // 工作组大小:16x16(可根据GPU性能调整)
-// @compute @workgroup_size(16, 16)                        
-// fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
-//     // 计算当前像素坐标（确保不超出纹理范围）
-//     let pixelCoord = vec2i(globalId.xy);
-//     if (u32(pixelCoord.x) >= textureDimensions(msaaDepth).x || 
-//         u32(pixelCoord.y )>= textureDimensions(msaaDepth).y) {
-//         return;
-//     }
+    // // 工作组大小:16x16(可根据GPU性能调整)
+    // @compute @workgroup_size(16, 16)                        
+    // fn resolveDepth(@builtin(global_invocation_id) globalId: vec3u) {
+    //     // 计算当前像素坐标（确保不超出纹理范围）
+    //     let pixelCoord = vec2i(globalId.xy);
+    //     if (u32(pixelCoord.x) >= textureDimensions(msaaDepth).x || 
+    //         u32(pixelCoord.y )>= textureDimensions(msaaDepth).y) {
+    //         return;
+    //     }
 
-//     // 读取所有MSAA样本,取最小值(可改为平均、最大等逻辑)
-//     // var targetDepth = 1.0; // 取最小值,正向Z.
-//     var targetDepth = 0.0;//1.0; // reverseZ为true时取最大值
-//     for (var i: u32 = 0; i < 4; i++) { // 遍历4个样本
-//         let sampleDepth = textureLoad(msaaDepth, pixelCoord, i);
-//         // if (sampleDepth < targetDepth) { // 取最小值,正向Z
-//         if (sampleDepth >= targetDepth) { // 取最大值,reverseZ为true时取最大
-//         targetDepth = sampleDepth;
-//         }
-//     }
+    //     // 读取所有MSAA样本,取最小值(可改为平均、最大等逻辑)
+    //     // var targetDepth = 1.0; // 取最小值,正向Z.
+    //     var targetDepth = 0.0;//1.0; // reverseZ为true时取最大值
+    //     for (var i: u32 = 0; i < 4; i++) { // 遍历4个样本
+    //         let sampleDepth = textureLoad(msaaDepth, pixelCoord, i);
+    //         // if (sampleDepth < targetDepth) { // 取最小值,正向Z
+    //         if (sampleDepth >= targetDepth) { // 取最大值,reverseZ为true时取最大
+    //         targetDepth = sampleDepth;
+    //         }
+    //     }
 
-//     // 写入解析后的单样本深度纹理
-//     textureStore(outputDepth, pixelCoord, vec4f(targetDepth,0,0,1));
-//                         }`;
-//         // 3. 创建计算管线（自动布局），可以map cache的，不变的，todo：20251018
-//         const resolvePipeline = this.device.createComputePipeline({
-//             layout: "auto",
-//             compute: {
-//                 module: this.device.createShaderModule({
-//                     code: computeCode
-//                 }),
-//                 entryPoint: "resolveDepth"
-//             }
-//         });
+    //     // 写入解析后的单样本深度纹理
+    //     textureStore(outputDepth, pixelCoord, vec4f(targetDepth,0,0,1));
+    //                         }`;
+    //         // 3. 创建计算管线（自动布局），可以map cache的，不变的，todo：20251018
+    //         const resolvePipeline = this.device.createComputePipeline({
+    //             layout: "auto",
+    //             compute: {
+    //                 module: this.device.createShaderModule({
+    //                     code: computeCode
+    //                 }),
+    //                 entryPoint: "resolveDepth"
+    //             }
+    //         });
 
-//         // 4. 创建绑定组（关联MSAA深度纹理和输出纹理）
-//         const bindGroup = this.device.createBindGroup({
-//             layout: resolvePipeline.getBindGroupLayout(0),
-//             entries: [
-//                 { binding: 0, resource: this.getMsaaGBufferTextureByUUID(UUID, E_GBufferNames.depth).createView() },
-//                 { binding: 1, resource: this.computeOutputTextureForDepth.createView() }
-//             ]
-//         });
+    //         // 4. 创建绑定组（关联MSAA深度纹理和输出纹理）
+    //         const bindGroup = this.device.createBindGroup({
+    //             layout: resolvePipeline.getBindGroupLayout(0),
+    //             entries: [
+    //                 { binding: 0, resource: this.getMsaaGBufferTextureByUUID(UUID, E_GBufferNames.depth).createView() },
+    //                 { binding: 1, resource: this.computeOutputTextureForDepth.createView() }
+    //             ]
+    //         });
 
-//         // 5. 创建CC
-//         let size = this.scene.surface.size;
-//         const dispatchCount: [number, number, number] = [
-//             Math.ceil(size.width / 16),
-//             Math.ceil(size.height / 16),
-//             1
-//         ];
-//         let computeValues: IV_ComputeCommand = {
-//             computeInfo: {
-//                 dispatchCount: dispatchCount,
-//                 pipeline: resolvePipeline,
-//                 bindGroups: [bindGroup],
+    //         // 5. 创建CC
+    //         let size = this.scene.surface.size;
+    //         const dispatchCount: [number, number, number] = [
+    //             Math.ceil(size.width / 16),
+    //             Math.ceil(size.height / 16),
+    //             1
+    //         ];
+    //         let computeValues: IV_ComputeCommand = {
+    //             computeInfo: {
+    //                 dispatchCount: dispatchCount,
+    //                 pipeline: resolvePipeline,
+    //                 bindGroups: [bindGroup],
 
-//             },
-//             device: this.device,
-//             label: "resolve Depth " + UUID,
-//         }
-//         let CC = new ComputeCommand(computeValues);
-//         return CC;
-//     }
+    //             },
+    //             device: this.device,
+    //             label: "resolve Depth " + UUID,
+    //         }
+    //         let CC = new ComputeCommand(computeValues);
+    //         return CC;
+    //     }
 
     // createComputeDepth(UUID: string): ComputeCommand {
     //     let computeCode = `

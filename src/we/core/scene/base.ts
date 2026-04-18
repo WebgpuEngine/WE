@@ -10,30 +10,16 @@ export interface IV_Scene {
     disableCanvasContext?: boolean,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
-
-
     /**是否预乘底色，默认=true */
     premultipliedAlpha?: boolean,
-
-
     /**环境光 */
     ambientLight?: IV_DirectionalLight,
-
     /**是否开启 Reversed Z，默认=false，为了开发简单些（避免debug的复杂度增加），release后，切换为默认=true */
     reversedZ?: boolean,
-
-    // /** 纹理深度格式，默认="depth32float" */
-    // depthDefaultFormat?: GPUTextureFormat,
-
-    /**是否使用延迟渲染     */
-    deferRender?: "depth" | "color",
-
     /**backgroudColor ,默认是[0,0,0,0]*/
     backgroudColor?: [number, number, number, number],
-    /**
-     * 默认：MSAA
-     */
-    AA?: AA,
+    /**渲染模式，默认：deferRender */
+    renderMode?: "deferRender" | "MSAARender" | "forwardRender",
     surface?: optionSurface,
     /** 是否进行实时渲染*/
     realTimeRender?: boolean,
@@ -89,18 +75,6 @@ export enum E_ToneMappingType {
      */
     linear = "linear",
 }
-
-/**AA */
-export interface AA {
-    FXAA?: {},
-    TAA?: {},
-    MSAA?: {
-        enable: boolean,
-        /**目前只能是1or4*/
-        // sampleCount: number
-    },
-}
-
 
 /////////////////////////////////////////////////////////////////////////////
 // commands 

@@ -271,7 +271,6 @@ export class DrawCommandGenerator {
     scene: Scene;
     parent: any;//BaseEntity;
     resources: ResourceManagerOfGPU;
-    AA: AA;
     MSAA: boolean;
     pointers: Pointers;
 
@@ -285,7 +284,6 @@ export class DrawCommandGenerator {
         this.scene = inputValue.scene;
         this.parent = inputValue.parent;
         this.resources = this.scene.resourcesGPU;
-        this.AA = this.scene.AA;
         this.MSAA = this.scene.MSAA;
         this.clock = this.scene.clock;
         this.pointers = this.scene.pointers;

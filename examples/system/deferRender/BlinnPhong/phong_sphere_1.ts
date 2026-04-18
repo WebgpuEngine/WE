@@ -28,7 +28,7 @@ let input: IV_Scene = {
   //     enable: true
   //   }
   // },  
-  deferRender: "color",
+  renderMode:"deferRender",
 
 };
 let scene = await initScene({

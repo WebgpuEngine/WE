@@ -16,11 +16,7 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
-  AA: {
-    MSAA: {
-      enable: true
-    }
-  },
+  renderMode: "MSAARender",
 };
 let scene = await initScene({
   initConfig: input,

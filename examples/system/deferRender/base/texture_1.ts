@@ -17,7 +17,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   // reversedZ:true,
-  deferRender: "color",
+  renderMode:"deferRender",
 
 };
 let scene = await initScene({
