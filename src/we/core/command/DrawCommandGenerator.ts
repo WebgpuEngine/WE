@@ -1630,11 +1630,11 @@ export class DrawCommandGenerator {
         let vsCacheShaderModuleName = values.label;
 
         if (typeof values.render.vertex.code === "string") {
-            vsCacheShaderModuleName = values.render.vertex.code as string + locationInterpolateString;
+            vsCacheShaderModuleName += values.render.vertex.code as string + locationInterpolateString;
             shadercode = values.render.vertex.code;
         }
         else {
-            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString;
+            vsCacheShaderModuleName += values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString;
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
 

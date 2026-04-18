@@ -6,6 +6,8 @@ import { IV_DC } from "../../command/DrawCommandGenerator";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
+import { SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
 import { SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/wireFrameVS";
 import { E_entityType, IV_BaseEntity, I_vsfsBundle } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
@@ -285,9 +287,10 @@ export class Mesh extends EntityBundleMaterial {
      * 为每个camera创建前向渲染的DrawCommand
      * @param camera 
      */
-    override createForwardDC(): void {
+    override createForwardDC(sht: I_ShaderTemplate = SHT_MeshVS): void {
+
         if (this._wireframe.wireFrameOnly !== true) {
-            super.createForwardDC();
+            super.createForwardDC(sht);
         }
         //wireframe 前向渲染
         if (this._wireframe.enable) {
@@ -311,7 +314,7 @@ export class Mesh extends EntityBundleMaterial {
             //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
             // }
             let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial });
-            let dc = this.DCG.generateDrawCommand(valueDC)  as DrawCommand;
+            let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             this.renderPassArray[E_renderPassName.forward].push(dc);
         }
     }

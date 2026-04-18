@@ -2,7 +2,8 @@
 //material
 import wireFrameFSWGSL from "../../shader/material/wirframe/wireFrame.fs.wgsl?raw";
 var wireFrameFS = wireFrameFSWGSL.toString();
-
+import wireFrameMSAAInfoFSWGSL from "../../shader/material/wirframe/wireFrameMSAAInfo.fs.wgsl?raw";
+var wireFrameMSAAInfoFS = wireFrameMSAAInfoFSWGSL.toString();
 
 
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
@@ -78,7 +79,7 @@ export var SHT_WireFrameFS_MSAAinfo: I_ShaderTemplate = {
             },
             {
                 name: "fs",
-                code: wireFrameFS,
+                code: wireFrameMSAAInfoFS,
             },
 
         ],

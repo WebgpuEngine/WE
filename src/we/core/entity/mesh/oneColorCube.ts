@@ -3,6 +3,7 @@ import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_MeshEntity, Mesh } from "./mesh";
 import { E_entityType, I_EntityBundleOutput } from "../base";
 import { SHT_OneCubeColorVS } from "../../shadermanagemnet/mesh/oneCubeColorVS";
+import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
 
 
 
@@ -44,9 +45,9 @@ export class OneColoeCube extends Mesh {
     }
     async readyForGPU() {
         this._material = new VertexColorMaterial();
-        await this._material.init(this.scene);
+        await this._material.init(this.scene, this);
     }
-    getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
-        return super.getVSUniformAndShaderTemplateFinal(SHT_OneCubeColorVS);//使用OneCubeColorVS 模板
+    override createForwardDC(sht: I_ShaderTemplate): void {
+        super.createForwardDC(SHT_OneCubeColorVS);
     }
 }

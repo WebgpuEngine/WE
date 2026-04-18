@@ -14,7 +14,7 @@ import { DrawCommand } from "../command/DrawCommand";
 import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC, I_vsAttribute } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { BaseLight } from "../light/baseLight";
-import { I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../material/base";
+import { I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
@@ -806,13 +806,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
 
     /**
      * 为每个camera创建前向渲染的DrawCommand
-     * @param camera 
+     * @param sht VS shader 模板
      */
     // createForwardDC(camera: BaseCamera): void {
-    createForwardDC(): void {
+    createForwardDC(sht: I_ShaderTemplate = SHT_MeshVS): void {
 
         // let UUID = camera.UUID;
-        let SHT_VS = SHT_MeshVS;
+        let SHT_VS = sht;
         if (this.kind === E_entityType.lines) {
             SHT_VS = SHT_LineVS;
         }
@@ -827,9 +827,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * 为每个light创建阴影映射的DrawCommand
      * 注意：
      *      1、目前VS的SHT，只使用了一个通用的SHT_MeshShadowMapVS
-     * @param input 
+     * @param sht VS shader 模板
      */
-    createShadowMapDC(): void {
+    createShadowMapDC(sht: I_ShaderTemplate = SHT_MeshShadowMapVS): void {
         if (this.inputValues.shadow?.generate === false) {
             return;
         }
