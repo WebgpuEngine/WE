@@ -120,7 +120,7 @@ export class GBuffers {
                 let perOneBuffer = V_ForwardGBufferNames[key];
 
                 let texture = device.createTexture({
-                    label: name + " " + perOneBuffer.label + " " + unixTime,
+                    label: name + " " + perOneBuffer.label,
                     size: [width, height],
                     format: perOneBuffer.format,
                     usage: perOneBuffer.usage,
@@ -168,13 +168,13 @@ export class GBuffers {
         //finalRender
         {
             let toneMappingTexture: GPUTexture = device.createTexture({
-                label: name + " toneMappingTexture " + unixTime,
+                label: name + " toneMappingTexture",
                 size: [width, height],
                 format: V_weLinearFormat,
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
             });
             let rpdToneMapping: GPURenderPassDescriptor = {
-                label: name + " toneMappingTexture " + unixTime,
+                label: name + " toneMappingTexture",
                 colorAttachments: [
                     {
                         view: toneMappingTexture.createView({ label: id + " toneMappingTexture" }),
@@ -201,7 +201,7 @@ export class GBuffers {
             };
             //20260308 新增deferColor,临时使用，后续优化
             let textureDeferColor = device.createTexture({
-                label: name + " deferColor " + unixTime,
+                label: name + " deferColor",
                 size: [width, height],
                 format: V_weLinearFormat,
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
@@ -227,7 +227,7 @@ export class GBuffers {
                 let perOneBuffer = V_ForwardGBufferNames[key];
 
                 let texture = device.createTexture({
-                    label: name + " MSAA " + perOneBuffer.label + " " + unixTime,
+                    label: name + " MSAA " + perOneBuffer.label,
                     size: [width, height],
                     format: perOneBuffer.format,
                     usage: perOneBuffer.usage,

@@ -6,9 +6,10 @@ import { CopyCommand } from "../command/compyCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { SimpleDrawCommand } from "../command/SimpleDrawCommand";
-import { V_TransparentGBufferNames } from "../gbuffers/base";
+import { E_GBufferNames, V_TransparentGBufferNames } from "../gbuffers/base";
 import { NodeObject } from "../organization/nodeObject";
 import { Scene } from "./scene";
+import { T_rpdInfomationOfMSAA } from "../command/base";
 
 
 /**
@@ -579,6 +580,8 @@ export class RenderManager {
          */
         for (let mergeID in commands) {
             let perMapOfPipelineOfCamera = commands[mergeID];
+            if (perMapOfPipelineOfCamera.size == 0)
+                continue;
             //1 获取RPD
             let rpd: GPURenderPassDescriptor;
             let uuid: string = mergeID;
@@ -586,10 +589,17 @@ export class RenderManager {
                 rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.light);
             }
             else {
-                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
+                if (this.scene.MSAA) {
+                    if (renderPassName == E_renderPassName.MSAA)
+                        rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera, "MSAA");
+                    else
+                        rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera, "MSAAinfo");
+                }
+                else
+                    rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
             }
-            this.autoChangeRPDloadOP(rpd, mergeID);
-            // console.warn(`renderForwaredDC: ${mergeID},loadOp: ${rpd.colorAttachments[0]!.loadOp}`);
+            this.autoChangeRPDloadOP(rpd, mergeID + "_" + renderPassName);//每个renderPassName的rpd是不同的,但camera或light的mergeID（uuid）是相同的，所有增加renderPassName的后缀
+            // console.warn(`${renderPassName}: ${mergeID},loadOp: ${rpd.colorAttachments[0]!.loadOp},${rpd.depthStencilAttachment!.depthLoadOp}`);
             // debugger;
 
             //2 生成 passEncoder
@@ -617,6 +627,22 @@ export class RenderManager {
                 }
             }
             passEncoder.end();
+            if (this.scene.MSAA) {
+                if (renderPassName == E_renderPassName.MSAA) {
+                    // 启动 resolve 渲染通道：仅配置附件，不绑定管线、不绘制
+                    const resolvePass = this.commandEncoder.beginRenderPass({
+                        // 颜色 resolve：输入 MSAA 颜色，输出到单样本颜色
+                        colorAttachments: [{
+                            view: this.scene.cameraManager.getMsaaGBufferTextureByUUID(mergeID, E_GBufferNames.color), // 输入：MSAA 颜色纹理视图
+                            resolveTarget: this.scene.cameraManager.getGBufferTextureByUUID(mergeID, E_GBufferNames.color), // 输出：resolve 目标（单样本）
+                            loadOp: "load", // 读取已有的 MSAA 样本数据
+                            storeOp: "discard" // 解析后可丢弃 MSAA 样本（若后续不再使用）
+                        }],
+                    });
+                    // 无需调用 draw()！GPU 自动执行 resolve 操作
+                    resolvePass.end(); // 结束通道，触发 resolve 数据写入
+                }
+            }
 
             //5 设置loadOp为“load”，后续绘制时，不再需要更改loadOp；
             for (let perColorAttachment of rpd.colorAttachments) {
@@ -633,6 +659,8 @@ export class RenderManager {
     renderTransParentDC(commands: I_renderDrawOfDistancesLine, renderPassName: E_renderPassName) {
         for (let mergeID in commands) {
             let list = commands[mergeID];
+            if (list.length == 0)
+                continue;
             //1 获取RPD
             let rpd: GPURenderPassDescriptor;
             let uuid: string = mergeID;

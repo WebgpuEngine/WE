@@ -20,7 +20,7 @@ import { I_pointerCreateParams, I_pointerStruct, Pointers, T_pointerDataType } f
 import { E_BOLBufferType } from "../bufferBlock/base";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
-import { getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA } from "../gbuffers/base";
+import { getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA, getColorAttachmentTargetsOfMSAAinfo } from "../gbuffers/base";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
@@ -1713,10 +1713,14 @@ export class DrawCommandGenerator {
             //如果没有指定targets,则使用默认的targets
             else if (values.system && values.render.fragment.targets == undefined) {//获取camera CATs
                 if (this.MSAA) {
-                    if (values.system.MSAA != undefined)
-                        targets = getColorAttachmentTargetsOfMSAA();
+                    if (values.system.MSAA != undefined) {
+                        if (values.system.MSAA == "MSAA")
+                            targets = getColorAttachmentTargetsOfMSAA();
+                        else
+                            targets = getColorAttachmentTargetsOfMSAAinfo();
+                    }
                     else
-                        throw new Error("MSAA渲染,需要在system中指定MSAA");
+                        throw new Error("MSAA渲染,需要在system中指定MSAA信息");
                 }
                 else
                     targets = getColorAttachmentTargetsOfForward();

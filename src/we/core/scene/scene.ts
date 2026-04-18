@@ -5,7 +5,7 @@ import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMap
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
-import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA, T_uniformGroups } from "../command/base";
+import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA } from "../command/base";
 import { CamreaControl } from "../control/cameracControl";
 import { EntityManager } from "../entity/entityManager";
 import { InputManager } from "../input/inputManager";
@@ -1122,15 +1122,11 @@ export class Scene {
      */
     getRenderPassDescriptor(UUID: string, kind: E_renderForDC, _MSAA?: T_rpdInfomationOfMSAA): GPURenderPassDescriptor {
         if (kind == E_renderForDC.camera) {
-            if (this.MSAA) {
-                if (_MSAA == undefined)
-                    throw new Error("MSAA渲染,需要在system中指定MSAA");
-                else {
-                    if (_MSAA == "MSAA")
-                        return this.cameraManager.getRPD_MSAA_ByUUID(UUID);
-                    else
-                        return this.cameraManager.getRPD_MSAAInfo_ByUUID(UUID);
-                }
+            if (this.MSAA && _MSAA != undefined) {
+                if (_MSAA == "MSAA")
+                    return this.cameraManager.getRPD_MSAA_ByUUID(UUID);
+                else
+                    return this.cameraManager.getRPD_MSAAInfo_ByUUID(UUID);
             }
             else {
                 let rdp = this.cameraManager.getRPDByUUID(UUID);

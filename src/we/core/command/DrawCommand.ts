@@ -159,7 +159,8 @@ export class DrawCommand extends BaseDrawCommand {
                         passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
                 }
                 else if (i == '3') {
-                    passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                    if (this.bindGroups[i] !== undefined)
+                        passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
                 }
             }
         }

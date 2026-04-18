@@ -729,47 +729,47 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             getIV_DC = specialInitValueOfDC;
 
         let dc: DrawCommand;
-        // if (this.MSAA === true) {   //输出两个DC（MSAA 和 info forward）
-        //     let uniformsMaterialMSAA: I_BundleOfMaterialForMSAA;
-        //     {//MSAA 部分
-        //         if (this.deferColor) {
-        //             if (TO !== undefined) {
-        //                 uniformsMaterialMSAA = material.getFS_TO_DeferColorOfMSAA();
-        //             }
-        //             else
-        //                 uniformsMaterialMSAA = material.getOpacity_DeferColorOfMSAA();
-        //         }
-        //         else {
-        //             if (TO !== undefined) {
-        //                 uniformsMaterialMSAA = material.getFS_TO_MSAA();
-        //             }
-        //             else
-        //                 uniformsMaterialMSAA = material.getOpacity_MSAA();
-        //         }
-        //     }
-        //     {
-        //         let valueDC = getIV_DC(E_renderForDC.camera,  { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.MSAA }, false, this);
-        //         valueDC.system!.MSAA = "MSAA";
-        //         if (TO !== undefined)
-        //             valueDC.label = "TO MSAA:" + valueDC.label;
-        //         else
-        //             valueDC.label = "opacity MSAA:" + valueDC.label;
-        //         let dc = this.DCG.generateDrawCommand(valueDC);
-        //         // this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
-        //         this.cameraDC[E_renderPassName.MSAA].push(dc);
-        //     }
-        //     {       //info forward 部分
-        //         let valueDC = getIV_DC(E_renderForDC.camera,  { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.inforForward }, false, this);
-        //         valueDC.system!.MSAA = "MSAAinfo";
-        //         if (TO !== undefined)
-        //             valueDC.label = "TO MSAA info:" + valueDC.label;
-        //         else
-        //             valueDC.label = "opacity MSAA info:" + valueDC.label;
-        //         dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
-        //     }
-        // }
-        // else
-        {//正常的前向渲染输出,只输出一个DC（defer 或  forward）
+        if (this.MSAA === true) {   //输出两个DC（MSAA 和 info forward）
+            let uniformsMaterialMSAA: I_BundleOfMaterialForMSAA;
+            {//MSAA 部分
+                // if (this.deferColor) {
+                //     if (TO !== undefined) {
+                //         uniformsMaterialMSAA = material.getFS_TO_DeferColorOfMSAA();
+                //     }
+                //     else
+                //         uniformsMaterialMSAA = material.getOpacity_DeferColorOfMSAA();
+                // }
+                // else 
+                {
+                    if (TO !== undefined) {
+                        uniformsMaterialMSAA = material.getFS_TO_MSAA();
+                    }
+                    else
+                        uniformsMaterialMSAA = material.getOpacity_MSAA();
+                }
+            }
+            {//MSAA 部分,输出MSAA DC队列
+                let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.MSAA }, false, this);
+                valueDC.system!.MSAA = "MSAA";
+                if (TO !== undefined)
+                    valueDC.label = "TO MSAA:" + valueDC.label;
+                else
+                    valueDC.label = "opacity MSAA:" + valueDC.label;
+                dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
+                // this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
+                this.renderPassArray[E_renderPassName.MSAA].push(dc);
+            }
+            {//info forward 部分,输出info forward DC队列
+                let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.inforForward }, false, this);
+                valueDC.system!.MSAA = "MSAAinfo";
+                if (TO !== undefined)
+                    valueDC.label = "TO MSAA info:" + valueDC.label;
+                else
+                    valueDC.label = "opacity MSAA info:" + valueDC.label;
+                dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
+            }
+        }
+        else {//正常的前向渲染输出,只输出一个DC（defer 或  forward）
             //mesh VS 模板输出
             let uniformsMaterial: I_materialBundleOutput;
             if (this.deferColor) {
@@ -852,6 +852,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param camera 
      */
     createTransparent(): void {
+        if (this.transparent === false)
+            return;
         // let UUID = camera.UUID;
         //mesh VS 模板输出
         //材质的shader 模板输出，
