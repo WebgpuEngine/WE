@@ -22,31 +22,12 @@ export var SHT_materialColorFS: I_ShaderTemplate = {
             },
         ],
         replace: [
-            // {//使用SHT_replaceGBufferFSOutput代替
-            //     name: "colorFS.output content",
-            //     replace: "$fsOutput",           //
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: WGSL_replace_gbuffer_output
-            // },
+
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            //20260310，固定从unifrom中获取颜色，已经失去意义（硬编码）
-            // {
-            //     name: "colorFS set color",
-            //     replace: "$fsOutputColor",           //
-            //     replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
-            // },
-            //20260310 ,这个alpha判断在不透明和TO中是固定的,不需要replace,没意义
-            // {//判断alpha的code
-            //     name: "if alpha",
-            //     replace: "$fsIfAlpha",           //判断alpha
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: "if(output.color.a<1.0)\n{\n    discard;\n}",
-            // }
         ],
     }
 }
-
 
 /** 颜色材质, 不透明, 按需合并到VS中 */
 export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
@@ -65,25 +46,8 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
             },
         ],
         replace: [
-            // {//SHT_replaceGBufferMSAA_FSOutput
-            //     name: "colorFS.output content",
-            //     replace: "$fsOutput",           //
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: WGSL_replace_MSAA_gbuffer_output
-            // },
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            // {
-            //     name: "colorFS set color",
-            //     replace: "$fsOutputColor",           //
-            //     replaceType: E_shaderTemplateReplaceType.value,                //output.color = vec4f(red, green, blue, alpha);
-            // },
-            // {//判断alpha的code
-            //     name: "if alpha",
-            //     replace: "$fsIfAlpha",           //判断alpha
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: "if(output.color.a<1.0)\n{\n    discard;\n}",
-            // }
         ],
     }
 }

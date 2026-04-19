@@ -666,11 +666,12 @@ export class RenderManager {
             let uuid: string = mergeID;
             if (uuid.indexOf("__") != -1 && renderPassName == E_renderPassName.shadowmapTransparent) {
                 rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.light);
+                this.autoChangeRPDloadOP(rpd, mergeID);
             }
             else {
                 rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
+                this.autoChangeRPDloadOP(rpd, mergeID + "_" + E_renderPassName.forward);
             }
-            this.autoChangeRPDloadOP(rpd, mergeID);
             //2 生成 passEncoder
             let passEncoder: GPURenderPassEncoder = this.commandEncoder.beginRenderPass(rpd);
             //3 排序，按距离从远到近

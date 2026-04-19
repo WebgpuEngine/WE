@@ -178,6 +178,22 @@ export class PhongMaterial extends BaseMaterial {
     this.kind = E_MaterialType.Phong;
     this.textures = {};
     this.inputValues = options;
+    this.shtOfMaterialType = {
+      opacityForward: SHT_materialPhongFS,
+      opacityDefer: SHT_materialPhongFS,
+      opacityMSAA: SHT_materialPhongFS_MSAA,
+      opacityMSAAInfo: SHT_materialPhongFS_MSAA_info,
+
+      TO_Forward: undefined,
+      TO_Defer: undefined,
+      TO_MSAA: undefined,
+      TO_MsaaInfo: undefined,
+
+      TT: undefined,
+
+      TTP: undefined,
+      TTPF: undefined,
+    };
   }
   _destroy(): void {
     // throw new Error("Method not implemented.");
@@ -209,11 +225,11 @@ export class PhongMaterial extends BaseMaterial {
   setTO(): void {
     // throw new Error("Method not implemented.");
   }
-  getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
+  getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
     let groupAndBindingString: string = "";
     let binding: number = startBinding;
-    let uniform1: T_uniformOneGroup = [];
-    this.unifromEntryLayout = [];// 每次重置layout
+    let uniformEntries: T_uniformOneGroup = [];
+    let layoutEntries: GPUBindGroupLayoutEntry[] = [];
 
     ///////////group binding
     ////group binding  texture 字符串
@@ -232,8 +248,8 @@ export class PhongMaterial extends BaseMaterial {
           type: "uniform"
         }
       };
-      this.unifromEntryLayout.push(unifromBufferLayout);
-      uniform1.push(unifromBuffer);
+      layoutEntries.push(unifromBufferLayout);
+      uniformEntries.push(unifromBuffer);
       binding++;
     }
     ////group bindgin sampler 字符串
@@ -251,8 +267,8 @@ export class PhongMaterial extends BaseMaterial {
           type: this.defaultSamplerBindingType,
         },
       };
-      this.unifromEntryLayout.push(uniformSamplerLayout);
-      uniform1.push(uniformSampler);
+      layoutEntries.push(uniformSamplerLayout);
+      uniformEntries.push(uniformSampler);
       binding++;
     }
     //循环绑定纹理
@@ -268,18 +284,21 @@ export class PhongMaterial extends BaseMaterial {
           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
           texture: this.textures[i].defaultTextureLayout(),
         };
-        this.unifromEntryLayout.push(uniformTextureLayout);
-        uniform1.push(uniformTexture!);
+        layoutEntries.push(uniformTextureLayout);
+        uniformEntries.push(uniformTexture!);
         groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
         binding++;
       }
     }
-    let unifromEntryBundle_Common = {
-      bindingNumber: binding,
-      groupAndBindingString: groupAndBindingString,
-      entry: uniform1,
+    let entriesBundle = {
+      bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+      groupAndBindingString,
+      entry: uniformEntries
     };
-    return unifromEntryBundle_Common;
+    return {
+      entriesBundle,
+      layoutEntries,
+    };
   }
   generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
 
@@ -305,38 +324,38 @@ export class PhongMaterial extends BaseMaterial {
     return this.formatSHT(template, replaceList, startBinding);
   }
   /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-  getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-    return this.generateBundleOutput(SHT_materialPhongFS, startBinding);
+  // getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
+  //   return this.generateBundleOutput(SHT_materialPhongFS, startBinding);
 
-  }
-  getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPhongFS_MSAA, startBinding);
-    let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPhongFS_MSAA_info, startBinding);
-    return { MSAA, inforForward };
-  }
+  // }
+  // getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+  //   let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPhongFS_MSAA, startBinding);
+  //   let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPhongFS_MSAA_info, startBinding);
+  //   return { MSAA, inforForward };
+  // }
 
-  getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    return this.generateBundleOutput(SHT_materialPhongFS_defer, startBinding);
-  }
+  // getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+  //   return this.generateBundleOutput(SHT_materialPhongFS_defer, startBinding);
+  // }
   /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
-  getFS_TO(_startBinding: number): I_materialBundleOutput {
-    throw new Error("Method not implemented.");
-  }
-  getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    throw new Error("Method not implemented.");
-  }
-  getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    throw new Error("Method not implemented.");
-  }
+  // getFS_TO(_startBinding: number): I_materialBundleOutput {
+  //   throw new Error("Method not implemented.");
+  // }
+  // getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+  //   throw new Error("Method not implemented.");
+  // }
+  // getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+  //   throw new Error("Method not implemented.");
+  // }
   /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
 
-  getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-    throw new Error("Method not implemented.");
-  }
-  getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-    throw new Error("Method not implemented.");
-  }
+  // getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
+  //   throw new Error("Method not implemented.");
+  // }
+  // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+  //   throw new Error("Method not implemented.");
+  // }
 
 
   formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {

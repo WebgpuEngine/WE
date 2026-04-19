@@ -289,8 +289,8 @@ export class CameraManager extends ECSManager<BaseCamera> {
                 backGroudColor: camera.backGroundColor,
                 depthClearValue: this.scene.reversedZ.cleanValue
             };
-            if (camera.name) {
-                gbuffersOption.name = camera.name;
+            if (camera.Name) {
+                gbuffersOption.name = camera.Name;
             }
             await this.GBufferManager.reInitGBuffer(camera.UUID, gbuffersOption);
 

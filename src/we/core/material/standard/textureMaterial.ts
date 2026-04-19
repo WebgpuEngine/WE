@@ -14,16 +14,14 @@ import { BaseMaterial, } from "../baseMaterial";
 
 import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
-import { E_MaterialType, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, isAlphaTransparentOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_TextureType, E_TransparentType, I_materialBundleOutput, I_UniformBundleOfMaterial, isAlphaTransparentOfMaterial, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS, SHT_materialTexture_TTPF_FS, SHT_materialTextureFS, SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
-import { E_resourceKind } from "../../resources/resourcesGPU";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
-import { createUniformBuffer } from "../../command/baseFunction";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 
@@ -45,6 +43,22 @@ export interface IV_TextureMaterial extends IV_BaseMaterial {
 
 export class TextureMaterial extends BaseMaterial {
 
+    // override shtOfMaterialType = {
+    //     opacityForward: SHT_materialTextureFS,
+    //     opacityDefer: SHT_materialTextureFS,
+    //     opacityMSAA: SHT_materialTextureFS_MSAA,
+    //     opacityMSAAInfo: SHT_materialTextureFS_MSAAinfo,
+
+    //     TO_Forward: SHT_materialTextureFS,
+    //     TO_Defer: SHT_materialTextureFS,
+    //     TO_MSAA: SHT_materialTextureFS_MSAA,
+    //     TO_MsaaInfo: SHT_materialTextureFS_MSAAinfo,
+
+    //     TT: SHT_materialTexture_TT_FS,
+
+    //     TTP: SHT_materialTexture_TTP_FS,
+    //     TTPF: SHT_materialTexture_TTPF_FS,
+    // };
 
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
     /**是否开启透明度测试 */
@@ -117,7 +131,22 @@ export class TextureMaterial extends BaseMaterial {
         // if (input.upsideDownY != undefined) {
         //     this._upsideDownY = input.upsideDownY;
         // }
+        this.shtOfMaterialType = {
+            opacityForward: SHT_materialTextureFS,
+            opacityDefer: SHT_materialTextureFS,
+            opacityMSAA: SHT_materialTextureFS_MSAA,
+            opacityMSAAInfo: SHT_materialTextureFS_MSAAinfo,
 
+            TO_Forward: SHT_materialTextureFS,
+            TO_Defer: SHT_materialTextureFS,
+            TO_MSAA: SHT_materialTextureFS_MSAA,
+            TO_MsaaInfo: SHT_materialTextureFS_MSAAinfo,
+
+            TT: SHT_materialTexture_TT_FS,
+
+            TTP: SHT_materialTexture_TTP_FS,
+            TTPF: SHT_materialTexture_TTPF_FS,
+        };
     }
     _destroy() {
         for (let key in this.textures) {
@@ -180,13 +209,12 @@ export class TextureMaterial extends BaseMaterial {
      * @param startBinding  起始绑定槽位
      * @returns 绑定槽位，组绑定字符串，uniform组，layout组
      */
-    getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
+    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
         let binding = startBinding;
         let groupAndBindingString = "";
-        this.unifromEntryLayout = [];// 每次重置layout
 
-        let uniform1: T_uniformOneGroup = [];
-        let layout: GPUBindGroupLayoutEntry[] = [];
+        let uniformEntries: T_uniformOneGroup = [];
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
         {//uniform GPUBuffer
             // groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_uniform_texture: uniform_texture_material;\n `;
             let uniformBuffer: GPUBindGroupEntry = {
@@ -201,9 +229,9 @@ export class TextureMaterial extends BaseMaterial {
                     type: "uniform",
                 },
             };
-            this.unifromEntryLayout.push(uniformBufferLayout);
+            layoutEntries.push(uniformBufferLayout);
             //push到uniform1队列
-            uniform1.push(uniformBuffer);
+            uniformEntries.push(uniformBuffer);
             //+1
             binding++;
         }
@@ -224,9 +252,9 @@ export class TextureMaterial extends BaseMaterial {
                     // multisampled: false,
                 },
             };
-            this.unifromEntryLayout.push(uniformTextureLayout);
-            //push到uniform1队列
-            uniform1.push(uniformTexture);
+            layoutEntries.push(uniformTextureLayout);
+            //push到uniformEntries队列
+            uniformEntries.push(uniformTexture);
             //+1
             binding++;
         }
@@ -246,18 +274,21 @@ export class TextureMaterial extends BaseMaterial {
                     type: this.defaultSamplerBindingType,
                 },
             };
-            this.unifromEntryLayout.push(uniformSamplerLayout);
-            //push到uniform1队列
-            uniform1.push(uniformSampler);
+            layoutEntries.push(uniformSamplerLayout);
+            //push到uniformEntries队列
+            uniformEntries.push(uniformSampler);
             //+1
             binding++;
         }
-        let unifromEntryBundle_Common = {
-            bindingNumber: binding,
-            groupAndBindingString: groupAndBindingString,
-            entry: uniform1,
+        let entriesBundle = {
+            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+            groupAndBindingString,
+            entry: uniformEntries
         };
-        return unifromEntryBundle_Common;
+        return {
+            entriesBundle,
+            layoutEntries,
+        };
     }
 
     generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
@@ -265,53 +296,10 @@ export class TextureMaterial extends BaseMaterial {
         return this.formatSHT(template, replaceList, startBinding);
     }
     /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-    /**
-     * 获取前向渲染的不透明材质的bundle，用于生成DC
-     * @param startBinding 起始binding
-     * @returns 前向渲染的bundle
-     */
-    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        return this.generateBundleOutput(SHT_materialTextureFS, startBinding);
-    }
-    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialTextureFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialTextureFS_MSAAinfo, startBinding);
-        MSAA.materialType = "opacity";
-        inforForward.materialType = "opacity";
-        return { MSAA, inforForward };
-    }
-    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
-    getFS_TO(_startBinding: number): I_materialBundleOutput {
-        let output = this.getOpacity_Forward(_startBinding);
-        output.materialType = "TO";
-        return output;
-    }
-    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let output = this.getOpacity_MSAA(startBinding);
-        output.MSAA.materialType = "TO";
-        output.inforForward.materialType = "TO";
-        return output;
-    }
-    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        let output = this.getOpacity_DeferColor(startBinding);
-        output.materialType = "TO";
-        return output;
-    }
+
 
     /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
-    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialTexture_TT_FS;
-        let replaceList = new Map<string, string | (() => string)>();
-        // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
-        // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
-        let output = this.formatSHT(template, replaceList, startBinding);
-        output.materialType = "TT";
-        return output;
-    }
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         let template = SHT_materialTexture_TTPF_FS;
         if (renderObject instanceof BaseCamera) {

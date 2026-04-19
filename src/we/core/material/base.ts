@@ -1,18 +1,16 @@
 import { I_Update } from "../base/coreDefine";
-import { T_uniformGroups, T_uniformOneGroup } from "../command/base";
+import { T_uniformOneGroup } from "../command/base";
 import { I_EntityBundleOutput } from "../entity/base";
-import { BaseEntity } from "../entity/baseEntity";
 import { Scene } from "../scene/scene";
-import { I_ShaderTemplate_Final, I_singleShaderTemplate_Final } from "../shadermanagemnet/base";
-import { E_TextureChannel, I_mipmap } from "../texture/base";
+import { E_TextureChannel } from "../texture/base";
 import { BaseTexture } from "../texture/baseTexture";
 
 export enum E_MaterialType {
     /** 颜色材质 */
     color = "colorMaterial",
-    vertex = "vertex", 
+    vertex = "vertex",
     /** 纹理材质 */
-    texture = "textureMaterial" ,
+    texture = "textureMaterial",
     cube = "cubeMaterial",
     cubeSky = "cubeSkyMaterial",
     video = "videoMaterial",
@@ -192,16 +190,30 @@ export enum E_TextureType {
     perfilteredMap = "perfilteredMap",
     brdfLUT = "brdfLUT",
 }
+/**DC 动态获取material的bind group使用的类型 */
+export enum E_materialTypeForBindGroup {
+    opacityForward = "opacityForward",
+    opacityDefer = "opacityDefer",
+    opacityMSAA = "opacityMSAA",
+    opacityMSAAInfo = "opacityMSAAInfo",
+    
+    TO_Forward = "TO_Forward",
+    TO_Defer = "TO_Defer",
+    TO_MSAA = "TO_MSAA",
+    TO_MsaaInfo = "TO_MsaaInfo",
+
+    TT = "TT",
+
+    TTP = "TTP",
+    TTPF = "TTPF",
+}
+
 /**
  * 材质的输出Bundle
  * I_singleShaderTemplate_Final中包括dynamic 参数
  */
-// export type I_materialBundleOutput = I_EntityBundleOutput
-/**DC 动态获取material的bind group使用的类型 */
-export type T_materialTypeForBindGroup = "opacity" | "TO" | "TT" | "TTP" | "TTPF";
-
 export interface I_materialBundleOutput extends I_EntityBundleOutput {
-    materialType: T_materialTypeForBindGroup,
+    materialType: E_materialTypeForBindGroup,
 }
 export interface I_BundleOfMaterialForMSAA {
     MSAA: I_materialBundleOutput,
@@ -248,11 +260,13 @@ export interface I_UniformBundleOfMaterial {
     // layout: GPUBindGroupLayoutEntry[]
 }
 /**
-     * -1：不使用
-     * 0：value
-     * 1：texture
-     * 2：vs
-     */
+ * 统一的uniform参数:PBR中使用
+ * 
+ * -1：不使用
+ * 0：value
+ * 1：texture
+ * 2：vs
+ */
 export enum E_MaterialUniformKind {
     notUse = -1,
     value = 0,//只使用value

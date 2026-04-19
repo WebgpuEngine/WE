@@ -1,9 +1,10 @@
 
+import { E_renderPassName } from "../scene/renderManager";
 import { I_drawMode, I_drawModeIndexed, I_viewport, T_drawMode } from "./base";
 
 export interface I_drawCallOption {
     passEncoder: GPURenderPassEncoder,
-    renderPassName?: string,
+    renderPassName?: E_renderPassName,
     mergeID?: string,
     drawModeData?: I_drawMode[] | I_drawModeIndexed[],
 }

@@ -17,7 +17,14 @@ import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
 import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial } from "../base";
-import { SHT_materialCubePositionTextureFS, SHT_materialCubePositionTextureFS_MSAA, SHT_materialCubePositionTextureFS_MSAAinfo, SHT_materialCubeSkyTextureFS, SHT_materialCubeSkyTextureFS_MSAA, SHT_materialCubeSkyTextureFS_MSAAinfo } from "../../shadermanagemnet/material/cubeTextureMaterial";
+import {
+    SHT_materialCubePositionTextureFS,
+    SHT_materialCubePositionTextureFS_MSAA,
+    SHT_materialCubePositionTextureFS_MSAAinfo,
+    SHT_materialCubeSkyTextureFS,
+    SHT_materialCubeSkyTextureFS_MSAA,
+    SHT_materialCubeSkyTextureFS_MSAAinfo
+} from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { Texture } from "../../texture/texture";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
@@ -25,6 +32,7 @@ export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
 }
 
 export class CubeTextureMaterial extends TextureMaterial {
+
 
     declare inputValues: IV_CubeTextureMaterial;
     cubeType: IV_CubeTextureMaterial["cubeType"] = "cube";
@@ -34,6 +42,43 @@ export class CubeTextureMaterial extends TextureMaterial {
         if (this.inputValues.cubeType) {
             this.cubeType = this.inputValues.cubeType;
         }
+        if (this.cubeType == "sky") {
+            this.shtOfMaterialType = {
+                opacityForward: SHT_materialCubeSkyTextureFS,
+                opacityDefer: SHT_materialCubeSkyTextureFS,
+                opacityMSAA: SHT_materialCubeSkyTextureFS_MSAA,
+                opacityMSAAInfo: SHT_materialCubeSkyTextureFS_MSAAinfo,
+
+                TO_Forward: SHT_materialCubeSkyTextureFS,
+                TO_Defer: SHT_materialCubeSkyTextureFS,
+                TO_MSAA: SHT_materialCubeSkyTextureFS_MSAA,
+                TO_MsaaInfo: SHT_materialCubeSkyTextureFS_MSAAinfo,
+
+                TT: undefined,
+
+                TTP: undefined,
+                TTPF: undefined,
+            };
+        }
+        else {
+            this.shtOfMaterialType = {
+                opacityForward: SHT_materialCubePositionTextureFS,
+                opacityDefer: SHT_materialCubePositionTextureFS,
+                opacityMSAA: SHT_materialCubePositionTextureFS_MSAA,
+                opacityMSAAInfo: SHT_materialCubePositionTextureFS_MSAAinfo,
+
+                TO_Forward: SHT_materialCubePositionTextureFS,
+                TO_Defer: SHT_materialCubePositionTextureFS,
+                TO_MSAA: SHT_materialCubePositionTextureFS_MSAA,
+                TO_MsaaInfo: SHT_materialCubePositionTextureFS_MSAAinfo,
+
+                TT: undefined,
+
+                TTP: undefined,
+                TTPF: undefined,
+            };
+        }
+
     }
 
     async readyForGPU(): Promise<any> {
@@ -55,11 +100,11 @@ export class CubeTextureMaterial extends TextureMaterial {
         // this.countOfTexturesOfFineshed++;
         this._state = E_lifeState.finished;
     }
-    getUniformEntryBundleOfCommon(startBinding: number = 0): I_UniformBundleOfMaterial {
+    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
-        let uniform1: T_uniformOneGroup = [];
-        this.unifromEntryLayout = [];
+        let uniformEntries: T_uniformOneGroup = [];
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
 
         ///////////group binding
         ////group binding  texture 字符串
@@ -82,8 +127,8 @@ export class CubeTextureMaterial extends TextureMaterial {
             texture: textureLayout
         };
 
-        this.unifromEntryLayout.push(uniformTextureLayout);
-        uniform1.push(uniformTexture);
+        layoutEntries.push(uniformTextureLayout);
+        uniformEntries.push(uniformTexture);
         binding++;
 
         ////group bindgin sampler 字符串
@@ -101,49 +146,52 @@ export class CubeTextureMaterial extends TextureMaterial {
                 type: "filtering",
             },
         };
-        this.unifromEntryLayout.push(uniformSamplerLayout);
-        uniform1.push(uniformSampler);
+        layoutEntries.push(uniformSamplerLayout);
+        uniformEntries.push(uniformSampler);
         //+1
         binding++;
 
-        let unifromEntryBundle_Common = {
-            bindingNumber: binding,
-            groupAndBindingString: groupAndBindingString,
-            entry: uniform1,
+        let entriesBundle = {
+            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+            groupAndBindingString,
+            entry: uniformEntries
         };
-        return unifromEntryBundle_Common;
+        return {
+            entriesBundle,
+            layoutEntries,
+        };
     }
-    generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        let replaceList = new Map<string, string | (() => string)>();
-        return this.formatSHT(template, replaceList, startBinding);
-    }
-    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        let template: I_ShaderTemplate;
-        if (this.cubeType == "sky") {
-            template = SHT_materialCubeSkyTextureFS;
-        }
-        else
-            template = SHT_materialCubePositionTextureFS;
-        let output = this.generateBundleOutput(template, startBinding);
-        output.materialType = "opacity";
-        return output;
-    }
-    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        if (this.cubeType == "sky") {
-            let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
-            let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
-            MSAA.materialType = "opacity";
-            inforForward.materialType = "opacity";
-            return { MSAA, inforForward };
-        }
-        else {
-            let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAA, startBinding);
-            let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
-            MSAA.materialType = "opacity";
-            inforForward.materialType = "opacity";
-            return { MSAA, inforForward };
-        }
-    }
+    // generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
+    //     let replaceList = new Map<string, string | (() => string)>();
+    //     return this.formatSHT(template, replaceList, startBinding);
+    // }
+    // getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
+    //     let template: I_ShaderTemplate;
+    //     if (this.cubeType == "sky") {
+    //         template = SHT_materialCubeSkyTextureFS;
+    //     }
+    //     else
+    //         template = SHT_materialCubePositionTextureFS;
+    //     let output = this.generateBundleOutput(template, startBinding);
+    //     output.materialType = "opacity";
+    //     return output;
+    // }
+    // getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+    //     if (this.cubeType == "sky") {
+    //         let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
+    //         let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
+    //         MSAA.materialType = "opacity";
+    //         inforForward.materialType = "opacity";
+    //         return { MSAA, inforForward };
+    //     }
+    //     else {
+    //         let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAA, startBinding);
+    //         let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
+    //         MSAA.materialType = "opacity";
+    //         inforForward.materialType = "opacity";
+    //         return { MSAA, inforForward };
+    //     }
+    // }
 
     updateSelf(clock: Clock): void {
     }

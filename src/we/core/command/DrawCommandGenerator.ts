@@ -10,7 +10,6 @@ import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup } from "./baseF
 import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
-import { AA } from "../scene/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
 import { E_TransparentType, I_TransparentOptionOfMaterial } from "../material/base";
 import { Clock } from "../scene/clock";
@@ -1377,6 +1376,9 @@ export class DrawCommandGenerator {
                 DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
                 layoutNumber++;
                 if (values.system?.type == E_renderForDC.camera) {
+                    if (values.system.material?.type == undefined) {
+                        throw new Error("material type do not define");
+                    }
                     if (values.label.includes("wireframe")) {
                         if ((values.system?.parent as Mesh)._materialWireframe) {
                             let { bindGroup, bindGroupLayout } = (values.system?.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
@@ -1387,7 +1389,7 @@ export class DrawCommandGenerator {
                     }
                     else {
                         if ((values.system?.parent as EntityBundleMaterial)._material) {
-                            let { bindGroup, bindGroupLayout } = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout();
+                            let { bindGroup, bindGroupLayout } = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout(values.system.material.type);
                             DC_bindGroups[layoutNumber] = bindGroup;
                             DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
                             layoutNumber++;
@@ -1628,11 +1630,11 @@ export class DrawCommandGenerator {
         let vsCacheShaderModuleName = values.label;
 
         if (typeof values.render.vertex.code === "string") {
-            vsCacheShaderModuleName += values.render.vertex.code as string + locationInterpolateString;
+            vsCacheShaderModuleName = values.render.vertex.code as string + locationInterpolateString;
             shadercode = values.render.vertex.code;
         }
         else {
-            vsCacheShaderModuleName += values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString;
+            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString;
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
 
@@ -1827,9 +1829,14 @@ export class DrawCommandGenerator {
                             depthStencilFlag = "this.scene.depthMode.depthStencilMSAAinfo";
                         }
                         //MSAA 渲染，使用深度模板(开启测试，写入) 
-                        else {
-                            descriptor.depthStencil = this.scene.depthMode.depthStencilMSAA;
+                        else if (values.system && values.system.MSAA == "MSAA") {
+                            // descriptor.depthStencil = this.scene.depthMode.depthStencilMSAA;//20260419 MSAA可以不需要depth，关闭
                             depthStencilFlag = "this.scene.depthMode.depthStencilMSAA";
+                        }
+                        //shadowmap 等渲染，使用深度模板(开启测试，写入) 
+                        else {
+                            descriptor.depthStencil = this.scene.depthMode.depthStencil;
+                            depthStencilFlag = "this.scene.depthMode.depthStencil";
                         }
                     }
                     //非MSAA渲染，使用深度模板(开启测试，写入) 

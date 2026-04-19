@@ -1,6 +1,6 @@
 import { E_renderForDC } from "../base/coreDefine";
 import { BaseEntity } from "../entity/baseEntity";
-import { E_TransparentType, T_materialTypeForBindGroup } from "../material/base";
+import { E_TransparentType, E_materialTypeForBindGroup } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, } from "./base";
@@ -14,7 +14,7 @@ export interface I_DrawInputValueMaterial {
     /**material类型 
      * 1、不同类型的material的type，其bind group不同
     */
-    type: T_materialTypeForBindGroup,
+    type: E_materialTypeForBindGroup,
     /**透明类型 :透明材质才需要.todo：备用
     */
     transparentType?: E_TransparentType,
@@ -44,7 +44,11 @@ export interface IV_DrawCommand extends IV_BaseDrawCommand {
         traget?: I_DrawInputValueTarget
     },
 }
-
+/**
+ * DrawCommand 是Entity的渲染命令
+ * 1、渲染调用入口：doDraw()，只使用这一个入口
+ * 2、doDraw(option: I_drawCallOption) 的参数必须全部都不能为空
+ */
 export class DrawCommand extends BaseDrawCommand {
     /**Entity     */
     parent: BaseEntity | undefined;
@@ -86,29 +90,16 @@ export class DrawCommand extends BaseDrawCommand {
 
         this._isDestroy = true;
     }
-    override dowhole() {
-        let device = this.device;
-        const commandEncoder = device.createCommandEncoder({ label: this.label });
-        this.doWithRPD(commandEncoder);
-        const commandBuffer = commandEncoder.finish();
-        console.warn("CommandEncoder finish");
+    // override dowhole() {
+    //     let device = this.device;
+    //     const commandEncoder = device.createCommandEncoder({ label: this.label });
+    //     this.doWithRPD(commandEncoder);
+    //     const commandBuffer = commandEncoder.finish();
+    //     console.warn("CommandEncoder finish");
 
-        return commandBuffer;
-    }
-    override doWithRPD(commandEncoder: GPUCommandEncoder) {
-        if (this.renderPassDescriptor == undefined) {
-            let rpd = this.scene.getRenderPassDescriptor(this.traget.UUID, this.traget.type);
-            let passEncoder: GPURenderPassEncoder = commandEncoder.beginRenderPass(rpd);
-
-            this.doWithPipeline({ passEncoder });
-            passEncoder.end();
-        }
-    }
-    // override doWithPipeline(option: I_drawCallOption) {
-    //     let passEncoder = option.passEncoder;
-    //     passEncoder.setPipeline(this.pipeline);
-    //     this.doDraw({ passEncoder });
+    //     return commandBuffer;
     // }
+
     override  doDraw(option: I_drawCallOption) {
         // console.log(this.label);
         let passEncoder = option.passEncoder;
@@ -178,19 +169,20 @@ export class DrawCommand extends BaseDrawCommand {
             }
         }
         else {
-            // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
-            if (typeof this.drawMode === "function") {
-                if (this.traget !== undefined) {
-                    let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.traget.UUID, this.traget.type);
-                    this.drawInstacnceArray(passEncoder, drawModeTemp);
-                    // console.log(this.label);
-                }
-                else {
-                    throw new Error("drawMode is  function and  must be have system input value ");
-                }
-            }
-            // 绘制实例 :多个instance数组。测试模拟merge
-            else if (Array.isArray(this.drawMode)) {
+            // // 绘制实例 :函数返回多个instance数组(merge instance模式).主要的工作模式
+            // if (typeof this.drawMode === "function") {
+            //     if (this.traget !== undefined) {
+            //         let drawModeTemp: I_drawMode[] | I_drawModeIndexed[] = this.drawMode(this.traget.UUID, this.traget.type);
+            //         this.drawInstacnceArray(passEncoder, drawModeTemp);
+            //         // console.log(this.label);
+            //     }
+            //     else {
+            //         throw new Error("drawMode is  function and  must be have system input value ");
+            //     }
+            // }
+            // // 绘制实例 :多个instance数组。测试模拟merge
+            // else 
+            if (Array.isArray(this.drawMode)) {
                 this.drawInstacnceArray(passEncoder, this.drawMode);
             }
             // 绘制实例 :单个instance。测试模拟single instance模式，raw模式

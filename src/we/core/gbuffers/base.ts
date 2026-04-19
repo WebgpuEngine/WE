@@ -38,11 +38,11 @@ export interface I_GBufferName {
 
 /**MSAA GBuffer*/
 export var V_MsaaGBufferNames: I_GBufferName = {
-    [E_GBufferNames.depth]: {
-        "format": "depth32float",
-        "label": "GBuffer depth attachment:",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
+    // [E_GBufferNames.depth]: {
+    //     "format": "depth32float",
+    //     "label": "GBuffer depth attachment:",
+    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    // },
     [E_GBufferNames.color]: {
         "format": V_weLinearFormat,
         "label": "GBuffer color :",

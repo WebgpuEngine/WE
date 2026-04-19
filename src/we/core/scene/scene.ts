@@ -19,7 +19,7 @@ import { pickupManager } from "../pickup/pickupManager";
 import { PostProcessManager } from "../postprocess/postProcessManager";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { AA, eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
+import { eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
 import { Clock } from "./clock";
 import { RenderManager } from "./renderManager";
 import { BaseEntity } from "../entity/baseEntity";
@@ -358,7 +358,7 @@ export class Scene {
                 this.MSAA = false;
             }
         }
-        console.log("WE3D renderMode:",this.renderMode);
+        console.log("WE3D renderMode:", this.renderMode);
         if (value.premultipliedAlpha !== undefined) {
             this.premultipliedAlpha = value.premultipliedAlpha;
         }
@@ -688,7 +688,10 @@ export class Scene {
         }
         return { name: "false", state: false };
     }
-
+    /**当前帧是否resize 了窗口大小*/
+    isResized(): boolean {
+        return this.flags.reSize.status;
+    }
 
     /**每帧循环 onBeforeUpdate */
     async onBeforeUpdate() {
@@ -701,7 +704,8 @@ export class Scene {
             // await this.entityManager.onResize();
             await this.pickupManager.onResize();
             await this.postProcessManager.onResize();
-            this.flags.reSize.status = false;
+            //20260419 移动到cleanUp中，因为material的MSAA部分需要判断是resize；
+            // this.flags.reSize.status = false;
         }
         this.renderManager.clean();
 
@@ -775,6 +779,7 @@ export class Scene {
 
     //每帧清除数据
     async cleanUp() {
+        this.flags.reSize.status = false;
         this.inputManager.clean();
     }
 

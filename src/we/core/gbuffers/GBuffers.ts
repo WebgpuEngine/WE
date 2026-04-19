@@ -246,12 +246,12 @@ export class GBuffers {
             }
             const RPD_MSAA: GPURenderPassDescriptor = {
                 colorAttachments: colorAttachments,
-                depthStencilAttachment: {
-                    view: gbuffersMSAA[E_GBufferNames.depth].createView({ label: id + " MSAA depth" }),
-                    depthClearValue: depthClearValue,
-                    depthLoadOp: 'clear',//MSAA 渲染，深度模板(开启测试，写入) ，clear 
-                    depthStoreOp: 'store',
-                },
+                // depthStencilAttachment: {
+                //     view: gbuffersMSAA[E_GBufferNames.depth].createView({ label: id + " MSAA depth" }),
+                //     depthClearValue: depthClearValue,
+                //     depthLoadOp: 'clear',//MSAA 渲染，深度模板(开启测试，写入) ，clear 
+                //     depthStoreOp: 'store',
+                // },
             };
 
             const RPD_MSAAinfo: GPURenderPassDescriptor = {

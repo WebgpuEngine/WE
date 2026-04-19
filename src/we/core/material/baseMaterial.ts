@@ -3,7 +3,7 @@ import { RootGPU } from "../organization/root";
 
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
-import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType, T_materialTypeForBindGroup } from "./base";
+import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType, E_materialTypeForBindGroup } from "./base";
 import { commmandType, I_bindGroupAndGroupLayout, I_dynamicTextureEntryForView, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
@@ -43,58 +43,24 @@ export abstract class BaseMaterial extends RootGPU {
     override inputValues: IV_BaseMaterial;
     kind!: E_MaterialType;
     entity!: EntityBundleMaterial;
-    ///////////////////////////////////////////////////////////////////
-    //bind group
-    /** VS bind group */
-    bindGroup: { [key: string]: GPUBindGroup } = {};
-    /** VS bind group layout */
-    bindGroupLayout: { [key: string]: GPUBindGroupLayout } = {};
-    /**材质的默认绑定组，默认是2 */
-    bindGroupNumber: number = 2;
-    /**
-     * todo，20260311，需要更新此部分说明
-     * 已下是未进行材质uniform统一化之前的设计。
-     * 不透明、TO、TT、TTP、TTPF公用的uniform(目的：保证所有的uniform绑定槽号是相同的，不变化的)
-     * 
-     * 1、bindingNumber 绑定的槽号的通用的计数器。
-     *      只在第一次计数，然后不要再增加。
-     *      不透明，TO,TT，三个相同，其他TTP、TTPF的特殊的在此数字之后，不需要增加到此计数器
-     * 
-     * 2、 uniform 的@group(${this.bindGroupNumber}) @binding(x) 绑定字符串。
-     *      只在第一次进行，然后不要再增加。
-     *      与uniformEntry顺序一一对应
-     * 
-     * 3、 uniform 的绑定，必须在材质uniform的第一顺序序列，否则，绑定槽会不同而报错
-     *      只在第一次进行，然后不要再增加。
-     *      A、不透明和TO会用
-     *      B、TT会用
-     *      C、TTP会用（判断是否透明）
-     *      D、TTPF会用（输出color，进行Blend）
-     */
-    unifromEntryBundle_Common: I_UniformBundleOfMaterial | undefined;
-
-    /** 材质的公用uniform 对应的layout */
-    unifromEntryLayout: GPUBindGroupLayoutEntry[] = [];
-
-    /** 材质的uniform  Buffer 的指针，用于快速访问 */
+    /** 材质的uniform  Buffer 的指针，用于快速访问 
+     * 20260419：
+     * 1、这个名称不够直观，需要调整一下，调整为与VS相同的名称
+    */
     uniformPointer!: I_pointerStruct;
     ///////////////////////////////////////////////////////////////////
     //todo
     doubleSided: boolean = false;
-
     ///////////////////////////////////////////////////////////////////
     //材质相关
-
+    /** 透明材质是否有不透明的部分     */
+    hasOpaqueOfTransparent: boolean = false;
     /** 是否动态材质 
      * 1、video材质的External就需要动态材质
     */
     _dynamic: boolean = false;
-    get Dynamic(): boolean {
-        return this._dynamic;
-    }
-    set Dynamic(value: boolean) {
-        this._dynamic = value;
-    }
+    get Dynamic(): boolean { return this._dynamic; }
+    set Dynamic(value: boolean) { this._dynamic = value; }
     /**
      * blending混合的状态interface
      * 
@@ -128,14 +94,11 @@ export abstract class BaseMaterial extends RootGPU {
     /**默认的3D纹理 */
     defaultTexture3D!: CubeTexture;
 
-    /**
-     * mipmap设置
-     */
+    /** mipmap设置     */
     _mipmap: I_mipmap = {
         enable: true,
         level: 3
     };
-
     ///////////////////////////////////////////////////////////////////
     //渲染相关
     /**
@@ -144,17 +107,6 @@ export abstract class BaseMaterial extends RootGPU {
      * 2、非必须，比如video材质的External就需要
      */
     commands: commmandType[] = [];
-
-    /**
-     * 透明材质是否有不透明的部分
-     */
-    hasOpaqueOfTransparent: boolean = false;
-
-
-    /**TTPF 的uniform Bundle  */
-    unifromEntryBundle_TTPF: I_UniformBundleOfMaterial | undefined;
-
-
 
     constructor(input?: IV_BaseMaterial) {
         super(input);
@@ -236,27 +188,96 @@ export abstract class BaseMaterial extends RootGPU {
             }
         return true;
     }
+    /**
+    * 获取当前材质的pointer的byte size
+    * @param size 
+    * @returns 
+    * */
+    getPointerByteSize(size: number): number {
+        let min = Math.ceil(size / 256) || 1;
+        return min * 256;
+    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // bind group 部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**材质的默认绑定组，默认是2 */
+    bindGroupNumber: number = 2;
+    /** 材质的SHT模板，key:材质类型，value:SHT模板。 */
+    shtOfMaterialType!: {
+        [key in E_materialTypeForBindGroup]: I_ShaderTemplate | undefined;
+    };
+    /** VS bind group 
+     * 1、 key :string 采样E_materialTypeForBindGroup的值
+     * 2、不使用[key in E_materialTypeForBindGroup] 的原因：
+     *  A、不是所有类型会有用到，防止不必要的创建
+     *  B、目前TTP、TTPF暂停中；20260419
+    */
+    bindGroup: { [key: string]: GPUBindGroup } = {};
+    /** VS bind group layout */
+    bindGroupLayout: { [key: string]: GPUBindGroupLayout } = {};
+
+    /**不同模式的uniform绑定
+     * 1、entries: 材质的uniform绑定
+     * 2、layoutEntries: 材质的uniform绑定的layout
+     */
+    entriesOfBindgroupAndBindgroupLayout: {
+        [key: string]: {
+            entriesBundle: I_UniformBundleOfMaterial,
+            layoutEntries: GPUBindGroupLayoutEntry[],
+        }
+    } = {};
 
     /**
-     * 20260402 增加：DC可以获取当前材质的bind group和bind group layout
-     * 获取当前材质的bind group和bind group layout
-     * @returns I_bindGroupAndGroupLayout
+     * 20260419：
+     * 1、这个属性设计没有意义
+     * 2、不能将公共参数保存为属性，
+     *  A、因为，每个材质模式的uniform绑定数量可能不同，如果使用需要深度copy，更费劲。
+     *  B、所以只能动态创建。
+     * 3、暂时不做调整（工作量），后期再考虑。
+     * 
+     * todo，20260311，需要更新此部分说明
+     * 已下是未进行材质uniform统一化之前的设计。
+     * 不透明、TO、TT、TTP、TTPF公用的uniform(目的：保证所有的uniform绑定槽号是相同的，不变化的)
+     * 
+     * 1、bindingNumber 绑定的槽号的通用的计数器。
+     *      只在第一次计数，然后不要再增加。
+     *      不透明，TO,TT，三个相同，其他TTP、TTPF的特殊的在此数字之后，不需要增加到此计数器
+     * 
+     * 2、 uniform 的@group(${this.bindGroupNumber}) @binding(x) 绑定字符串。
+     *      只在第一次进行，然后不要再增加。
+     *      与uniformEntry顺序一一对应
+     * 
+     * 3、 uniform 的绑定，必须在材质uniform的第一顺序序列，否则，绑定槽会不同而报错
+     *      只在第一次进行，然后不要再增加。
+     *      A、不透明和TO会用
+     *      B、TT会用
+     *      C、TTP会用（判断是否透明）
+     *      D、TTPF会用（输出color，进行Blend）
      */
-    getBindGroupAndBindGroupLayout(materialType: T_materialTypeForBindGroup = "opacity"): I_bindGroupAndGroupLayout {
+    unifromEntryBundle_Common: I_UniformBundleOfMaterial | undefined;
 
-        if (this.unifromEntryBundle_Common == undefined) {
-            this.unifromEntryBundle_Common = this.getUniformEntryBundleOfCommon(0);
-        }
+    /** 材质的公用uniform 对应的layout 
+     * 20260419：
+     * 1、这个名称不够直观，需要调整一下
+    */
+    unifromEntryLayout: GPUBindGroupLayoutEntry[] = [];
+
+    /**TTPF 的uniform Bundle  */
+    unifromEntryBundle_TTPF: I_UniformBundleOfMaterial | undefined;
+
+    /** 检查是否需要创建bind group
+     * 1、如果材质类型不存在，创建
+     * 2、pointer 不存在或 rebuild，需要更新bind group
+     * 3、如果材质类型存在，但是dynamic texture，创建
+     */
+    checkNeedCreateBindGroup(materialType: E_materialTypeForBindGroup): boolean {
         let createBindGroup = false;
         //undefined，创建
         if (this.bindGroupLayout[materialType] == undefined) {
             //创建BindGroupLayout
             this.bindGroupLayout[materialType] = this.device.createBindGroupLayout({
                 label: `${this.kind}:${this.ID} :${materialType}`,
-                entries: this.unifromEntryLayout
+                entries: this.entriesOfBindgroupAndBindgroupLayout[materialType].layoutEntries,
             });
             //////////////////////////////////////////////////
             //bind group  
@@ -270,46 +291,205 @@ export abstract class BaseMaterial extends RootGPU {
         if (this.Dynamic) {
             createBindGroup = true;
         }
+        return createBindGroup;
+    }
+    /** 创建bind group */
+    createBindGroup(materialType: E_materialTypeForBindGroup) {
+        let perGroup = this.entriesOfBindgroupAndBindgroupLayout[materialType].entriesBundle.entry as T_uniformEntries[];
+        //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
+        let bindGroupEntry: GPUBindGroupEntry[] = [];
+        for (let j in perGroup) {//遍历每组group的每个entry
+            let perEntry = perGroup[j];
+
+            //动态 external texture,不做map
+            if (isDynamicTextureEntryForExternal(perEntry)) {
+                bindGroupEntry.push({
+                    binding: perEntry.binding,
+                    resource: perEntry.getResource(perEntry.scope),
+                });
+            }
+            //动态 view texture,不做map
+            else if (isDynamicTextureEntryForView(perEntry)) {
+                bindGroupEntry.push({
+                    binding: perEntry.binding,
+                    resource: perEntry.getResource(),
+                });
+            }
+            //排除其他类型后，即是GPUBindGroupEntry
+            else {
+                bindGroupEntry.push(perEntry as GPUBindGroupEntry);//GPUBindGroupEntry
+            }
+        }
+        //初始化BindGroup描述
+        let bindGroupDesc: GPUBindGroupDescriptor = {
+            label: `${this.kind}:${this.ID} :${materialType}`,
+            layout: this.bindGroupLayout[materialType],
+            entries: bindGroupEntry,
+        }
+        //创建BindGroup
+        this.bindGroup[materialType] = this.device.createBindGroup(bindGroupDesc);
+    }
+    /**
+     * opacity and TO ：forward,defer,MSAAInfo 通用
+     * @returns I_bindGroupAndGroupLayout
+     */
+    bindGroupAndLayoutOfForward(): I_bindGroupAndGroupLayout {
+        let materialType = E_materialTypeForBindGroup.opacityForward;
+        if (this.entriesOfBindgroupAndBindgroupLayout[materialType] == undefined) {
+            this.entriesOfBindgroupAndBindgroupLayout[materialType] = this.getUniformEntryBundleOfCommon(0);
+        }
+        let createBindGroup = this.checkNeedCreateBindGroup(materialType);
         //创建或更新bind group
         if (createBindGroup === true) {
-            let perGroup = this.unifromEntryBundle_Common!.entry as T_uniformEntries[];
-            //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
-            let bindGroupEntry: GPUBindGroupEntry[] = [];
-            for (let j in perGroup) {//遍历每组group的每个entry
-                let perEntry = perGroup[j];
-
-                //动态 external texture,不做map
-                if (isDynamicTextureEntryForExternal(perEntry)) {
-                    bindGroupEntry.push({
-                        binding: perEntry.binding,
-                        resource: perEntry.getResource(perEntry.scope),
-                    });
-                }
-                //动态 view texture,不做map
-                else if (isDynamicTextureEntryForView(perEntry)) {
-                    bindGroupEntry.push({
-                        binding: perEntry.binding,
-                        resource: perEntry.getResource(),
-                    });
-                }
-                //排除其他类型后，即是GPUBindGroupEntry
-                else {
-                    bindGroupEntry.push(perEntry as GPUBindGroupEntry);//GPUBindGroupEntry
-                }
-            }
-            //初始化BindGroup描述
-            let bindGroupDesc: GPUBindGroupDescriptor = {
-                label: `${this.kind}:${this.ID} :${materialType}`,
-                layout: this.bindGroupLayout[materialType],
-                entries: bindGroupEntry,
-            }
-            //创建BindGroup
-            this.bindGroup[materialType] = this.device.createBindGroup(bindGroupDesc);
+            this.createBindGroup(materialType);
         }//end 
-
         return {
             bindGroup: this.bindGroup[materialType],
             bindGroupLayout: this.bindGroupLayout[materialType],
+        }
+    }
+    // bindGroupAndLayoutOfForward(): I_bindGroupAndGroupLayout {
+    //     let materialType = E_materialTypeForBindGroup.opacityForward;
+    //     if (this.unifromEntryBundle_Common == undefined) {
+    //         this.unifromEntryBundle_Common = this.getUniformEntryBundleOfCommon(0);
+    //     }
+    //     let createBindGroup = false;
+    //     //undefined，创建
+    //     if (this.bindGroupLayout[materialType] == undefined) {
+    //         //创建BindGroupLayout
+    //         this.bindGroupLayout[materialType] = this.device.createBindGroupLayout({
+    //             label: `${this.kind}:${this.ID} :${materialType}`,
+    //             entries: this.unifromEntryLayout
+    //         });
+    //         //////////////////////////////////////////////////
+    //         //bind group  
+    //         createBindGroup = true;
+    //     }
+    //     //pointer rebuild，需要更新bind group
+    //     if (this.uniformPointer != undefined && this.uniformPointer.rebuildTime == this.scene.clock.now) {
+    //         createBindGroup = true;
+    //     }
+    //     //dynamic texture，需要更新bind group
+    //     if (this.Dynamic) {
+    //         createBindGroup = true;
+    //     }
+    //     //创建或更新bind group
+    //     if (createBindGroup === true) {
+    //         let perGroup = this.unifromEntryBundle_Common!.entry as T_uniformEntries[];
+    //         //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
+    //         let bindGroupEntry: GPUBindGroupEntry[] = [];
+    //         for (let j in perGroup) {//遍历每组group的每个entry
+    //             let perEntry = perGroup[j];
+
+    //             //动态 external texture,不做map
+    //             if (isDynamicTextureEntryForExternal(perEntry)) {
+    //                 bindGroupEntry.push({
+    //                     binding: perEntry.binding,
+    //                     resource: perEntry.getResource(perEntry.scope),
+    //                 });
+    //             }
+    //             //动态 view texture,不做map
+    //             else if (isDynamicTextureEntryForView(perEntry)) {
+    //                 bindGroupEntry.push({
+    //                     binding: perEntry.binding,
+    //                     resource: perEntry.getResource(),
+    //                 });
+    //             }
+    //             //排除其他类型后，即是GPUBindGroupEntry
+    //             else {
+    //                 bindGroupEntry.push(perEntry as GPUBindGroupEntry);//GPUBindGroupEntry
+    //             }
+    //         }
+    //         //初始化BindGroup描述
+    //         let bindGroupDesc: GPUBindGroupDescriptor = {
+    //             label: `${this.kind}:${this.ID} :${materialType}`,
+    //             layout: this.bindGroupLayout[materialType],
+    //             entries: bindGroupEntry,
+    //         }
+    //         //创建BindGroup
+    //         this.bindGroup[materialType] = this.device.createBindGroup(bindGroupDesc);
+    //     }//end 
+
+    //     return {
+    //         bindGroup: this.bindGroup[materialType],
+    //         bindGroupLayout: this.bindGroupLayout[materialType],
+    //     }
+    // }
+    /**
+     * opacity and TO ：MSAA 通用
+     * @returns I_bindGroupAndGroupLayout
+     */
+    bindGroupAndLayoutOfMSAA(): I_bindGroupAndGroupLayout {
+        return this.bindGroupAndLayoutOfForward();
+        let materialType = E_materialTypeForBindGroup.opacityMSAA;
+        if (this.entriesOfBindgroupAndBindgroupLayout[materialType] == undefined || this.scene.isResized()) {
+            this.entriesOfBindgroupAndBindgroupLayout[materialType] = this.getUniformEntryBundleOfMSAA(0);
+        }
+        let createBindGroup = this.checkNeedCreateBindGroup(materialType);
+        if (this.scene.isResized()) {
+            createBindGroup = true;
+        }
+        //创建或更新bind group
+        if (createBindGroup === true) {
+            this.createBindGroup(materialType);
+        }//end 
+        return {
+            bindGroup: this.bindGroup[materialType],
+            bindGroupLayout: this.bindGroupLayout[materialType],
+        }
+    }
+
+    /**
+     * TT的 bindgroup  and bindgroup layout
+     * @returns I_bindGroupAndGroupLayout
+     */
+    bindGroupAndLayoutOfTT(): I_bindGroupAndGroupLayout {
+        return this.bindGroupAndLayoutOfForward();
+    }
+
+    /**
+     * TTP的 bindgroup  and bindgroup layout
+     * @returns I_bindGroupAndGroupLayout     
+    */
+    bindGroupAndLayoutOfTTP(): I_bindGroupAndGroupLayout {
+        throw new Error("Method not implemented: TTPTP");
+    }
+    /**
+     * TTP的 bindgroup  and bindgroup layout
+     * @returns I_bindGroupAndGroupLayout     
+    */
+    bindGroupAndLayoutOfTTPF(): I_bindGroupAndGroupLayout {
+        throw new Error("Method not implemented: TTPTF");
+    }
+    /**
+     * 20260402 增加：DC可以获取当前材质的bind group和bind group layout
+     * 获取当前材质的bind group和bind group layout
+     * @returns I_bindGroupAndGroupLayout
+     */
+    getBindGroupAndBindGroupLayout(materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward): I_bindGroupAndGroupLayout {
+        if (materialType == E_materialTypeForBindGroup.opacityForward ||
+            materialType == E_materialTypeForBindGroup.opacityDefer ||
+            materialType == E_materialTypeForBindGroup.opacityMSAAInfo ||
+            materialType == E_materialTypeForBindGroup.TO_Forward ||
+            materialType == E_materialTypeForBindGroup.TO_Defer ||
+            materialType == E_materialTypeForBindGroup.TO_MsaaInfo
+        ) {
+            return this.bindGroupAndLayoutOfForward();
+        }
+        else if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            return this.bindGroupAndLayoutOfMSAA();
+        }
+        else if (materialType == E_materialTypeForBindGroup.TT) {
+            return this.bindGroupAndLayoutOfTT();
+        }
+        else if (materialType == E_materialTypeForBindGroup.TTP) {
+            return this.bindGroupAndLayoutOfTTP();
+        }
+        else if (materialType == E_materialTypeForBindGroup.TTPF) {
+            return this.bindGroupAndLayoutOfTTPF();
+        }
+        else {
+            throw new Error(`不支持的材质类型：${materialType}`);
         }
     }
     /**
@@ -329,7 +509,21 @@ export abstract class BaseMaterial extends RootGPU {
       * @param startBinding  起始绑定槽位
       * @returns 绑定槽位，组绑定字符串，uniform组，layout组
       */
-    abstract getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial
+    abstract getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] }
+    /**MSAA 的uniform Bundle 和layout */
+    getUniformEntryBundleOfMSAA(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
+        /**
+         * 1、获取公共的bundle entries 和layout entries
+         * 2、获取GBuffer的texture：
+         *  A、重构Camera，公共GBuffer，每个camera保存自己的color texture，id texture。（SSGI等在defer render层级）
+         *  B、重构renderManager机制（在camera范围内按照事件内容线进行大循环渲染，目前是单体小循环）。
+         *  C、pickup需要适配
+         */
+        let materialType = E_materialTypeForBindGroup.opacityMSAA;
+        this.entriesOfBindgroupAndBindgroupLayout[materialType] = this.getUniformEntryBundleOfCommon(0);
+
+        return this.entriesOfBindgroupAndBindgroupLayout[materialType];
+    }
 
     /**获取camera 使用的TT的uniformEntry  */
     getUniformEntryOfCamera_TTP(renderObject: BaseCamera, _bindingNumber: number = 0): I_PartBundleOfUniform_TT {
@@ -508,15 +702,7 @@ export abstract class BaseMaterial extends RootGPU {
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // function 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-    * 获取当前材质的pointer的byte size
-    * @param size 
-    * @returns 
-    * */
-    getPointerByteSize(size: number): number {
-        let min = Math.ceil(size / 256) || 1;
-        return min * 256;
-    }
+
 
     /**
      * 将SHT对象中add部分转为字符串
@@ -527,6 +713,7 @@ export abstract class BaseMaterial extends RootGPU {
         let code: string = "";
         for (let perOne of addPart) {
             if (perOne.name == "st_output") {
+                //如果entity有locationInterpolate，就添加st_output。用途：非默认的插值方式
                 if (this.entity?.locationInterpolate && this.entity.locationInterpolate != undefined) {
                     code += this.entity.getSHT_st_output();
                     continue;
@@ -547,12 +734,13 @@ export abstract class BaseMaterial extends RootGPU {
         template: I_ShaderTemplate,
         replaceList: Map<string, string | ((scope?: any) => string)>,
         startBinding: number,
+        materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward,
         // isTTPF: boolean = false,
         // renderObject?: BaseCamera
     ): I_materialBundleOutput {
         let shaderTemplateFinal: I_ShaderTemplate_Final = {};
         //获取固定uniform序列,这个输出是独立的对象，不是this中的引用；因为多个TTTT会用到公共数据，如果引用现有的，会写入新的uniform entry，从而shader保存
-        let uniformBundle: I_UniformBundleOfMaterial = this.getUniformEntryBundleOfCommon(startBinding);
+        let uniformBundle: I_UniformBundleOfMaterial = this.getUniformEntryBundleOfCommon(startBinding).entriesBundle;
 
         // if (isTTPF === true) {
         //     if (!renderObject) {
@@ -628,7 +816,7 @@ export abstract class BaseMaterial extends RootGPU {
                 }
             }
         }
-        return { uniformGroup: uniformBundle.entry, shaderTemplateFinal, bindingNumber: uniformBundle.bindingNumber, materialType: "opacity" };
+        return { uniformGroup: uniformBundle.entry, shaderTemplateFinal, bindingNumber: uniformBundle.bindingNumber, materialType };
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // 透明相关信息部分
@@ -765,7 +953,11 @@ export abstract class BaseMaterial extends RootGPU {
         }
     }
     /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-
+    generateBundleOutput(template: I_ShaderTemplate, _startBinding: number, materialType: E_materialTypeForBindGroup): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(template, replaceList, _startBinding, materialType);
+        return output;
+    }
     /**
      * 获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
      * 涉及三个部分：
@@ -775,7 +967,11 @@ export abstract class BaseMaterial extends RootGPU {
      * @param startBinding 
      * @returns I_materialBundleOutput
      */
-    abstract getOpacity_Forward(startBinding?: number): I_materialBundleOutput;
+    getOpacity_Forward(startBinding?: number): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityForward]!, replaceList, startBinding || 0);
+        return output;
+    }
     /**
      * MSAA 材质输出shader模板
      * @param startBinding 
@@ -783,22 +979,35 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息
      */
-    abstract getOpacity_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
+    getOpacity_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA {
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAA]!, startBinding || 0, E_materialTypeForBindGroup.opacityMSAA);
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAAInfo]!, startBinding || 0, E_materialTypeForBindGroup.opacityMSAAInfo);
+        return { MSAA, inforForward };
+    }
     /**
      * 延迟渲染的shader模板输出
      * @param startBinding 
      * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
      */
-    abstract getOpacity_DeferColor(startBinding?: number): I_materialBundleOutput;
+    getOpacity_DeferColor(startBinding?: number): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityDefer]!, replaceList, startBinding || 0, E_materialTypeForBindGroup.opacityDefer);
+        return output;
+    }
 
     /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
 
     /**
      * 透明材质的不透明code （ transparent  opaque ）
-     * @param _startBinding binding开始值
+     * @param startBinding binding开始值
      * @returns 
      */
-    abstract getFS_TO(_startBinding: number): I_materialBundleOutput;
+    getFS_TO(startBinding: number): I_materialBundleOutput {
+        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward] == undefined) {
+            throw new Error(`Material ${this.kind} not support TO_Forward.`);
+        }
+        return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward]!, new Map(), startBinding || 0);
+    }
 
     /**
      * MSAA 材质（color及光影计算部分）输出shader模板
@@ -807,7 +1016,14 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息
      */
-    abstract getFS_TO_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
+    getFS_TO_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA {
+        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward] == undefined) {
+            throw new Error(`Material ${this.kind} not support TO_MSAA.`);
+        }
+        let MSAA: I_materialBundleOutput = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_MSAA]!, new Map(), startBinding || 0, E_materialTypeForBindGroup.TO_MSAA);
+        let inforForward: I_materialBundleOutput = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_MsaaInfo]!, new Map(), startBinding || 0, E_materialTypeForBindGroup.TO_MsaaInfo);
+        return { MSAA, inforForward };
+    }
 
 
     /**
@@ -815,7 +1031,12 @@ export abstract class BaseMaterial extends RootGPU {
      * @param startBinding 
      * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
      */
-    abstract getFS_TO_DeferColor(startBinding?: number): I_materialBundleOutput;
+    getFS_TO_DeferColor(startBinding?: number): I_materialBundleOutput {
+        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward] == undefined) {
+            throw new Error(`Material ${this.kind} not support TO_DeferColor.`);
+        }
+        return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Defer]!, new Map(), startBinding || 0, E_materialTypeForBindGroup.TO_Defer);
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //TTTT 功能实现部分
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -876,7 +1097,12 @@ export abstract class BaseMaterial extends RootGPU {
      * @param _startBinding 
      * @returns 
      */
-    abstract getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput;
+    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
+        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TT] == undefined) {
+            throw new Error(`Material ${this.kind} not support TT.`);
+        }
+        return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TT]!, new Map(), _startBinding || 0, E_materialTypeForBindGroup.TT);
+    }
     /**
      * 透明材质的透明部分的pixel 的最终输出（ transparent's transparent pixcel final render ）
      * @param _startBinding binding开始值
@@ -917,40 +1143,6 @@ export abstract class BaseMaterial extends RootGPU {
             throw new Error("light shadow map TT todo");
         }
     }
-
-    // /**
-    //  * MSAA info(第二遍) 输出
-    //  * @param startBinding 
-    //  */
-    // // abstract getFS_TO_MSAA_Info(startBinding: number): I_BundleOfMaterialForMSAA;
-
-    // /**
-    //  * MSAA（第一遍）的延迟渲染 输出的shader模板
-    //  * @param startBinding 
-    //  * @returns { MSAA: I_materialBundleOutput, inforForward: I_materialBundleOutput }
-    //  *  1、MSAA：只输出color和depth
-    //  *  2、inforForward:输出其他GBuffer信息（需要按照延迟渲染的约定进行）
-    //  */
-    // abstract getFS_TO_DeferColorOfMSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
-
-    // /**
-    //  * MSAA的info(第二遍) 延迟渲染 输出
-    //  * @param startBinding 
-    //  */
-    // // abstract getFS_TO_DeferColorOfMSAA_Info(startBinding: number): I_BundleOfMaterialForMSAA;
-
-    // /**
-    //  * 20260312：之前已经明确MSAA+defer color，会产生采样的边缘问题，方案已经放弃。（改进成本不值得）
-    //  *          可以增加defer depth +MSAA的方案，形成两个体系：
-    //  *              A、延迟渲染+FXAA等（非MSAA的AA）
-    //  *              B、MSAA+defer depth，还可以再叠加其他AA
-    //  * MSAA的延迟渲染 输出的shader模板
-    //  * @param startBinding 
-    //  * @returns { MSAA: I_materialBundleOutput, inforForward: I_materialBundleOutput }
-    //  *  1、MSAA：只输出color和depth
-    //  *  2、inforForward:输出其他GBuffer信息（需要按照延迟渲染的约定进行）
-    //  */
-    // abstract getOpacity_DeferColorOfMSAA(startBinding?: number): I_BundleOfMaterialForMSAA;
 
 }
 

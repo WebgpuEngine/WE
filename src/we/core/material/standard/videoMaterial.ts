@@ -50,6 +50,22 @@ export class VideoMaterial extends BaseMaterial {
             throw new Error("VideoMaterial must have a video texture");
         }
         this.countOfTextures = Object.keys(input.textures).length;
+        this.shtOfMaterialType = {
+            opacityForward: SHT_materialVideoTextureFS,
+            opacityDefer: SHT_materialVideoTextureFS,
+            opacityMSAA: SHT_materialVideoTextureFS_MSAA,
+            opacityMSAAInfo: SHT_materialVideoTextureFS_MSAA_info,
+
+            TO_Forward: SHT_materialVideoTextureFS,
+            TO_Defer: SHT_materialVideoTextureFS,
+            TO_MSAA: SHT_materialVideoTextureFS_MSAA,
+            TO_MsaaInfo: SHT_materialVideoTextureFS_MSAA_info,
+
+            TT: undefined,
+
+            TTP: undefined,
+            TTPF: undefined,
+        };
         this._state = E_lifeState.unstart;
     }
     _destroy(): void {
@@ -85,11 +101,12 @@ export class VideoMaterial extends BaseMaterial {
         this.hasOpaqueOfTransparent = false;
     }
 
-    getUniformEntryBundleOfCommon(startBinding: number): I_UniformBundleOfMaterial {
+   getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
         let groupAndBindingString: string = "";
         let binding: number = startBinding;
-        let uniform1: T_uniformOneGroup = [];
-        this.unifromEntryLayout = [];
+
+        let uniformEntries: T_uniformOneGroup = [];
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
 
         let code: string = "";
         ///////////group binding
@@ -134,8 +151,8 @@ export class VideoMaterial extends BaseMaterial {
             };
             // dynamic = true;
         }
-        this.unifromEntryLayout.push(uniformTextureLayout);
-        uniform1.push(uniformTexture);
+        layoutEntries.push(uniformTextureLayout);
+        uniformEntries.push(uniformTexture);
         //+1
         binding++;
 
@@ -154,16 +171,19 @@ export class VideoMaterial extends BaseMaterial {
                 type: this.defaultSamplerBindingType,
             },
         };
-        this.unifromEntryLayout.push(uniformSamplerLayout);
-        uniform1.push(uniformSampler);
+        layoutEntries.push(uniformSamplerLayout);
+        uniformEntries.push(uniformSampler);
         //+1
         binding++;
-        let unifromEntryBundle_Common = {
-            bindingNumber: binding,
-            groupAndBindingString: groupAndBindingString,
-            entry: uniform1,
+        let entriesBundle = {
+            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+            groupAndBindingString,
+            entry: uniformEntries
         };
-        return unifromEntryBundle_Common;
+        return {
+            entriesBundle,
+            layoutEntries,
+        };
     }
 
     generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
