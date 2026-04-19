@@ -1,5 +1,5 @@
 import { BaseMaterial, } from "../baseMaterial";
-import { E_MaterialType, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -186,7 +186,7 @@ export class VideoMaterial extends BaseMaterial {
         };
     }
 
-    generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
+    override generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0, materialType: E_materialTypeForBindGroup): I_materialBundleOutput {
         let dynamic: boolean = false;
         if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture)
             dynamic = true;
@@ -208,7 +208,7 @@ export class VideoMaterial extends BaseMaterial {
             return replaceString;
         };
         replaceList.set("$materialColor", replaceValueFN);
-        let output = this.formatSHT(template, replaceList, startBinding);
+        let output = this.formatSHT(template, replaceList, startBinding, materialType);
         // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
         if (dynamic) {
             output.shaderTemplateFinal.material.dynamic = dynamic;
@@ -217,36 +217,36 @@ export class VideoMaterial extends BaseMaterial {
 
     }
     /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-    getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
+    override getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
         let template = SHT_materialVideoTextureFS;
-        return this.generateBundleOutput(template, startBinding);
+        return this.generateBundleOutput(template, startBinding, E_materialTypeForBindGroup.opacityForward);
     }
-    getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA, startBinding);
-        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA_info, startBinding);
+    override getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA, startBinding, E_materialTypeForBindGroup.opacityMSAA);
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA_info, startBinding, E_materialTypeForBindGroup.opacityMSAAInfo);
         return { MSAA, inforForward };
     }
 
-    getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+    override getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
         return this.getOpacity_Forward(startBinding);
     }
     /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
 
 
-    getFS_TO(_startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        throw new Error("Method not implemented.");
-    }
-    getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
+    // getFS_TO(_startBinding: number): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
+    // getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
+    //     throw new Error("Method not implemented.");
+    // }
+    // getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
     /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
-    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
+    // getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
