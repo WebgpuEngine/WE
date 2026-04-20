@@ -9,7 +9,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, 
 import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
 import { CameraManager } from "./cameraManager";
 
-export interface IV_DeferDrawCommand {
+ interface IV_DeferDrawCommand {
     scene: Scene,
     parent: CameraManager,
 }
