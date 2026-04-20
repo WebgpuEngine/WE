@@ -1,7 +1,5 @@
 import { V_weLinearFormat } from "../base/coreDefine"
-import { BaseCamera } from "../camera/baseCamera"
 import { T_uniformGroups } from "../command/base"
-import { Scene } from "../scene/scene"
 
 /**GBuffer的 GPUTexture集合 
  * 每个camera最终的GBuffer存储位置
@@ -196,12 +194,7 @@ export interface I_GBufferGroup {
             /** 每个camera的forward GBuffer存储位置 */
             GBuffer: I_GBuffer,
         }
-        deferDepth?: {
-            /** 每个camera最终的GBuffer的深度附件描述 */
-            RPD: GPURenderPassDescriptor,
-            /** 每个camera的延迟渲染的buffer ：1个*/
-            GBuffer: GPUTexture,
-        },
+
         finalRender: {
 
             /**

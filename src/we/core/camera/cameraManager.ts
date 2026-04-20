@@ -1,21 +1,16 @@
-import { commmandType } from "../command/base";
-import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
-import { ComputeCommand, IV_ComputeCommand } from "../command/ComputeCommand";
-import { CopyCommandT2T } from "../command/copyCommandT2T";
-import { DrawCommand, IV_DrawCommand } from "../command/DrawCommand";
+
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
-import { E_GBufferNames, I_GBuffer, I_TransparentGBufferGroup, V_TransparentGBufferNames } from "../gbuffers/base";
+import { E_GBufferNames } from "../gbuffers/base";
 import { GBuffers, IV_GBuffer } from "../gbuffers/GBuffers";
 import { ECSManager } from "../organization/manager";
-import { E_ToneMappingType } from "../scene/base";
 import { Clock } from "../scene/clock";
 import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
-import { colorSpace } from "../shadermanagemnet/colorSpace/colorSpace";
 import { BaseCamera } from "./baseCamera";
 import { DeferDrawCommandGenerator } from "./DeferDrawCommandGenerator";
 import { OrthographicCamera } from "./orthographicCamera";
 import { PerspectiveCamera } from "./perspectiveCamera";
+import { ToneMappingCommandGenerator } from "./toneMappingCommand";
 
 export interface IV_CameraManager {
     scene: Scene
@@ -29,20 +24,23 @@ export class CameraManager extends ECSManager<BaseCamera> {
 
     MSAA: boolean = false;
     /**      DrawCommandGenerator     */
-    DCG: DrawCommandGenerator;
+    // DCG: DrawCommandGenerator;
 
     /** 延迟渲染的DrawCommandGenerator    */
     deferDCG!: DeferDrawCommandGenerator;
+
+    toneMappingDCG!: ToneMappingCommandGenerator;
 
     deferRender: boolean = false;
 
     constructor(input: IV_CameraManager) {
         super(input.scene);
-        this.deferRender = this.scene.renderMode == "deferRender"
+        this.deferRender = this.scene.renderMode == "deferRender" ? true : false;
         this.MSAA = this.scene.MSAA;
         this.GBufferManager = new GBuffers(this, this.scene.device);
-        this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this, });
+        // this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this, });
         this.deferDCG = new DeferDrawCommandGenerator({ scene: this.scene, parent: this, });
+        this.toneMappingDCG = new ToneMappingCommandGenerator({ scene: this.scene, parent: this, });
     }
     /**
      * 增加摄像机
@@ -96,11 +94,11 @@ export class CameraManager extends ECSManager<BaseCamera> {
         // this.cleanValueOfTT();//清除TT的缓存值,并设置TT_Uniform 和TT_Render
 
         if (this.deferRender === true) {
-            this.deferDCG.generateDeferDrawCommand(camera.UUID);
+            this.deferDCG.add(camera.UUID);
         }
 
         //7、初始化toneMapping DrawCommand
-        this.createDrawCommandOfToneMapping(camera.UUID);
+        this.toneMappingDCG.add(camera.UUID);
         ;
     }
     /**
@@ -141,7 +139,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         this.checkDestroy();
         for (let camera of this.list) {
             let UUID = camera.UUID;
-            for (let perToneMappingCommand of this.cameraDrawCommandOfFinalStep[UUID].toneMapping) {
+            for (let perToneMappingCommand of this.toneMappingDCG.dcArray[UUID].toneMapping) {
                 this.scene.renderManager.push({
                     command: perToneMappingCommand,
                     kind: E_renderPassName.toneMapping,
@@ -190,10 +188,10 @@ export class CameraManager extends ECSManager<BaseCamera> {
 
 
             //初始化toneMapping DrawCommand
-            this.createDrawCommandOfToneMapping(camera.UUID);
+            this.toneMappingDCG.add(camera.UUID);
             //初始化defer DrawCommand
             if (this.deferRender === true) {
-                this.deferDCG.generateDeferDrawCommand(camera.UUID);
+                this.deferDCG.add(camera.UUID);
             }
         }
         // 清除OnePointToTT_DC_A和OnePointToTT_DC_B,并重新初始化GBufferManager的CommonTransparentGBuffer
@@ -206,7 +204,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         }
 
         // 清除最终目标纹理DC
-        this.clearFinalTarget();
+        this.toneMappingDCG.clear();
         // this.cleanValueOfTT();//清除TT的缓存值,并设置TT_Uniform 和TT_Render
 
         // 更新所有相机的投影矩阵，aspect变化
@@ -221,49 +219,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             }
         }
     }
-    // ///////////////////////////////////////////////////////////////////////////////
-    // // zindex list ,目前未使用
-    // removeOneFromZindexListByUUID(UUID: string) {
-    //     let zindex = this.zindexList.indexOf(UUID);
-    //     if (zindex != -1) {
-    //         this.zindexList.splice(zindex, 1);
-    //     }
-    // }
-    // /**
-    //  * 设置相机为顶部
-    //  * @param UUID 相机UUID
-    //  */
-    // setTopZindexList(UUID: string) {
-    //     this.removeOneFromZindexListByUUID(UUID);
-    //     this.zindexList.unshift(UUID);
-    // }
-    // /**
-    //  * 设置相机为底部
-    //  * @param UUID 
-    //  */
-    // setBottomZindexList(UUID: string) {
-    //     this.removeOneFromZindexListByUUID(UUID);
-    //     this.zindexList.push(UUID);
-    // }
 
-    // /** 上移 */
-    // moveOneUp(UUID: string) {
-    //     let zindex = this.zindexList.indexOf(UUID);
-    //     if (zindex != -1 && zindex !== 0) {
-    //         let a = this.zindexList[zindex - 1];
-    //         this.zindexList[zindex - 1] = UUID;
-    //         this.zindexList[zindex] = a;
-    //     }
-    // }
-    // /**下移 */
-    // moveOneDown(UUID: string) {
-    //     let zindex = this.zindexList.indexOf(UUID);
-    //     if (zindex != -1 && zindex !== this.zindexList.length - 1) {
-    //         let a = this.zindexList[zindex + 1];
-    //         this.zindexList[zindex + 1] = UUID;
-    //         this.zindexList[zindex] = a;
-    //     }
-    // }
     /////////////////////////////////////////////////////////////////////////
     //get 部分
     /**
@@ -318,225 +274,33 @@ export class CameraManager extends ECSManager<BaseCamera> {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // finally output the result to the screen
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * 相机的最终渲染DrawCommand
-     * 1、？是为了重置时简单写的。
-     * 2、MSAA可以为空，因为可能没有开启MSAA
-     * 3、defer可以为空，因为可能没有开启defer（默认时开启的，除非scene初始化关闭）渲染
-     * 4、toneMapping必须有，这个真是为了偷懒写的
-     */
-    cameraDrawCommandOfFinalStep: {
-        [UUID: string]: {
-            MSAA?: DrawCommand,
-            toneMapping: commmandType[],
-            defer?: DrawCommand,
-        }
-    } = {};
+
     /**
      * 相机的MSAA渲染深度步骤的DrawCommand和ComputeCommand
      */
-    cameraMSAA_DepthStep: {
-        [UUID: string]: {
-            RCC: DrawCommand,
-            CC: ComputeCommand,
-        },
-    } = {};
-    /**
-     * 合并MSAA渲染目标的RPD，用于可能存在多个camera，所以使用函数返回
-     * 每次调用时，都返回一个新的RPD，在renderCameraGBufferToFinalTexture（）中更新
-     */
-    RPD_ToneMapping!: () => GPURenderPassDescriptor;
-    RPD_MSAA!: () => GPURenderPassDescriptor;
+    // cameraMSAA_DepthStep: {
+    //     [UUID: string]: {
+    //         RCC: DrawCommand,
+    //         CC: ComputeCommand,
+    //     },
+    // } = {};
 
     /**
      * 最终的线性颜色纹理,动态获取
      */
     // finalLinearColorTexture!: () => GPUTextureView;
 
-    /**
-     * 合并MSAA渲染目标的DC，用于可能存在多个camera(需要for 多个RPD，也需要多个texture)
-     */
-    DC_renderFinal_MSAA: DrawCommand | undefined;
-    DC_renderFinal_ToneMapping: DrawCommand | undefined;
+
     /**
      * 清除最终目标纹理的RPD，DC
      * clear final target texture's RPD and DC
      */
-    clearFinalTarget() {
-        if (this.DC_renderFinal_MSAA)
-            this.DC_renderFinal_MSAA.destroy();
-        if (this.DC_renderFinal_ToneMapping)
-            this.DC_renderFinal_ToneMapping.destroy();
-        // this.RPD_MSAA = undefined;
-        // this.RPD_ToneMapping = undefined;
-    }
 
 
 
 
 
-    createDrawCommandOfToneMapping(UUID: string) {
-        if (this.cameraDrawCommandOfFinalStep[UUID] == undefined) {
-            this.cameraDrawCommandOfFinalStep[UUID] = {
-                // MSAA?: DrawCommand,
-                toneMapping: [],
-                // defer?: DrawCommand,
-            };
-        }
-        else {
-            for (let perCommand of this.cameraDrawCommandOfFinalStep[UUID].toneMapping) {
-                if (perCommand instanceof DrawCommand && perCommand.IsDestroy != false) {
-                    perCommand.destroy();
-                }
-            }
-            this.cameraDrawCommandOfFinalStep[UUID].toneMapping = [];
-        }
-        let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-        switch (this.scene.E_ToneMappingType) {
-            case E_ToneMappingType.acesToSRGB:
-                returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.acesToSRGB_White:
-                returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.linearToSRGB:
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.acesToP3:
-                returnColor = "return vec4f( acesToP3(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.linearToP3:
-                returnColor = "return vec4f( linearToDisplayP3(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.linear:
-                returnColor = "return vec4f(linearToHDR(color.rgb), color.a);";
-                break;
-            default:
-                // returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
-        }
-        // 如果颜色空间是srgb，那么就不需要转换
-        if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
-            returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
-        let shader = `   
-            ${colorSpace}            
-            @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;
-            @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position)  vec4f {
-                let pos = array(
-                        vec2f( -1.0,  -1.0),  // bottom left
-                        vec2f( 1.0,  -1.0),  // top left
-                        vec2f( -1.0,  1.0),  // top right
-                        vec2f( 1.0,  1.0),  // bottom right
-                        );
-                return vec4f(pos[vertexIndex], 0.0, 1.0);
-            }
-            @fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f{
-                let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
-                ${returnColor}
-            }`;
-        let moduleVS = this.device.createShaderModule({
-            label: "ToneMapping",
-            code: shader,
-        });
 
-        //uniform00 颜色纹理来源：camera的GBuffer的color
-        // ToneMapping 绑定的uniform 00 是颜色纹理
-        let uniform00_ColorTexture: GPUBindGroupEntry = {
-            // label: "ToneMapping uniform color texture0",
-            binding: 0,
-            resource: this.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
-        };
-        if (this.scene.deferRender.enable == true && this.scene.deferRender.deferRenderColor == true) {
-            uniform00_ColorTexture = {
-                binding: 0,
-                resource: this.GBufferManager.GBuffer[UUID].forward.deferColor.createView(),
-            };
-        }
-        //bindgroup layout 0 的描述
-        let bindGroupLayoutDescriptor0: GPUBindGroupLayoutDescriptor =
-        {
-            label: "ToneMapping BindGroupLayout" + UUID,
-            entries: [
-                {//00
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "float",
-                        viewDimension: "2d",
-                        // multisampled: false,
-                    },
-                }
-            ]
-        };
-        //bindgroup layout 0 
-        let bindGroupLayout0: GPUBindGroupLayout = this.device.createBindGroupLayout(bindGroupLayoutDescriptor0);
-
-        let bindGroupDesc0: GPUBindGroupDescriptor = {
-            label: "ToneMapping BindGroup" + UUID,
-            layout: bindGroupLayout0,
-            entries: [uniform00_ColorTexture],
-        };
-        let bindGroup0: GPUBindGroup = this.device.createBindGroup(bindGroupDesc0);
-
-        //pipeline layout 描述
-        let pipelineLayoutDescriptor: GPUPipelineLayoutDescriptor = {
-            label: "ToneMapping PipelineLayout" + UUID,
-            bindGroupLayouts: [bindGroupLayout0],
-        };
-        //pipeline layout 
-        let pipelineLayout = this.device.createPipelineLayout(pipelineLayoutDescriptor);
-
-        //pipeline 描述
-        let descriptor: GPURenderPipelineDescriptor = {
-            label: "RenderFinal ToneMapping Pipeline: " + UUID,
-            vertex: {
-                module: moduleVS,
-                entryPoint: "vs",
-            },
-            fragment: {
-                module: moduleVS,
-                entryPoint: "fs",
-                targets: this.getCATs_ToneMapping_ForFinalTarget(UUID),
-
-            },
-            layout: pipelineLayout,
-            primitive: {
-                topology: "triangle-strip",
-            },
-        }
-        //pipeline 
-        let pipeline: GPURenderPipeline = this.device.createRenderPipeline(descriptor);
-
-        let renderPassDescriptor = () => {
-            // console.log("=======================", UUID);
-            return this.getRPD_ToneMapping_ForFinalTarget(UUID)
-        };
-        let valuesDC: IV_BaseDrawCommand = {
-            device: this.device,
-            label: "RenderFinal ToneMapping: " + UUID,
-            drawInfo: {
-                pipeline: pipeline,
-                bindGroups: [bindGroup0],
-                renderPassDescriptor,
-                drawMode: {
-                    vertexCount: 4
-                },
-            }
-        }
-        this.cameraDrawCommandOfFinalStep[UUID].toneMapping.push(new BaseDrawCommand(valuesDC));
-        if (UUID === this.defaultCamera.UUID) {
-            let size = this.scene.surface.size;
-            let copyToColorTexture = new CopyCommandT2T(
-                {
-                    A: this.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture,
-                    B: this.scene.finalTarget.color!,
-                    size: { width: size.width, height: size.height },
-                    device: this.device
-                }
-            );
-            this.cameraDrawCommandOfFinalStep[UUID].toneMapping.push(copyToColorTexture);
-        }
-    }
 
     /**
      * 获取最终目标纹理渲染描述符。

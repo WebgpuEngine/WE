@@ -1106,7 +1106,7 @@ export class Scene {
         }
         this.cameraManager.deferDCG.clear();
         for (let perCamera of this.cameraManager.list) {
-            this.cameraManager.deferDCG.generateDeferDrawCommand(perCamera.UUID);
+            this.cameraManager.deferDCG.add(perCamera.UUID);
         }
     }
     /**

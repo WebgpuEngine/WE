@@ -272,28 +272,7 @@ export class GBuffers {
                 colorAttachmentTargetsMSAAinfo: getColorAttachmentTargetsOfMSAAinfo(),// MSAAinfo_colorAttachmentTargets,
             }
         }
-        //defer  depth
-        {
-            if (this.parent.scene.deferRender.enable === true && this.parent.scene.deferRender.deferRenderDepth === true) {
-                let deferRPD: GPURenderPassDescriptor = {
-                    colorAttachments: [],
-                    depthStencilAttachment: {
-                        view: gbuffers["deferGBuffer"].createView(),
-                        depthClearValue: depthClearValue,
-                        depthLoadOp: 'clear',// depthLoadOp: 'load',
-                        depthStoreOp: 'store',
-                    },
-                };
-                this.GBuffer[id].deferDepth = {
-                    RPD: deferRPD,
-                    GBuffer: device.createTexture({
-                        size: [width, height],
-                        format: "depth32float",
-                        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-                    })
-                };
-            }
-        }
+
     }
     removeGBuffer(id: string) {
         for (let key in this.GBuffer[id].forward.GBuffer) {

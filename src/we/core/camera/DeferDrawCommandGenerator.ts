@@ -1,7 +1,6 @@
 import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
-import { commmandType, T_uniformGroups } from "../command/base";
+import { commmandType, T_uniformEntries } from "../command/base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
-import { DrawCommand, IV_DrawCommand } from "../command/DrawCommand";
 import { I_EntityBundleOutput } from "../entity/base";
 import { E_GBufferNames } from "../gbuffers/base";
 import { Scene } from "../scene/scene";
@@ -9,12 +8,7 @@ import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, 
 import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
 import { CameraManager } from "./cameraManager";
 
- interface IV_DeferDrawCommand {
-    scene: Scene,
-    parent: CameraManager,
-}
-
-export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
+export class DeferDrawCommandGenerator {
     parent: CameraManager;
     scene: Scene;
     device: GPUDevice;
@@ -25,7 +19,10 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
         [UUID in string]: commmandType[]
     } = {};
 
-    constructor(input: IV_DeferDrawCommand) {
+    constructor(input: {
+        scene: Scene,
+        parent: CameraManager,
+    }) {
         this.parent = input.parent;
         this.scene = input.scene;
         this.device = input.scene.device;
@@ -42,7 +39,15 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
         this.shaderModule = undefined;
     }
 
-    generateDeferDrawCommand(UUID: string,) {
+    /**
+     * 添加DeferDrawCommand
+     * @param UUID 相机UUID
+     * 
+     * 两处调用:
+     * 1、CameraManager.add();
+     * 2、Scene.refreshSystemBindGroupAndBindGroupLayoutZeroForCamera();
+     */
+    add(UUID: string,) {
         this.createShaderModule();
         if (this.DDC[UUID] === undefined) {
             this.DDC[UUID] = [];
@@ -229,13 +234,13 @@ export class DeferDrawCommandGenerator implements IV_DeferDrawCommand {
                 shaderTemplateFinal[i] = {
                     templateString: this.formatShaderCode(SHT_VS[i]),
                     groupAndBindingString: "",
-                    owner: this,
+                    owner: "DeferRender",
                     binding: 4//@group(1) @binding(x)的bindingNumber（固定数量的,这里没有作用）,参见deferRender.fs.wgsl
                 };
             }
         }
-        let uniformGroups: T_uniformGroups[] = [];//参见deferRender.fs.wgsl
-        return { bindingNumber, uniformGroups, shaderTemplateFinal };
+        let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
+        return { bindingNumber, uniformGroup, shaderTemplateFinal };
     }
     formatShaderCode(template: I_singleShaderTemplate): string {
         let code: string = "";

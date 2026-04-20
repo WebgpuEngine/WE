@@ -1,2 +1,2 @@
 import colorSpaceWGSL from "../../shader/colorSpace/linearToColorSpace.wgsl?raw";
-export const colorSpace = colorSpaceWGSL.toString();
+export const WGSL_colorSpaceFunction = colorSpaceWGSL.toString();
