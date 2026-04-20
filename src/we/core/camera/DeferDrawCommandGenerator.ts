@@ -13,9 +13,9 @@ export class DeferDrawCommandGenerator {
     scene: Scene;
     device: GPUDevice;
 
-    shaderModule!: GPUShaderModule | undefined;
-    flagShaderModule: string = "DeferRender";
-    DDC: {
+    shaderModule: GPUShaderModule;
+    pipeline: GPURenderPipeline;
+    dcArray: {
         [UUID in string]: commmandType[]
     } = {};
 
@@ -26,17 +26,17 @@ export class DeferDrawCommandGenerator {
         this.parent = input.parent;
         this.scene = input.scene;
         this.device = input.scene.device;
-        // this.shaderModule = this.createShaderModule();
+        this.shaderModule = this.createShaderModule();
         // this.pipeline = this.createPipeline();
     }
     clear() {
-        for (let key in this.DDC) {
-            for (let perCommand of this.DDC[key]) {
+        for (let key in this.dcArray) {
+            for (let perCommand of this.dcArray[key]) {
                 perCommand.destroy();
             }
         }
-        this.DDC = {};
-        this.shaderModule = undefined;
+        this.dcArray = {};
+        // this.shaderModule = undefined;
     }
 
     /**
@@ -48,9 +48,9 @@ export class DeferDrawCommandGenerator {
      * 2、Scene.refreshSystemBindGroupAndBindGroupLayoutZeroForCamera();
      */
     add(UUID: string,) {
-        this.createShaderModule();
-        if (this.DDC[UUID] === undefined) {
-            this.DDC[UUID] = [];
+        // this.createShaderModule();
+        if (this.dcArray[UUID] === undefined) {
+            this.dcArray[UUID] = [];
         }
         // let copyCommand = new CopyCommandT2T({
         //     A: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color),
@@ -59,7 +59,7 @@ export class DeferDrawCommandGenerator {
         //     size: this.scene.surface.size,
         //     device: this.device,
         // });
-        // this.DDC[UUID].push(copyCommand);
+        // this.dcArray[UUID].push(copyCommand);
 
         let pipeline: GPURenderPipeline;
         let uniforms: GPUBindGroup[] = [];
@@ -174,7 +174,6 @@ export class DeferDrawCommandGenerator {
         {
             colorAttachments: [
                 {
-                    // view: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color).createView({ label: "Defer Render :" + UUID }),
                     view: this.parent.GBufferManager.GBuffer[UUID].forward.deferColor.createView({ label: "Defer Render :" + UUID }),
                     loadOp: 'clear',
                     storeOp: 'store',
@@ -192,33 +191,19 @@ export class DeferDrawCommandGenerator {
             },
             label: "DeferRender: " + UUID,
         }
-        this.DDC[UUID].push(new BaseDrawCommand(valuesDC));
-        // let valuesDC: IV_DrawCommand = {
-        //     scene: this.scene,
-        //     pipeline: pipeline,
-        //     uniform: uniforms,
-        //     renderPassDescriptor: () => { return rpd; },
-        //     drawMode: {
-        //         vertexCount: 4
-        //     },
-        //     device: this.device,
-        //     label: "DeferRender: " + UUID,
-        // }
-        // this.DDC[UUID].push(new DrawCommand(valuesDC));
+        this.dcArray[UUID].push(new BaseDrawCommand(valuesDC));
     }
 
 
 
     createShaderModule() {
-        if (this.shaderModule == undefined) {
-            let template: I_ShaderTemplate = SHT_DeferRender;
-            let bundle = this.getCodeOfSHT(template);
-            let shaderCode = this.outPutShaderCode(bundle.shaderTemplateFinal);
-            this.shaderModule = this.device.createShaderModule({
-                label: "DeferRender",
-                code: shaderCode,
-            });
-        }
+        let template: I_ShaderTemplate = SHT_DeferRender;
+        let bundle = this.getCodeOfSHT(template);
+        let shaderCode = this.outPutShaderCode(bundle.shaderTemplateFinal);
+        return this.device.createShaderModule({
+            label: "DeferRender",
+            code: shaderCode,
+        });
     }
     getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
         //uniform 部分

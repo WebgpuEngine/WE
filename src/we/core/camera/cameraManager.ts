@@ -1,5 +1,4 @@
 
-import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
 import { E_GBufferNames } from "../gbuffers/base";
 import { GBuffers, IV_GBuffer } from "../gbuffers/GBuffers";
 import { ECSManager } from "../organization/manager";
@@ -148,7 +147,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             }
             // this.scene.renderManager.push(this.cameraDrawCommandOfFinalStep[UUID].defer!, E_renderPassName.defer, UUID);
             if (this.deferRender === true) {
-                for (let perCommand of this.deferDCG.DDC[UUID]) {
+                for (let perCommand of this.deferDCG.dcArray[UUID]) {
                     this.scene.renderManager.push({
                         command: perCommand,
                         kind: E_renderPassName.defer,
@@ -274,34 +273,6 @@ export class CameraManager extends ECSManager<BaseCamera> {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // finally output the result to the screen
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * 相机的MSAA渲染深度步骤的DrawCommand和ComputeCommand
-     */
-    // cameraMSAA_DepthStep: {
-    //     [UUID: string]: {
-    //         RCC: DrawCommand,
-    //         CC: ComputeCommand,
-    //     },
-    // } = {};
-
-    /**
-     * 最终的线性颜色纹理,动态获取
-     */
-    // finalLinearColorTexture!: () => GPUTextureView;
-
-
-    /**
-     * 清除最终目标纹理的RPD，DC
-     * clear final target texture's RPD and DC
-     */
-
-
-
-
-
-
-
     /**
      * 获取最终目标纹理渲染描述符。
      * 由于onResize 的事件存在，texture会变化，

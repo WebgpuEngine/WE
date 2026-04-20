@@ -17,6 +17,7 @@ import { Texture } from "../texture/texture";
 import { CubeTexture } from "../texture/cubeTexxture";
 import { I_pointerStruct } from "../bufferBlock/pointer";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
+import { E_renderPassName } from "../scene/renderManager";
 
 
 /**
@@ -415,11 +416,27 @@ export abstract class BaseMaterial extends RootGPU {
     //         bindGroupLayout: this.bindGroupLayout[materialType],
     //     }
     // }
+
+    _bindGroupMSAA: {
+        [mergeID: string]: GPUBindGroup,
+    } = {}
     /**
-     * opacity and TO ：MSAA 通用
+     * opacity and TO ：MSAA 通用；
+     * 一、说明：
+     *  1、MSAA只在camera渲染中使用；
+     *  2、shadowmap中不使用MSAA；
+     * 二、bindgroup的说明：
+     * 1、MSAA的需要camera的GBuffer中的texture作为uniform输入，需要指定mergeID。
+     * 2、需要判断camera是否fixedSize：
+     *  A、false：与canvas 的surface相同尺寸，onResize才重建
+     *  B、true：指定尺寸，不重建
+     * 3、bindGroupd 存储
+     *  A、不使用this.bindGroup[materialType]保存bindgroup，
+     *  B、如果fixedSize为true，因为MSAA的需要针对camera的尺寸,使用mergeID作为key，进行操作；
+     *  C、如果fixedSize为false，因为MSAA的需要针对canvas的尺寸,不使用default作为key，进行操作；
      * @returns I_bindGroupAndGroupLayout
      */
-    bindGroupAndLayoutOfMSAA(): I_bindGroupAndGroupLayout {
+    bindGroupAndLayoutOfMSAA( mergeID: string): I_bindGroupAndGroupLayout {
         return this.bindGroupAndLayoutOfForward();
         let materialType = E_materialTypeForBindGroup.opacityMSAA;
         if (this.entriesOfBindgroupAndBindgroupLayout[materialType] == undefined || this.scene.isResized()) {
@@ -466,7 +483,12 @@ export abstract class BaseMaterial extends RootGPU {
      * 获取当前材质的bind group和bind group layout
      * @returns I_bindGroupAndGroupLayout
      */
-    getBindGroupAndBindGroupLayout(materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward): I_bindGroupAndGroupLayout {
+    getBindGroupAndBindGroupLayout(
+        materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward,
+        renderPassName: E_renderPassName,
+        /**MSAA的需要camera的GBuffer中的texture作为uniform输入，需要指定mergeID。         */
+        mergeID: string,
+    ): I_bindGroupAndGroupLayout {
         if (materialType == E_materialTypeForBindGroup.opacityForward ||
             materialType == E_materialTypeForBindGroup.opacityDefer ||
             materialType == E_materialTypeForBindGroup.opacityMSAAInfo ||
@@ -477,7 +499,7 @@ export abstract class BaseMaterial extends RootGPU {
             return this.bindGroupAndLayoutOfForward();
         }
         else if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
-            return this.bindGroupAndLayoutOfMSAA();
+            return this.bindGroupAndLayoutOfMSAA(mergeID);
         }
         else if (materialType == E_materialTypeForBindGroup.TT) {
             return this.bindGroupAndLayoutOfTT();

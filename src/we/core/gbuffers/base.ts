@@ -196,7 +196,6 @@ export interface I_GBufferGroup {
         }
 
         finalRender: {
-
             /**
              * ToneMapping的输出纹理,必须
              */
@@ -229,14 +228,14 @@ export interface I_TransparentGBufferGroup {
     name: string,
 }
 
-/**
- * material 获取相机对应的texture的GBuffer的uniform的bundle
- */
-export interface I_GBufferBundle {
-    binding: number,
-    groupAndBindingString: string,
-    uniformGroup: T_uniformGroups,
-}
+// /**
+//  * material 获取相机对应的texture的GBuffer的uniform的bundle
+//  */
+// export interface I_GBufferBundle {
+//     binding: number,
+//     groupAndBindingString: string,
+//     uniformGroup: T_uniformGroups,
+// }
 
 
 export function getColorAttachmentTargetsOfToneMapping(): GPUColorTargetState[] {
@@ -250,7 +249,6 @@ export function getColorAttachmentTargetsOfForward(): GPUColorTargetState[] {
     }
     return colorAttachmentTargets;
 }
-
 
 export function getColorAttachmentTargetsOfMSAAinfo(): GPUColorTargetState[] {
     let colorAttachmentTargets: GPUColorTargetState[] = [];

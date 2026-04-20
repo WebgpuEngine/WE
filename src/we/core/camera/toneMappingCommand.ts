@@ -12,13 +12,7 @@ export class ToneMappingCommandGenerator {
     parent: CameraManager;
     scene: Scene;
     device: GPUDevice;
-    /**
-     * 相机的最终渲染DrawCommand
-     * 1、？是为了重置时简单写的。
-     * 2、MSAA可以为空，因为可能没有开启MSAA
-     * 3、defer可以为空，因为可能没有开启defer（默认时开启的，除非scene初始化关闭）渲染
-     * 4、toneMapping必须有，这个真是为了偷懒写的
-     */
+    /** camera的toneMapping DrawCommand     */
     dcArray: {
         [UUID: string]: {
             // MSAA?: DrawCommand,
@@ -26,18 +20,9 @@ export class ToneMappingCommandGenerator {
             // defer?: DrawCommand,
         }
     } = {};
-    /**
-     * 合并MSAA渲染目标的RPD，用于可能存在多个camera，所以使用函数返回
-     * 每次调用时，都返回一个新的RPD，在renderCameraGBufferToFinalTexture（）中更新
-     */
-    RPD_ToneMapping!: () => GPURenderPassDescriptor;
-    RPD_MSAA!: () => GPURenderPassDescriptor;
+    shaderModule: GPUShaderModule;
+    pipeline: GPURenderPipeline;
 
-    /**
-     * 合并MSAA渲染目标的DC，用于可能存在多个camera(需要for 多个RPD，也需要多个texture)
-     */
-    DC_renderFinal_MSAA: DrawCommand | undefined;
-    DC_renderFinal_ToneMapping: DrawCommand | undefined;
 
     constructor(input: {
         scene: Scene,
@@ -46,8 +31,16 @@ export class ToneMappingCommandGenerator {
         this.parent = input.parent;
         this.scene = input.scene;
         this.device = input.scene.device;
-        // this.shaderModule = this.createShaderModule();
-        // this.pipeline = this.createPipeline();
+        this.shaderModule = this.createShaderModule();
+
+    }
+    clear() {
+        for (let key in this.dcArray) {
+            for (let perCommand of this.dcArray[key].toneMapping) {
+                perCommand.destroy();
+            }
+        }
+        this.dcArray = {};
     }
     add(UUID: string) {
         if (this.dcArray[UUID] == undefined) {
@@ -65,54 +58,6 @@ export class ToneMappingCommandGenerator {
             }
             this.dcArray[UUID].toneMapping = [];
         }
-        let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-        switch (this.scene.E_ToneMappingType) {
-            case E_ToneMappingType.acesToSRGB:
-                returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.acesToSRGB_White:
-                returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.linearToSRGB:
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.acesToP3:
-                returnColor = "return vec4f( acesToP3(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.linearToP3:
-                returnColor = "return vec4f( linearToDisplayP3(color.rgb), color.a);";
-                break;
-            case E_ToneMappingType.linear:
-                returnColor = "return vec4f(linearToHDR(color.rgb), color.a);";
-                break;
-            default:
-                // returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
-        }
-        // 如果颜色空间是srgb，那么就不需要转换
-        if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
-            returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
-        let shader = `   
-            ${WGSL_colorSpaceFunction}            
-            @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;
-            @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position)  vec4f {
-                let pos = array(
-                        vec2f( -1.0,  -1.0),  // bottom left
-                        vec2f( 1.0,  -1.0),  // top left
-                        vec2f( -1.0,  1.0),  // top right
-                        vec2f( 1.0,  1.0),  // bottom right
-                        );
-                return vec4f(pos[vertexIndex], 0.0, 1.0);
-            }
-            @fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f{
-                let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
-                ${returnColor}
-            }`;
-        let moduleVS = this.device.createShaderModule({
-            label: "ToneMapping",
-            code: shader,
-        });
-
         //uniform00 颜色纹理来源：camera的GBuffer的color
         // ToneMapping 绑定的uniform 00 是颜色纹理
         let uniform00_ColorTexture: GPUBindGroupEntry = {
@@ -164,11 +109,11 @@ export class ToneMappingCommandGenerator {
         let descriptor: GPURenderPipelineDescriptor = {
             label: "RenderFinal ToneMapping Pipeline: " + UUID,
             vertex: {
-                module: moduleVS,
+                module: this.shaderModule,
                 entryPoint: "vs",
             },
             fragment: {
-                module: moduleVS,
+                module: this.shaderModule,
                 entryPoint: "fs",
                 targets: this.parent.getCATs_ToneMapping_ForFinalTarget(UUID),
 
@@ -180,7 +125,6 @@ export class ToneMappingCommandGenerator {
         }
         //pipeline 
         let pipeline: GPURenderPipeline = this.device.createRenderPipeline(descriptor);
-
         let renderPassDescriptor = () => {
             // console.log("=======================", UUID);
             return this.parent.getRPD_ToneMapping_ForFinalTarget(UUID)
@@ -211,13 +155,56 @@ export class ToneMappingCommandGenerator {
             this.dcArray[UUID].toneMapping.push(copyToColorTexture);
         }
     }
-    clear() {
-        if (this.DC_renderFinal_MSAA)
-            this.DC_renderFinal_MSAA.destroy();
-        if (this.DC_renderFinal_ToneMapping)
-            this.DC_renderFinal_ToneMapping.destroy();
-        // this.RPD_MSAA = undefined;
-        // this.RPD_ToneMapping = undefined;
+    createShaderModule() {
+        let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
+        switch (this.scene.E_ToneMappingType) {
+            case E_ToneMappingType.acesToSRGB:
+                returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
+                break;
+            case E_ToneMappingType.acesToSRGB_White:
+                returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
+                break;
+            case E_ToneMappingType.linearToSRGB:
+                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
+                break;
+            case E_ToneMappingType.acesToP3:
+                returnColor = "return vec4f( acesToP3(color.rgb), color.a);";
+                break;
+            case E_ToneMappingType.linearToP3:
+                returnColor = "return vec4f( linearToDisplayP3(color.rgb), color.a);";
+                break;
+            case E_ToneMappingType.linear:
+                returnColor = "return vec4f(linearToHDR(color.rgb), color.a);";
+                break;
+            default:
+                // returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
+                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
+        }
+        // 如果颜色空间是srgb，那么就不需要转换
+        if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
+            returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
+        let shader = `   
+            ${WGSL_colorSpaceFunction}            
+            @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;
+            @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position)  vec4f {
+                let pos = array(
+                        vec2f( -1.0,  -1.0),  // bottom left
+                        vec2f( 1.0,  -1.0),  // top left
+                        vec2f( -1.0,  1.0),  // top right
+                        vec2f( 1.0,  1.0),  // bottom right
+                        );
+                return vec4f(pos[vertexIndex], 0.0, 1.0);
+            }
+            @fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f{
+                let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
+                ${returnColor}
+            }`;
+        let moduleVS = this.device.createShaderModule({
+            label: "ToneMapping",
+            code: shader,
+        });
+        return moduleVS;
     }
-
+    createPipeline() {
+    }
 }

@@ -63,12 +63,14 @@ export interface I_BaseCameraValue extends IV_NodeSpace {
   /**
    * 相机尺寸的大小，若有多个viewport，可以优化性能
    * 1、默认与场景大小相同
-   * 2、可以手动设置大小
+   * 2、可以手动设置大小，有大小的camera，其尺寸不跟随canvas 的resize而改变。
    */
   size?: {
     width: number,
     height: number,
-  }
+  },
+  /** 是否进行色调映射，默认是true */
+  needToneMapping?: boolean,
 }
 // //todo
 // export interface cameraRayValues {
@@ -93,12 +95,28 @@ export abstract class BaseCamera extends NodeObject {
    * 
    * 相机管理器的大小
    * 1、默认与场景大小相同
-   * 2、可以手动设置大小
+   * 2、可以手动设置大小，有大小的camera，其尺寸不跟随canvas 的resize而改变。
    */
   size: {
     width: number,
     height: number,
   } | undefined;
+  /** 是否固定大小，默认是false
+   * 1、如果固定大小，则相机的尺寸不跟随canvas 的resize而改变。(this.size是undefined)
+   * 2、用途：
+   *    A、镜面反射等场景下，需要固定相机的尺寸，否则会导致反射效果异常
+   *    B、其他一些场景需要固定相机的尺寸的情况
+   * 3、如果固定大小，则相机的尺寸不能改变，GBuffer的尺寸也不能改变（也会单独处理）
+   */
+  _fixedSize: boolean = false;
+  get FixedSize() { return this._fixedSize; }
+  set FixedSize(value: boolean) { this._fixedSize = value; }
+
+  /** 是否进行色调映射，默认是true
+   * 1、在camera应用在反射或镜像等场景，不需要进行色调映射，否则会进行二次映射射，导致在主camera的最终颜色异常。
+   */
+  needToneMapping: boolean = true;
+
   boundingBox!: boundingBox;//initDCC中赋值
   boundingSphere!: boundingSphere;
   aspect!: number;
@@ -246,7 +264,13 @@ export abstract class BaseCamera extends NodeObject {
     if (option.control) this._control = option.control;
     ///////////////////////////////////////////////////////////////////
     //附属属性
-    if (option.size) this.size = option.size;
+    if (option.size) {
+      this.size = option.size;
+      this.FixedSize = true;
+    }
+    if (option.needToneMapping != undefined && typeof option.needToneMapping == 'boolean') {
+      this.needToneMapping = option.needToneMapping;
+    }
     if (option.viewport) this.viewport = option.viewport;
     if (option.premultipliedAlpha) this.premultipliedAlpha = option.premultipliedAlpha;
     ///////////////////////////////////////////////////////////////////
