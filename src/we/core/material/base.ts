@@ -324,3 +324,15 @@ export interface I_MaterialUniformTextureBundle {
 
 
 
+/**20260422 材质的MSAA的groupAndBindingString 绑定function*/
+export function  materialAddGroupBindStringOfMSAA( binding: number):{code:string,binding:number} {
+    let code=`
+                @group(2) @binding(${binding++}) var u_texture_id: texture_2d<u32>;
+                @group(2) @binding(${binding++}) var u_texture_normal: texture_2d<f32>;         //normal（可能，按需）会被计算过
+                //其他适用VS 传输的:uv,color,worldPosition等
+        `;
+    return {
+        code,
+        binding,
+    }
+}

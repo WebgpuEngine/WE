@@ -281,7 +281,7 @@ export class TextureMaterial extends BaseMaterial {
             binding++;
         }
         let entriesBundle = {
-            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+            bindingNumber: binding,//shader中使用的绑定号，用于绑定uniform参数
             groupAndBindingString,
             entry: uniformEntries
         };

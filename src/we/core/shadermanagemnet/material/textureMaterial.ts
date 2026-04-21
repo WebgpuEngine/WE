@@ -35,6 +35,8 @@ export var SHT_materialTextureFS: I_ShaderTemplate = {
 
     }
 }
+import textureMSAAFSWGSL from "../../shader/material/texture/textureMSAA.fs.wgsl?raw";
+var textureMSAAFS = textureMSAAFSWGSL.toString();
 /** 纹理材质, 不透明MSAA, shader 模板*/
 export var SHT_materialTextureFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
@@ -52,7 +54,7 @@ export var SHT_materialTextureFS_MSAA: I_ShaderTemplate = {
             },
             {
                 name: "fs",
-                code: textureFS,
+                code: textureMSAAFS,
             },
         ],
         replace: [

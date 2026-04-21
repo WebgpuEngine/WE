@@ -147,7 +147,7 @@ export class DrawCommand extends BaseDrawCommand {
                 }
                 else if (i == '2') {
                     if (this.material !== undefined) {
-                        let bindGroup = this.material.owner.getBindGroupAndBindGroupLayout(this.material.type, option.mergeID!, option.renderPassName!).bindGroup;
+                        let bindGroup = this.material.owner.getBindGroup(this.material.type, option.mergeID!, option.renderPassName!);
                         if (bindGroup != undefined)
                             passEncoder.setBindGroup(parseInt(i), bindGroup);
                         else

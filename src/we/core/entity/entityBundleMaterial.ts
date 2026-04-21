@@ -294,7 +294,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 };
             }
         }
-        return { bindingNumber: bindingNumber, uniformGroup: this.bindGroup, shaderTemplateFinal };
+        return {
+            bindingNumber: bindingNumber,
+            // uniformGroup: this.bindGroup, 
+            shaderTemplateFinal
+        };
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 处理drawMode 模板
@@ -671,13 +675,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 vs: true,
             }
         }
-        // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
-        if (bundle.fsBundle && bundle.fsBundle.shaderTemplateFinal.material?.dynamic === true) {
-            if (valueDC.dynamic == undefined)
-                valueDC.dynamic = { fs: true };
-            else
-                valueDC.dynamic.fs = true;
-        }
+        // // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
+        // if (bundle.fsBundle && bundle.fsBundle.shaderTemplateFinal.material?.dynamic === true) {
+        //     if (valueDC.dynamic == undefined)
+        //         valueDC.dynamic = { fs: true };
+        //     else
+        //         valueDC.dynamic.fs = true;
+        // }
         if (scope.inputValues.primitive) {
             valueDC.render.primitive = scope.inputValues.primitive;
         }

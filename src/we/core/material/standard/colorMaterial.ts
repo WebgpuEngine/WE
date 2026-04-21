@@ -3,12 +3,13 @@ import { isWeColor4 } from "../../base/coreFunction";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
+import { E_GBufferNames } from "../../gbuffers/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialColor_TTP_FS, SHT_materialColor_TT_FS, SHT_materialColorFS, SHT_materialColor_TTPF_FS, SHT_materialColorFS_MSAA, SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
-import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, E_MaterialType, I_UniformBundleOfMaterial, E_materialTypeForBindGroup } from "../base";
+import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, E_MaterialType, E_materialTypeForBindGroup, materialAddGroupBindStringOfMSAA } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 export interface I_ColorMaterial extends IV_BaseMaterial {
@@ -16,6 +17,7 @@ export interface I_ColorMaterial extends IV_BaseMaterial {
 }
 
 export class ColorMaterial extends BaseMaterial {
+
 
     override inputValues: I_ColorMaterial;
 
@@ -130,27 +132,44 @@ export class ColorMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
-    /**
-     * ColorMaterial 的公用uniform，所以返回的都是空数组和空字符串
-     * @param startBinding 
-     * @returns I_UniformBundleOfMaterial
-     */
-    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-        let binding: number = startBinding;
-
-        let uniformEntries: T_uniformEntries[] = [];
+    getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-
-        // let groupAndBindingString: string = ''
-        let groupAndBindingString: string = `
-        struct color_material_uniform  {
-            color: vec4f,
+        let uniformBufferLayout: GPUBindGroupLayoutEntry = {
+            binding: binding++,
+            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            buffer: {
+                type: "uniform",
+            },
+        };
+        layoutEntries.push(uniformBufferLayout);
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            layoutEntries.push(
+                {
+                    binding: binding++,
+                    texture: {
+                        sampleType: "uint",
+                        viewDimension: "2d",
+                    },
+                    visibility: GPUShaderStage.FRAGMENT,
+                },
+                {
+                    binding: binding++,
+                    texture: {
+                        sampleType: "unfilterable-float",
+                        viewDimension: "2d",
+                    },
+                    visibility: GPUShaderStage.FRAGMENT,
+                },
+            );
         }
-        @group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
-        `;
-
+        return layoutEntries;
+    }
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [];
         let uniformBuffer: GPUBindGroupEntry = {
-            binding: binding,
+            binding: binding++,
             resource: this.uniformPointer.gpuBufferView,
             // resource: {
             //     buffer: this.uniformPointer.gpuBuffer,
@@ -158,29 +177,90 @@ export class ColorMaterial extends BaseMaterial {
             //     size: this.uniformPointer.byteLength
             // },
         };
-        let uniformBufferLayout: GPUBindGroupLayoutEntry = {
-            binding: binding,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: {
-                type: "uniform",
-            },
-        };
-        layoutEntries.push(uniformBufferLayout);
-
-        //push到uniform1队列
         uniformEntries.push(uniformBuffer);
-        //20260311 ,这里必须是新的变量，这个变量会被传递给后续的function，内容会被修改。
-        // 如果使用this.unifromEntryBundle_Common，后续的function会修改这个变量，导致错误。
-        let entriesBundle = {
-            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-            groupAndBindingString,
-            entry: uniformEntries
-        };
-        return {
-            entriesBundle,
-            layoutEntries,
-        };
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            if (uuid)
+                uniformEntries.push(
+                    {
+                        binding: binding++,
+                        resource: this.scene.cameraManager.getGBufferTextureByUUID(uuid, E_GBufferNames.id).createView(),
+                    },
+                    {
+                        binding: binding++,
+                        resource: this.scene.cameraManager.getGBufferTextureByUUID(uuid, E_GBufferNames.normal).createView(),
+                    },
+                );
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
     }
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 0;
+        let groupAndBindingString: string = `
+        struct color_material_uniform  {
+            color: vec4f,
+        }
+        @group(2) @binding(${binding++}) var<uniform> u_color_material_uniform: color_material_uniform;
+        `;
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
+    }
+    // /**
+    //  * ColorMaterial 的公用uniform，所以返回的都是空数组和空字符串
+    //  * @param startBinding 
+    //  * @returns I_UniformBundleOfMaterial
+    //  */
+    // getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
+    //     let binding: number = startBinding;
+
+    //     let uniformEntries: T_uniformEntries[] = [];
+    //     let layoutEntries: GPUBindGroupLayoutEntry[] = [];
+
+    //     // let groupAndBindingString: string = ''
+    //     let groupAndBindingString: string = `
+    //     struct color_material_uniform  {
+    //         color: vec4f,
+    //     }
+    //     @group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
+    //     `;
+
+    //     let uniformBuffer: GPUBindGroupEntry = {
+    //         binding: binding,
+    //         resource: this.uniformPointer.gpuBufferView,
+    //         // resource: {
+    //         //     buffer: this.uniformPointer.gpuBuffer,
+    //         //     offset: this.uniformPointer.offset,
+    //         //     size: this.uniformPointer.byteLength
+    //         // },
+    //     };
+    //     let uniformBufferLayout: GPUBindGroupLayoutEntry = {
+    //         binding: binding,
+    //         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    //         buffer: {
+    //             type: "uniform",
+    //         },
+    //     };
+    //     layoutEntries.push(uniformBufferLayout);
+
+    //     //push到uniform1队列
+    //     uniformEntries.push(uniformBuffer);
+    //     //20260311 ,这里必须是新的变量，这个变量会被传递给后续的function，内容会被修改。
+    //     // 如果使用this.unifromEntryBundle_Common，后续的function会修改这个变量，导致错误。
+    //     let entriesBundle = {
+    //         bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+    //         groupAndBindingString,
+    //         entry: uniformEntries
+    //     };
+    //     return {
+    //         entriesBundle,
+    //         layoutEntries,
+    //     };
+    // }
 
     // /**
     //  *  不透明材质的Oqa

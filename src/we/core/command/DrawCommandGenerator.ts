@@ -903,6 +903,7 @@ export class DrawCommandGenerator {
                             }
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams, values.system?.parent);
+                        // parent保存顶点指针，用于后续更新顶点数据
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
                         // this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
                         // }
@@ -1305,6 +1306,7 @@ export class DrawCommandGenerator {
                                 }
                             };
                             index = this.pointers.createPointer(pointerParams);
+                            // parent保存索引指针，用于后续更新索引数据
                             if (values.system?.parent) values.system.parent.vertexPointers["index" + wireFrame] = { pointer: index };
                             // this.resources.setIndices(md5OfIndicesOfArray, index);
                             // }
@@ -1351,7 +1353,7 @@ export class DrawCommandGenerator {
         DC_bindGroupLayouts: GPUBindGroupLayout[],
     } {
         //bindgroup部分
-        let DC_bindGroups: GPUBindGroup[] = new Array(4).fill(undefined);
+        let DC_bindGroups: (GPUBindGroup | undefined)[] = new Array(4).fill(undefined);
         let DC_bindGroupLayouts: GPUBindGroupLayout[] = new Array(4).fill(undefined);
         let layoutNumber = 0;           //uniform的BindGroupLayout数量，最多4个
         // 存在system。赋值bindgroup：0，1，2；
@@ -1372,7 +1374,7 @@ export class DrawCommandGenerator {
 
             if (values.system?.parent) {
                 let { bindGroup, bindGroupLayout } = values.system?.parent.getBindGroupAndBindGroupLayout();
-                DC_bindGroups[layoutNumber] = bindGroup;
+                DC_bindGroups[layoutNumber] = undefined;
                 DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
                 layoutNumber++;
                 if (values.system?.type == E_renderForDC.camera) {
@@ -1381,16 +1383,16 @@ export class DrawCommandGenerator {
                     }
                     if (values.label.includes("wireframe")) {
                         if ((values.system?.parent as Mesh)._materialWireframe) {
-                            let { bindGroup, bindGroupLayout } = (values.system?.parent as Mesh)._materialWireframe.getBindGroupAndBindGroupLayout();
-                            DC_bindGroups[layoutNumber] = bindGroup;
+                            let bindGroupLayout = (values.system?.parent as Mesh)._materialWireframe.getBindGroupLayout(values.system.material.type);
+                            DC_bindGroups[layoutNumber] = undefined;
                             DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
                             layoutNumber++;
                         }
                     }
                     else {
                         if ((values.system?.parent as EntityBundleMaterial)._material) {
-                            let { bindGroup, bindGroupLayout } = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupAndBindGroupLayout(values.system.material.type);
-                            DC_bindGroups[layoutNumber] = bindGroup;
+                            let bindGroupLayout = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupLayout(values.system.material.type);
+                            DC_bindGroups[layoutNumber] = undefined;
                             DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
                             layoutNumber++;
                         }

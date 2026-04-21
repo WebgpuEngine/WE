@@ -14,19 +14,16 @@ fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
 //MSAA start 
     normal = textureLoad(u_texture_normal, vec2i(floor( fsInput.position.xy)),0).rgb;
     let id_of_pixel=textureLoad(u_texture_id, vec2i(floor( fsInput.position.xy)),0 ).r;
-
-    if(id_of_pixel== entityID){
-        output.color =  u_color_material_uniform.color;
-        if(output.color.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
-        {
-            discard;
-        }
-        return output;
-    }
-    else {
+    if(id_of_pixel != entityID){
         discard;
     }
-     return output;
 //MSAA end 
+
+    output.color =  u_color_material_uniform.color;
+    if(output.color.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
+    {
+        discard;
+    }
+    return output;
 }
 //end : color.fs.wgsl

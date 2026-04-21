@@ -206,7 +206,7 @@ export interface I_EntityAttributes {
  */
 export interface I_EntityBundleOutput {
     bindingNumber: number,
-    uniformGroup: T_uniformOneGroup,
+    // uniformGroup: T_uniformOneGroup,//20260422 取消（entity底层不再使用传递方式）
     shaderTemplateFinal: I_ShaderTemplate_Final
 }
 
