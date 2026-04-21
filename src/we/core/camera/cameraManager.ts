@@ -279,14 +279,14 @@ export class CameraManager extends ECSManager<BaseCamera> {
      * 渲染Attachment：color、id
      * @returns 渲染描述符
      */
-    getRPD_ToneMapping_ForFinalTarget(UUID: string): GPURenderPassDescriptor {
-        return this.GBufferManager.GBuffer[UUID].finalRender.rpdToneMapping;
+    getRpdForFinalTarget(UUID: string): GPURenderPassDescriptor {
+        return this.GBufferManager.GBuffer[UUID].finalRender.rpd;
     }
     // getCATs_MSAA_ForFinalTarget(UUID: string): GPUColorTargetState[] {
     //     return this.GBufferManager.GBuffer[UUID].finalRender.msaaColorAttachmentTargets;
     // }
-    getCATs_ToneMapping_ForFinalTarget(UUID: string): GPUColorTargetState[] {
-        return this.GBufferManager.GBuffer[UUID].finalRender.toneMappingColorAttachmentTargets;
+    getCATsForFinalTarget(UUID: string): GPUColorTargetState[] {
+        return this.GBufferManager.GBuffer[UUID].finalRender.colorAttachmentTargets;
     }
 
 
@@ -355,18 +355,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         // let camera = this.getCameraByUUID(UUID);
         return this.GBufferManager.GBuffer[UUID].forward.RPD;
     }
-    /**
-     * 获取defer depth的渲染Pass描述符
-     * @param UUID 相机UUID
-     * @returns 渲染Pass描述符
-     */
-    getRPDOfDeferDepthByUUID(UUID: string): GPURenderPassDescriptor | false {
-        if (this.scene.deferRender.enable === false) {
-            return false;
-        }
-        // let camera = this.getCameraByUUID(UUID);
-        return this.GBufferManager.GBuffer[UUID].deferDepth?.RPD!;
-    }
+
     /**
      * 获取MSAA的GBuffer纹理
      * @param UUID 相机UUID

@@ -432,7 +432,7 @@ export class PBRMaterial extends BaseMaterial {
         this.textures = {};
         this.shtOfMaterialType = {
             opacityForward: SHT_materialPBRFS,
-            opacityDefer: SHT_materialPBRFS,
+            opacityDefer: SHT_materialPBRFS_defer,
             opacityMSAA: SHT_materialPBRFS_MSAA,
             opacityMSAAInfo: SHT_materialPBRFS_MSAA_info,
 

@@ -500,7 +500,7 @@ export abstract class BaseEntity extends NodeSpace {
     override async init(scene: Scene): Promise<any> {
         this._state = E_lifeState.initializing;
         this.MSAA = scene.MSAA;
-        this.deferColor = scene.deferRender.deferRenderColor;
+        this.deferColor = scene.renderMode == "deferRender"?true:false;
 
         await super.init(scene);
         // 初始化common uniform

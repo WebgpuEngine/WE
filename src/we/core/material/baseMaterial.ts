@@ -485,9 +485,9 @@ export abstract class BaseMaterial extends RootGPU {
      */
     getBindGroupAndBindGroupLayout(
         materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward,
-        renderPassName: E_renderPassName,
         /**MSAA的需要camera的GBuffer中的texture作为uniform输入，需要指定mergeID。         */
         mergeID: string,
+        renderPassName: E_renderPassName,
     ): I_bindGroupAndGroupLayout {
         if (materialType == E_materialTypeForBindGroup.opacityForward ||
             materialType == E_materialTypeForBindGroup.opacityDefer ||

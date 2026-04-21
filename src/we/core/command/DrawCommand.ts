@@ -140,14 +140,18 @@ export class DrawCommand extends BaseDrawCommand {
                 else if (i == '1') {
                     if (this.parent !== undefined)
                         passEncoder.setBindGroup(parseInt(i), this.parent.getBindGroupAndBindGroupLayout().bindGroup);
-                    else
-                        passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                    else {
+                        if (this.bindGroups[i] !== undefined)
+                            passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                    }
                 }
                 else if (i == '2') {
                     if (this.material !== undefined)
-                        passEncoder.setBindGroup(parseInt(i), this.material!.owner.getBindGroupAndBindGroupLayout(this.material!.type).bindGroup);
-                    else
-                        passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                        passEncoder.setBindGroup(parseInt(i), this.material!.owner.getBindGroupAndBindGroupLayout(this.material!.type, option.mergeID!, option.renderPassName!).bindGroup);
+                    else {
+                        if (this.bindGroups[i] !== undefined)
+                            passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                    }
                 }
                 else if (i == '3') {
                     if (this.bindGroups[i] !== undefined)

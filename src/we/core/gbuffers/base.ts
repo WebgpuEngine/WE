@@ -179,7 +179,7 @@ export interface I_GBufferGroup {
             colorAttachmentTargets: GPUColorTargetState[],
             /** 每个camera的forward GBuffer存储位置 */
             GBuffer: I_GBuffer,
-            deferColor: GPUTexture,
+            // deferColor: GPUTexture,
         },
         MSAA?: {
             /** 每个camera MSAA GBuffer的渲染描述 */
@@ -199,15 +199,15 @@ export interface I_GBufferGroup {
             /**
              * ToneMapping的输出纹理,必须
              */
-            toneMappingTexture: GPUTexture,
+            color: GPUTexture,
             /**
              * ToneMapping的颜色附件描述,必须
              */
-            toneMappingColorAttachmentTargets: GPUColorTargetState[],
+            colorAttachmentTargets: GPUColorTargetState[],
             /**
              * ToneMapping的渲染描述,必须
              */
-            rpdToneMapping: GPURenderPassDescriptor,
+            rpd: GPURenderPassDescriptor,
         }
     }
 }

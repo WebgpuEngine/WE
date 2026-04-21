@@ -65,12 +65,7 @@ export class ToneMappingCommandGenerator {
             binding: 0,
             resource: this.parent.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
         };
-        if (this.scene.deferRender.enable == true && this.scene.deferRender.deferRenderColor == true) {
-            uniform00_ColorTexture = {
-                binding: 0,
-                resource: this.parent.GBufferManager.GBuffer[UUID].forward.deferColor.createView(),
-            };
-        }
+
         //bindgroup layout 0 的描述
         let bindGroupLayoutDescriptor0: GPUBindGroupLayoutDescriptor =
         {
@@ -115,7 +110,7 @@ export class ToneMappingCommandGenerator {
             fragment: {
                 module: this.shaderModule,
                 entryPoint: "fs",
-                targets: this.parent.getCATs_ToneMapping_ForFinalTarget(UUID),
+                targets: this.parent.getCATsForFinalTarget(UUID),
 
             },
             layout: pipelineLayout,
@@ -127,7 +122,7 @@ export class ToneMappingCommandGenerator {
         let pipeline: GPURenderPipeline = this.device.createRenderPipeline(descriptor);
         let renderPassDescriptor = () => {
             // console.log("=======================", UUID);
-            return this.parent.getRPD_ToneMapping_ForFinalTarget(UUID)
+            return this.parent.getRpdForFinalTarget(UUID)
         };
         let valuesDC: IV_BaseDrawCommand = {
             device: this.device,
@@ -142,18 +137,18 @@ export class ToneMappingCommandGenerator {
             }
         }
         this.dcArray[UUID].toneMapping.push(new BaseDrawCommand(valuesDC));
-        if (UUID === this.parent.defaultCamera.UUID) {
-            let size = this.scene.surface.size;
-            let copyToColorTexture = new CopyCommandT2T(
-                {
-                    A: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture,
-                    B: this.scene.finalTarget.color!,
-                    size: { width: size.width, height: size.height },
-                    device: this.device
-                }
-            );
-            this.dcArray[UUID].toneMapping.push(copyToColorTexture);
-        }
+        // if (UUID === this.parent.defaultCamera.UUID) {
+        //     let size = this.scene.surface.size;
+        //     let copyToColorTexture = new CopyCommandT2T(
+        //         {
+        //             A: this.parent.GBufferManager.GBuffer[UUID].finalRender.color,
+        //             B: this.scene.finalTarget.color!,
+        //             size: { width: size.width, height: size.height },
+        //             device: this.device
+        //         }
+        //     );
+        //     this.dcArray[UUID].toneMapping.push(copyToColorTexture);
+        // }
     }
     createShaderModule() {
         let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";

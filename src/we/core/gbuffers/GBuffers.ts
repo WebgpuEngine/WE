@@ -185,9 +185,9 @@ export class GBuffers {
                 ],
             };
             let finalRender = {
-                toneMappingTexture: toneMappingTexture,
-                rpdToneMapping: rpdToneMapping,
-                toneMappingColorAttachmentTargets: getColorAttachmentTargetsOfToneMapping(),
+                color: toneMappingTexture,
+                rpd: rpdToneMapping,
+                colorAttachmentTargets: getColorAttachmentTargetsOfToneMapping(),
             };
             //GBuffer RPD
             RPD_forward = {
@@ -199,21 +199,20 @@ export class GBuffers {
                     depthStoreOp: 'store',
                 },
             };
-            //20260308 新增deferColor,临时使用，后续优化
-            let textureDeferColor = device.createTexture({
-                label: name + " deferColor",
-                size: [width, height],
-                format: V_weLinearFormat,
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-                // sampleCount: MSAA ? 4 : 1,
-            });
+            // //20260308 新增deferColor,临时使用，后续优化
+            // let textureDeferColor = device.createTexture({
+            //     label: name + " deferColor",
+            //     size: [width, height],
+            //     format: V_weLinearFormat,
+            //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+            //     // sampleCount: MSAA ? 4 : 1,
+            // });
 
             this.GBuffer[id] = {
                 forward: {
                     RPD: RPD_forward,
                     colorAttachmentTargets: getColorAttachmentTargetsOfForward(),
                     GBuffer: gbuffers,
-                    deferColor: textureDeferColor,
                 },
                 finalRender,
             };
@@ -278,8 +277,8 @@ export class GBuffers {
         for (let key in this.GBuffer[id].forward.GBuffer) {
             this.GBuffer[id].forward.GBuffer[key].destroy();
         }
-        if (this.GBuffer[id].finalRender.toneMappingTexture)
-            this.GBuffer[id].finalRender.toneMappingTexture.destroy();
+        if (this.GBuffer[id].finalRender.color)
+            this.GBuffer[id].finalRender.color.destroy();
         delete this.GBuffer[id];
     }
     /**

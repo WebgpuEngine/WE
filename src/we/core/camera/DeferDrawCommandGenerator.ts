@@ -1,6 +1,7 @@
 import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
 import { commmandType, T_uniformEntries } from "../command/base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
+import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { I_EntityBundleOutput } from "../entity/base";
 import { E_GBufferNames } from "../gbuffers/base";
 import { Scene } from "../scene/scene";
@@ -170,21 +171,24 @@ export class DeferDrawCommandGenerator {
             pipeline = this.device.createRenderPipeline(descriptor);
             uniforms.push(uniform0.bindGroup, bindGroup1);
         }
-        let rpd: GPURenderPassDescriptor =
-        {
-            colorAttachments: [
-                {
-                    view: this.parent.GBufferManager.GBuffer[UUID].forward.deferColor.createView({ label: "Defer Render :" + UUID }),
-                    loadOp: 'clear',
-                    storeOp: 'store',
-                }]
+        // let renderPassDescriptor: GPURenderPassDescriptor =
+        // {
+        //     colorAttachments: [
+        //         {
+        //             view: this.parent.GBufferManager.GBuffer[UUID].finalRender.color.createView({ label: "Defer Render :" + UUID }),
+        //             loadOp: 'clear',
+        //             storeOp: 'store',
+        //         }]
+        // };
+        let renderPassDescriptor = () => {
+            return this.parent.getRpdForFinalTarget(UUID)
         };
         let valuesDC: IV_BaseDrawCommand = {
             device: this.device,
             drawInfo: {
                 pipeline: pipeline,
                 bindGroups: uniforms,
-                renderPassDescriptor: () => { return rpd; },
+                renderPassDescriptor: renderPassDescriptor,
                 drawMode: {
                     vertexCount: 4
                 },
@@ -192,6 +196,18 @@ export class DeferDrawCommandGenerator {
             label: "DeferRender: " + UUID,
         }
         this.dcArray[UUID].push(new BaseDrawCommand(valuesDC));
+        if (UUID === this.parent.defaultCamera.UUID) {
+            let size = this.scene.surface.size;
+            let copyToColorTexture = new CopyCommandT2T(
+                {
+                    A: this.parent.GBufferManager.GBuffer[UUID].finalRender.color,
+                    B: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color),
+                    size: { width: size.width, height: size.height },
+                    device: this.device
+                }
+            );
+            this.dcArray[UUID].push(copyToColorTexture);
+        }
     }
 
 
