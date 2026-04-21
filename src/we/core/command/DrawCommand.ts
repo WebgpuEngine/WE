@@ -146,8 +146,13 @@ export class DrawCommand extends BaseDrawCommand {
                     }
                 }
                 else if (i == '2') {
-                    if (this.material !== undefined)
-                        passEncoder.setBindGroup(parseInt(i), this.material!.owner.getBindGroupAndBindGroupLayout(this.material!.type, option.mergeID!, option.renderPassName!).bindGroup);
+                    if (this.material !== undefined) {
+                        let bindGroup = this.material.owner.getBindGroupAndBindGroupLayout(this.material.type, option.mergeID!, option.renderPassName!).bindGroup;
+                        if (bindGroup != undefined)
+                            passEncoder.setBindGroup(parseInt(i), bindGroup);
+                        else
+                            throw new Error("DrawCommand doDraw: material is undefined and bindGroup is undefined");
+                    }
                     else {
                         if (this.bindGroups[i] !== undefined)
                             passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);

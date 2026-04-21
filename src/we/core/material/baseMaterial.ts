@@ -213,20 +213,61 @@ export abstract class BaseMaterial extends RootGPU {
      *  A、不是所有类型会有用到，防止不必要的创建
      *  B、目前TTP、TTPF暂停中；20260419
     */
-    bindGroup: { [key: string]: GPUBindGroup } = {};
+    bindGroup: {
+        [key in E_materialTypeForBindGroup]:
+        GPUBindGroup | undefined |
+        {//按照UUID再进行分类的：MSAA，TTP，TTPF
+            [uuid: string]: GPUBindGroup,
+        }
+    } = {
+            [E_materialTypeForBindGroup.opacityForward]: undefined,
+            [E_materialTypeForBindGroup.opacityDefer]: undefined,
+            [E_materialTypeForBindGroup.opacityMSAA]: {},
+            [E_materialTypeForBindGroup.opacityMSAAInfo]: undefined,
+            [E_materialTypeForBindGroup.TO_Forward]: undefined,
+            [E_materialTypeForBindGroup.TO_Defer]: undefined,
+            [E_materialTypeForBindGroup.TO_MSAA]: {},
+            [E_materialTypeForBindGroup.TO_MsaaInfo]: undefined,
+            [E_materialTypeForBindGroup.TT]: undefined,
+            [E_materialTypeForBindGroup.TTP]: {},
+            [E_materialTypeForBindGroup.TTPF]: {},
+        };
     /** VS bind group layout */
     bindGroupLayout: { [key: string]: GPUBindGroupLayout } = {};
 
+    // /**MSAA 的bind group
+    //  * 1、20260421，目前还是每个cameera一个GBuffer，没有改成defalut Gbuffer+fixedSize GBuffer的形式
+    //  */
+    // _bindGroupMSAA: {
+    //     [mergeID: string]: GPUBindGroup,
+    // } = {}
     /**不同模式的uniform绑定
      * 1、entries: 材质的uniform绑定
      * 2、layoutEntries: 材质的uniform绑定的layout
      */
     entriesOfBindgroupAndBindgroupLayout: {
-        [key: string]: {
-            entriesBundle: I_UniformBundleOfMaterial,
+        [key in E_materialTypeForBindGroup]:
+        {
+            entriesBundle: I_UniformBundleOfMaterial |
+            {//按照UUID再进行分类的：MSAA，TTP，TTPF
+                [uuid: string]: I_UniformBundleOfMaterial,
+            },
             layoutEntries: GPUBindGroupLayoutEntry[],
-        }
-    } = {};
+        } | undefined
+    } = {
+            [E_materialTypeForBindGroup.opacityForward]: undefined,
+            [E_materialTypeForBindGroup.opacityDefer]: undefined,
+            [E_materialTypeForBindGroup.opacityMSAA]: undefined,
+            [E_materialTypeForBindGroup.opacityMSAAInfo]: undefined,
+            [E_materialTypeForBindGroup.TO_Forward]: undefined,
+            [E_materialTypeForBindGroup.TO_Defer]: undefined,
+            [E_materialTypeForBindGroup.TO_MSAA]: undefined,
+            [E_materialTypeForBindGroup.TO_MsaaInfo]: undefined,
+            [E_materialTypeForBindGroup.TT]: undefined,
+            [E_materialTypeForBindGroup.TTP]: undefined,
+            [E_materialTypeForBindGroup.TTPF]: undefined,
+        };
+    ;
 
     /**
      * 20260419：
@@ -271,18 +312,31 @@ export abstract class BaseMaterial extends RootGPU {
      * 2、pointer 不存在或 rebuild，需要更新bind group
      * 3、如果材质类型存在，但是dynamic texture，创建
      */
-    checkNeedCreateBindGroup(materialType: E_materialTypeForBindGroup): boolean {
+    checkNeedCreateBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): boolean {
         let createBindGroup = false;
         //undefined，创建
         if (this.bindGroupLayout[materialType] == undefined) {
             //创建BindGroupLayout
             this.bindGroupLayout[materialType] = this.device.createBindGroupLayout({
                 label: `${this.kind}:${this.ID} :${materialType}`,
-                entries: this.entriesOfBindgroupAndBindgroupLayout[materialType].layoutEntries,
+                entries: this.entriesOfBindgroupAndBindgroupLayout[materialType]!.layoutEntries,
             });
+
             //////////////////////////////////////////////////
             //bind group  
             createBindGroup = true;
+        }
+        //bindgroup需要使用camera的texture时，需要检查是否存在bind group
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ||
+            materialType == E_materialTypeForBindGroup.TO_MSAA ||
+            materialType == E_materialTypeForBindGroup.TTP ||
+            materialType == E_materialTypeForBindGroup.TTPF) {
+            if (uuid == undefined)
+                createBindGroup = true;
+            else {
+                if ((this.bindGroup[materialType] as { [uuid: string]: GPUBindGroup })[uuid] == undefined)
+                    createBindGroup = true;
+            }
         }
         //pointer rebuild，需要更新bind group
         if (this.uniformPointer != undefined && this.uniformPointer.rebuildTime == this.scene.clock.now) {
@@ -295,8 +349,13 @@ export abstract class BaseMaterial extends RootGPU {
         return createBindGroup;
     }
     /** 创建bind group */
-    createBindGroup(materialType: E_materialTypeForBindGroup) {
-        let perGroup = this.entriesOfBindgroupAndBindgroupLayout[materialType].entriesBundle.entry as T_uniformEntries[];
+    createBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string) {
+        let perGroup: T_uniformEntries[] = [];
+        if (!uuid)
+            perGroup = this.entriesOfBindgroupAndBindgroupLayout[materialType]!.entriesBundle.entry as T_uniformEntries[];
+        else {
+            perGroup = (this.entriesOfBindgroupAndBindgroupLayout[materialType]!.entriesBundle as { [uuid: string]: I_UniformBundleOfMaterial })[uuid].entry as T_uniformEntries[];
+        }
         //BindGroup 的数据入口,主要是buffer的创建需要push,-->1.1.1
         let bindGroupEntry: GPUBindGroupEntry[] = [];
         for (let j in perGroup) {//遍历每组group的每个entry
@@ -328,7 +387,24 @@ export abstract class BaseMaterial extends RootGPU {
             entries: bindGroupEntry,
         }
         //创建BindGroup
-        this.bindGroup[materialType] = this.device.createBindGroup(bindGroupDesc);
+
+        if (uuid == undefined &&
+            materialType != E_materialTypeForBindGroup.opacityMSAA &&
+            materialType != E_materialTypeForBindGroup.TO_MSAA &&
+            materialType != E_materialTypeForBindGroup.TTP &&
+            materialType != E_materialTypeForBindGroup.TTPF) {
+            let bindGroup = this.device.createBindGroup(bindGroupDesc);
+            this.bindGroup[materialType] = bindGroup;
+        }
+        else if (uuid != undefined) {
+            let bindGroup = this.device.createBindGroup(bindGroupDesc);
+            if (this.bindGroup[materialType] == undefined) {
+                this.bindGroup[materialType] = { [uuid]: bindGroup };
+            }
+            else {
+                (this.bindGroup[materialType] as { [uuid: string]: GPUBindGroup })[uuid] = bindGroup;
+            }
+        }
     }
     /**
      * opacity and TO ：forward,defer,MSAAInfo 通用
@@ -345,7 +421,7 @@ export abstract class BaseMaterial extends RootGPU {
             this.createBindGroup(materialType);
         }//end 
         return {
-            bindGroup: this.bindGroup[materialType],
+            bindGroup: this.bindGroup[materialType] as GPUBindGroup,
             bindGroupLayout: this.bindGroupLayout[materialType],
         }
     }
@@ -417,9 +493,7 @@ export abstract class BaseMaterial extends RootGPU {
     //     }
     // }
 
-    _bindGroupMSAA: {
-        [mergeID: string]: GPUBindGroup,
-    } = {}
+
     /**
      * opacity and TO ：MSAA 通用；
      * 一、说明：
@@ -436,22 +510,31 @@ export abstract class BaseMaterial extends RootGPU {
      *  C、如果fixedSize为false，因为MSAA的需要针对canvas的尺寸,不使用default作为key，进行操作；
      * @returns I_bindGroupAndGroupLayout
      */
-    bindGroupAndLayoutOfMSAA( mergeID: string): I_bindGroupAndGroupLayout {
-        return this.bindGroupAndLayoutOfForward();
+    bindGroupAndLayoutOfMSAA(mergeID: string): I_bindGroupAndGroupLayout {
+        // return this.bindGroupAndLayoutOfForward();
         let materialType = E_materialTypeForBindGroup.opacityMSAA;
-        if (this.entriesOfBindgroupAndBindgroupLayout[materialType] == undefined || this.scene.isResized()) {
-            this.entriesOfBindgroupAndBindgroupLayout[materialType] = this.getUniformEntryBundleOfMSAA(0);
+        if (this.entriesOfBindgroupAndBindgroupLayout[materialType] == undefined ||                                                                            //未初始化     
+            (this.entriesOfBindgroupAndBindgroupLayout[materialType].entriesBundle as { [uuid: string]: I_UniformBundleOfMaterial })[mergeID] == undefined ||  //不存在uuid对应的uniform entries
+            (this.scene.isResized() && this.scene.cameraManager.getCameraByUUID(mergeID).FixedSize == false)                                                    //canvas size 改变，且不是固定尺寸                                                                                                                            //canvas size 改变
+        ) {
+            let bundle = this.getUniformEntryBundleOfMSAA(mergeID, 0);
+            this.entriesOfBindgroupAndBindgroupLayout[materialType] = {
+                entriesBundle: {
+                    [mergeID]: bundle.entriesBundle,
+                },
+                layoutEntries: bundle.layoutEntries,
+            }
         }
-        let createBindGroup = this.checkNeedCreateBindGroup(materialType);
-        if (this.scene.isResized()) {
+        let createBindGroup = this.checkNeedCreateBindGroup(materialType, mergeID);
+        if (this.scene.isResized() && this.scene.cameraManager.getCameraByUUID(mergeID).FixedSize == false) {
             createBindGroup = true;
         }
         //创建或更新bind group
         if (createBindGroup === true) {
-            this.createBindGroup(materialType);
+            this.createBindGroup(materialType, mergeID);
         }//end 
         return {
-            bindGroup: this.bindGroup[materialType],
+            bindGroup: (this.bindGroup[materialType] as { [uuid: string]: GPUBindGroup })[mergeID],
             bindGroupLayout: this.bindGroupLayout[materialType],
         }
     }
@@ -468,14 +551,14 @@ export abstract class BaseMaterial extends RootGPU {
      * TTP的 bindgroup  and bindgroup layout
      * @returns I_bindGroupAndGroupLayout     
     */
-    bindGroupAndLayoutOfTTP(): I_bindGroupAndGroupLayout {
+    bindGroupAndLayoutOfTTP(mergeID: string): I_bindGroupAndGroupLayout {
         throw new Error("Method not implemented: TTPTP");
     }
     /**
      * TTP的 bindgroup  and bindgroup layout
      * @returns I_bindGroupAndGroupLayout     
     */
-    bindGroupAndLayoutOfTTPF(): I_bindGroupAndGroupLayout {
+    bindGroupAndLayoutOfTTPF(mergeID: string): I_bindGroupAndGroupLayout {
         throw new Error("Method not implemented: TTPTF");
     }
     /**
@@ -505,10 +588,10 @@ export abstract class BaseMaterial extends RootGPU {
             return this.bindGroupAndLayoutOfTT();
         }
         else if (materialType == E_materialTypeForBindGroup.TTP) {
-            return this.bindGroupAndLayoutOfTTP();
+            return this.bindGroupAndLayoutOfTTP(mergeID);
         }
         else if (materialType == E_materialTypeForBindGroup.TTPF) {
-            return this.bindGroupAndLayoutOfTTPF();
+            return this.bindGroupAndLayoutOfTTPF(mergeID);
         }
         else {
             throw new Error(`不支持的材质类型：${materialType}`);
@@ -532,19 +615,78 @@ export abstract class BaseMaterial extends RootGPU {
       * @returns 绑定槽位，组绑定字符串，uniform组，layout组
       */
     abstract getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] }
+
     /**MSAA 的uniform Bundle 和layout */
-    getUniformEntryBundleOfMSAA(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
+    getUniformEntryBundleOfMSAA(mergeID: string | undefined, startBinding: number): {
+        entriesBundle: I_UniformBundleOfMaterial,
+        layoutEntries: GPUBindGroupLayoutEntry[]
+    } {
         /**
          * 1、获取公共的bundle entries 和layout entries
-         * 2、获取GBuffer的texture：
-         *  A、重构Camera，公共GBuffer，每个camera保存自己的color texture，id texture。（SSGI等在defer render层级）
-         *  B、重构renderManager机制（在camera范围内按照事件内容线进行大循环渲染，目前是单体小循环）。
-         *  C、pickup需要适配
+        //  * 1、获取GBuffer的texture（20260421 目前还是每个camera一个GBuffer）：
+        //  *  A、重构Camera，公共GBuffer，每个camera保存自己的color texture，id texture。（SSGI等在defer render层级：after defer ，quad）
+        //  *  B、重构renderManager机制（在camera范围内按照事件内容线进行大循环渲染，目前是单体小循环）。
+        //  *  C、pickup需要适配
+         * 2、增加 uniform entries
+         * 3、增加 groupAndBindingString
+         * 4、重置 bindingNumber
+         * 5、增加 layoutEntries
+         * 6、更新 bindingNumber
+         * 7、返回 entriesBundle 和 layoutEntries
          */
-        let materialType = E_materialTypeForBindGroup.opacityMSAA;
-        this.entriesOfBindgroupAndBindgroupLayout[materialType] = this.getUniformEntryBundleOfCommon(0);
 
-        return this.entriesOfBindgroupAndBindgroupLayout[materialType];
+        //1、获取公共的bundle entries 和layout entries
+        let materialType = E_materialTypeForBindGroup.opacityMSAA;
+        let massBundle = this.getUniformEntryBundleOfCommon(startBinding);
+        let bindNumber = massBundle.entriesBundle.bindingNumber;
+        //2、增加 uniform entries
+        if (mergeID == undefined) {
+
+        }
+        else {
+            (massBundle.entriesBundle.entry as T_uniformEntries[]).push(
+                {
+                    binding: bindNumber++,
+                    resource: this.scene.cameraManager.getGBufferTextureByUUID(mergeID, E_GBufferNames.id).createView(),
+                },
+                {
+                    binding: bindNumber++,
+                    resource: this.scene.cameraManager.getGBufferTextureByUUID(mergeID, E_GBufferNames.normal).createView(),
+                },
+            );
+        }
+        //3、增加 groupAndBindingString
+        bindNumber = massBundle.entriesBundle.bindingNumber;
+        massBundle.entriesBundle.groupAndBindingString += `
+        @group(2) @binding(${bindNumber++}) var u_texture_id: texture_2d<u32>;
+        // @group(2) @binding(${bindNumber++}) var u_texture_normal: texture_2d<f32>;         //normal（可能，按需）会被计算过
+        //其他适用VS 传输的:uv,color,worldPosition等
+`;
+        //4、重置 bindingNumber
+        bindNumber = massBundle.entriesBundle.bindingNumber;
+        //5、增加 layoutEntries
+        massBundle.layoutEntries.push(
+            {
+                binding: bindNumber++,
+                texture: {
+                    sampleType: "uint",
+                    viewDimension: "2d",
+                },
+                visibility: GPUShaderStage.FRAGMENT,
+            },
+            {
+                binding: bindNumber++,
+                texture: {
+                    sampleType: "unfilterable-float",
+                    viewDimension: "2d",
+                },
+                visibility: GPUShaderStage.FRAGMENT,
+            },
+        );
+        //6、更新 bindingNumber
+        massBundle.entriesBundle.bindingNumber = bindNumber;
+
+        return massBundle;
     }
 
     /**获取camera 使用的TT的uniformEntry  */
@@ -1003,6 +1145,11 @@ export abstract class BaseMaterial extends RootGPU {
      */
     getOpacity_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA {
         let MSAA: I_materialBundleOutput = this.generateBundleOutput(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAA]!, startBinding || 0, E_materialTypeForBindGroup.opacityMSAA);
+        // let bundleOfMsaa = this.getUniformEntryBundleOfMSAA(undefined, MSAA.bindingNumber);
+        MSAA.shaderTemplateFinal.material.groupAndBindingString += `
+         @group(2) @binding(${MSAA.bindingNumber++}) var u_texture_id: texture_2d<u32>;
+         @group(2) @binding(${MSAA.bindingNumber++}) var u_texture_normal: texture_2d<f32>; 
+        `;
         let inforForward: I_materialBundleOutput = this.generateBundleOutput(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAAInfo]!, startBinding || 0, E_materialTypeForBindGroup.opacityMSAAInfo);
         return { MSAA, inforForward };
     }

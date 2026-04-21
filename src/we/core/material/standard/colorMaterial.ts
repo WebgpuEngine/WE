@@ -138,7 +138,7 @@ export class ColorMaterial extends BaseMaterial {
     getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
         let binding: number = startBinding;
 
-        let uniformEntries: T_uniformOneGroup = [];
+        let uniformEntries: T_uniformEntries[] = [];
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
 
         // let groupAndBindingString: string = ''

@@ -165,6 +165,8 @@ export class CameraManager extends ECSManager<BaseCamera> {
         if (this.deferRender === true) {
             this.deferDCG.clear();
         }
+        // 清除最终目标纹理DC
+        this.toneMappingDCG.clear();
         // 重新创建GBuffer
         for (let UUID in this.GBufferManager.GBuffer) {
             let camera = this.getCameraByUUID(UUID) as BaseCamera;
@@ -192,6 +194,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
             if (this.deferRender === true) {
                 this.deferDCG.add(camera.UUID);
             }
+            this.toneMappingDCG.add(camera.UUID);
         }
         // 清除OnePointToTT_DC_A和OnePointToTT_DC_B,并重新初始化GBufferManager的CommonTransparentGBuffer
         {
@@ -201,11 +204,6 @@ export class CameraManager extends ECSManager<BaseCamera> {
             //     this.onePointToTT_DC_B.destroy();
             this.GBufferManager.reInitCommonTransparentGBuffer();
         }
-
-        // 清除最终目标纹理DC
-        this.toneMappingDCG.clear();
-        // this.cleanValueOfTT();//清除TT的缓存值,并设置TT_Uniform 和TT_Render
-
         // 更新所有相机的投影矩阵，aspect变化
         for (let camera of this.list) {
             if (camera instanceof PerspectiveCamera) {
@@ -300,6 +298,8 @@ export class CameraManager extends ECSManager<BaseCamera> {
             RPD: this.GBufferManager.GBuffer[UUID].forward.RPD
         };
     }
+    //////////////////////////////////get CATs  部分
+
     getCamearDepthOfGBufferByUUID(UUID: string): GPUTexture {
         // let camera = this.getCameraByUUID(UUID);
         return this.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.depth];
@@ -322,6 +322,8 @@ export class CameraManager extends ECSManager<BaseCamera> {
         else
             throw new Error("MSAA 未定义或MSAA GBuffer不存在");
     }
+    //////////////////////////////////get RPD  部分
+
     /**
      * 获取MSAA info 的渲染Pass描述符
      * @param UUID 相机UUID
@@ -355,7 +357,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         // let camera = this.getCameraByUUID(UUID);
         return this.GBufferManager.GBuffer[UUID].forward.RPD;
     }
-
+    //////////////////////////////////get texture  部分
     /**
      * 获取MSAA的GBuffer纹理
      * @param UUID 相机UUID
@@ -389,7 +391,12 @@ export class CameraManager extends ECSManager<BaseCamera> {
         // let camera = this.getCameraByUUID(UUID);
         return this.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.depth];
     }
-
-
+    //////////////////////////////////get TTP   部分
+    getTTUniformTexture(name: string): GPUTexture {
+        throw new Error("getTTUniformTexture 未实现");
+    }
+    getTTRenderTexture(name: string): GPUTexture {
+        throw new Error("getTTRenderTexture 未实现");
+    }
 
 }

@@ -29,6 +29,8 @@ export var SHT_materialColorFS: I_ShaderTemplate = {
     }
 }
 
+import colorMSAAFSWGSL from "../../shader/material/color/colorMSAA.fs.wgsl?raw";
+var colorMSAAFS = colorMSAAFSWGSL.toString();
 /** 颜色材质, 不透明, 按需合并到VS中 */
 export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
@@ -42,7 +44,7 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
             },
             {
                 name: "fs",
-                code: colorFS,
+                code: colorMSAAFS,
             },
         ],
         replace: [
@@ -51,6 +53,7 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
         ],
     }
 }
+
 /** 颜色材质, 不透明, 按需合并到VS中 */
 import colorMSAAInfoFSWGSL from "../../shader/material/color/colorMSAAInfo.fs.wgsl?raw";
 var colorMSAAInfoFS = colorMSAAInfoFSWGSL.toString();
