@@ -180,7 +180,7 @@ export class PhongMaterial extends BaseMaterial {
     this.inputValues = options;
     this.shtOfMaterialType = {
       opacityForward: SHT_materialPhongFS,
-      opacityDefer: SHT_materialPhongFS,
+      opacityDefer: SHT_materialPhongFS_defer,
       opacityMSAA: SHT_materialPhongFS_MSAA,
       opacityMSAAInfo: SHT_materialPhongFS_MSAA_info,
 

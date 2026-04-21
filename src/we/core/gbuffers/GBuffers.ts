@@ -168,16 +168,16 @@ export class GBuffers {
         //finalRender
         {
             let toneMappingTexture: GPUTexture = device.createTexture({
-                label: name + " toneMappingTexture",
+                label: name + " finalRenderTexture",
                 size: [width, height],
                 format: V_weLinearFormat,
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
             });
             let rpdToneMapping: GPURenderPassDescriptor = {
-                label: name + " toneMappingTexture",
+                label: name + " finalRenderTexture",
                 colorAttachments: [
                     {
-                        view: toneMappingTexture.createView({ label: id + " toneMappingTexture" }),
+                        view: toneMappingTexture.createView({ label: id + " finalRenderTexture" }),
                         // clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
                         loadOp: 'clear',
                         storeOp: "store"
