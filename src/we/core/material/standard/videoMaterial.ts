@@ -1,5 +1,5 @@
 import { BaseMaterial, } from "../baseMaterial";
-import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -100,91 +100,181 @@ export class VideoMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = false;
     }
-
-   getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-        let groupAndBindingString: string = "";
-        let binding: number = startBinding;
-
-        let uniformEntries: T_uniformOneGroup = [];
+    getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-
-        let code: string = "";
-        ///////////group binding
-        ////group binding  texture 字符串
-        //uniform texture
-        let uniformTexture: T_uniformEntries;
-        //uniform texture layout
-        let uniformTextureLayout: GPUBindGroupLayoutEntry
         if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
-            groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
-            uniformTexture = {
-                binding: binding,
-                resource: this.textures[E_TextureType.video].texture.createView(),
-            };
-            uniformTextureLayout = {
-                binding: binding,
+            layoutEntries.push({
+                binding: binding++,
                 visibility: GPUShaderStage.FRAGMENT,
                 texture: {
                     sampleType: "float",
                     viewDimension: "2d",
                     multisampled: false,
                 },
-            };
-
+            });
         }
         else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
         {
             this.Dynamic = true;
-            groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
-            uniformTexture = ({
-                binding: binding,
+            layoutEntries.push({
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                externalTexture: {},
+            });
+        }
+        layoutEntries.push({
+            binding: binding++,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {
+                type: this.defaultSamplerBindingType,
+            },
+        });
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+            layoutEntries.push(...layoutMSAA.layout);
+            binding = layoutMSAA.binding;
+        }
+        return layoutEntries;
+    }
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [];
+        if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
+            uniformEntries.push({
+                binding: binding++,
+                resource: this.textures[E_TextureType.video].texture.createView(),
+            });
+        }
+        else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
+        {
+            this.Dynamic = true;
+            uniformEntries.push({
+                binding: binding++,
                 // resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video])
                 label: "videoTexture External模式",
                 scope: this.textures[E_TextureType.video],
                 getResource: this.textures[E_TextureType.video].getExternalTexture,
             });
-
-            uniformTextureLayout = {
-                binding: binding,
-                visibility: GPUShaderStage.FRAGMENT,
-                externalTexture: {},
-            };
-            // dynamic = true;
         }
-        layoutEntries.push(uniformTextureLayout);
-        uniformEntries.push(uniformTexture);
-        //+1
-        binding++;
-
-        ////group bindgin sampler 字符串
-        groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-        //uniform sampler
-        let uniformSampler: GPUBindGroupEntry = {
-            binding: binding,
+        uniformEntries.push({
+            binding: binding++,
             resource: this.defaultSampler,
-        };
-        //uniform sampler layout
-        let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-            binding: binding,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            sampler: {
-                type: this.defaultSamplerBindingType,
-            },
-        };
-        layoutEntries.push(uniformSamplerLayout);
-        uniformEntries.push(uniformSampler);
-        //+1
-        binding++;
-        let entriesBundle = {
-            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-            groupAndBindingString,
-            entry: uniformEntries
-        };
-        return {
-            entriesBundle,
-            layoutEntries,
-        };
+        });
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            if (uuid) {
+                let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+                uniformEntries.push(...groupMSAA.group);
+                binding = groupMSAA.binding;
+            }
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
     }
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 0;
+        let groupAndBindingString: string = "";
+        if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
+            groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
+        }
+        else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
+        {
+            this.Dynamic = true;
+            groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
+        }
+        groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler; \n `;
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
+    }
+    // getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
+    //     let groupAndBindingString: string = "";
+    //     let binding: number = startBinding;
+
+    //     let uniformEntries: T_uniformOneGroup = [];
+    //     let layoutEntries: GPUBindGroupLayoutEntry[] = [];
+
+    //     let code: string = "";
+    //     ///////////group binding
+    //     ////group binding  texture 字符串
+    //     //uniform texture
+    //     let uniformTexture: T_uniformEntries;
+    //     //uniform texture layout
+    //     let uniformTextureLayout: GPUBindGroupLayoutEntry
+    //     if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
+    //         groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
+    //         uniformTexture = {
+    //             binding: binding,
+    //             resource: this.textures[E_TextureType.video].texture.createView(),
+    //         };
+    //         uniformTextureLayout = {
+    //             binding: binding,
+    //             visibility: GPUShaderStage.FRAGMENT,
+    //             texture: {
+    //                 sampleType: "float",
+    //                 viewDimension: "2d",
+    //                 multisampled: false,
+    //             },
+    //         };
+
+    //     }
+    //     else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
+    //     {
+    //         this.Dynamic = true;
+    //         groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
+    //         uniformTexture = ({
+    //             binding: binding,
+    //             // resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video])
+    //             label: "videoTexture External模式",
+    //             scope: this.textures[E_TextureType.video],
+    //             getResource: this.textures[E_TextureType.video].getExternalTexture,
+    //         });
+
+    //         uniformTextureLayout = {
+    //             binding: binding,
+    //             visibility: GPUShaderStage.FRAGMENT,
+    //             externalTexture: {},
+    //         };
+    //         // dynamic = true;
+    //     }
+    //     layoutEntries.push(uniformTextureLayout);
+    //     uniformEntries.push(uniformTexture);
+    //     //+1
+    //     binding++;
+
+    //     ////group bindgin sampler 字符串
+    //     groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
+    //     //uniform sampler
+    //     let uniformSampler: GPUBindGroupEntry = {
+    //         binding: binding,
+    //         resource: this.defaultSampler,
+    //     };
+    //     //uniform sampler layout
+    //     let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
+    //         binding: binding,
+    //         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    //         sampler: {
+    //             type: this.defaultSamplerBindingType,
+    //         },
+    //     };
+    //     layoutEntries.push(uniformSamplerLayout);
+    //     uniformEntries.push(uniformSampler);
+    //     //+1
+    //     binding++;
+    //     let entriesBundle = {
+    //         bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+    //         groupAndBindingString,
+    //         entry: uniformEntries
+    //     };
+    //     return {
+    //         entriesBundle,
+    //         layoutEntries,
+    //     };
+    // }
 
     override generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0, materialType: E_materialTypeForBindGroup): I_materialBundleOutput {
         let dynamic: boolean = false;

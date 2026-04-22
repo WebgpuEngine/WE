@@ -1,6 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //material
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
 
 
 import cubeSKyTextureFSWGSL from "../../shader/material/texture/cubeSkyTexture.fs.wgsl?raw";
@@ -22,6 +23,7 @@ export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
             //判断是否有output.color 输入(MSAA info 没有)
@@ -34,6 +36,7 @@ export var SHT_materialCubeSkyTextureFS: I_ShaderTemplate = {
         ],
     }
 }
+
 export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
@@ -50,6 +53,7 @@ export var SHT_materialCubeSkyTextureFS_MSAA: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
             // {
             //     name: "colorFS.output content",
             //     replace: "$fsOutput",
@@ -84,6 +88,8 @@ export var SHT_materialCubeSkyTextureFS_MSAAinfo: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInForward,
+
             // {
             //     name: "colorFS.output content",
             //     replace: "$fsOutput",
@@ -123,6 +129,8 @@ export var SHT_materialCubePositionTextureFS: I_ShaderTemplate = {
 
         ],
         replace: [
+            SHT_replaceMsaaInForward,
+
             // {
             //     name: "colorFS.output content",
             //     replace: "$fsOutput",           //
@@ -159,6 +167,8 @@ export var SHT_materialCubePositionTextureFS_MSAA: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
+
             // {
             //     name: "colorFS.output content",
             //     replace: "$fsOutput",           //
@@ -194,6 +204,8 @@ export var SHT_materialCubePositionTextureFS_MSAAinfo: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInForward,
+
             // {
             //     name: "colorFS.output content",
             //     replace: "$fsOutput",           //

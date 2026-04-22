@@ -1,12 +1,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 //material
+import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
+
+
 import wireFrameFSWGSL from "../../shader/material/wirframe/wireFrame.fs.wgsl?raw";
 var wireFrameFS = wireFrameFSWGSL.toString();
 import wireFrameMSAAInfoFSWGSL from "../../shader/material/wirframe/wireFrameMSAAInfo.fs.wgsl?raw";
 var wireFrameMSAAInfoFS = wireFrameMSAAInfoFSWGSL.toString();
 
-
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
 
 /**不透明 */
 export var SHT_WireFrameFS: I_ShaderTemplate = {
@@ -26,6 +28,7 @@ export var SHT_WireFrameFS: I_ShaderTemplate = {
 
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 
@@ -37,7 +40,9 @@ export var SHT_WireFrameFS: I_ShaderTemplate = {
         ],
     }
 }
-/**不透明 */
+import wireFrameMSAASWGSL from "../../shader/material/wirframe/wireFrameMSAA.fs.wgsl?raw";
+var wireFrameMSAAFS = wireFrameMSAASWGSL.toString();
+
 export var SHT_WireFrameFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
     material: {
@@ -50,11 +55,12 @@ export var SHT_WireFrameFS_MSAA: I_ShaderTemplate = {
             },
             {
                 name: "fs",
-                code: wireFrameFS,
+                code: wireFrameMSAAFS,
             },
 
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 

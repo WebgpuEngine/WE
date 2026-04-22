@@ -8,6 +8,8 @@ import {
     WGSL_st_Guffer, WGSL_st_MSAA_Guffer,
     WGSL_st_MSAAinfo_Guffer,
 } from "../base"
+import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
+
 ////////////////////////////////////////////////////////////////////////////////
 //material
 
@@ -30,6 +32,7 @@ export var SHT_materialVertexColorFS: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
         ],
@@ -54,6 +57,7 @@ export var SHT_materialVertexColorFS_MSAA: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
         ],

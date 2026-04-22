@@ -65,7 +65,7 @@ struct st_bulin_phong {
     let shininess = u_bulinphong.shininess;
     metallic = u_bulinphong.metalness;
     roughness = u_bulinphong.roughness;
-
+  $MSAA
     $encodeLightAndShadow   //光源与阴影代码
 
     albedo=inSpecularColor;
@@ -84,6 +84,7 @@ struct st_bulin_phong {
     //     vec3f(0.0, 0.0, 0.0),
     //     1.0
     // );
+  
 
     $mainColorCode    //phong的主要颜色shader，必须
 
@@ -107,6 +108,6 @@ struct st_bulin_phong {
     //测试可见性，
     //  var visibility = getVisibilityOflight(U_lights.lights[1],worldPosition.rgb,normal.rgb); 
     //  output.color  =vec4f(visibility,visibility,visibility,1);
-
+    
     return output;
 }

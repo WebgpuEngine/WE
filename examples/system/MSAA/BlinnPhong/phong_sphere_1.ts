@@ -23,11 +23,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   // reversedZ:true,
-  AA: {
-    MSAA: {
-      enable: true
-    }
-  },  
+  renderMode: "MSAARender",
 };
 let scene = await initScene({
   initConfig: input,
@@ -48,7 +44,7 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
-let onelight= new PointLight(
+let onelight = new PointLight(
   {
     position: [0.0, 0.0, 8.0],
     intensity: 1.0,
@@ -74,8 +70,8 @@ let ambientLight = new AmbientLight(
 await scene.add(ambientLight);
 
 let geometry = new SphereGeometry({
-    widthSegments: 32,
-    heightSegments: 32,
+  widthSegments: 32,
+  heightSegments: 32,
 
 });
 
@@ -85,9 +81,9 @@ let geometry = new SphereGeometry({
 // });
 let phongMaterial = new PhongMaterial({
   color: [0, 0.9, 1, 1],
-  roughness:0.5,
-  metalness:1.5,
-  shininess:32
+  roughness: 0.5,
+  metalness: 1.5,
+  shininess: 32
 });
 
 let inputMesh: IV_MeshEntity = {

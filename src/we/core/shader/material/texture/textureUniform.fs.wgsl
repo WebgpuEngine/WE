@@ -9,5 +9,3 @@ struct uniform_texture_material{
     alphaTest: f32,
 }
 
-@group(2) @binding(0) var<uniform> u_uniform_texture: uniform_texture_material;
-

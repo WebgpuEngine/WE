@@ -1,9 +1,11 @@
 import { I_Update } from "../base/coreDefine";
-import { T_uniformOneGroup } from "../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { I_EntityBundleOutput } from "../entity/base";
+import { E_GBufferNames } from "../gbuffers/base";
 import { Scene } from "../scene/scene";
 import { E_TextureChannel } from "../texture/base";
 import { BaseTexture } from "../texture/baseTexture";
+import { BaseMaterial } from "./baseMaterial";
 
 export enum E_MaterialType {
     /** 颜色材质 */
@@ -196,7 +198,7 @@ export enum E_materialTypeForBindGroup {
     opacityDefer = "opacityDefer",
     opacityMSAA = "opacityMSAA",
     opacityMSAAInfo = "opacityMSAAInfo",
-    
+
     TO_Forward = "TO_Forward",
     TO_Defer = "TO_Defer",
     TO_MSAA = "TO_MSAA",
@@ -325,14 +327,56 @@ export interface I_MaterialUniformTextureBundle {
 
 
 /**20260422 材质的MSAA的groupAndBindingString 绑定function*/
-export function  materialAddGroupBindStringOfMSAA( binding: number):{code:string,binding:number} {
-    let code=`
+export function materialAddGroupBindStringOfMSAA(binding: number): { code: string, binding: number } {
+    let code = `
                 @group(2) @binding(${binding++}) var u_texture_id: texture_2d<u32>;
-                @group(2) @binding(${binding++}) var u_texture_normal: texture_2d<f32>;         //normal（可能，按需）会被计算过
+                @group(2) @binding(${binding++}) var u_texture_normal_msaainfo: texture_2d<f32>;         //normal（可能，按需）会被计算过
                 //其他适用VS 传输的:uv,color,worldPosition等
         `;
     return {
         code,
+        binding,
+    }
+}
+
+export function materialAddBindGroupLayoutOfMSAA(binding: number): { layout: GPUBindGroupLayoutEntry[], binding: number } {
+    let layout: GPUBindGroupLayoutEntry[] = [
+        {
+            binding: binding++,
+            texture: {
+                sampleType: "uint",
+                viewDimension: "2d",
+            },
+            visibility: GPUShaderStage.FRAGMENT,
+        },
+        {
+            binding: binding++,
+            texture: {
+                sampleType: "unfilterable-float",
+                viewDimension: "2d",
+            },
+            visibility: GPUShaderStage.FRAGMENT,
+        },
+    ];
+    return {
+        layout,
+        binding,
+    }
+}
+
+export function materialAddBindGroupOfMSAA(scope: BaseMaterial, binding: number, uuid: string): { group: T_uniformEntries[], binding: number } {
+    let group: T_uniformEntries[] = [
+        {
+            binding: binding++,
+            resource: scope.scene.cameraManager.getGBufferTextureByUUID(uuid, E_GBufferNames.id).createView(),
+        },
+        {
+            binding: binding++,
+            resource: scope.scene.cameraManager.getGBufferTextureByUUID(uuid, E_GBufferNames.normal).createView(),
+        },
+    ];
+    return {
+        group,
         binding,
     }
 }

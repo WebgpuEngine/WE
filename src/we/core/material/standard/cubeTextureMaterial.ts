@@ -11,12 +11,12 @@
  *    B、opacity,整体透明度
  */
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
-import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import {
     SHT_materialCubePositionTextureFS,
     SHT_materialCubePositionTextureFS_MSAA,
@@ -99,99 +99,73 @@ export class CubeTextureMaterial extends TextureMaterial {
         }
         // this.countOfTexturesOfFineshed++;
         this._state = E_lifeState.finished;
-    }
-    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-        let groupAndBindingString: string = "";
-        let binding: number = startBinding;
-        let uniformEntries: T_uniformOneGroup = [];
-        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-
-        ///////////group binding
-        ////group binding  texture 字符串
-        groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_cubeTexture: texture_cube<f32>;\n `;
-        //uniform texture
-        let uniformTexture: GPUBindGroupEntry = {
-            binding: binding,
-            resource: this.textures[E_TextureType.cube].texture.createView({ dimension: 'cube', }),
-        };
-        //uniform texture layout
-        let textureLayout: GPUTextureBindingLayout = {
-            sampleType: "float",
-            viewDimension: "cube",
-            multisampled: false,
-        };
-        let uniformTextureLayout: GPUBindGroupLayoutEntry =
-        {
-            binding: binding,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            texture: textureLayout
-        };
-
-        layoutEntries.push(uniformTextureLayout);
-        uniformEntries.push(uniformTexture);
-        binding++;
-
-        ////group bindgin sampler 字符串
-        groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-        //uniform sampler
-        let uniformSampler: GPUBindGroupEntry = {
-            binding: binding,
-            resource: this.defaultSampler,
-        };
-        //uniform sampler layout
-        let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-            binding: binding,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            sampler: {
-                type: "filtering",
+    } getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: {
+                    sampleType: "float",
+                    viewDimension: "cube",
+                    multisampled: false,
+                },
             },
-        };
-        layoutEntries.push(uniformSamplerLayout);
-        uniformEntries.push(uniformSampler);
-        //+1
-        binding++;
-
-        let entriesBundle = {
-            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-            groupAndBindingString,
-            entry: uniformEntries
-        };
-        return {
-            entriesBundle,
-            layoutEntries,
-        };
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: {
+                    type: "filtering",//  type: this.defaultSamplerBindingType,
+                },
+            }
+        ];
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+            layoutEntries.push(...layoutMSAA.layout);
+            binding = layoutMSAA.binding;
+        }
+        return layoutEntries;
     }
-    // generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-    //     let replaceList = new Map<string, string | (() => string)>();
-    //     return this.formatSHT(template, replaceList, startBinding);
-    // }
-    // getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-    //     let template: I_ShaderTemplate;
-    //     if (this.cubeType == "sky") {
-    //         template = SHT_materialCubeSkyTextureFS;
-    //     }
-    //     else
-    //         template = SHT_materialCubePositionTextureFS;
-    //     let output = this.generateBundleOutput(template, startBinding);
-    //     output.materialType = "opacity";
-    //     return output;
-    // }
-    // getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    //     if (this.cubeType == "sky") {
-    //         let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAA, startBinding);
-    //         let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubeSkyTextureFS_MSAAinfo, startBinding);
-    //         MSAA.materialType = "opacity";
-    //         inforForward.materialType = "opacity";
-    //         return { MSAA, inforForward };
-    //     }
-    //     else {
-    //         let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAA, startBinding);
-    //         let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialCubePositionTextureFS_MSAAinfo, startBinding);
-    //         MSAA.materialType = "opacity";
-    //         inforForward.materialType = "opacity";
-    //         return { MSAA, inforForward };
-    //     }
-    // }
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [
+            {
+                binding: binding++,
+                resource: this.textures[E_TextureType.cube].texture.createView({ dimension: 'cube', })
+            },
+            {
+                binding: binding++,
+                resource: this.defaultSampler,
+            },
+        ];
+
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            if (uuid) {
+                let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+                uniformEntries.push(...groupMSAA.group);
+                binding = groupMSAA.binding;
+            }
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
+    }
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 0;
+        let groupAndBindingString: string = `
+                @group(${this.bindGroupNumber}) @binding(${binding++}) var u_cubeTexture: texture_cube<f32>;
+                @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
+                `;
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
+    }
+
+
+  
 
     updateSelf(clock: Clock): void {
     }

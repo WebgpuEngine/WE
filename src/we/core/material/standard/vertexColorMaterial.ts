@@ -1,10 +1,11 @@
 import { E_lifeState } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
+import { T_uniformEntries } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialVertexColorFS, SHT_materialVertexColorFS_MSAA, SHT_materialVertexColorFS_MSAA_info } from "../../shadermanagemnet/material/vertexColorMaterial";
-import { E_MaterialType, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 export interface IV_VertexColorMaterial extends IV_BaseMaterial {
@@ -56,64 +57,43 @@ export class VertexColorMaterial extends BaseMaterial {
         return this.formatSHT(template, replaceList, startBinding);
     }
 
-
-    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-        this.unifromEntryBundle_Common = {
-            bindingNumber: startBinding,
-            groupAndBindingString: "",
-            entry: []
-        };
-        let entriesBundle = {
-            bindingNumber: startBinding,
-            groupAndBindingString: "",
-            entry: []
-        };
-        return {
-            entriesBundle,
-            layoutEntries: [],
-        };
+    getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+            layoutEntries.push(...layoutMSAA.layout);
+            binding = layoutMSAA.binding;
+        }
+        return layoutEntries;
     }
-    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-    // getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-    //     return this.generateBundleOutput(SHT_materialVertexColorFS, startBinding);
-    // }
-    // getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    //     return this.getOpacity_Forward(startBinding);
-    // }
-    // getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    //     let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVertexColorFS_MSAA, startBinding);
-    //     let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVertexColorFS_MSAA_info, startBinding);
-    //     return { MSAA, inforForward };
-    // }
-    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [];
 
-    // getFS_TO(_startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    //     throw new Error("Method not implemented.");
-    // }
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            if (uuid) {
+                let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+                uniformEntries.push(...groupMSAA.group);
+                binding = groupMSAA.binding;
+            }
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
+    }
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 0;
+        let groupAndBindingString: string = "";
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
+    }
+  
 
-    // getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
-
-    // getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // getTTFS(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // getTOFS(_startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }

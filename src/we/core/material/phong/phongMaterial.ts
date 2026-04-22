@@ -2,14 +2,14 @@ import { E_lifeState, weColor4, weColorToColorOfF32, weHexColor, weHexColorToCol
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialPhongFS_defer, SHT_materialPhongFS, SHT_materialPhongFS_MSAA_info, SHT_materialPhongFS_MSAA } from "../../shadermanagemnet/material/phongMaterial";
 import { I_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
-import { E_MaterialType, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
 /** phong材质的初始化参数 */
@@ -225,136 +225,183 @@ export class PhongMaterial extends BaseMaterial {
   setTO(): void {
     // throw new Error("Method not implemented.");
   }
-  getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-    let groupAndBindingString: string = "";
-    let binding: number = startBinding;
-    let uniformEntries: T_uniformOneGroup = [];
-    let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-
-    ///////////group binding
-    ////group binding  texture 字符串
-    {
-      groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
-      //uniform buffer
-      let unifromBuffer: GPUBindGroupEntry = {
-        binding: binding,
-        resource: this.uniformPointer.gpuBufferView,
-      };
-      //uniform buffer layout
-      let unifromBufferLayout: GPUBindGroupLayoutEntry = {
-        binding: binding,
+  getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+    let binding: number = 0;
+    let layoutEntries: GPUBindGroupLayoutEntry[] = [
+      {
+        binding: binding++,
         visibility: GPUShaderStage.FRAGMENT,
         buffer: {
-          type: "uniform"
-        }
-      };
-      layoutEntries.push(unifromBufferLayout);
-      uniformEntries.push(unifromBuffer);
-      binding++;
-    }
-    ////group bindgin sampler 字符串
-    {
-      groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-      //uniform sampler
-      let uniformSampler: GPUBindGroupEntry = {
-        binding: binding,
-        resource: this.defaultSampler,
-      };;
-      let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-        binding: binding,
+          type: "uniform",
+        },
+      },
+      {
+        binding: binding++,
         visibility: GPUShaderStage.FRAGMENT,
         sampler: {
           type: this.defaultSamplerBindingType,
         },
+      },
+    ];
+    for (let i in this.textures) {
+      let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+        binding: binding++,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        texture: this.textures[i].defaultTextureLayout(),
       };
-      layoutEntries.push(uniformSamplerLayout);
-      uniformEntries.push(uniformSampler);
-      binding++;
+      layoutEntries.push(uniformTextureLayout);
     }
-    //循环绑定纹理
-    {
-      for (let i in this.textures) {
-        let uniformTexture: GPUBindGroupEntry = {
-          binding: binding,
-          resource: this.textures[i].texture.createView(),
-        };
-        //uniform texture layout
-        let uniformTextureLayout: GPUBindGroupLayoutEntry = {
-          binding: binding,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          texture: this.textures[i].defaultTextureLayout(),
-        };
-        layoutEntries.push(uniformTextureLayout);
-        uniformEntries.push(uniformTexture!);
-        groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
-        binding++;
-      }
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+      let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+      layoutEntries.push(...layoutMSAA.layout);
+      binding = layoutMSAA.binding;
     }
-    let entriesBundle = {
-      bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-      groupAndBindingString,
-      entry: uniformEntries
-    };
-    return {
-      entriesBundle,
-      layoutEntries,
-    };
+    return layoutEntries;
   }
-  generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
-
-    let replaceList = new Map<string, string | (() => string)>();
-    let parallax = () => {
-      let replaceString = "";
-      if (this.inputValues?.textures?.parallax != undefined) {
-        replaceString = `
-    let uv_parallax = parallax_occlusion(fsInput.uv.xy, viewDir, parallaxScale ,u_parallaxTexture, u_Sampler);//parallax 纹理
-    //判断使用uv的来源
-    if(u_bulinphong.has_color_texture == 2 && u_bulinphong.has_parallax_texture == 1 && u_bulinphong.has_normal_texture == 1)  {
-        uv = uv_parallax;
+  getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+    let binding: number = 0;
+    let uniformEntries: T_uniformEntries[] = [
+      {
+        binding: binding++,
+        resource: this.uniformPointer.gpuBufferView,
+      },
+      {
+        binding: binding++,
+        resource: this.defaultSampler,
+      },
+    ];
+    for (let i in this.textures) {
+      let uniformTexture: GPUBindGroupEntry = {
+        binding: binding++,
+        resource: this.textures[i].texture.createView(),
+      };
+      uniformEntries.push(uniformTexture!);
     }
-        `;
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+      if (uuid) {
+        let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+        uniformEntries.push(...groupMSAA.group);
+        binding = groupMSAA.binding;
       }
-      return replaceString;
-    };
-    replaceList.set("$parallax", parallax);
-    //parallax 纹理需要的计算量多，单独进行cache
-    if (this.inputValues?.textures?.parallax != undefined) {
-      template.material.owner += " parallax";
+      else
+        throw new Error("uuid is undefined");
     }
-    return this.formatSHT(template, replaceList, startBinding);
+    return uniformEntries;
   }
-  /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-  // getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-  //   return this.generateBundleOutput(SHT_materialPhongFS, startBinding);
+  getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+    let binding: number = 0;
+    let groupAndBindingString: string = `
+              @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_bulinphong : st_bulin_phong;
+              @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
+              `;
+    for (let i in this.textures) {
+      groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding++}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
+    }
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+      let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+      groupAndBindingString += codeAddOfMSAA.code;
+      binding = codeAddOfMSAA.binding;
+    }
+    return groupAndBindingString;
+  }
 
-  // }
-  // getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-  //   let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPhongFS_MSAA, startBinding);
-  //   let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPhongFS_MSAA_info, startBinding);
-  //   return { MSAA, inforForward };
-  // }
+  // getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
+  //   let groupAndBindingString: string = "";
+  //   let binding: number = startBinding;
+  //   let uniformEntries: T_uniformOneGroup = [];
+  //   let layoutEntries: GPUBindGroupLayoutEntry[] = [];
 
-  // getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-  //   return this.generateBundleOutput(SHT_materialPhongFS_defer, startBinding);
+  //   ///////////group binding
+  //   ////group binding  texture 字符串
+  //   {
+  //     groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding})  var<uniform> u_bulinphong : st_bulin_phong;\n `;
+  //     //uniform buffer
+  //     let unifromBuffer: GPUBindGroupEntry = {
+  //       binding: binding,
+  //       resource: this.uniformPointer.gpuBufferView,
+  //     };
+  //     //uniform buffer layout
+  //     let unifromBufferLayout: GPUBindGroupLayoutEntry = {
+  //       binding: binding,
+  //       visibility: GPUShaderStage.FRAGMENT,
+  //       buffer: {
+  //         type: "uniform"
+  //       }
+  //     };
+  //     layoutEntries.push(unifromBufferLayout);
+  //     uniformEntries.push(unifromBuffer);
+  //     binding++;
+  //   }
+  //   ////group bindgin sampler 字符串
+  //   {
+  //     groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
+  //     //uniform sampler
+  //     let uniformSampler: GPUBindGroupEntry = {
+  //       binding: binding,
+  //       resource: this.defaultSampler,
+  //     };;
+  //     let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
+  //       binding: binding,
+  //       visibility: GPUShaderStage.FRAGMENT,
+  //       sampler: {
+  //         type: this.defaultSamplerBindingType,
+  //       },
+  //     };
+  //     layoutEntries.push(uniformSamplerLayout);
+  //     uniformEntries.push(uniformSampler);
+  //     binding++;
+  //   }
+  //   //循环绑定纹理
+  //   {
+  //     for (let i in this.textures) {
+  //       let uniformTexture: GPUBindGroupEntry = {
+  //         binding: binding,
+  //         resource: this.textures[i].texture.createView(),
+  //       };
+  //       //uniform texture layout
+  //       let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+  //         binding: binding,
+  //         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+  //         texture: this.textures[i].defaultTextureLayout(),
+  //       };
+  //       layoutEntries.push(uniformTextureLayout);
+  //       uniformEntries.push(uniformTexture!);
+  //       groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
+  //       binding++;
+  //     }
+  //   }
+  //   let entriesBundle = {
+  //     bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+  //     groupAndBindingString,
+  //     entry: uniformEntries
+  //   };
+  //   return {
+  //     entriesBundle,
+  //     layoutEntries,
+  //   };
   // }
-  /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
-  // getFS_TO(_startBinding: number): I_materialBundleOutput {
-  //   throw new Error("Method not implemented.");
-  // }
-  // getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-  //   throw new Error("Method not implemented.");
-  // }
-  // getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-  //   throw new Error("Method not implemented.");
-  // }
-  /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
+  // generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
 
-
-  // getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-  //   throw new Error("Method not implemented.");
-  // }
-  // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-  //   throw new Error("Method not implemented.");
+  //   let replaceList = new Map<string, string | (() => string)>();
+  //   let parallax = () => {
+  //     let replaceString = "";
+  //     if (this.inputValues?.textures?.parallax != undefined) {
+  //       replaceString = `
+  //   let uv_parallax = parallax_occlusion(fsInput.uv.xy, viewDir, parallaxScale ,u_parallaxTexture, u_Sampler);//parallax 纹理
+  //   //判断使用uv的来源
+  //   if(u_bulinphong.has_color_texture == 2 && u_bulinphong.has_parallax_texture == 1 && u_bulinphong.has_normal_texture == 1)  {
+  //       uv = uv_parallax;
+  //   }
+  //       `;
+  //     }
+  //     return replaceString;
+  //   };
+  //   replaceList.set("$parallax", parallax);
+  //   //parallax 纹理需要的计算量多，单独进行cache
+  //   if (this.inputValues?.textures?.parallax != undefined) {
+  //     template.material.owner += " parallax";
+  //   }
+  //   return this.formatSHT(template, replaceList, startBinding);
   // }
 
 

@@ -18,6 +18,8 @@ import {
     WGSL_st_MSAA_Guffer,
     WGSL_st_MSAAinfo_Guffer
 } from "../base"
+import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
+
 
 import add_PBR_function_WGSL from "../../shader/material/PBR/PBRfunction.wgsl?raw"
 var WGSL_add_PBR_function = add_PBR_function_WGSL.toString();
@@ -96,6 +98,8 @@ export var SHT_materialPBRFS: I_ShaderTemplate = {
             SHT_addPCSS,
         ],
         replace: [
+            SHT_replaceMsaaInForward,
+
             // {//进行uniform与纹理的材质统一化，todo
             //     name: "PBR_Uniform",
             //     replace: "$PBR_Uniform",
@@ -161,6 +165,7 @@ export var SHT_materialPBRFS_MSAA: I_ShaderTemplate = {
             SHT_addPCSS,
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
             SHT_replace_PBR_mainColorCode,
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
@@ -219,6 +224,7 @@ export var SHT_materialPBRFS_MSAA_info: I_ShaderTemplate = {
             SHT_addMathTBN,
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             SHT_replace_PBR_mainColorCode_null,                                         //替换$mainColorCode为空字符串
             SHT_replaceGBufferMSAAinfo_FSOutput,                                      // WGSL_replace_MSAAinfo_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
@@ -293,6 +299,7 @@ export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
             SHT_addMathTBN,
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             // {
             //     name: "PBR_Uniform",
             //     replace: "$PBR_Uniform",
@@ -339,66 +346,66 @@ export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
     }
 }
 
-/**
- * defer color MSAA 是放弃的方案，后期通过 defer depth +MSAA代替。todo：20260310
- */
-export var SHT_materialPBRFS_defer_MSAA: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,
-    material: {
-        owner: "PBRMaterial defer MSAA",
-        add: [
-            SHT_vsStructOutput,
-            {
-                name: "fsOnput",
-                code: WGSL_st_MSAA_Guffer,
-            },
-            {
-                name: "fs",
-                code: PBRFS,
-            },
-            SHT_addMathBase,
-            SHT_addMathTBN,
-        ],
-        replace: [
-            SHT_replace_PBR_mainColorCode_null,                                         //替换$mainColorCode为空字符串
-            SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
-            SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            // {
-            //     name: "PBR_albedo",
-            //     replace: "$PBR_albedo",
-            //     replaceType: E_shaderTemplateReplaceType.value,
-            // },
-            // {
-            //     name: "PBR_metallic",
-            //     replace: "$PBR_metallic",
-            //     replaceType: E_shaderTemplateReplaceType.value,
-            // },
-            // {
-            //     name: "PBR_roughness",
-            //     replace: "$PBR_roughness",
-            //     replaceType: E_shaderTemplateReplaceType.value,
-            // },
-            // {
-            //     name: "PBR_ao",
-            //     replace: "$PBR_ao",
-            //     replaceType: E_shaderTemplateReplaceType.value,
-            // },
-            // {
-            //     name: "PBR_normal",
-            //     replace: "$PBR_normal",
-            //     replaceType: E_shaderTemplateReplaceType.value,
-            // },
-            // {
-            //     name: "PBR_color",
-            //     replace: "$PBR_color",
-            //     replaceType: E_shaderTemplateReplaceType.value,
-            // },
-            SHT_replace_PBR_LightAndShadow_encode,
-            //缺少alpha 透明处理
-        ],
-    }
-}
+// /**
+//  * defer color MSAA 是放弃的方案，后期通过 defer depth +MSAA代替。todo：20260310
+//  */
+// export var SHT_materialPBRFS_defer_MSAA: I_ShaderTemplate = {
+//     scene: SHT_ScenOfCamera_FS,
+//     material: {
+//         owner: "PBRMaterial defer MSAA",
+//         add: [
+//             SHT_vsStructOutput,
+//             {
+//                 name: "fsOnput",
+//                 code: WGSL_st_MSAA_Guffer,
+//             },
+//             {
+//                 name: "fs",
+//                 code: PBRFS,
+//             },
+//             SHT_addMathBase,
+//             SHT_addMathTBN,
+//         ],
+//         replace: [
+//             SHT_replace_PBR_mainColorCode_null,                                         //替换$mainColorCode为空字符串
+//             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
+//             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
+//             // {
+//             //     name: "PBR_albedo",
+//             //     replace: "$PBR_albedo",
+//             //     replaceType: E_shaderTemplateReplaceType.value,
+//             // },
+//             // {
+//             //     name: "PBR_metallic",
+//             //     replace: "$PBR_metallic",
+//             //     replaceType: E_shaderTemplateReplaceType.value,
+//             // },
+//             // {
+//             //     name: "PBR_roughness",
+//             //     replace: "$PBR_roughness",
+//             //     replaceType: E_shaderTemplateReplaceType.value,
+//             // },
+//             // {
+//             //     name: "PBR_ao",
+//             //     replace: "$PBR_ao",
+//             //     replaceType: E_shaderTemplateReplaceType.value,
+//             // },
+//             // {
+//             //     name: "PBR_normal",
+//             //     replace: "$PBR_normal",
+//             //     replaceType: E_shaderTemplateReplaceType.value,
+//             // },
+//             // {
+//             //     name: "PBR_color",
+//             //     replace: "$PBR_color",
+//             //     replaceType: E_shaderTemplateReplaceType.value,
+//             // },
+//             SHT_replace_PBR_LightAndShadow_encode,
+//             //缺少alpha 透明处理
+//         ],
+//     }
+// }
 
-export var SHT_materialPBRFS_defer_MSAA_info: I_ShaderTemplate = SHT_materialPBRFS_MSAA_info;
+// export var SHT_materialPBRFS_defer_MSAA_info: I_ShaderTemplate = SHT_materialPBRFS_MSAA_info;
 
 

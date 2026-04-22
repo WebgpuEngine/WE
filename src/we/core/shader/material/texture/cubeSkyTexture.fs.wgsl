@@ -7,6 +7,8 @@ fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
     $fsOutput
     var cubemapVec =  normalize(fsInput.worldPosition - defaultCameraPosition);
     $fsOutputColor
+    $MSAA
+
     // output.color=vec4f(1,0,0,1);
     return output;
 }

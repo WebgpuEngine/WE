@@ -4,6 +4,7 @@
     initSystemOfFS();
     var output: ST_GBuffer;
     $fsOutput
+    $MSAA
 
     output.color =vec4f(fsInput.color,1);
     return output;

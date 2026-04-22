@@ -14,7 +14,7 @@ import { BaseMaterial, } from "../baseMaterial";
 
 import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
-import { E_MaterialType, E_TextureType, E_TransparentType, I_materialBundleOutput, I_UniformBundleOfMaterial, isAlphaTransparentOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_materialBundleOutput, I_UniformBundleOfMaterial, isAlphaTransparentOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { Clock } from "../../scene/clock";
@@ -24,6 +24,7 @@ import { BaseCamera } from "../../camera/baseCamera";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
+import { E_GBufferNames } from "../../gbuffers/base";
 
 
 
@@ -42,24 +43,6 @@ export interface IV_TextureMaterial extends IV_BaseMaterial {
 }
 
 export class TextureMaterial extends BaseMaterial {
-
-    // override shtOfMaterialType = {
-    //     opacityForward: SHT_materialTextureFS,
-    //     opacityDefer: SHT_materialTextureFS,
-    //     opacityMSAA: SHT_materialTextureFS_MSAA,
-    //     opacityMSAAInfo: SHT_materialTextureFS_MSAAinfo,
-
-    //     TO_Forward: SHT_materialTextureFS,
-    //     TO_Defer: SHT_materialTextureFS,
-    //     TO_MSAA: SHT_materialTextureFS_MSAA,
-    //     TO_MsaaInfo: SHT_materialTextureFS_MSAAinfo,
-
-    //     TT: SHT_materialTexture_TT_FS,
-
-    //     TTP: SHT_materialTexture_TTP_FS,
-    //     TTPF: SHT_materialTexture_TTPF_FS,
-    // };
-
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
     /**是否开启透明度测试 */
     hasAlphaTest: boolean = false;
@@ -153,16 +136,12 @@ export class TextureMaterial extends BaseMaterial {
             this.textures[key].destroy();
         }
         this.textures = {};
-        this.unifromEntryBundle_Common = undefined;
         this._state = E_lifeState.destroyed;
-
     }
 
     async readyForGPU(): Promise<any> {
         this.writeUniformBuffer();
         this.defaultSampler = this.checkSampler(this.inputValues);
-        // for (let key in this.inputValues.textures) {
-
         let texture = this.inputValues.texture;
         if (texture instanceof Texture) {
             this.textures[E_TextureType.color] = texture;
@@ -172,8 +151,6 @@ export class TextureMaterial extends BaseMaterial {
             await textureInstace.init(this.scene);
             this.textures[E_TextureType.color] = textureInstace;
         }
-        // this.countOfTexturesOfFineshed++;
-        // }
         this._state = E_lifeState.finished;
     }
 
@@ -204,97 +181,87 @@ export class TextureMaterial extends BaseMaterial {
     setTO(): void {
         this.hasOpaqueOfTransparent = true;
     }
-    /**
-     * 获取当前材质的uniform组和layout组，必须在材质uniform的第一顺序序列，否则，绑定槽会不同而报错
-     * @param startBinding  起始绑定槽位
-     * @returns 绑定槽位，组绑定字符串，uniform组，layout组
-     */
-    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-        let binding = startBinding;
-        let groupAndBindingString = "";
-
-        let uniformEntries: T_uniformOneGroup = [];
-        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-        {//uniform GPUBuffer
-            // groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_uniform_texture: uniform_texture_material;\n `;
-            let uniformBuffer: GPUBindGroupEntry = {
-                binding: binding,
-                // resource: this.uniformGPUBuffer,
-                resource: this.uniformPointer.gpuBufferView
-            };
-            let uniformBufferLayout: GPUBindGroupLayoutEntry = {
-                binding: binding,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
                 buffer: {
                     type: "uniform",
                 },
-            };
-            layoutEntries.push(uniformBufferLayout);
-            //push到uniform1队列
-            uniformEntries.push(uniformBuffer);
-            //+1
-            binding++;
-        }
-        {////group binding  texture 字符串
-            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_colorTexture: texture_2d<f32>;\n `;
-            //uniform texture
-            let uniformTexture: GPUBindGroupEntry = {
-                binding: binding,
-                resource: this.textures[E_TextureType.color].texture.createView(),
-            };
-            //uniform texture layout
-            let uniformTextureLayout: GPUBindGroupLayoutEntry = {
-                binding: binding,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            },
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
                 texture: {
                     sampleType: "float",
                     viewDimension: "2d",
-                    // multisampled: false,
                 },
-            };
-            layoutEntries.push(uniformTextureLayout);
-            //push到uniformEntries队列
-            uniformEntries.push(uniformTexture);
-            //+1
-            binding++;
-        }
-
-        {////group bindgin sampler 字符串
-            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-            //uniform sampler
-            let uniformSampler: GPUBindGroupEntry = {
-                binding: binding,
-                resource: this.defaultSampler,
-            };
-            //uniform sampler layout
-            let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-                binding: binding,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            },
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
                 sampler: {
                     type: this.defaultSamplerBindingType,
                 },
-            };
-            layoutEntries.push(uniformSamplerLayout);
-            //push到uniformEntries队列
-            uniformEntries.push(uniformSampler);
-            //+1
-            binding++;
+            }
+        ];
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+            layoutEntries.push(...layoutMSAA.layout);
+            binding = layoutMSAA.binding;
         }
-        let entriesBundle = {
-            bindingNumber: binding,//shader中使用的绑定号，用于绑定uniform参数
-            groupAndBindingString,
-            entry: uniformEntries
-        };
-        return {
-            entriesBundle,
-            layoutEntries,
-        };
+        return layoutEntries;
+    }
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [
+            {
+                binding: binding++,
+                resource: this.uniformPointer.gpuBufferView,
+                // resource: {
+                //     buffer: this.uniformPointer.gpuBuffer,
+                //     offset: this.uniformPointer.offset,
+                //     size: this.uniformPointer.byteLength
+                // },
+            },
+            {
+                binding: binding++,
+                resource: this.textures[E_TextureType.color].texture.createView(),
+            },
+            {
+                binding: binding++,
+                resource: this.defaultSampler,
+            },
+        ];
+
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            if (uuid) {
+                let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+                uniformEntries.push(...groupMSAA.group);
+                binding = groupMSAA.binding;
+            }
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
+    }
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 0;
+        let groupAndBindingString: string = `
+            @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_uniform_texture: uniform_texture_material;
+            @group(${this.bindGroupNumber}) @binding(${binding++}) var u_colorTexture: texture_2d<f32>;
+            @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
+            `;
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
     }
 
-    generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        let replaceList = new Map<string, string | (() => string)>();
-        return this.formatSHT(template, replaceList, startBinding);
-    }
     /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
 
 

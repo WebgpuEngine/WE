@@ -500,7 +500,7 @@ export abstract class BaseEntity extends NodeSpace {
     override async init(scene: Scene): Promise<any> {
         this._state = E_lifeState.initializing;
         this.MSAA = scene.MSAA;
-        this.deferColor = scene.renderMode == "deferRender"?true:false;
+        this.deferColor = scene.renderMode == "deferRender" ? true : false;
 
         await super.init(scene);
         // 初始化common uniform
@@ -828,7 +828,8 @@ export abstract class BaseEntity extends NodeSpace {
 
     /** 更新|初始化实例化数组 */
     updateInstanceBuffer() {
-        if (this.flagOutsideInstanceCountChange) {
+        // if (this.flagOutsideInstanceCountChange)//20260422,不知道的原因，会造成第一个instance没有写入数据，vs shader输出的entityID=0；
+        {
             //update：cpu and gpu
             if (this.bufferPointers.instances) {
                 let offset = this.bufferPointers.instances.offset;

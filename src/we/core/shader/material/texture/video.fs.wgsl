@@ -8,6 +8,7 @@ fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
      materialColor = vec4f(1);
     //替换标识符，材质颜色
     $materialColor
+    $MSAA
 
     //输出的color
     $fsOutputColor

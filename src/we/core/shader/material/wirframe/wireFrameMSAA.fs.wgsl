@@ -19,14 +19,7 @@ fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
     $MSAA
 
     output.color =  u_color_material_uniform.color;
-
-    if(U_MVP.reversedZ ==1)
-    {
-        output.depth = fsInput.position.z + offsetWorld ;
-    }
-    else {
-        output.depth = fsInput.position.z - offsetWorld;
-    } 
+ 
     return output;
 }
 //end : wireFrame.fs.wgsl

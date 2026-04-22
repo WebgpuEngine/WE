@@ -4,7 +4,21 @@ import videoTextureFSWGSL from "../../shader/material/texture/video.fs.wgsl?raw"
 var videoTextureFS = videoTextureFSWGSL.toString();
 
 
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer } from "../base"
+import {
+    E_shaderTemplateReplaceType,
+    I_ShaderTemplate,
+    SHT_replaceGBufferCommonValue,
+    SHT_replaceGBufferFSOutput,
+    SHT_replaceGBufferMSAA_FSOutput,
+    SHT_replaceGBufferMSAAinfo_FSOutput,
+    SHT_ScenOfCamera_FS,
+    SHT_vsStructOutput,
+    WGSL_st_Guffer,
+    WGSL_st_MSAA_Guffer,
+    WGSL_st_MSAAinfo_Guffer
+} from "../base"
+import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
+
 
 export var SHT_materialVideoTextureFS: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
@@ -23,6 +37,7 @@ export var SHT_materialVideoTextureFS: I_ShaderTemplate = {
 
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             //输出Gbuffer（三种，forward，msaa，msaaInfo）
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
@@ -62,6 +77,7 @@ export var SHT_materialVideoTextureFS_MSAA: I_ShaderTemplate = {
 
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 
@@ -100,6 +116,8 @@ export var SHT_materialVideoTextureFS_MSAA_info: I_ShaderTemplate = {
 
         ],
         replace: [
+            SHT_replaceMsaaInForward,
+
             SHT_replaceGBufferMSAAinfo_FSOutput,                                            // WGSL_replace_MSAAinfo_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
 

@@ -30,7 +30,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [0, 0, 3],
+  position: [0, 2, 6],
   lookAt: [0, 0, 0],
   controlType: "arcball",
 });
@@ -64,4 +64,18 @@ let inputMesh: IV_MeshEntity = {
 let mesh = new Mesh(inputMesh);
 console.log(mesh);
 await scene.add(mesh);
+await scene.add({ entity: mesh, position: [0, -1, -2.5] });
 
+let inputMesh2: IV_MeshEntity = {
+  attributes: {
+    geometry: boxGeometry,
+  },
+  material: textureMaterial,
+  // wireFrame: {
+  //   color: [1, 1, 1, 1],
+  //   enable: true,
+  //   // wireFrameOnly: true,
+  // }
+}
+let mesh2 = new Mesh(inputMesh2);
+await scene.add({ entity: mesh2, position: [1, 0, -4.5] });

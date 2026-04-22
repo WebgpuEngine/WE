@@ -9,19 +9,18 @@
  *          1、更改PBR中textures的各类 texture?: Texture | I_BaseTexture；
  *          2、更改shader【struct PBRUniformTexture】和TS中insideUniformBundle数组中value作为factor使用，而不是二选一；
  */
-import { E_lifeState, weColor4, weVec3, weVec4 } from "../../base/coreDefine";
+import { E_lifeState, weColor4, weVec4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
-import { SHT_materialPBRFS_defer, SHT_materialPBRFS_defer_MSAA, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
+import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
 import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
-import { E_MaterialType, E_MaterialUniformKind, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_MaterialUniformTextureBundle, I_UniformBundleOfMaterial, IV_BaseMaterial } from "../base";
+import { E_MaterialType, E_materialTypeForBindGroup, E_MaterialUniformKind, E_TextureType, I_materialBundleOutput, I_MaterialUniformTextureBundle, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import { BaseMaterial } from "../baseMaterial";
-import { createUniformBuffer } from "../../command/baseFunction";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 
@@ -728,155 +727,214 @@ export class PBRMaterial extends BaseMaterial {
     setTO(): void {
         // throw new Error("Method not implemented.");
     }
-    /**
-     * 通用部分的uniform绑定
-     * @param startBinding 
-     * @returns 
-     */
-    getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-        this.unifromEntryLayout = [];// 每次重置layout
-        let groupAndBindingString: string = "";
-        let binding: number = startBinding;
-        let uniformEntries: T_uniformOneGroup = [];
-        let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-        let code: string = "";
-        ///////////group binding
-        {/////uniform 
-            groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_pbr_uniform : PBRUniformInput; \n `;
-            let uniformBuffer: GPUBindGroupEntry = {
-                binding: binding,
-                resource: this.uniformPointer.gpuBufferView,
-            };
-            let uniformBufferLayout: GPUBindGroupLayoutEntry = {
-                binding: binding,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
                 buffer: {
                     type: "uniform",
                 },
-            };
-            layoutEntries.push(uniformBufferLayout);
-            //push到uniform1队列
-            uniformEntries.push(uniformBuffer);
-            //+1
-            binding++;
-        }
-        {//per texture and sampler
-            for (let perTexture of this.insideUniformBundle) {
-                let uniformName = perTexture.textureName;
-                if (uniformName == E_TextureType.envMap) { continue; }
-                {//texture
-                    groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
-                    let uniformTexture: GPUBindGroupEntry = {
-                        binding: binding,
-                        resource: perTexture.texture!.texture.createView(),//创建texture view,20251204 也可以直接使用texture
-                    };
-                    //uniform texture layout
-                    let uniformTextureLayout: GPUBindGroupLayoutEntry = {
-                        binding: binding,
-                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                        texture: perTexture.texture!.defaultTextureLayout(),
-                    };
-                    //push到uniform1队列
-                    layoutEntries.push(uniformTextureLayout);
-                    uniformEntries.push(uniformTexture);
-                    //+1
-                    binding++;
-                }
-                {//sampler
-                    groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_sampler_${uniformName} : sampler; \n `;
-                    let uniformSampler: GPUBindGroupEntry = {
-                        binding: binding,
-                        resource: perTexture.sampler!,
-                    };
-                    //uniform sampler layout
-                    let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-                        binding: binding,
-                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                        sampler: {
-                            type: perTexture.samplerBindingType!,
-                        },
-                    };
-                    layoutEntries.push(uniformSamplerLayout);
-                    //push到uniform1队列
-                    uniformEntries.push(uniformSampler);
-                    //+1
-                    binding++;
-                }
+            },
+        ];
+        for (let perTexture of this.insideUniformBundle) {
+            let uniformName = perTexture.textureName;
+            if (uniformName == E_TextureType.envMap) { continue; }
+            {//texture
+                //uniform texture layout
+                let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+                    binding: binding,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    texture: perTexture.texture!.defaultTextureLayout(),
+                };
+                //push到uniform1队列
+                layoutEntries.push(uniformTextureLayout);
+                //+1
+                binding++;
+            }
+            {//sampler
+                //uniform sampler layout
+                let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
+                    binding: binding,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    sampler: {
+                        type: perTexture.samplerBindingType!,
+                    },
+                };
+                layoutEntries.push(uniformSamplerLayout);
+                //+1
+                binding++;
             }
         }
 
-        let entriesBundle = {
-            bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-            groupAndBindingString,
-            entry: uniformEntries
-        };
-        return {
-            entriesBundle,
-            layoutEntries,
-        };
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+            layoutEntries.push(...layoutMSAA.layout);
+            binding = layoutMSAA.binding;
+        }
+        return layoutEntries;
     }
-    /**
-     * 
-     * @param template 着色器模板
-     * @param startBinding 绑定的起始位置
-     * @returns I_materialBundleOutput
-     */
-    generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
-        let replaceList = new Map<string, string | (() => string)>();
-        return this.formatSHT(template, replaceList, startBinding);
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [
+            {
+                binding: binding++,
+                resource: this.uniformPointer.gpuBufferView,
+            },
+        ];
+        for (let perTexture of this.insideUniformBundle) {
+            let uniformName = perTexture.textureName;
+            if (uniformName == E_TextureType.envMap) { continue; }
+            {//texture
+                let uniformTexture: GPUBindGroupEntry = {
+                    binding: binding,
+                    resource: perTexture.texture!.texture.createView(),//创建texture view,20251204 也可以直接使用texture
+                };
+                uniformEntries.push(uniformTexture);
+                //+1
+                binding++;
+            }
+            {//sampler
+                let uniformSampler: GPUBindGroupEntry = {
+                    binding: binding,
+                    resource: perTexture.sampler!,
+                };
+                //push到uniform1队列
+                uniformEntries.push(uniformSampler);
+                //+1
+                binding++;
+            }
+        }
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            if (uuid) {
+                let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+                uniformEntries.push(...groupMSAA.group);
+                binding = groupMSAA.binding;
+            }
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
     }
-    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-    // getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-    //     return this.generateBundleOutput(SHT_materialPBRFS, startBinding);
-    // }
-    // getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    //     let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_MSAA, startBinding);
-    //     let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_MSAA_info, startBinding);
-    //     return { MSAA, inforForward };
-    // }
-    // // getOpacity_DeferColorOfMSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    // //     let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_defer_MSAA, startBinding);
-    // //     let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialPBRFS_MSAA_info, startBinding);
-    // //     return { MSAA, inforForward };
-    // // }
-    // getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    //     return this.generateBundleOutput(SHT_materialPBRFS_defer, startBinding);
-    // }
-    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 0;
+        let groupAndBindingString: string = `
+                @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_pbr_uniform : PBRUniformInput; 
+                `;
+        for (let perTexture of this.insideUniformBundle) {
+            let uniformName = perTexture.textureName;
+            if (uniformName == E_TextureType.envMap) { continue; }
+            //texture
+            groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
+            //sampler
+            groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_sampler_${uniformName} : sampler; \n `;
+        }
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
+    }
     // /**
-    // * todo,20251022,Blend部分未配置
-    // * 透明PBR的不透明部分。与不透明基本相同，只是需要判断透明情况（alpha透明，不考虑物理透明），不透明部分为1.0（按照alpha 或alpha test进行）。
-    // * @param _startBinding number
-    // * @return I_materialBundleOutput
-    // */
-    // getFS_TO(_startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // /**
-    //  * 延迟渲染的不透明部分。与不透明基本相同。更简单没有光影。
+    //  * 通用部分的uniform绑定
     //  * @param startBinding 
-    //  * @return I_materialBundleOutput
+    //  * @returns 
     //  */
-    // getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
+    // getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
+    //     this.unifromEntryLayout = [];// 每次重置layout
+    //     let groupAndBindingString: string = "";
+    //     let binding: number = startBinding;
+    //     let uniformEntries: T_uniformOneGroup = [];
+    //     let layoutEntries: GPUBindGroupLayoutEntry[] = [];
+    //     let code: string = "";
+    //     ///////////group binding
+    //     {/////uniform 
+    //         groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_pbr_uniform : PBRUniformInput; \n `;
+    //         let uniformBuffer: GPUBindGroupEntry = {
+    //             binding: binding,
+    //             resource: this.uniformPointer.gpuBufferView,
+    //         };
+    //         let uniformBufferLayout: GPUBindGroupLayoutEntry = {
+    //             binding: binding,
+    //             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    //             buffer: {
+    //                 type: "uniform",
+    //             },
+    //         };
+    //         layoutEntries.push(uniformBufferLayout);
+    //         //push到uniform1队列
+    //         uniformEntries.push(uniformBuffer);
+    //         //+1
+    //         binding++;
+    //     }
+    //     {//per texture and sampler
+    //         for (let perTexture of this.insideUniformBundle) {
+    //             let uniformName = perTexture.textureName;
+    //             if (uniformName == E_TextureType.envMap) { continue; }
+    //             {//texture
+    //                 groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
+    //                 let uniformTexture: GPUBindGroupEntry = {
+    //                     binding: binding,
+    //                     resource: perTexture.texture!.texture.createView(),//创建texture view,20251204 也可以直接使用texture
+    //                 };
+    //                 //uniform texture layout
+    //                 let uniformTextureLayout: GPUBindGroupLayoutEntry = {
+    //                     binding: binding,
+    //                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    //                     texture: perTexture.texture!.defaultTextureLayout(),
+    //                 };
+    //                 //push到uniform1队列
+    //                 layoutEntries.push(uniformTextureLayout);
+    //                 uniformEntries.push(uniformTexture);
+    //                 //+1
+    //                 binding++;
+    //             }
+    //             {//sampler
+    //                 groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_sampler_${uniformName} : sampler; \n `;
+    //                 let uniformSampler: GPUBindGroupEntry = {
+    //                     binding: binding,
+    //                     resource: perTexture.sampler!,
+    //                 };
+    //                 //uniform sampler layout
+    //                 let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
+    //                     binding: binding,
+    //                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    //                     sampler: {
+    //                         type: perTexture.samplerBindingType!,
+    //                     },
+    //                 };
+    //                 layoutEntries.push(uniformSamplerLayout);
+    //                 //push到uniform1队列
+    //                 uniformEntries.push(uniformSampler);
+    //                 //+1
+    //                 binding++;
+    //             }
+    //         }
+    //     }
+
+    //     let entriesBundle = {
+    //         bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
+    //         groupAndBindingString,
+    //         entry: uniformEntries
+    //     };
+    //     return {
+    //         entriesBundle,
+    //         layoutEntries,
+    //     };
     // }
-    // /**
-    //  * 与不透明的MSAA基本相同，在shader（SHT）中增加alpha test判断。
-    //  * @param startBinding number 
-    //  * @return I_BundleOfMaterialForMSAA
+    /**
+    //  * 
+    //  * @param template 着色器模板
+    //  * @param startBinding 绑定的起始位置
+    //  * @returns I_materialBundleOutput
     //  */
-    // getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    //     throw new Error("Method not implemented.");
+    // generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
+    //     let replaceList = new Map<string, string | (() => string)>();
+    //     return this.formatSHT(template, replaceList, startBinding);
     // }
-    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
-    // /**
-    //  * PBR的透明，目前只考虑alpha透明，不考虑物理透明。
-    //  * @param renderObject 
-    //  * @param _startBinding 
-    //  */
-    // getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
+
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }

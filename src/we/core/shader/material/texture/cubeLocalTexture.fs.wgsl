@@ -7,6 +7,8 @@ fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
     $fsOutput
     var cubemapVec =  fsInput.cubeVecUV;
     $fsOutputColor
+    $MSAA
+
     return output;
 }
 //end : cubeLocationtexture.fs.wgsl

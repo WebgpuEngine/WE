@@ -1,5 +1,21 @@
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, SHT_replaceGBufferCommonValue, SHT_replaceGBufferFSOutput, SHT_replaceGBufferMSAA_FSOutput, SHT_replaceGBufferMSAAinfo_FSOutput, SHT_ScenOfCamera_FS, SHT_vsStructOutput, WGSL_replace_gbuffer_output, WGSL_st_Guffer, WGSL_st_MSAA_Guffer, WGSL_st_MSAAinfo_Guffer, WGSL_st_transparentbuffer } from "../base"
+import {
+    E_shaderTemplateReplaceType,
+    I_ShaderTemplate,
+    SHT_replaceGBufferCommonValue,
+    SHT_replaceGBufferFSOutput,
+    SHT_replaceGBufferMSAA_FSOutput,
+    SHT_replaceGBufferMSAAinfo_FSOutput,
+    SHT_ScenOfCamera_FS,
+    SHT_vsStructOutput,
+    WGSL_replace_gbuffer_output,
+    WGSL_st_Guffer,
+    WGSL_st_MSAA_Guffer,
+    WGSL_st_MSAAinfo_Guffer,
+    WGSL_st_transparentbuffer
+} from "../base"
 import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
+import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
+
 ////////////////////////////////////////////////////////////////////////////////
 //material
 
@@ -22,15 +38,14 @@ export var SHT_materialColorFS: I_ShaderTemplate = {
             },
         ],
         replace: [
-
+            SHT_replaceMsaaInForward,
             SHT_replaceGBufferFSOutput,                                            // WGSL_replace_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
         ],
     }
 }
 
-import colorMSAAFSWGSL from "../../shader/material/color/colorMSAA.fs.wgsl?raw";
-var colorMSAAFS = colorMSAAFSWGSL.toString();
+
 /** 颜色材质, 不透明, 按需合并到VS中 */
 export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
     scene: SHT_ScenOfCamera_FS,
@@ -44,10 +59,11 @@ export var SHT_materialColorFS_MSAA: I_ShaderTemplate = {
             },
             {
                 name: "fs",
-                code: colorMSAAFS,
+                code: colorFS,
             },
         ],
         replace: [
+            SHT_replaceMsaaInMsaa,
             SHT_replaceGBufferMSAA_FSOutput,                                            // WGSL_replace_MSAA_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
         ],
@@ -73,6 +89,7 @@ export var SHT_materialColorFS_MSAA_info: I_ShaderTemplate = {
             },
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             SHT_replaceGBufferMSAAinfo_FSOutput,                                            // WGSL_replace_MSAAinfo_gbuffer_output部分
             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
         ],
@@ -207,6 +224,7 @@ export var SHT_materialOneCubeFS: I_ShaderTemplate = {
             }
         ],
         replace: [
+            SHT_replaceMsaaInForward,
             {
                 name: "colorFS.output content",
                 replace: "$fsOutput",           //

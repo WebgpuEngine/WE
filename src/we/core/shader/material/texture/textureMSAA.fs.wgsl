@@ -15,6 +15,13 @@
     $gbufferCommonValues //初始化GBuffer的通用值
   
     initSystemOfFS();
+
+    var output: ST_GBuffer;
+  
+    $fsOutput
+
+    //output.color= pow(textureSample(u_colorTexture, u_Sampler, uv ), vec4f(1.0 / 2.2)) ;//gamma编码，这里不使用，最后统一进行tone mapping
+    materialColor=textureSample(u_colorTexture, u_Sampler, uv );
   //MSAA start 
     normal = textureLoad(u_texture_normal, vec2i(floor( fsInput.position.xy)),0).rgb;
     let id_of_pixel=textureLoad(u_texture_id, vec2i(floor( fsInput.position.xy)),0 ).r;
@@ -22,13 +29,6 @@
         discard;
     }
 //MSAA end 
-    var output: ST_GBuffer;
-  
-    $fsOutput
-
-    //output.color= pow(textureSample(u_colorTexture, u_Sampler, uv ), vec4f(1.0 / 2.2)) ;//gamma编码，这里不使用，最后统一进行tone mapping
-    materialColor=textureSample(u_colorTexture, u_Sampler, uv );
-
     //如果有alpha，按照input规则输出，按照图像原始数据处理，这里的透明也写深度）
     if(u_uniform_texture.has_alphaTest==1)
     {

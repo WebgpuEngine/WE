@@ -159,6 +159,8 @@ struct PBRUniformInput{
     if( u_pbr_uniform.envmap.kind == 1){
         envmap_enable = true;
     }
+    $MSAA
+
     // $PBR_albedo
     // $PBR_metallic
     // $PBR_roughness
