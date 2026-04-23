@@ -111,6 +111,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";//透明具有双面性
         }
+        if(this._material.DoubleSided){
+            this._cullMode = "none";
+        }
     }
 
 

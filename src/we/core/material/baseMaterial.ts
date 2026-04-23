@@ -51,7 +51,10 @@ export abstract class BaseMaterial extends RootGPU {
     uniformPointer!: I_pointerStruct;
     ///////////////////////////////////////////////////////////////////
     //todo
-    doubleSided: boolean = false;
+    _doubleSided: boolean = false;
+    get DoubleSided(): boolean { return this._doubleSided; }
+    set DoubleSided(value: boolean) { this._doubleSided = value; }
+
     ///////////////////////////////////////////////////////////////////
     //材质相关
     /** 透明材质是否有不透明的部分     */
@@ -112,7 +115,7 @@ export abstract class BaseMaterial extends RootGPU {
     constructor(input?: IV_BaseMaterial) {
         super(input);
         this.type = "material";
-        this.doubleSided = input?.doubleSided || false;
+        this.DoubleSided = input?.doubleSided || false;
         // this.reversedZ = false;
         if (input) {
             this.inputValues = input;
