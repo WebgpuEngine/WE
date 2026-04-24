@@ -369,8 +369,8 @@ export abstract class BaseEntity extends NodeSpace {
             this.instance = input.instance;
             this.checkInstance();
         }
-        if (input.primitive?.cullMode) {
-            this._cullMode = input.primitive.cullMode;
+        if (input.cullMode) {
+            this._cullMode = input.cullMode;
         }
         //////////////////
         //about shader

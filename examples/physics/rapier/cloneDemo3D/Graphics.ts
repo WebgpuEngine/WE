@@ -273,6 +273,10 @@ export class Graphics {
         });
         this.rb2colls = new Map();
         this.colorIndex = 0;
+        if (window.gltfInstance != undefined) {
+            this.scene.removeFromScene(window.gltfInstance);
+        }
+
     }
 
 
@@ -375,7 +379,10 @@ export class Graphics {
                 let positions = Array.from(vertices!);
 
                 let material = this.listOfMaterial[colorID];
-
+                let invertNormal = false;
+                if (collider.shapeType() == RAPIER.ShapeType.HeightField) {
+                    invertNormal = true;
+                }
                 mesh = new Mesh(
                     {
                         material: material,
@@ -390,7 +397,9 @@ export class Graphics {
                                     sampling: "first",
                                 }
                             },
-                        }
+                        },
+                        cullMode: "none",
+                        invertNormal,
                     }
                 );
                 break;

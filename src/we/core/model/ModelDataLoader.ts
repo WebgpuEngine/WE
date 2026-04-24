@@ -7,9 +7,24 @@ export abstract class ModelDataLoader {
 
     abstract gltfJSON(): any;
 
+    /**获取accessor的原始数据
+     * @param index accessor的索引
+     * @returns accessor的原始数据
+     */
     abstract getAccessorOfSource(index: number): any | undefined;
+    /**gltf accessor的数组数据
+     * @param index accessor的索引
+     * @param useFor accessor的使用场景
+     * @returns GPU buffer bundle 或 TypedArray
+     */
     abstract getAccessor(index: number, useFor: E_accessorUseFor): Promise<TypedArray | I_vsGPUBufferBundle | I_indexGPUBufferBundle>;
-
+    /**gltf accessor的数组数据
+     * @param index accessor的索引
+     * @param useFor accessor的使用场景
+     * @returns 数组数据
+     */
+    abstract getAccessorArray(index: number, useFor: E_accessorUseFor): Promise<number[]>;
+    
     abstract getImages(): any[] | undefined;
     abstract getImage(index: number): Promise<ImageBitmap | undefined>;
 
@@ -39,4 +54,5 @@ export abstract class ModelDataLoader {
     abstract detachData(): void;
 
     abstract getAccessorForByte(index: number): Uint32Array | Int32Array | Float32Array;
+    abstract getAccessorForArray(index: number): number[];
 }

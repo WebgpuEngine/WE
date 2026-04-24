@@ -173,7 +173,7 @@ export class GltfDataAtLoaders extends ModelDataLoader {
         }
         return this.gltf.getScene(index);
     }
-    getCurrentScene(): number  {
+    getCurrentScene(): number {
         return this.gltf.json.scene || 0;
     }
 
@@ -260,6 +260,17 @@ export class GltfDataAtLoaders extends ModelDataLoader {
             return this.accessor.get(aliaseID);
         }
     }
+    async getAccessorArray(accessorID: number, useFor: E_accessorUseFor): Promise<number[]> {
+        if (useFor == E_accessorUseFor.array) {
+            // return this.gltf.getTypedArrayForAccessor(accessorID);
+            let array = this.getAccessorForArray(accessorID);
+            return array;
+        }
+        else {
+            let gpuBufferBundle = await this.generateAccessorForArray(accessorID, useFor);
+            return gpuBufferBundle;
+        }
+    }
     /**
      * 获取accessor的字节数组 i32|u32|f32
      * @param index 
@@ -300,6 +311,31 @@ export class GltfDataAtLoaders extends ModelDataLoader {
         else {
             throw new Error(`gltf accessor index:${index} 's bufferView not support`);
         }
+    }
+    /**
+     * 获取accessor的数组 
+     * @param index 
+     * @returns 
+     */
+    getAccessorForArray(index: number): number[] {
+        let accessor = this.gltf.getAccessor(index);
+        let arrayBuffer;
+        //此处使用了修改版本的@loader.gl/gltf，增加了accessor.value的类型
+        // @ts-ignore
+        if (accessor.value == undefined) {
+            try {
+                arrayBuffer = this.gltf.getTypedArrayForAccessor(index);
+            }
+            catch (error) {
+                console.error(`gltf accessor index:${index} 's bufferView not support`);
+                throw error;
+            }
+        }
+        else {
+            // @ts-ignore
+            arrayBuffer = accessor.value;
+        }
+        return [...arrayBuffer];
     }
     /**
      * 获取accessor对应的GPUBuffer
@@ -477,6 +513,74 @@ export class GltfDataAtLoaders extends ModelDataLoader {
                 min: accessor.min,
                 max: accessor.max,
             } as I_vsGPUBufferBundle;
+        }
+        else {
+            throw new Error(`未实现的的 ${useFor}`);
+        }
+        return accessorBufferSource;
+    }
+    /**
+     *20260425:todo,sparse 写在了GPUBuffer上，需要适配
+     * @param accessorID 
+     * @param aliaseID 
+     * @param useFor 
+     * @returns 
+     */
+    async generateAccessorForArray(accessorID: number, useFor: E_accessorUseFor): Promise<number[]> {
+        let accessor = this.gltf.getAccessor(accessorID);
+        // let gpuBuffer = this.getGPUBuffer(accessorID);
+        let accessorBufferSource: number[] = [];
+        if (useFor == E_accessorUseFor.indexTriangleList || useFor == E_accessorUseFor.indexTriangleStrip
+            || useFor == E_accessorUseFor.indexLineList || useFor == E_accessorUseFor.indexLineStrip
+            || useFor == E_accessorUseFor.indexPointList
+        ) {
+            accessorBufferSource = this.getAccessorForArray(accessorID);
+
+        } else if (useFor == E_accessorUseFor.indexLineLoop) {
+            let countsOfList = accessor.count * 2;
+            let arrayIndexLineLoop = this.gltf.getTypedArrayForAccessor(accessorID) as Uint32Array;
+            let newIndexBuffer = BaseFunction.convertLineIndexLoopToList(arrayIndexLineLoop, accessor.count);
+            accessorBufferSource = [...newIndexBuffer];
+        }
+        else if (useFor == E_accessorUseFor.indexTriangleFan) {
+            let countsOfList = (accessor.count - 2) * 3;
+            let arrayIndexTriangleFan = this.gltf.getTypedArrayForAccessor(accessorID) as Uint32Array;
+            let newIndexBuffer = BaseFunction.convertTriangleIndexFanToList(arrayIndexTriangleFan, accessor.count);
+            accessorBufferSource = [...newIndexBuffer];
+        }
+        else if (useFor == E_accessorUseFor.vertex && accessor.sparse === undefined) {
+            accessorBufferSource = this.getAccessorForArray(accessorID);
+        }
+        else if (useFor == E_accessorUseFor.vertex && accessor.sparse !== undefined) {
+            let countOfSparse = accessor.sparse.count;
+
+            let indexBufferSparse_source = this.getBufferByBufferViewID(accessor.sparse.indices.bufferView!);          //获取bufferView对应的buffer
+            let indexBufferSparse: Uint16Array | Uint32Array;
+            if (accessor.sparse.indices.componentType == 5123) {
+                indexBufferSparse = new Uint16Array(indexBufferSparse_source.arrayBuffer, indexBufferSparse_source.byteOffset, indexBufferSparse_source.byteLength / 2);
+            }
+            else {
+                indexBufferSparse = new Uint32Array(indexBufferSparse_source.arrayBuffer, indexBufferSparse_source.byteOffset, indexBufferSparse_source.byteLength / 4);
+            }
+
+            let valueBufferSparse_source = this.getBufferByBufferViewID(accessor.sparse.values.bufferView!);          //获取bufferView对应的buffer
+            let valueBufferSparse: Float32Array = new Float32Array(valueBufferSparse_source.arrayBuffer, valueBufferSparse_source.byteOffset, valueBufferSparse_source.byteLength / 4);
+
+            let fromBuffer = this.getAccessorForByte(accessorID) as Float32Array;
+            let bufferAttribute = new Float32Array(cloneBufferSource(fromBuffer, fromBuffer.byteOffset, fromBuffer.byteLength));
+
+            // 写入sparse数据到bufferAttribute
+            for (let i_sparse = 0; i_sparse < countOfSparse; i_sparse++) {
+                let index = indexBufferSparse[i_sparse];
+                BaseFunction.writeArayBufferViewForSparse(bufferAttribute,
+                    accessor.type,
+                    accessor.componentType,
+                    index,
+                    valueBufferSparse,
+                    i_sparse);
+            }
+
+            accessorBufferSource = [...bufferAttribute];
         }
         else {
             throw new Error(`未实现的的 ${useFor}`);

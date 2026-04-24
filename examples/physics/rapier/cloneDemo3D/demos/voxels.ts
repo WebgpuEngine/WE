@@ -22,7 +22,7 @@ function generateVoxels(n: number) {
     }
     return {
         points: new Float32Array(points),
-        voxelSize: {x: 1.0, y: 1.2, z: 1.5},
+        voxelSize: {x: 1.0, y: 1., z: 1.},
     };
 }
 

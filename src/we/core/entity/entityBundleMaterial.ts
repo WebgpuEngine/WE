@@ -30,6 +30,7 @@ import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPosi
 import { Scene } from "../scene/scene";
 import { NodeObject } from "../organization/nodeObject";
 import { vec3, Vec3 } from "wgpu-matrix";
+import { invertNormals } from "../../model/gltf/function";
 
 
 export abstract class EntityBundleMaterial extends BaseEntity {
@@ -95,6 +96,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 }
             }
         }
+        if (this.kind == E_entityType.mesh && this.inputValues.invertNormal === true) {
+            if (Array.isArray(this.attributes.vertices.normal))
+                // invertNormals(this.attributes.vertices.normal as number[]);
+                this.attributes.vertices.normal = this.attributes.vertices.normal.map((item) => -item);
+            else {
+                console.warn("Mesh constructor: normal is not array");
+            }
+        }
         super.init(scene);
     }
     override _destroy(): void {
@@ -111,7 +120,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";//透明具有双面性
         }
-        if(this._material.DoubleSided){
+        if (this._material.DoubleSided) {
             this._cullMode = "none";
         }
     }

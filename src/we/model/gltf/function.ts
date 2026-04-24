@@ -291,7 +291,13 @@ export function computeNormalsFromPositionsNoIndex(positions: Float32Array): Flo
     }
     return normals;
 }
-
+export function invertNormals(normals: number[]): void {
+    for (let i = 0; i < normals.length; i += 3) {
+        normals[i] = -normals[i];
+        normals[i + 1] = -normals[i + 1];
+        normals[i + 2] = -normals[i + 2];
+    }
+}
 
 // /**
 //  * 获取accessor的componentType(int8,uint8,sint16,uint16,uint32,float32)对应的byte size

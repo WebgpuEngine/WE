@@ -68,6 +68,7 @@ export async function createGLTFModel(input: I_Model): Promise<GLTFModel> {
 export class GLTFModel extends BaseModel {
     DataLoader!: ModelDataLoader;
     url: string;
+    dataTypeOfAttribute: "BOL" | "inModel" = "inModel";
 
     /** gltf当前场景索引 */
     currentScene: number = 0;
@@ -114,6 +115,9 @@ export class GLTFModel extends BaseModel {
         this.scene = input.scene;
         this.device = input.scene.device;
         this.debug = input.debug || false;
+        if (input.dataTypeOfAttribute != undefined) {
+            this.dataTypeOfAttribute = input.dataTypeOfAttribute;
+        }
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**实例化
@@ -138,7 +142,7 @@ export class GLTFModel extends BaseModel {
      * 初始化场景入口。
      * 1、gltf会新建一个node object作为场景节点，并返回
      * 2、根据场景索引，初始化场景中的节点
-     * 3、初始化节点是递归操作（包括camera）
+     * 3、初始化节点是递归操作（包括:mesh、camera）
      * 4、如果有animation，则在新的Node Object上初始化animation，并注册到animationManager
      * 5、如果有animation，则在新的Node Object上初始化animation group，并注册到animationGroupManager
      * @param id 场景索引
@@ -154,7 +158,7 @@ export class GLTFModel extends BaseModel {
             animationGroup: new Map<any, any>(),
         });
         nodeOfScene._modelOrigin = this;
-        nodeOfScene._name = "gltf scene " + nodeOfScene.ID;
+        nodeOfScene._name = "gltf scene ,WE id:" + nodeOfScene.ID;
 
         if (id == undefined) {
             id = this.currentScene;
@@ -864,10 +868,22 @@ export class GLTFModel extends BaseModel {
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //attribute part 
                     //初始化mesh顶点数据为 we entity的顶点数据格式；
-                    let verticesOfDataOfEntity = await this.getVerticesOfPrimitive(primitive, i, j);
+                    let verticesOfDataOfEntity ;
+                    if(this.dataTypeOfAttribute == "inModel"){
+                        verticesOfDataOfEntity = await this.getVerticesOfPrimitive(primitive, i, j);
+                    }
+                    else{
+                        verticesOfDataOfEntity = await this.getVerticesArrayOfPrimitive(primitive, i, j);
+                    }
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //gpubuffer of index and draw mode   part
-                    let indecis = await this.getIndecisOfPrimitive(primitive, i, j);
+                    let indecis ;
+                    if(this.dataTypeOfAttribute == "inModel"){
+                        indecis = await this.getIndecisOfPrimitive(primitive, i, j);
+                    }
+                    else{
+                        indecis = await this.getIndecisArrayOfPrimitive(primitive, i, j);
+                    }
                     let drawMode = indecis.drawMode;
                     let indicesOfDataOfEntity = indecis.indecis;
                     let stripIndexFormat = indecis.stripIndexFormat;
@@ -1095,6 +1111,80 @@ export class GLTFModel extends BaseModel {
             }
         return verticesOfDataOfEntity;
     }
+    /**获取顶点数组
+     * @param primitive 
+     * @param meshID 
+     * @param primitiveID 
+     * @returns 顶点数组数据
+     */
+    async getVerticesArrayOfPrimitive(primitive: any, meshID: string, primitiveID: string)
+        : Promise<
+            {
+                [name: string]: number[]
+            }
+        > {
+        let verticesOfDataOfEntity: {
+            [name: string]: number[]
+        } = {};
+        for (let k in primitive.attributes) {
+            let oneAttribute = primitive.attributes[k];
+            let accessor = await this.DataLoader.getAccessorArray(oneAttribute, E_accessorUseFor.vertex);
+            // let accessor = this.modelRes.accessor.get(oneAttribute.toString());
+            if (accessor == undefined) {
+                console.warn(`mesh ${meshID} primitive ${primitiveID} attribute ${k} not found accessor`);
+                continue;
+            }
+            let nameOfAttribute = k.toLowerCase();
+            if (k == "COLOR_0") {
+                nameOfAttribute = "color";
+            }
+            // if (k == "UV_0") {
+            //     nameOfAttribute = "uv";
+            // }
+            // else 
+            if (k == "TEXCOORD_0") {
+                nameOfAttribute = "uv";
+            }
+            else if (k == "TEXCOORD_1") {
+                nameOfAttribute = "uv1";
+            }
+            if (k == "NORMAL") {
+                nameOfAttribute = "normal";
+            }
+            if (k == "JOINTS_0") {
+                nameOfAttribute = "joints";
+            }
+            if (k == "WEIGHTS_0") {
+                nameOfAttribute = "weights";
+            }
+
+            verticesOfDataOfEntity[nameOfAttribute] = accessor;
+        }
+        if ("normal" in verticesOfDataOfEntity == false && (primitive.mode == undefined || primitive.mode == 4 || primitive.mode == 5 || primitive.mode == 6)) {//如果没有法线，计算法线
+            let positionAccessorID = primitive.attributes["POSITION"];
+            let positions = this.DataLoader.getAccessorForByte(positionAccessorID) as Float32Array;
+            if ("indices" in primitive) {//如果有索引，根据索引计算法线
+                let indicesAccessorID: number = primitive["indices"]!;
+                // let indicesAccessor = this.modelData.json.accessors[indicesAccessorID];
+                let indices = this.DataLoader.getAccessorForByte(indicesAccessorID) as Uint32Array;
+                let normals: Float32Array = BaseFunction.computeNormalsFromPositionsAndIndices(positions, indices);
+
+                verticesOfDataOfEntity["normal"] = [...normals];
+            }
+            else {//如果没有索引，根据顶点顺序计算法线
+                let normals: Float32Array = BaseFunction.computeNormalsFromPositionsNoIndex(positions);
+                verticesOfDataOfEntity["normal"] = [...normals];
+            }
+        }
+        if (primitive.targets)
+            for (let k in primitive.targets) {
+                let index = Number(k) + 1;
+                let oneAttribute = primitive.targets[k]["POSITION"];
+                let accessor = await this.DataLoader.getAccessorForArray(oneAttribute);
+                verticesOfDataOfEntity["position_" + index] = accessor;
+            }
+        return verticesOfDataOfEntity;
+    }
     /** 判断primitive是否有morph target
      * @param primitive primitive
      * @returns boolean 是否有morph target
@@ -1170,6 +1260,74 @@ export class GLTFModel extends BaseModel {
             indicesOfDataOfEntity = indexAttribute as I_indexGPUBufferBundle;
             drawMode = {
                 indexCount: (indexAttribute as I_indexGPUBufferBundle).count,
+            }
+        }
+        else {                                                          // draw mode
+            let count: number;
+            if (primitive.attributes.POSITION != undefined) {
+                let position = this.DataLoader.getAccessorOfSource(primitive.attributes.POSITION);
+                if (position == undefined) {
+                    throw new Error(`mesh ${meshID} primitive ${primitiveID} attribute position not found accessor`);
+                }
+                count = position.count;
+            }
+            else {
+                throw new Error(`mesh ${meshID} primitive ${primitiveID} don't have POSITION attribute`);
+            }
+            drawMode = {
+                vertexCount: count,
+            }
+        }
+        return { indecis: indicesOfDataOfEntity, drawMode, stripIndexFormat };
+    }
+    /**获取顶点数组
+     * @param primitive primitive
+     * @param meshID meshID
+     * @param primitiveID primitiveID
+     * @returns 顶点数组数据
+     */
+    async getIndecisArrayOfPrimitive(primitive: any, meshID: string, primitiveID: string): Promise<
+        {
+            indecis: number[],
+            drawMode: I_drawMode | I_drawModeIndexed,
+            stripIndexFormat: GPUIndexFormat,
+        }> {
+        //strip index format default uint16,strip 存在，index一定存在，且stripIndexFormat 为 indexAttribute 的格式
+        let indicesOfDataOfEntity: number[] = [];
+        let stripIndexFormat: GPUIndexFormat = "uint32";//gltf中一般默认uint16
+        //index accessor 转义we interface，可以为undefined(无index)
+        let drawMode: I_drawMode | I_drawModeIndexed;
+        if (primitive.indices != undefined) {                //index 
+            let idOfaccessors = primitive.indices;
+            let useFor: E_accessorUseFor
+            switch (primitive.mode) {
+                case 0:
+                    useFor = E_accessorUseFor.indexPointList;
+                    break;
+                case 1:
+                    useFor = E_accessorUseFor.indexLineList;
+                    break;
+                case 2:
+                    useFor = E_accessorUseFor.indexTriangleList;
+                    break;
+                case 3:
+                    useFor = E_accessorUseFor.indexLineStrip;
+                    break;
+                case 4:
+                    useFor = E_accessorUseFor.indexTriangleList;
+                    break;
+                case 5:
+                    useFor = E_accessorUseFor.indexTriangleStrip;
+                    break;
+                case 6:
+                    useFor = E_accessorUseFor.indexTriangleFan;
+                    break;
+                default:
+                    useFor = E_accessorUseFor.indexTriangleList;
+            }
+            indicesOfDataOfEntity = await this.DataLoader.getAccessorArray(idOfaccessors, useFor);
+            drawMode = {
+                indexCount: indicesOfDataOfEntity.length,
             }
         }
         else {                                                          // draw mode

@@ -8,20 +8,21 @@ export async function initWe() {
     let input: IV_Scene = {
         canvas: "render",
         backgroudColor: [0, 0., 0., 0.],
-        reversedZ:true,
+        reversedZ: true,
         // AA:{
         //     MSAA: {
         //         enable: true,
         //     }
         // },
-        toneMapping:E_ToneMappingType.linearToSRGB,
-        renderMode:"deferRender"
+        // toneMapping: E_ToneMappingType.linear,
+        toneMapping: E_ToneMappingType.linearToSRGB,
+        renderMode: "deferRender"
     };
     let scene = await initScene({ initConfig: input, });
     window.scene = scene;
 
     let camera = new PerspectiveCamera({
-        fov: ( Math.PI) / 4,
+        fov: (Math.PI) / 4,
         aspect: scene.aspect,
         near: 0.1,
         far: 300,
@@ -38,6 +39,14 @@ export async function initWe() {
         // shadow: true,
     });
     await scene.add(onelight);
+
+    // let onelight2 = new DirectionalLight({
+    //     color: [1, 1, 1],
+    //     direction: [0, -1, 0],
+    //     intensity: 0.83,
+    //     // shadow: true,
+    // });
+    // await scene.add(onelight2);
 
     let ambientLight = new AmbientLight(
         {

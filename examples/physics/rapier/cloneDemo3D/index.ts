@@ -8,16 +8,16 @@ import * as ConvexPolyhedron from "./demos/convexPolyhedron";
 import * as CCD from "./demos/ccd";
 import * as Damping from "./demos/damping";
 import * as Fountain from "./demos/fountain";
-// import * as Heightfield from "./demos/heightfield";
+import * as Heightfield from "./demos/heightfield";
 import * as Joints from "./demos/joints";
 import * as Keva from "./demos/keva";
 import * as LockedRotations from "./demos/lockedRotations";
 import * as PidController from "./demos/pidController";
 // import * as Platform from "./demos/platform";
 import * as Pyramid from "./demos/pyramid";
-// import * as Trimesh from "./demos/trimesh";
-// import * as Voxels from "./demos/voxels";
-// import * as glbToConvexHull from "./demos/glbtoConvexHull";
+import * as Trimesh from "./demos/trimesh";
+import * as Voxels from "./demos/voxels";
+import * as glbToConvexHull from "./demos/glbtoConvexHull";
 // import * as glbToTrimesh from "./demos/glbToTrimesh";
 
 
@@ -42,16 +42,16 @@ let builders = new Map([
     ["CCD", CCD.initWorld],
     ["damping", Damping.initWorld],
     ["fountain", Fountain.initWorld],
-    // ["heightfield", Heightfield.initWorld],
+    ["heightfield", Heightfield.initWorld],
     ["joints", Joints.initWorld],
     ["keva tower", Keva.initWorld],
     ["locked rotations", LockedRotations.initWorld],
     ["pid controller", PidController.initWorld],
     // ["platform", Platform.initWorld],
     ["pyramid", Pyramid.initWorld],
-    // ["triangle mesh", Trimesh.initWorld],
-    // ["voxels", Voxels.initWorld],
-    // ["GLTF to convexHull", glbToConvexHull.initWorld],
+    ["triangle mesh", Trimesh.initWorld],
+    ["voxels", Voxels.initWorld],
+    ["GLTF to convexHull", glbToConvexHull.initWorld],
     // ["GLTF to trimesh", glbToTrimesh.initWorld],
 ]);
 let testbed = new Testbed(RAPIER as RAPIER_API, builders, scene);

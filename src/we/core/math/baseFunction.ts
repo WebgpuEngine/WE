@@ -97,11 +97,11 @@ export function computeNormalsArrayFromPositionsAndIndices(positions: number[], 
             positions[i2 * stride + 2]
         ];
 
-        // 计算边向量
+        // 计算边向量, v1: p1 -> p0, v2: p2 -> p0
         const v1 = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
         const v2 = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
 
-        // 叉乘计算面法线（右手系）
+        // 叉乘计算面法线（右手系）, faceNormal: v1 cross v2
         const faceNormal = [
             v1[1] * v2[2] - v1[2] * v2[1],
             v1[2] * v2[0] - v1[0] * v2[2],
@@ -116,7 +116,11 @@ export function computeNormalsArrayFromPositionsAndIndices(positions: number[], 
             faceNormal[1] / len,
             faceNormal[2] / len
         ];
-
+        // const n = [
+        //     faceNormal[0] ,
+        //     faceNormal[1] ,
+        //     faceNormal[2] 
+        // ];
         // 将面法线累加到三个顶点的法线中
         normals[i0 * stride] += n[0];
         normals[i0 * stride + 1] += n[1];
@@ -136,7 +140,8 @@ export function computeNormalsArrayFromPositionsAndIndices(positions: number[], 
         const x = normals[i];
         const y = normals[i + 1];
         const z = normals[i + 2];
-        const len = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+        // const len = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+        const len = Math.hypot(x, y, z);
         if (len < 1e-6) {
             normals[i] = 0;
             normals[i + 1] = 1; // 无有效法线时默认向上
@@ -150,6 +155,83 @@ export function computeNormalsArrayFromPositionsAndIndices(positions: number[], 
     // console.log("normal:", normals);
     return normals;
 }
+/**
+ * 从顶点位置和索引计算面法线:索引模式
+ * @param positions 顶点位置数组（格式：[x0,y0,z0, x1,y1,z1, ...]）
+ * @param indices 三角面索引数组（格式：[i0,i1,i2, i3,i4,i5, ...]）
+ * @returns 三角面法线数组（格式与 indices 一致）
+ */
+export function computeFaceNormalsArrayFromPositionsAndIndices(positions: number[], indices: number[]): number[] {
+    const normals = new Array(indices.length).fill(0);
+
+    for (let i = 0; i < indices.length; i += 3) {
+        const i0 = indices[i];
+        const i1 = indices[i + 1];
+        const i2 = indices[i + 2];
+
+        // 取三个顶点
+        const v0x = positions[i0 * 3];
+        const v0y = positions[i0 * 3 + 1];
+        const v0z = positions[i0 * 3 + 2];
+
+        const v1x = positions[i1 * 3];
+        const v1y = positions[i1 * 3 + 1];
+        const v1z = positions[i1 * 3 + 2];
+
+        const v2x = positions[i2 * 3];
+        const v2y = positions[i2 * 3 + 1];
+        const v2z = positions[i2 * 3 + 2];
+
+        // 两条边
+        const ax = v1x - v0x;
+        const ay = v1y - v0y;
+        const az = v1z - v0z;
+        const bx = v2x - v0x;
+        const by = v2y - v0y;
+        const bz = v2z - v0z;
+
+        // 叉乘 → 面法线（关键：只给当前三角面使用，不共享！）
+        let nX = ay * bz - az * by;
+        let nY = az * bx - ax * bz;
+        let nZ = ax * by - ay * bx;
+
+        // 归一化
+        const len = Math.hypot(nX, nY, nZ);
+        if (len > 0) {
+            nX /= len;
+            nY /= len;
+            nZ /= len;
+        }
+
+        // 重点：只赋值，不叠加！不混合！
+        normals[i] = nX;
+        normals[i + 1] = nY;
+        normals[i + 2] = nZ;
+    }
+    return normals;
+}
+export function computeHardNormals(positions: number[], indices: number[]): number[] {
+    const normals = new Array(positions.length).fill(0);
+    for (let i = 0; i < indices.length; i += 3) {
+        const i0 = indices[i], i1 = indices[i + 1], i2 = indices[i + 2];
+        const v0x = positions[i0 * 3], v0y = positions[i0 * 3 + 1], v0z = positions[i0 * 3 + 2];
+        const v1x = positions[i1 * 3], v1y = positions[i1 * 3 + 1], v1z = positions[i1 * 3 + 2];
+        const v2x = positions[i2 * 3], v2y = positions[i2 * 3 + 1], v2z = positions[i2 * 3 + 2];
+        const e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z;
+        const e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
+        let nx = e1y * e2z - e1z * e2y;
+        let ny = e1z * e2x - e1x * e2z;
+        let nz = e1x * e2y - e1y * e2x;
+        const len = Math.hypot(nx, ny, nz);
+        if (len > 0) { nx /= len; ny /= len; nz /= len; }
+        // 直接覆盖，不叠加
+        normals[i0 * 3] = nx; normals[i0 * 3 + 1] = ny; normals[i0 * 3 + 2] = nz;
+        normals[i1 * 3] = nx; normals[i1 * 3 + 1] = ny; normals[i1 * 3 + 2] = nz;
+        normals[i2 * 3] = nx; normals[i2 * 3 + 1] = ny; normals[i2 * 3 + 2] = nz;
+    }
+    return normals;
+}
+
 /**
  * 从顶点位置计算法线:非索引模式
  * @param positions 顶点位置数组（格式：[x0,y0,z0, x1,y1,z1, ...]）

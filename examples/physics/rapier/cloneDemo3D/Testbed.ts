@@ -124,7 +124,7 @@ export class Testbed {
     }
 
     // 切换到指定的演示场景
-    switchToDemo(demo: string) {
+    async switchToDemo(demo: string) {
         console.log("================switchToDemo================", demo);
         if (demo == this.prevDemo) {
             this.inhibitLookAt = true;
@@ -135,11 +135,11 @@ export class Testbed {
 
         this.parameters.prevBackend = this.parameters.backend;
         //@ts-ignore
-        this.parameters.builders.get(demo)(this.RAPIER, this);
+        await this.parameters.builders.get(demo)(this.RAPIER, this, this.scene);//增加scene
     }
 
-    switchToBackend(backend: string) {
-        this.switchToDemo(this.parameters.demo);
+    async switchToBackend(backend: string) {
+        await this.switchToDemo(this.parameters.demo);
     }
 
     takeSnapshot() {

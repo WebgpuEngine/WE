@@ -922,6 +922,15 @@ export class Scene {
     remove(child: NodeObject) {
         this.root.removeChild(child);
     }
+    removeFromScene(child: NodeObject) {
+       let parent = child.Parent;
+       if(parent){
+           parent.removeChild(child);
+       }
+       else{
+            console.warn("未找到对应的子节点", child);
+       }
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //uniform , RPD,CATs 部分

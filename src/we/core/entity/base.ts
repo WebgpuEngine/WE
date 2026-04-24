@@ -132,6 +132,10 @@ export interface IV_BaseEntity extends IV_NodeSpace {
     }
     /** 图元状态 */
     primitive?: GPUPrimitiveState,
+    /**剔除面  :    "front" | "back" | "all"    */
+    cullMode?: GPUCullMode,
+    /**是否反转法线，默认false */
+    invertNormal?: boolean,
     /**绘制方式 */
     drawMode?: I_drawMode | I_drawModeIndexed,
     /**材质 */

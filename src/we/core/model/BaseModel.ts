@@ -14,6 +14,12 @@ export interface I_Model extends I_Update {
      * 1、instanceRes是否注销
      */
     debug?: boolean,
+    /**
+     * 属性数据类型
+     * 1、BOL：由BOL管理
+     * 2、inModel：模型内部数据
+     */
+    dataTypeOfAttribute?: "BOL" | "inModel";
 }
 
 export interface I_ModelResMap {
@@ -38,6 +44,7 @@ export enum T_ModelResKind {
 
 export abstract class BaseModel extends NodeObject {
     debug: boolean = false;
+    dataTypeOfAttribute: "BOL" | "inModel" = "inModel";
 
     /** 动画组对象 animation group object      */
     // _animationGroup: AnimationGroup[] | undefined;
@@ -92,7 +99,7 @@ export abstract class BaseModel extends NodeObject {
     /**模型资源*/
     modelRes!: {
         [key: string]: Map<any, any>;
-    } 
+    }
     // = {
     //         "GPUBuffers": new Map<any, GPUBuffer>(),
     //         /**

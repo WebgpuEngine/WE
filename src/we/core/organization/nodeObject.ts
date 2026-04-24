@@ -420,9 +420,7 @@ export abstract class NodeObject extends NodeSpace {
      * 7、需要注销BVH和物理引擎中的相关数据
      */
     destroy(): void {
-        if (this.Parent) {
-            this.Parent.removeChild(this);
-        }
+
         //递归销毁所有子节点
         if (this.children.length > 0) {
             for (let child of this.children) {
@@ -433,7 +431,9 @@ export abstract class NodeObject extends NodeSpace {
             this._children = [];
         }
         //从entityManager中移除entity
-        this.detachEntity();
+        if (this.Entity) {
+            this.scene.entityManager.remove(this.Entity, this);//将entity从entityManager中移除
+        }
 
         //注销动画
         if (this.Animation) {
@@ -473,9 +473,9 @@ export abstract class NodeObject extends NodeSpace {
 
         super.destroy();
     }
-    _destroy(): void {
-            
-    }
+    // _destroy(): void {
+
+    // }
 
     get children() { return this._children; }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -500,12 +500,12 @@ export abstract class NodeObject extends NodeSpace {
             this.scene.entityManager.add(entity, this);//将entity添加到entityManager中
         }
     }
-    /** 从NodeObject上分离entity     */
-    detachEntity() {
-        if (this.Entity) {
-            this.scene.entityManager.remove(this.Entity, this);//将entity从entityManager中移除
-        }
-    }
+    // /** 从NodeObject上分离entity     */
+    // detachEntity() {
+    //     if (this.Entity) {
+    //         this.scene.entityManager.remove(this.Entity, this);//将entity从entityManager中移除
+    //     }
+    // }
 
     /**
      * 添加子节点
@@ -601,13 +601,14 @@ export abstract class NodeObject extends NodeSpace {
     removeChild(child: NodeObject): NodeObject | false {
         let index = this._children.indexOf(child);
         if (index !== -1) {
+            child.destroy();
             // this._children[index].removeChildren();//递归移除子节点
             child.Parent = undefined;
             this._children[index].visible = false;
             this._children.splice(index, 1);
             return child;
         }
-        console.log("未找到对应的子节点", child);
+        else console.log("未找到对应的子节点", child);
         return false;
 
         ////20260106 camera 和  light 的删除有ECS附着，之后转移到ESC中
@@ -644,10 +645,18 @@ export abstract class NodeObject extends NodeSpace {
      * 返回第一个具有id的object
      * @param id 子节点的id
      */
-    getObjectIndexByID(id: number): number | boolean {
-        for (let i in this.children) {
-            if (this.children[i].ID == id) {
-                return parseInt(i);
+    getNodeObjectByID(id: number): NodeObject | boolean {
+        for (let i of this.children) {
+            if (i.ID == id) {
+                return i;
+            }
+            else if (i.children.length > 0) {
+                for (let j of i.children) {
+                    let isTarget = j.getNodeObjectByID(id);
+                    if (isTarget != false) {
+                        return isTarget;
+                    }
+                }
             }
         }
         return false;
@@ -657,41 +666,37 @@ export abstract class NodeObject extends NodeSpace {
      * @param id 
      * @returns 
      */
-    getObjectIndexByUUID(id: string): number | boolean {
-        for (let i in this.children) {
-            if (this.children[i].UUID == id) {
-                return parseInt(i);
+    getNodeObjectByUUID(id: string): NodeObject | boolean {
+        for (let i of this.children) {
+            if (i.UUID == id) {
+                return i;
+            }
+            else if (i.children.length > 0) {
+                for (let j of i.children) {
+                    let isTarget = j.getNodeObjectByUUID(id);
+                    if (isTarget != false) {
+                        return isTarget;
+                    }
+                }
             }
         }
         return false;
     }
-    /**
-     * get child by renderID
-     * @param id 
-     * @returns 
-     */
-    getObjectIndexByRenderID(id: number): number | boolean {
-        for (let i in this.children) {
-            if (this.children[i]._renderID == id) {
-                return parseInt(i);
-            }
-        }
-        return false;
-    }
+
     /**
      * 返回第一个具有name的object
      * @param name 
      * @returns 
      */
-    getObjectByName(name: string): NodeObject | boolean {
+    getNodeObjectByName(name: string): NodeObject | boolean {
         for (let i of this.children) {
             if (i.Name == name) {
                 return this;
             }
             else if (i instanceof NodeObject) {
-                let scope = i.getObjectByName(name);
-                if (typeof scope != "boolean") {
-                    return scope;
+                let isTarget = i.getNodeObjectByName(name);
+                if ( isTarget != false) {
+                    return isTarget;
                 }
             }
         }
@@ -772,7 +777,7 @@ export abstract class NodeObject extends NodeSpace {
     * @returns 
     */
     updateParentOnly(clock: Clock) {
-        if (this.Parent !== undefined && this.Parent.Name == "root") {
+        if (this.Parent !== undefined && this.Parent.type == "root") {
             this.Parent.updateParentOnly(clock);//递归
         }
         if (this.lastUpdaeTime !== clock.now) {//更新自己
@@ -931,6 +936,9 @@ export abstract class NodeObject extends NodeSpace {
  * 用于实例化节点对象
  */
 export class NodeInstance extends NodeObject {
+    _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
     //20260313，为了TTPF，明确ID，的临时测试代码
     // constructor(input?: IV_Node) {
     //     super(input);
@@ -938,6 +946,8 @@ export class NodeInstance extends NodeObject {
     //         this.ID = input.id;
     //     }
     // }
+    override type: string = "NodeInstance";
+
     saveJSON() {
         throw new Error("Method not implemented.");
     }
@@ -961,11 +971,23 @@ export class NodeInstance extends NodeObject {
  * 用于实例化节点对象
  */
 export class NodeInstanceModel extends NodeObject {
+    // override destroy(): void {
+    //     if(this._children.length > 0) {
+    //         for(let i of this._children) {
+    //             i.destroy();
+    //         }
+    //     }
+    //     super.destroy();
+    // }
+    _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
     /**
      *  模型来源 : 指向原始模型
      * 1、animation的数据来源使用modelOrigin
     */
     _modelOrigin!: BaseModel;
+    override type: string = "NodeInstanceModel";
     saveJSON() {
         throw new Error("Method not implemented.");
     }
