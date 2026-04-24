@@ -440,6 +440,10 @@ export class Scene {
         this.device = device;
 
         this.canvas = document.getElementById(this.inputValue.canvas) as HTMLCanvasElement;
+        // 焦点     
+        this.canvas.tabIndex = 0
+        this.canvas.focus()
+
         this.context = this.canvas.getContext('webgpu') as GPUCanvasContext;
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 

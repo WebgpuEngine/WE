@@ -141,11 +141,11 @@ export class InputManager extends ECSManager<BaseInputControl> {
 
 
         let keyDown = (event: KeyboardEvent) => { scope.keyDown(scope, event); }                    //keydown事件
-        window.addEventListener('keydown', keyDown);                                                //keydown事件注册
+        document.addEventListener('keydown', keyDown);                                                //keydown事件注册
         this.event.push({ target: window, type: "keyDown", callback: keyDown, option: undefined }); //keydown事件注册
 
         let keyUp = (event: KeyboardEvent) => { scope.keyUp(scope, event); }
-        window.addEventListener('keyup', keyUp);
+        document.addEventListener('keyup', keyUp);
         this.event.push({ target: window, type: "keyUp", callback: keyUp, option: undefined });
 
         let pointerDown = (event: PointerEvent) => { scope.pointerDown(scope, event); }
@@ -319,6 +319,12 @@ export class InputManager extends ECSManager<BaseInputControl> {
         // event.preventDefault();
         // event.stopPropagation();
     }
+    /**
+     * 处理鼠标事件pointerDown
+     * 1、点击canvas时，会主动获取焦点
+     * @param scope input manager 实例
+     * @param event 鼠标事件
+     */
     pointerDown(scope: InputManager, event: PointerEvent) {
         for (let i in scope.registerEventList[E_InputEvent.pointerdown]) {
             for (let j in scope.registerEventList[E_InputEvent.pointerdown][i as E_InputPriority]) {
@@ -330,6 +336,9 @@ export class InputManager extends ECSManager<BaseInputControl> {
                     }
             }
         }
+        // 主动夺取焦点
+        // // 主动夺取焦点     
+        this.canvas.focus()
         event.preventDefault();
         event.stopPropagation();
     }
@@ -344,6 +353,7 @@ export class InputManager extends ECSManager<BaseInputControl> {
                     }
             }
         }
+        document.body.focus()
         event.preventDefault();
         event.stopPropagation();
     }

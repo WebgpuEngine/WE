@@ -82,21 +82,35 @@ export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
     testbed.setWorld(world);
     testbed.setpreTimestepAction(updateCharacter);
 
-    document.onkeydown = function (event: KeyboardEvent) {
+    // document.onkeydown = function (event: KeyboardEvent) {
+    //     if (event.key == "ArrowUp") movementDirection.x = speed;
+    //     if (event.key == "ArrowDown") movementDirection.x = -speed;
+    //     if (event.key == "ArrowLeft") movementDirection.z = -speed;
+    //     if (event.key == "ArrowRight") movementDirection.z = speed;
+    //     if (event.key == " ") movementDirection.y = speed;
+    // };
+    window.addEventListener("keydown", (event) => {
         if (event.key == "ArrowUp") movementDirection.x = speed;
         if (event.key == "ArrowDown") movementDirection.x = -speed;
         if (event.key == "ArrowLeft") movementDirection.z = -speed;
         if (event.key == "ArrowRight") movementDirection.z = speed;
         if (event.key == " ") movementDirection.y = speed;
-    };
+    });
 
-    document.onkeyup = function (event: KeyboardEvent) {
+    // document.onkeyup = function (event: KeyboardEvent) {
+    //     if (event.key == "ArrowUp") movementDirection.x = 0.0;
+    //     if (event.key == "ArrowDown") movementDirection.x = 0.0;
+    //     if (event.key == "ArrowLeft") movementDirection.z = 0.0;
+    //     if (event.key == "ArrowRight") movementDirection.z = 0.0;
+    //     if (event.key == " ") movementDirection.y = -speed; // Gravity
+    // };
+    window.addEventListener("keyup", (event) => {
         if (event.key == "ArrowUp") movementDirection.x = 0.0;
         if (event.key == "ArrowDown") movementDirection.x = 0.0;
         if (event.key == "ArrowLeft") movementDirection.z = 0.0;
         if (event.key == "ArrowRight") movementDirection.z = 0.0;
         if (event.key == " ") movementDirection.y = -speed; // Gravity
-    };
+    });
 
     let cameraPosition = {
         eye: {x: -40.0, y: 19.730000000000008, z: 0.0},
