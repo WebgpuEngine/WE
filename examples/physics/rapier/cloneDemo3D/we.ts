@@ -15,7 +15,7 @@ export async function initWe() {
         //     }
         // },
         toneMapping:E_ToneMappingType.linearToSRGB,
-        deferRender:"color",
+        renderMode:"deferRender"
     };
     let scene = await initScene({ initConfig: input, });
     window.scene = scene;
