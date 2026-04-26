@@ -26,7 +26,7 @@ import { SHT_MeshVS } from "../shadermanagemnet/mesh/meshVS";
 import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
 import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
 import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
-import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPositionsNoIndex } from "../math/baseFunction";
+import { computeNormalsArrayFromPositionsAndIndices, computeNormalsArrayFromPositionsNoIndex, convertPositionsWithIndicesToPositionNonIndex } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
 import { NodeObject } from "../organization/nodeObject";
 import { vec3, Vec3 } from "wgpu-matrix";
@@ -87,7 +87,16 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     }
     override async init(scene: Scene): Promise<any> {
         if (this.kind == E_entityType.mesh && this.attributes.vertices.normal == undefined) {
-            if (Array.isArray(this.attributes.vertices.position)) {
+            if (Array.isArray(this.attributes.vertices.position) &&
+                Array.isArray(this.attributes.indices) &&
+                this.attributes.indices != undefined &&
+                Object.keys(this.attributes.vertices).length == 1) {
+                this.attributes.vertices.position = convertPositionsWithIndicesToPositionNonIndex(this.attributes.vertices.position, this.attributes.indices);
+                this.attributes.vertices.normal = computeNormalsArrayFromPositionsNoIndex(this.attributes.vertices.position);
+                this.attributes.indices = undefined;
+
+            }
+            else if (Array.isArray(this.attributes.vertices.position)) {
                 if (this.attributes.indices) {
                     this.attributes.vertices.normal = computeNormalsArrayFromPositionsAndIndices(this.attributes.vertices.position, this.attributes.indices as number[]);
                 }

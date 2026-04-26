@@ -3,6 +3,8 @@ import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCam
 import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight";
 import { E_ToneMappingType, IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
+import { PointLight } from "../../../../src/we/core/light/pointLight";
+import { vec3, vec4 } from "wgpu-matrix";
 
 export async function initWe() {
     let input: IV_Scene = {
@@ -15,22 +17,14 @@ export async function initWe() {
         //     }
         // },
         // toneMapping: E_ToneMappingType.linear,
+        // toneMapping: E_ToneMappingType.acesToSRGB,
         toneMapping: E_ToneMappingType.linearToSRGB,
         renderMode: "deferRender"
     };
     let scene = await initScene({ initConfig: input, });
     window.scene = scene;
 
-    let camera = new PerspectiveCamera({
-        fov: (Math.PI) / 4,
-        aspect: scene.aspect,
-        near: 0.1,
-        far: 300,
-        position: [3, 3, 3],
-        lookAt: [0, 0, 0],
-        controlType: "orbit",
-    });
-    await scene.add(camera);
+
 
     let onelight = new DirectionalLight({
         color: [1, 1, 1],
@@ -40,18 +34,37 @@ export async function initWe() {
     });
     await scene.add(onelight);
 
-    // let onelight2 = new DirectionalLight({
+    let camera = new PerspectiveCamera({
+        fov: (Math.PI) / 4,
+        aspect: scene.aspect,
+        near: 0.1,
+        far: 300,
+        position: [3, 3, 3],
+        lookAt: [0, 0, 0],
+        controlType: "orbit",
+        update: (scope) => {
+            let lookOfCamera = camera.LookAt;
+            let position = camera.Position;
+            let dir = vec3.normalize(vec3.sub(position, lookOfCamera));
+            if (dir) {
+                onelight.Direction = [dir[0], dir[1], dir[2]];
+            }
+        }
+    });
+    await scene.add(camera);
+
+    // let onelightOfPoint = new PointLight({
     //     color: [1, 1, 1],
-    //     direction: [0, -1, 0],
-    //     intensity: 0.83,
-    //     // shadow: true,
+    //     position: [0, 3, 3],
+    //     intensity: 5,
+    //     shadow: false,
     // });
-    // await scene.add(onelight2);
+    // await camera.add(onelightOfPoint);
 
     let ambientLight = new AmbientLight(
         {
             color: [1, 1, 1],
-            intensity: 0.05
+            intensity: 0.1
         }
     )
     await scene.add(ambientLight);

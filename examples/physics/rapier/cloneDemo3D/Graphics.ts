@@ -176,7 +176,10 @@ export class Graphics {
         let materials: PhongMaterial[] =
             this.colorPalette.map((color) => {
                 return new PhongMaterial({
-                    color: color
+                    color: color,
+                    roughness: 0.9,
+                    metalness: 0.1,
+                    shininess: 132
                 });
             });
         this.listOfMaterial = materials;

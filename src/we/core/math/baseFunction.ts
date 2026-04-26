@@ -210,26 +210,15 @@ export function computeFaceNormalsArrayFromPositionsAndIndices(positions: number
     }
     return normals;
 }
-export function computeHardNormals(positions: number[], indices: number[]): number[] {
-    const normals = new Array(positions.length).fill(0);
-    for (let i = 0; i < indices.length; i += 3) {
-        const i0 = indices[i], i1 = indices[i + 1], i2 = indices[i + 2];
-        const v0x = positions[i0 * 3], v0y = positions[i0 * 3 + 1], v0z = positions[i0 * 3 + 2];
-        const v1x = positions[i1 * 3], v1y = positions[i1 * 3 + 1], v1z = positions[i1 * 3 + 2];
-        const v2x = positions[i2 * 3], v2y = positions[i2 * 3 + 1], v2z = positions[i2 * 3 + 2];
-        const e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z;
-        const e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
-        let nx = e1y * e2z - e1z * e2y;
-        let ny = e1z * e2x - e1x * e2z;
-        let nz = e1x * e2y - e1y * e2x;
-        const len = Math.hypot(nx, ny, nz);
-        if (len > 0) { nx /= len; ny /= len; nz /= len; }
-        // 直接覆盖，不叠加
-        normals[i0 * 3] = nx; normals[i0 * 3 + 1] = ny; normals[i0 * 3 + 2] = nz;
-        normals[i1 * 3] = nx; normals[i1 * 3 + 1] = ny; normals[i1 * 3 + 2] = nz;
-        normals[i2 * 3] = nx; normals[i2 * 3 + 1] = ny; normals[i2 * 3 + 2] = nz;
+export function convertPositionsWithIndicesToPositionNonIndex(positions: number[], indices: number[]): number[] {
+    const positionNonIndex = new Array();
+    for (let i of indices) {
+        positionNonIndex.push(positions[i * 3 + 0]);
+        positionNonIndex.push(positions[i * 3 + 1]);
+        positionNonIndex.push(positions[i * 3 + 2]);
+       let abc=1;
     }
-    return normals;
+    return positionNonIndex;
 }
 
 /**

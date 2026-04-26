@@ -404,7 +404,7 @@ export class Pointers {
             pointer.BolID = BolID;
             pointer.rebuildTime = timer;
             pointer.gpuBufferView.offset = offset;
-            console.log("pointer rebuild time:", timer, "pointerID:", pointerID);
+            // console.log("pointer rebuild time:", timer, "pointerID:", pointerID);
         }
     }
     /** 释放指针 */
