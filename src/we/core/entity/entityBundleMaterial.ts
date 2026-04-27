@@ -258,13 +258,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
          * 1 处理st_output: 与 BaseEntity.getStringOfLocationInterpolate() 中的特征码具有同步关系
          */
         for (let perOne of template.add as I_shaderTemplateAdd[]) {
-            //处理st_location
-            if (perOne.name == "st_output") {
-                if (this.locationInterpolate != undefined) {
-                    code += this.getSHT_st_output();
-                    continue;
-                }
-            }
+            // //处理st_location
+            // if (perOne.name == "st_output") {
+            //     if (this.locationInterpolate != undefined) {
+            //         code += this.getSHT_st_output();
+            //         continue;
+            //     }
+            // }
             code += perOne.code;
         }
         for (let perOne of template.replace as I_shaderTemplateReplace[]) {

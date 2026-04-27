@@ -47,7 +47,9 @@ export interface I_pointerStruct {
 
     owner?: any;
 }
-
+export function isI_pointerStruct(obj: any): obj is I_pointerStruct {
+    return obj && typeof obj === "object" && "pointerID" in obj;
+}
 
 
 /** 指针数据参数 */

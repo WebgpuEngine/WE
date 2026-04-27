@@ -1,4 +1,5 @@
 
+import { I_pointerStruct, isI_pointerStruct } from "../bufferBlock/pointer";
 import { E_renderPassName } from "../scene/renderManager";
 import { I_drawMode, I_drawModeIndexed, I_viewport, T_drawMode } from "./base";
 
@@ -26,7 +27,7 @@ export interface IV_BaseDrawCommand {
          *      A、有：从parent.getDrawModeArrayOfInstances中获取drawMode序列
          *      B、无：判断索引模式还是非索引模式，生成drawMode序列
         */
-        drawMode?: 
+        drawMode?:
         T_drawMode,
         //  I_drawMode | I_drawModeIndexed | I_drawMode[] | I_drawModeIndexed[],// | ((UUID: string, kind: E_renderForDC) => I_drawMode[] | I_drawModeIndexed[]),
         pipeline: GPURenderPipeline,
@@ -35,8 +36,8 @@ export interface IV_BaseDrawCommand {
          *    A、比如在shader中写固定的顶点数据，不需要绑定顶点缓冲区
          * 
         */
-        vertexBuffers?: I_VertexBufferEntry[],
-        indexBuffer?: I_VertexBufferEntry,
+        vertexBuffers?: (I_pointerStruct | I_VertexBufferEntry)[],
+        indexBuffer?: I_pointerStruct | I_VertexBufferEntry,
         indexFormat?: GPUIndexFormat,
         /**
          * 绑定的uniform buffer
@@ -78,8 +79,8 @@ export class BaseDrawCommand {
     _isDestroy: boolean = false;
 
     pipeline: GPURenderPipeline;
-    vertexBuffers: I_VertexBufferEntry[] = [];
-    indexBuffer: I_VertexBufferEntry | undefined;
+    vertexBuffers: (I_pointerStruct | I_VertexBufferEntry)[] = [];
+    indexBuffer: I_pointerStruct | I_VertexBufferEntry | undefined;
     indexFormat: GPUIndexFormat = "uint32";
     bindGroups: (GPUBindGroup | undefined | null)[] = [];
     drawMode: T_drawMode | undefined;
@@ -170,11 +171,17 @@ export class BaseDrawCommand {
     doDraw(option: I_drawCallOption) {
         let passEncoder = option.passEncoder;
         for (let i in this.vertexBuffers) {
-            const verticesBuffer = this.vertexBuffers[i];
-            if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
-                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
-            else
-                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
+            if (isI_pointerStruct(this.vertexBuffers[i])) {
+                const verticesBuffer = this.vertexBuffers[i];
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.gpuBufferView.buffer, verticesBuffer.gpuBufferView.offset, verticesBuffer.gpuBufferView.size);//四个参数： slot, buffer, offset, size
+            }
+            else {
+                const verticesBuffer = this.vertexBuffers[i];
+                if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
+                    passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
+                else
+                    passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
+            }
         }
         if (this.viewport) {
             let minDepth = this.viewport.minDepth == undefined ? 0 : this.viewport.minDepth;
@@ -255,7 +262,12 @@ export class BaseDrawCommand {
             if ("baseVertex" in drawMode) {
                 baseVertex = drawMode.baseVertex as number;
             }
-            passEncoder.setIndexBuffer(this.indexBuffer.buffer, this.indexFormat, this.indexBuffer.offset, this.indexBuffer.byteSize);// 'uint32');
+            if (isI_pointerStruct(this.indexBuffer)) {
+                passEncoder.setIndexBuffer(this.indexBuffer.gpuBufferView.buffer, this.indexFormat, this.indexBuffer.gpuBufferView.offset, this.indexBuffer.gpuBufferView.size);// 'uint32');
+            }
+            else {
+                passEncoder.setIndexBuffer(this.indexBuffer.buffer, this.indexFormat, this.indexBuffer.offset, this.indexBuffer.byteSize);// 'uint32');
+            }
             passEncoder.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
         }
         else {

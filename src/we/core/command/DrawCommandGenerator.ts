@@ -725,15 +725,15 @@ export class DrawCommandGenerator {
      * }
      */
     initVertexPart(values: IV_DC): {
-        DC_vertexBuffers: I_VertexBufferEntry[],
-        DC_indexBuffer: I_IndexBufferEntry | undefined,
+        DC_vertexBuffers: (I_pointerStruct | I_VertexBufferEntry)[],
+        DC_indexBuffer: (I_pointerStruct | I_VertexBufferEntry) | undefined,
         DC_vertexNames: string[],
         DC_localtions: string[],
         DC_verticesBufferLayout: GPUVertexBufferLayout[],
     } {
         //1、buffer资源
         // 20260114修改为 I_VertexBufferEntry
-        let DC_vertexBuffers: I_VertexBufferEntry[] = [];//当前DC的顶点列表。之后在DC中passEncoder.setVertexBuffer(parseInt(i), verticesBuffer)使用。
+        let DC_vertexBuffers: (I_pointerStruct | I_VertexBufferEntry)[] = [];//当前DC的顶点列表。之后在DC中passEncoder.setVertexBuffer(parseInt(i), verticesBuffer)使用。
         /** GPUVertexBufferLayout格式样本：
           {
             "arrayStride": 12,
@@ -750,7 +750,7 @@ export class DrawCommandGenerator {
         let DC_verticesBufferLayout: GPUVertexBufferLayout[] = [];//vertex.buffers[]
         let DC_localtions: string[] = [];//顶点资源的名称列表，反射code中的内容使用，在WGSL中结构体：VertexShaderOutput中使用；exp：" @location(0) position : vec3f  ,"
         let DC_vertexNames: string[] = [];//顶点资源的名称列表，反射code中的内容使用；exp："position"
-        let DC_indexBuffer: I_VertexBufferEntry | undefined;//GPUBuffer默认使用uint32的格式。passEncoder.setIndexBuffer(this.indexBuffer, 'uint32');
+        let DC_indexBuffer: (I_pointerStruct | I_VertexBufferEntry) | undefined;//GPUBuffer默认使用uint32的格式。passEncoder.setIndexBuffer(this.indexBuffer, 'uint32');
         //1.1、顶点资源
         let shaderLocation = 0;//最多16个
         let location_i = 0;
@@ -764,7 +764,7 @@ export class DrawCommandGenerator {
                 // let vertexBuffer: GPUBufferBinding;
                 let pointerOfVertex: I_pointerStruct;
                 //20260114 增加interface I_VertexBufferEntry
-                let vertexBufferEntry: I_VertexBufferEntry;
+                let vertexBufferEntry: (I_pointerStruct | I_VertexBufferEntry);
                 //动态顶点属性
                 if (values.dynamic?.vs) {
                     //标准的数组格式，默认为position等
@@ -812,18 +812,9 @@ export class DrawCommandGenerator {
 
 
                         let vertexBuffer: GPUBuffer;
-                        //判断是否以及存在顶点GPUBuffer
-                        // if (!this.resources.verticesDynamic.has(value)) {
+                        //动态顶点：使用GPUBuffer
                         vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
-                        // this.resources.set(value, vertexBuffer, "vertices");
-                        // this.resources.verticesDynamic.set(value, vertexBuffer);
-                        // }
-                        // else {
-                        //     vertexBuffer = this.resources.verticesDynamic.get(value) as GPUBuffer;
-                        // }
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { gpuBuffer: vertexBuffer };
-
-                        // vertexBuffer = pointerOfVertex.gpuBufferView;
                         vertexBufferEntry = {
                             name: lowKey,
                             buffer: vertexBuffer,
@@ -889,11 +880,6 @@ export class DrawCommandGenerator {
                         pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
                     else {
-                        //判断是否以及存在顶点GPUBuffer
-                        // let md5OfVertexOfArray = MD5.hex(value);
-                        // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
-                        // vertexBuffer = createVerticesBuffer(this.device, `${values.IDS?.ID}->${lowKey}`, data.buffer);
-                        // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
                             name: lowKey + " " + values.label,
                             byteSize: value.length * 4,
@@ -906,24 +892,14 @@ export class DrawCommandGenerator {
                         pointerOfVertex = this.pointers.createPointer(pointerParams, values.system?.parent);
                         // parent保存顶点指针，用于后续更新顶点数据
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
-                        // this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
-                        // }
-                        // else {
-                        //     // vertexBuffer = this.resources.get(value, "vertices");
-                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        //     if (!pointerOfVertexTemp) {
-                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        //     }
-                        //     pointerOfVertex = pointerOfVertexTemp;
-                        // }
-                        // vertexBuffer = pointerOfVertex.gpuBufferView;
                     }
-                    vertexBufferEntry = {
-                        name: lowKey,
-                        buffer: pointerOfVertex.gpuBufferView.buffer,
-                        offset: pointerOfVertex.gpuBufferView.offset,
-                        byteSize: pointerOfVertex.gpuBufferView.size,
-                    }
+                    vertexBufferEntry = pointerOfVertex;
+                    // vertexBufferEntry = {
+                    //     name: lowKey,
+                    //     buffer: pointerOfVertex.gpuBufferView.buffer,
+                    //     offset: pointerOfVertex.gpuBufferView.offset,
+                    //     byteSize: pointerOfVertex.gpuBufferView.size,
+                    // }
                     //当前顶点属性的GBufferLayout，就是vertex.buffers[]之中的内容
                     _GPUVertexBufferLayout = {
                         arrayStride: arrayStride,
@@ -1019,24 +995,14 @@ export class DrawCommandGenerator {
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
-
-                        //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
-                        // }
-                        // else {
-                        //     // vertexBuffer = this.resources.get(value, "vertices");
-                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        //     if (!pointerOfVertexTemp) {
-                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        //     }
-                        //     pointerOfVertex = pointerOfVertexTemp;
-                        // }
                     }
-                    vertexBufferEntry = {
-                        name: lowKey,
-                        buffer: pointerOfVertex.gpuBufferView.buffer,
-                        offset: pointerOfVertex.gpuBufferView.offset,
-                        byteSize: pointerOfVertex.gpuBufferView.size,
-                    }
+                    vertexBufferEntry = pointerOfVertex;
+                    // vertexBufferEntry = {
+                    //     name: lowKey,
+                    //     buffer: pointerOfVertex.gpuBufferView.buffer,
+                    //     offset: pointerOfVertex.gpuBufferView.offset,
+                    //     byteSize: pointerOfVertex.gpuBufferView.size,
+                    // }
                     //当前顶点属性的GBufferLayout，就是vertex.buffers[]之中的内容
                     _GPUVertexBufferLayout = {
                         arrayStride: arrayStride,
@@ -1110,12 +1076,6 @@ export class DrawCommandGenerator {
                     let wgsl_value_format = this.getWgslValueFormat(value.format);
                     locationString += this.formatLocationStringOfAttribute(values, location_i, lowKey, wgsl_value_format);
 
-                    //判断是否以及存在顶点GPUBuffer
-                    // let md5OfVertexOfArray = MD5.hex(value.data);
-
-                    // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
-                    // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =" + format, data.buffer);
-                    // this.resources.set(value, vertexBuffer, "vertices");
                     if (values.system?.parent && values.system?.parent.vertexPointers[lowKey]) {
                         pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
@@ -1131,22 +1091,14 @@ export class DrawCommandGenerator {
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
-                        //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
-                        // }
-                        // else {
-                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        //     if (!pointerOfVertexTemp) {
-                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        //     }
-                        //     pointerOfVertex = pointerOfVertexTemp;
-                        // }
                     }
-                    vertexBufferEntry = {
-                        name: lowKey,
-                        buffer: pointerOfVertex.gpuBufferView.buffer,
-                        offset: pointerOfVertex.gpuBufferView.offset,
-                        byteSize: pointerOfVertex.gpuBufferView.size,
-                    }
+                    vertexBufferEntry = pointerOfVertex;
+                    // vertexBufferEntry = {
+                    //     name: lowKey,
+                    //     buffer: pointerOfVertex.gpuBufferView.buffer,
+                    //     offset: pointerOfVertex.gpuBufferView.offset,
+                    //     byteSize: pointerOfVertex.gpuBufferView.size,
+                    // }
                     //当前顶点属性的GBufferLayout，就是vertex.buffers[]之中的内容
                     _GPUVertexBufferLayout = {
                         arrayStride: arrayStride,
@@ -1178,11 +1130,6 @@ export class DrawCommandGenerator {
                         pointerOfVertex = values.system?.parent.vertexPointers[lowKey].pointer!;
                     }
                     else {
-                        // let md5OfVertexOfArray = MD5.hex(value.data);
-                        // if (!this.resources.hasVertex(md5OfVertexOfArray)) {
-                        // if (!this.resources.has(value, "vertices")) {
-                        // vertexBuffer = createVerticesBuffer(this.device, values.label + " vertex GPUBuffer of " + lowKey + " format =mergeAttribute", data.buffer);
-                        // this.resources.set(value, vertexBuffer, "vertices");
                         let pointerParams: I_pointerCreateParams = {
                             name: lowKey + " " + values.label,
                             byteSize: value.data.length * 4,
@@ -1194,24 +1141,15 @@ export class DrawCommandGenerator {
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
-                        //     this.resources.setVertex(md5OfVertexOfArray, pointerOfVertex);
-                        // }
-                        // else {
-                        //     // vertexBuffer = this.resources.get(value, "vertices");
-                        //     let pointerOfVertexTemp = this.resources.getVertex(md5OfVertexOfArray);
-                        //     if (!pointerOfVertexTemp) {
-                        //         throw new Error("顶点资源管理器中没有找到顶点资源" + md5OfVertexOfArray);
-                        //     }
-                        //     pointerOfVertex = pointerOfVertexTemp;
-                        // }
-                        //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
+                                   //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
                     }
-                    vertexBufferEntry = {
-                        name: lowKey,
-                        buffer: pointerOfVertex.gpuBufferView.buffer,
-                        offset: pointerOfVertex.gpuBufferView.offset,
-                        byteSize: pointerOfVertex.gpuBufferView.size,
-                    }
+                    vertexBufferEntry = pointerOfVertex;
+                    // vertexBufferEntry = {
+                    //     name: lowKey,
+                    //     buffer: pointerOfVertex.gpuBufferView.buffer,
+                    //     offset: pointerOfVertex.gpuBufferView.offset,
+                    //     byteSize: pointerOfVertex.gpuBufferView.size,
+                    // }
                     _GPUVertexBufferLayout = {
                         arrayStride: arrayStride,
                         attributes,
@@ -1309,19 +1247,15 @@ export class DrawCommandGenerator {
                             index = this.pointers.createPointer(pointerParams);
                             // parent保存索引指针，用于后续更新索引数据
                             if (values.system?.parent) values.system.parent.vertexPointers["index" + wireFrame] = { pointer: index };
-                            // this.resources.setIndices(md5OfIndicesOfArray, index);
-                            // }
-                            // else {
-                            //     index = this.resources.getIndices(md5OfIndicesOfArray) as I_pointerStruct;
-                            // }
                         }
                         if (index) {
-                            DC_indexBuffer = {
-                                name: index.name,
-                                buffer: index.gpuBufferView.buffer,
-                                offset: index.gpuBufferView.offset,
-                                byteSize: index.gpuBufferView.size,
-                            }
+                            DC_indexBuffer = index;
+                            // DC_indexBuffer = {
+                            //     name: index.name,
+                            //     buffer: index.gpuBufferView.buffer,
+                            //     offset: index.gpuBufferView.offset,
+                            //     byteSize: index.gpuBufferView.size,
+                            // }
                         }
                     }
                 }
@@ -1700,7 +1634,7 @@ export class DrawCommandGenerator {
                 else {
                     let md5OfFScode = MD5(values.render.fragment.code.material.templateString);
                     nameOfMaterial = values.render.fragment.code.material.owner + " " + locationInterpolateString + md5OfFScode;
-                     (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner=nameOfMaterial;
+                    (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner = nameOfMaterial;
                     //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
                     if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;

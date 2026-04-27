@@ -1,4 +1,5 @@
 import { E_renderForDC } from "../base/coreDefine";
+import { isI_pointerStruct } from "../bufferBlock/pointer";
 import { BaseEntity } from "../entity/baseEntity";
 import { E_TransparentType, E_materialTypeForBindGroup } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
@@ -104,11 +105,17 @@ export class DrawCommand extends BaseDrawCommand {
         // console.log(this.label);
         let passEncoder = option.passEncoder;
         for (let i in this.vertexBuffers) {
-            const verticesBuffer = this.vertexBuffers[i];
-            if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
-                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
-            else
-                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
+            if (isI_pointerStruct(this.vertexBuffers[i])) {
+                const verticesBuffer = this.vertexBuffers[i];
+                passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.gpuBufferView.buffer, verticesBuffer.gpuBufferView.offset, verticesBuffer.gpuBufferView.size);//四个参数： slot, buffer, offset, size
+            }
+            else {
+                const verticesBuffer = this.vertexBuffers[i];
+                if (verticesBuffer.offset !== undefined && verticesBuffer.byteSize !== undefined)
+                    passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer, verticesBuffer.offset, verticesBuffer.byteSize);//四个参数： slot, buffer, offset, size
+                else
+                    passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
+            }
         }
         if (this.viewport) {
             let minDepth = this.viewport.minDepth == undefined ? 0 : this.viewport.minDepth;

@@ -125,10 +125,14 @@ export interface IV_BaseEntity extends IV_NodeSpace {
             /** 顶点步长模式 */
             vertexStepMode?: GPUVertexStepMode,
         },
-        /**
-         * 顶点属性的插值模式        
-         */
-        locationInterpolate?: I_locationInterpolate
+        //20260427 问题：
+        // 1、单个entity与material配对使用没问题，如果多个entity与material配对使用，由于material中的this.entity对应多个，其多个同时init(),且异步问题，会出现参数传递问题。
+        // 2、normal的flat 才用转为非索引形式，更简单。
+        //3、暂时取消，还是有意义的，保留；
+        // /**
+        //  * 顶点属性的插值模式        
+        //  */
+        // locationInterpolate?: I_locationInterpolate
     }
     /** 图元状态 */
     primitive?: GPUPrimitiveState,

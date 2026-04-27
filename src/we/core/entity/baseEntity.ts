@@ -362,9 +362,9 @@ export abstract class BaseEntity extends NodeSpace {
         this.type = "entity";
         this._state = E_lifeState.constructing;
         this.input = input;
-        if (input.attributes?.locationInterpolate) {
-            this.locationInterpolate = input.attributes.locationInterpolate;
-        }
+        // if (input.attributes?.locationInterpolate) {
+        //     this.locationInterpolate = input.attributes.locationInterpolate;
+        // }
         if (input.instance) {
             this.instance = input.instance;
             this.checkInstance();
