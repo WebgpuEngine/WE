@@ -20,6 +20,7 @@ import { E_BOLBufferType } from "../bufferBlock/base";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
 import { getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA, getColorAttachmentTargetsOfMSAAinfo } from "../gbuffers/base";
+import { MD5 } from "../../reExport/md5";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
@@ -1684,7 +1685,7 @@ export class DrawCommandGenerator {
                     nameOfMaterial = values.render.fragment.code as string;
                     codeFS = values.render.fragment.code;
                     moduleFS = this.device.createShaderModule({
-                        label: `${flagFS} ${values.label},// @${this.clock.now}`,
+                        label: `${flagFS} ${values.label}`,
                         code: codeFS,
                     })
                 }
@@ -1694,7 +1695,8 @@ export class DrawCommandGenerator {
                 }
                 //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
                 else {
-                    nameOfMaterial = values.render.fragment.code.material.owner + locationInterpolateString;
+                    let md5OfFScode = MD5(values.render.fragment.code.material.templateString);
+                    nameOfMaterial = values.render.fragment.code.material.owner + " " + locationInterpolateString + md5OfFScode;
                     //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
                     if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;

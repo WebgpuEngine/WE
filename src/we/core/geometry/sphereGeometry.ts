@@ -95,7 +95,7 @@ export class SphereGeometry extends BaseGeometry {
         let thetaLength = input.thetaLength!;
         // generate vertices, normals and uvs
 
-        for (let iy = 0; iy <= heightSegments  / 2; iy++) {
+        for (let iy = 0; iy <= heightSegments / 2; iy++) {//不计算反面的半球(除以2)
 
             const verticesRow = [];
 
@@ -134,7 +134,7 @@ export class SphereGeometry extends BaseGeometry {
 
                 // uv
 
-                uvs.push(u + uOffset, 1 - v);
+                uvs.push(u + uOffset, 1 - v * 2);
 
                 verticesRow.push(index++);
 
@@ -146,7 +146,7 @@ export class SphereGeometry extends BaseGeometry {
 
         // indices
 
-        for (let iy = 0; iy < heightSegments / 2; iy++) {//不计算反面的半球
+        for (let iy = 0; iy < heightSegments / 2; iy++) {//不计算反面的半球(除以2)
 
             for (let ix = 0; ix < widthSegments; ix++) {
 
@@ -155,8 +155,25 @@ export class SphereGeometry extends BaseGeometry {
                 const c = grid[iy + 1][ix];
                 const d = grid[iy + 1][ix + 1];
 
-                if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
-                if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
+                // ==============================
+                // 旧版（会出菱形）：webgl flat模式：默认最后一个顶点触发
+                // indices.push(a, b, d);
+                // indices.push(b, c, d);
+                // ==============================
+                // 新版（Flat 完美版）：flat 模式:webGPU 默认是first，首个顶点触发.20260427 使用 flat+either,设置没有成功(原则上可以的，原因未知)
+                // indices.push(a, b, c);  // 三角 1
+                // indices.push(a, c, d);  // 三角 2
+
+                //ok,d 开始
+                // if (iy !== 0 || thetaStart > 0) indices.push(d,a,b);
+                // if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(d,b,c);
+                //ok,a 开始
+                if (iy !== 0 || thetaStart > 0) indices.push(a, b, c);
+                if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(a, c, d);
+
+                //webgl
+                // if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
+                // if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
 
             }
 

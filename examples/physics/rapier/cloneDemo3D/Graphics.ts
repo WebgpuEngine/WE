@@ -190,7 +190,15 @@ export class Graphics {
             materials.map((material) => {
                 return new Mesh(
                     {
-                        attributes: { geometry: boxGeometry },
+                        attributes: {
+                            geometry: boxGeometry,
+                            locationInterpolate: {
+                                normal: {
+                                    type: "flat",
+                                    sampling: "either",
+                                }
+                            },
+                        },
                         material: material
                     });
             })
@@ -200,7 +208,15 @@ export class Graphics {
             materials.map((material) => {
                 return new Mesh(
                     {
-                        attributes: { geometry: sphereGeometry },
+                        attributes: {
+                            geometry: sphereGeometry,
+                            locationInterpolate: {
+                                normal: {
+                                    type: "flat",
+                                    sampling: "either",
+                                }
+                            },
+                        },
                         material: material
                     });
             })
@@ -211,7 +227,15 @@ export class Graphics {
             materials.map((material) => {
                 return new Mesh(
                     {
-                        attributes: { geometry: cylinderGeometry },
+                        attributes: {
+                            geometry: cylinderGeometry,
+                            locationInterpolate: {
+                                normal: {
+                                    type: "flat",
+                                    sampling: "either",
+                                }
+                            },
+                        },
                         material: material
                     });
             })
@@ -221,7 +245,15 @@ export class Graphics {
             materials.map((material) => {
                 return new Mesh(
                     {
-                        attributes: { geometry: coneGeometry },
+                        attributes: {
+                            geometry: coneGeometry,
+                            locationInterpolate: {
+                                normal: {
+                                    type: "flat",
+                                    sampling: "either",
+                                }
+                            },
+                        },
                         material: material
                     });
             })
@@ -397,7 +429,7 @@ export class Graphics {
                             locationInterpolate: {
                                 normal: {
                                     type: "flat",
-                                    sampling: "first",
+                                    sampling: "either",
                                 }
                             },
                         },

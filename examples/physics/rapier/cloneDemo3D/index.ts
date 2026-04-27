@@ -13,7 +13,7 @@ import * as Joints from "./demos/joints";
 import * as Keva from "./demos/keva";
 import * as LockedRotations from "./demos/lockedRotations";
 import * as PidController from "./demos/pidController";
-// import * as Platform from "./demos/platform";
+import * as Platform from "./demos/platform";
 import * as Pyramid from "./demos/pyramid";
 import * as Trimesh from "./demos/trimesh";
 import * as Voxels from "./demos/voxels";
@@ -47,7 +47,7 @@ let builders = new Map([
     ["keva tower", Keva.initWorld],
     ["locked rotations", LockedRotations.initWorld],
     ["pid controller", PidController.initWorld],
-    // ["platform", Platform.initWorld],
+    ["platform", Platform.initWorld],
     ["pyramid", Pyramid.initWorld],
     ["triangle mesh", Trimesh.initWorld],
     ["voxels", Voxels.initWorld],

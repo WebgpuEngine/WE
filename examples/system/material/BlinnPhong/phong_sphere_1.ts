@@ -51,11 +51,11 @@ await scene.add(camera);
 //   }
 // );
 
-let onelight= new DirectionalLight({
+let onelight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [1, 1, 1],
   intensity: 0.51,
-  });
+});
 
 
 await scene.add(onelight);
@@ -69,8 +69,8 @@ let ambientLight = new AmbientLight(
 await scene.add(ambientLight);
 
 let geometry = new SphereGeometry({
-    widthSegments: 32,
-    heightSegments: 32,
+  widthSegments: 32,
+  heightSegments: 32,
 
 });
 
@@ -80,14 +80,20 @@ let geometry = new SphereGeometry({
 // });
 let phongMaterial = new PhongMaterial({
   color: [0, 0.9, 1, 1],
-  roughness:0.21,
-  metalness:.9,
-  shininess:132
+  roughness: 0.21,
+  metalness: .9,
+  shininess: 132
 });
 
 let inputMesh: IV_MeshEntity = {
   attributes: {
     geometry: geometry,
+    locationInterpolate: {
+      normal: {
+        type: "flat",
+        sampling: "first",
+      }
+    },
   },
   material: phongMaterial,
   // wireFrame: {
