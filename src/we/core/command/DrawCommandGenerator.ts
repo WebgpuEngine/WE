@@ -1622,9 +1622,9 @@ export class DrawCommandGenerator {
     } {
         //VS location 输出插值模式
         let locationInterpolateString = "";
-        if (values.system?.parent) {
-            locationInterpolateString = values.system?.parent.getStringOfLocationInterpolate();
-        }
+        // if (values.system?.parent) {
+        //     locationInterpolateString = values.system?.parent.getStringOfLocationInterpolate();
+        // }
 
         // 3.1 反射顶点名称到shader code的顶点属性的占位符中
         //vertex shader
@@ -1632,12 +1632,15 @@ export class DrawCommandGenerator {
         let shadercode: string;
         let vsCacheShaderModuleName = values.label;
 
+
         if (typeof values.render.vertex.code === "string") {
-            vsCacheShaderModuleName = values.render.vertex.code as string + locationInterpolateString;
+            let md5OfVScode = MD5(values.render.vertex.code);
+            vsCacheShaderModuleName = values.render.vertex.code as string + locationInterpolateString + md5OfVScode;
             shadercode = values.render.vertex.code;
         }
         else {
-            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString;
+            let md5OfVScode = MD5(values.render.vertex.code.entity.templateString);
+            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString + md5OfVScode;
             shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
         }
 
@@ -1697,6 +1700,7 @@ export class DrawCommandGenerator {
                 else {
                     let md5OfFScode = MD5(values.render.fragment.code.material.templateString);
                     nameOfMaterial = values.render.fragment.code.material.owner + " " + locationInterpolateString + md5OfFScode;
+                     (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner=nameOfMaterial;
                     //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
                     if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
                         moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;

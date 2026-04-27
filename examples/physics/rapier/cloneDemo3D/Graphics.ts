@@ -192,12 +192,12 @@ export class Graphics {
                     {
                         attributes: {
                             geometry: boxGeometry,
-                            locationInterpolate: {
-                                normal: {
-                                    type: "flat",
-                                    sampling: "either",
-                                }
-                            },
+                            // locationInterpolate: {
+                            //     normal: {
+                            //         type: "flat",
+                            //         sampling: "first",
+                            //     }
+                            // },
                         },
                         material: material
                     });
@@ -210,12 +210,12 @@ export class Graphics {
                     {
                         attributes: {
                             geometry: sphereGeometry,
-                            locationInterpolate: {
-                                normal: {
-                                    type: "flat",
-                                    sampling: "either",
-                                }
-                            },
+                            // locationInterpolate: {
+                            //     normal: {
+                            //         type: "flat",
+                            //         sampling: "first",
+                            //     }
+                            // },
                         },
                         material: material
                     });
@@ -229,12 +229,12 @@ export class Graphics {
                     {
                         attributes: {
                             geometry: cylinderGeometry,
-                            locationInterpolate: {
-                                normal: {
-                                    type: "flat",
-                                    sampling: "either",
-                                }
-                            },
+                            // locationInterpolate: {
+                            //     normal: {
+                            //         type: "flat",
+                            //         sampling: "first",
+                            //     }
+                            // },
                         },
                         material: material
                     });
@@ -247,12 +247,12 @@ export class Graphics {
                     {
                         attributes: {
                             geometry: coneGeometry,
-                            locationInterpolate: {
-                                normal: {
-                                    type: "flat",
-                                    sampling: "either",
-                                }
-                            },
+                            // locationInterpolate: {
+                            //     normal: {
+                            //         type: "flat",
+                            //         sampling: "first",
+                            //     }
+                            // },
                         },
                         material: material
                     });
@@ -426,12 +426,12 @@ export class Graphics {
                                 vertices: { position: positions },
                                 indices: index,
                             },
-                            locationInterpolate: {
-                                normal: {
-                                    type: "flat",
-                                    sampling: "either",
-                                }
-                            },
+                            // locationInterpolate: {
+                            //     normal: {
+                            //         type: "flat",
+                            //         sampling: "first",
+                            //     }
+                            // },
                         },
                         cullMode: "none",
                         invertNormal,

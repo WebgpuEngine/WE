@@ -261,7 +261,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             //处理st_location
             if (perOne.name == "st_output") {
                 if (this.locationInterpolate != undefined) {
-                    perOne.code = this.getSHT_st_output();
+                    code += this.getSHT_st_output();
+                    continue;
                 }
             }
             code += perOne.code;

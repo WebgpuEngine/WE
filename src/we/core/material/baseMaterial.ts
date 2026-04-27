@@ -684,14 +684,16 @@ export abstract class BaseMaterial extends RootGPU {
      */
     convertAddPartOfSHT(addPart: I_shaderTemplateAdd[]): string {
         let code: string = "";
+        // console.log("convertAddPartOfSHT",this.entity.ID);
         for (let perOne of addPart) {
-            if (perOne.name == "st_output") {
-                //如果entity有locationInterpolate，就添加st_output。用途：非默认的插值方式
-                if (this.entity?.locationInterpolate && this.entity.locationInterpolate != undefined) {
-                    code += this.entity.getSHT_st_output();
-                    continue;
-                }
-            }
+            // if(this.entity.ID ==296) debugger;
+            // if (perOne.name == "st_output") {
+            //     //如果entity有locationInterpolate，就添加st_output。用途：非默认的插值方式
+            //     if (this.entity?.locationInterpolate && this.entity.locationInterpolate != undefined) {
+            //         code += this.entity.getSHT_st_output();
+            //         continue;
+            //     }
+            // }
             code += perOne.code;
         }
         return code;

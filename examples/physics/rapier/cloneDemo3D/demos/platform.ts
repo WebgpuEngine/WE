@@ -1,5 +1,5 @@
 import seedrandom from "seedrandom";
-import type {Testbed} from "../Testbed";
+import type { Testbed } from "../Testbed";
 
 type RAPIER_API = typeof import("@dimforge/rapier3d");
 
@@ -58,8 +58,8 @@ export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
         t += 0.016;
         let dy = Math.sin(t) * 10.0;
         let dang = Math.sin(t) * 0.2;
-        platformBody.setLinvel({x: 0.0, y: dy, z: 0.0}, true);
-        platformBody.setAngvel({x: 0.0, y: dang, z: 0.0}, true);
+        platformBody.setLinvel({ x: 0.0, y: dy, z: 0.0 }, true);
+        platformBody.setAngvel({ x: 0.0, y: dang, z: 0.0 }, true);
     };
 
     // Dynamic cubes.
@@ -99,6 +99,7 @@ export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
                         break;
                     case 1:
                         colliderDesc = RAPIER.ColliderDesc.ball(rad);
+                        // continue;
                         break;
                     case 2:
                         colliderDesc = RAPIER.ColliderDesc.roundCylinder(
@@ -147,7 +148,7 @@ export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
             y: 46.911325612198354,
             z: 83.56055570254844,
         },
-        target: {x: 0.0, y: 0.0, z: 0.0},
+        target: { x: 0.0, y: 0.0, z: 0.0 },
     };
     testbed.lookAt(cameraPosition);
 }
