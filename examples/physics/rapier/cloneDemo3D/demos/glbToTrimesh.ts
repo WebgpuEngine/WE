@@ -1,9 +1,11 @@
-import type {Testbed} from "../Testbed";
-import {Vector3, Object3D, Mesh, BufferGeometry, BufferAttribute} from "three";
-import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
+import type { Testbed } from "../Testbed";
+import { EntityBundleMaterial } from "../../../../../src/we/core/entity/entityBundleMaterial";
+import { createGLTFModel } from "../../../../../src/we/model/gltf/gltf";
+import { Scene } from "../../../../../src/we/core/scene/scene";
+import { vec3 } from "wgpu-matrix";
 type RAPIER_API = typeof import("@dimforge/rapier3d");
 
-export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
+export async function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
     let gravity = new RAPIER.Vector3(0.0, -9.81, 0.0);
     let world = new RAPIER.World(gravity);
 
@@ -17,52 +19,54 @@ export function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
 
     // Adding the 3d model
 
-    let loader = new GLTFLoader();
-
-    loader.load("./suzanne_blender_monkey.glb", (gltf) => {
-        gltf.scene.position.set(0, 1.2, 0);
-        gltf.scene.scale.set(3, 3, 3);
-        testbed.graphics.scene.add(gltf.scene);
-        gltf.scene.updateMatrixWorld(true); // ensure world matrix is up to date
-        gltf.scene.traverse((child: Object3D) => {
-            if ((child as Mesh).isMesh && (child as Mesh).geometry) {
-                const mesh = child as Mesh;
-                const geometry = mesh.geometry as BufferGeometry;
-
-                const vertices: number[] = [];
-                const indices = new Uint32Array(geometry.index!.array); // assume index is non-null
-                const positionAttribute = geometry.getAttribute(
-                    "position",
-                ) as BufferAttribute;
-
-                mesh.updateWorldMatrix(true, true);
-
-                const v = new Vector3();
-
-                for (let i = 0, l = positionAttribute.count; i < l; i++) {
-                    v.fromBufferAttribute(positionAttribute, i);
-                    v.applyMatrix4(mesh.matrixWorld);
-                    vertices.push(v.x, v.y, v.z);
-                }
-
-                const verticesArray = new Float32Array(vertices);
-
-                const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
-                const rigidBody = world.createRigidBody(rigidBodyDesc);
-
-                const colliderDesc = RAPIER.ColliderDesc.trimesh(
-                    verticesArray,
-                    indices,
-                );
-                world.createCollider(colliderDesc, rigidBody);
-            }
-        });
-    });
-
+    let gltf = await createGLTFModel({
+        scene: testbed.graphics.scene,
+        url: "/models/glb/suzanne_blender_monkey.glb",
+        debug: true,
+        dataTypeOfAttribute: "BOL"
+    }
+    );
+    window.gltf = gltf;
+    window.gltfInstance = await testbed.graphics.scene.add(gltf,
+        {
+            position: [0, 1.2, 0],
+            scale: [3, 3, 3],
+        }
+    );
+    testbed.parameters.debugRender = true;
+    //提前处理setWorld，不增加之后的collider的Mesh到Graphics.addCollider()中；
     testbed.setWorld(world);
+
+    window.gltfInstance.traverse((child: NodeObject) => {
+        if (child.Entity != undefined) {
+            child.updateMatrixWorldFroce();
+            // console.log(child.Entity.attributes);
+            const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+            const rigidBody = world.createRigidBody(rigidBodyDesc);
+            let positions = (child.Entity as EntityBundleMaterial).attributes.vertices.position as number[];
+            for (let i = 0; i < positions.length; i += 3) {
+                let vector = vec3.fromValues(positions[i], positions[i + 1], positions[i + 2]);
+                vec3.transformMat4(vector, child.matrixWorld, vector);
+                positions[i] = vector[0];
+                positions[i + 1] = vector[1];
+                positions[i + 2] = vector[2];
+            }
+            const verticesArray = new Float32Array(positions);
+            const indices = new Uint32Array((child.Entity as EntityBundleMaterial).attributes.indices as number[]);
+            const colliderDesc = RAPIER.ColliderDesc.trimesh(
+                verticesArray,
+                indices,
+            );
+            world.createCollider(colliderDesc, rigidBody);
+
+        }
+    })
+
+
+
     let cameraPosition = {
-        eye: {x: 10.0, y: 5.0, z: 10.0},
-        target: {x: 0.0, y: 0.0, z: 0.0},
+        eye: { x: 10.0, y: 5.0, z: 10.0 },
+        target: { x: 0.0, y: 0.0, z: 0.0 },
     };
     testbed.lookAt(cameraPosition);
 }

@@ -18,7 +18,7 @@ import * as Pyramid from "./demos/pyramid";
 import * as Trimesh from "./demos/trimesh";
 import * as Voxels from "./demos/voxels";
 import * as glbToConvexHull from "./demos/glbtoConvexHull";
-// import * as glbToTrimesh from "./demos/glbToTrimesh";
+import * as glbToTrimesh from "./demos/glbToTrimesh";
 
 
 declare global {
@@ -33,6 +33,7 @@ type RAPIER_API = typeof RAPIER;
 // type RAPIER_API = typeof import("@dimforge/rapier3d");
 
 let builders = new Map([
+    // ["GLTF to convexHull", glbToConvexHull.initWorld],
 
     // ["convex polyhedron", ConvexPolyhedron.initWorld],
 
@@ -52,7 +53,7 @@ let builders = new Map([
     ["triangle mesh", Trimesh.initWorld],
     ["voxels", Voxels.initWorld],
     ["GLTF to convexHull", glbToConvexHull.initWorld],
-    // ["GLTF to trimesh", glbToTrimesh.initWorld],
+    ["GLTF to trimesh", glbToTrimesh.initWorld],
 ]);
 let testbed = new Testbed(RAPIER as RAPIER_API, builders, scene);
 testbed.run();

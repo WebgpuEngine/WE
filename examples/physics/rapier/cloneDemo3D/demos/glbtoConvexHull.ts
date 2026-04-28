@@ -1,3 +1,6 @@
+import { vec3 } from "wgpu-matrix";
+import { EntityBundleMaterial } from "../../../../../src/we/core/entity/entityBundleMaterial";
+import { NodeObject } from "../../../../../src/we/core/organization/nodeObject";
 import { Scene } from "../../../../../src/we/core/scene/scene";
 import { createGLTFModel } from "../../../../../src/we/model/gltf/gltf";
 import type { Testbed } from "../Testbed";
@@ -12,7 +15,7 @@ import type { Testbed } from "../Testbed";
 // import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader";
 type RAPIER_API = typeof import("@dimforge/rapier3d");
 
-export async function initWorld(RAPIER: RAPIER_API, testbed: Testbed, scene: Scene) {
+export async function initWorld(RAPIER: RAPIER_API, testbed: Testbed) {
     let gravity = new RAPIER.Vector3(0.0, -9.81, 0.0);
     let world = new RAPIER.World(gravity);
 
@@ -26,10 +29,11 @@ export async function initWorld(RAPIER: RAPIER_API, testbed: Testbed, scene: Sce
 
     // let loader = new GLTFLoader();
     let gltf = await createGLTFModel({
-        scene: scene!,
+        scene: testbed.graphics.scene,
         url: "/models/glb/suzanne_blender_monkey.glb",
         // url: "/models/gltf/model/Fox/glTF/Fox.gltf",
         debug: true,
+        dataTypeOfAttribute: "BOL"
     }
     );
     window.gltf = gltf;
@@ -45,43 +49,34 @@ export async function initWorld(RAPIER: RAPIER_API, testbed: Testbed, scene: Sce
             scale: [3, 3, 3],
         }
     );
+    testbed.parameters.debugRender = true;
 
-    // loader.load("./suzanne_blender_monkey.glb", (gltf) => {
-    //     gltf.scene.position.set(0, 1.2, 0);
-    //     gltf.scene.scale.set(3, 3, 3);
-    //     testbed.graphics.scene.add(gltf.scene);
-    //     testbed.parameters.debugRender = true;
-    //     gltf.scene.updateMatrixWorld(true); // ensure world matrix is up to date
-
-    //     const v = new Vector3();
-    //     const positions: number[] = [];
-
-    //     gltf.scene.traverse((child: Object3D) => {
-    //         if ((child as Mesh).isMesh && (child as Mesh).geometry) {
-    //             const mesh = child as Mesh;
-    //             const geometry = mesh.geometry as BufferGeometry;
-    //             const positionAttribute = geometry.getAttribute(
-    //                 "position",
-    //             ) as BufferAttribute;
-
-    //             for (let i = 0, l = positionAttribute.count; i < l; i++) {
-    //                 v.fromBufferAttribute(positionAttribute, i);
-    //                 v.applyMatrix4(mesh.matrixWorld);
-    //                 positions.push(v.x, v.y, v.z);
-    //             }
-    //         }
-    //     });
-
-    //     const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
-    //     const rigidBody = world.createRigidBody(rigidBodyDesc);
-
-    //     const colliderDesc = RAPIER.ColliderDesc.convexHull(
-    //         new Float32Array(positions),
-    //     );
-    //     world.createCollider(colliderDesc, rigidBody);
-    // });
-
+    //提前处理setWorld，不增加之后的collider的Mesh到Graphics.addCollider()中；
     testbed.setWorld(world);
+
+    window.gltfInstance.traverse((child: NodeObject) => {
+        if (child.Entity != undefined) {
+            child.updateMatrixWorldFroce();
+            // console.log(child.Entity.attributes);
+            const rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
+            const rigidBody = world.createRigidBody(rigidBodyDesc);
+            let positions = (child.Entity as EntityBundleMaterial).attributes.vertices.position as number[];
+            for (let i = 0; i < positions.length; i += 3) {
+                let vector = vec3.fromValues(positions[i], positions[i + 1], positions[i + 2]);
+                vec3.transformMat4(vector, child.matrixWorld, vector);
+                positions[i] = vector[0];
+                positions[i + 1] = vector[1];
+                positions[i + 2] = vector[2];
+            }
+            let colliderDesc_glb = RAPIER.ColliderDesc.convexHull(
+                new Float32Array(positions),
+            );
+            world.createCollider(colliderDesc_glb, rigidBody);
+            let abc = 1;
+        }
+    })
+
+    // testbed.setWorld(world);
     let cameraPosition = {
         eye: { x: 10.0, y: 5.0, z: 10.0 },
         target: { x: 0.0, y: 0.0, z: 0.0 },

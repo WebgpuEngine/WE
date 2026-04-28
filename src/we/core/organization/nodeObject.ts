@@ -834,6 +834,16 @@ export abstract class NodeObject extends NodeSpace {
         // console.log("root:", this.matrixWorld);
         return this.matrixWorld;
     }
+    /**
+     * 强制更新世界矩阵
+     */
+    updateMatrixWorldFroce() {
+        if (this.Parent !== undefined) {
+            this.Parent.updateMatrixWorldFroce();
+        }
+        this.updateMatrix();
+        this.updateMatrixWorld();
+    }
 
 
     /** 检查是否需要更新矩阵 */
