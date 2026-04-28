@@ -328,7 +328,8 @@ export class Graphics {
     removeCollider(collider: RAPIER.Collider) {
         let nodeObject = this.listOfColliderToNodeObject.get(collider.handle);
         if (nodeObject) {
-            nodeObject.destroy();
+            // nodeObject.destroy();
+            nodeObject.remove();
         }
         this.listOfColliderToNodeObject.delete(collider.handle);
     }

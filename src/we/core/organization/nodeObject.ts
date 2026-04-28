@@ -421,15 +421,15 @@ export abstract class NodeObject extends NodeSpace {
      */
     destroy(): void {
 
-        //递归销毁所有子节点
-        if (this.children.length > 0) {
-            for (let child of this.children) {
-                if (child instanceof NodeObject) {
-                    child.destroy();
-                }
-            }
-            this._children = [];
-        }
+        // //递归销毁所有子节点
+        // if (this.children.length > 0) {
+        //     for (let child of this.children) {
+        //         if (child instanceof NodeObject) {
+        //             child.destroy();
+        //         }
+        //     }
+        //     this._children = [];
+        // }
         //从entityManager中移除entity
         if (this.Entity) {
             this.scene.entityManager.remove(this.Entity, this);//将entity从entityManager中移除
@@ -449,13 +449,13 @@ export abstract class NodeObject extends NodeSpace {
             });
             this._skinAnimation = [];
         }
-        // //注销动画组
-        // if (this.AnimationGroup) {
-        //     this.AnimationGroup.forEach((animationGroup) => {
-        //         animationGroup.destroy();
-        //     });
-        //     this.AnimationGroup = [];
-        // }
+        //注销动画组
+        if (this.AnimationGroup) {
+            this.AnimationGroup.forEach((animationGroup) => {
+                animationGroup.destroy();
+            });
+            this.AnimationGroup = [];
+        }
         //注销粒子系统
         // if (this.Particle) {
         //     this.Particle.forEach((particle) => {
@@ -598,48 +598,53 @@ export abstract class NodeObject extends NodeSpace {
         // }
         return childNode;
     }
-    removeChild(child: NodeObject): NodeObject | false {
+    /**
+     * remove child from this node
+     * 移除子节点
+     * @param child 子节点
+     * @param onlyOne 是否只移除一个子节点，默认:true
+     *   只删除单个节点，删除后，从children中移除
+     *   删除所有子节点，不从children中移除（防止for失效），最后由removeChildren()移除
+     * 
+     * @returns 是否移除成功
+     */
+    removeChild(child: NodeObject, onlyOne: boolean = true): boolean {
         let index = this._children.indexOf(child);
         if (index !== -1) {
+            child.removeChildren();
             child.destroy();
-            // this._children[index].removeChildren();//递归移除子节点
-            child.Parent = undefined;
-            this._children[index].visible = false;
-            this._children.splice(index, 1);
-            return child;
+            if (onlyOne) {
+                this._children.splice(index, 1);
+            }
+            return true;
         }
         else console.log("未找到对应的子节点", child);
         return false;
-
-        ////20260106 camera 和  light 的删除有ECS附着，之后转移到ESC中
-        // if (childRemoveResult) {
-        //     if (child.type == "Camera") {
-        //         this.scene.cameraManager.remove(child as unknown as BaseCamera);
-        //         delete this.scene.renderManager.RC[E_renderPassName.forward][child.UUID];
-        //     }
-        //     else if (child.type == "Light") {
-        //         this.scene.lightsManager.remove(child as BaseLight);
-        //         this.scene.resourcesGPU.cleanSystemUniform();//shadowmap 数量会变化，清除system的map
-        //         if (this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID])
-        //             delete this.scene.renderManager.RC[E_renderPassName.shadowmapTransparent][child.UUID];
-        //         if (this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID])
-        //             delete this.scene.renderManager.RC[E_renderPassName.shadowmapOpacity][child.UUID];
-        //     }
-        //     else {
-        //         console.log("未找到对应的ECS manager", child);
-        //     }
-        // }
-        // return childRemoveResult;
     }
-    remove = this.removeChild;
+    /**
+     * remove this node from parent
+     * 从父节点移除当前节点，不递归移除子节点
+     */
+    remove() {
+        if (this.Parent) {
+            this.Parent.removeChild(this);
+        }
+    }
     /**
      * remove all children
      * 移除所有子节点
      */
     removeChildren() {
         this._children.forEach((child) => {
-            child.removeChild(child);
+            this.removeChild(child, false);
         });
+        this._children = [];
+    }
+    traverse(callback: (node: NodeObject) => void) {
+        callback(this);
+        for (let i of this.children) {
+            i.traverse(callback);
+        }
     }
     /**
      * 返回第一个具有id的object
@@ -695,7 +700,7 @@ export abstract class NodeObject extends NodeSpace {
             }
             else if (i instanceof NodeObject) {
                 let isTarget = i.getNodeObjectByName(name);
-                if ( isTarget != false) {
+                if (isTarget != false) {
                     return isTarget;
                 }
             }
