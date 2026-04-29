@@ -18,7 +18,7 @@ import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { IV_NodeSpace, NodeSpace } from "./nodeSpace";
 import { RootGPU } from "./root";
-import { PhysicBody } from "../physics/physicalBody";
+import { PhysicBody } from "../physics/physicBody";
 
 /** 空间类型
  * 1、BVH使用instance Mesh 的AABB信息
@@ -32,7 +32,7 @@ export enum E_BVHSpaceType {
      * 1、不考虑物理引擎，固定位置，只供BVH使用
      * 2、WE空间中，固定位置，不会移动。
      *     A、root ECS及自身将忽略位置更新；
-     *     B、如果有动画的，则不能设置为fixed。
+     *     B、如果有动画的（关键帧且与位置相关），则不能设置为fixed。
      * 3、物理引擎中没有刚体，碰撞体类型为sensor。
     */
     fixed = "fixed",
@@ -97,9 +97,9 @@ export interface IV_Node extends IV_NodeSpace {
 
     physicalBody?: PhysicBody,
 
-    /** 实例化的节点对象,延迟，目前没有必须要实现，
-     * 实例化nodeObject时，需要进行整体的clone和数据的深度copy。
-     */
+    // /** 实例化的节点对象,延迟，目前没有必须要实现，
+    //  * 实例化nodeObject时，需要进行整体的clone和数据的深度copy。
+    //  */
     // instanceNode?: NodeObject,
 
     /**todo 实例化的相机对象(目前将相机作为节点的属性：非子对象) */
@@ -183,8 +183,10 @@ export abstract class NodeObject extends NodeSpace {
     */
 
     /**是否需要更新全局矩阵 */
-    needUpdateGlobalMatrix: boolean = true;
+    needUpdateWorldMatrix: boolean = true;
+    /** 直接在世界坐标下（不考虑层级树状关系），默认false */
     _directInWorldSpace: boolean = false;
+    /** 是否直接在世界坐标下（不考虑层级树状关系）*/
     get DirectInWorldSpace(): boolean {
         return this._directInWorldSpace;
     }
@@ -724,13 +726,13 @@ export abstract class NodeObject extends NodeSpace {
      *         此参数可以方便子类重载时，决定调用的updateSelf()的时间顺序或是否调用updateSelft()
      * @returns 
      */
-    update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
-        super.update(clock, false, false);                             //不更新updateSelf(),不更新updateAtEnd();都只执行一次
-        //不是直接在世界空间坐标系中，层级更新世界矩阵
+    override update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
+        super.update(clock, false, false);                             //更新I_Update.update()，不更新updateSelf(),不更新updateAtEnd().都只执行一次
+        //使用树状层级结构(不是直接在世界空间坐标系中)，层级更新世界矩阵
         if (this.DirectInWorldSpace === false) {
-            this.needUpdateGlobalMatrix = this.checkNeedUpdateMatrix();//调用slef class 的checkNeedUpdateMatrix()，确认parent的matrixWorld是否有变化
+            this.needUpdateWorldMatrix = this.checkNeedUpdateWorldMatrix();//调用slef class 的checkNeedUpdateWorldMatrix()，确认parent的matrixWorld是否有变化
             //用于减少无变化NodeObject的矩阵计算量。这里之哟NodeObject，包括了，Light，Camera
-            if (this.needUpdateGlobalMatrix) {
+            if (this.needUpdateWorldMatrix) {
                 this.updateMatrixWorld();//更新 world matrix
                 this.updateWorldPosition(); //更新 world position
             }
@@ -742,6 +744,7 @@ export abstract class NodeObject extends NodeSpace {
             mat4.copy(this.matrix, this.matrixWorld);
             this.updateWorldPosition(); //更新 world position
         }
+
         //更新updateSelf()。只更新一次,在所有自身更新之后
         if (updateSelftFN) {
             this.updateSelf(clock);
@@ -751,6 +754,7 @@ export abstract class NodeObject extends NodeSpace {
             for (let i of this.children) {
                 i.update(clock);//更新子节点,包括：node object，light，camera
             }
+
         //根据是否使用罗德里格斯旋转，以及在local还是world空间，来更新旋转矩阵
         this.rodriguesRotation(true);
         //在最后执行调用
@@ -846,8 +850,10 @@ export abstract class NodeObject extends NodeSpace {
     }
 
 
+    /** 父空间的矩阵世界  */
+    _parentMatrixWorld: Mat4 | undefined;
     /** 检查是否需要更新矩阵 */
-    checkNeedUpdateMatrix(): boolean {
+    checkNeedUpdateWorldMatrix(): boolean {
         let flagParentMatrixWorld = false;
         // if (this.Parent !== undefined) {
         //     flagParentMatrixWorld = this.Parent.needUpdateMatrix;
@@ -865,8 +871,8 @@ export abstract class NodeObject extends NodeSpace {
                 }
             }
         }
-        this.needUpdateGlobalMatrix = this.needUpdateLocalMatrix || flagParentMatrixWorld;
-        return this.needUpdateGlobalMatrix;
+        this.needUpdateWorldMatrix = this.needUpdateLocalMatrix || flagParentMatrixWorld;
+        return this.needUpdateWorldMatrix;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
-import { PhysicalBody } from "./physicalBody";
+import { PhysicBody } from "./physicBody";
 
-export class RigidBody extends PhysicalBody {
+export class RigidBody extends PhysicBody {
     constructor() {
         super();
     }

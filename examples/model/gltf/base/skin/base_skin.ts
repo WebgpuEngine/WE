@@ -44,7 +44,8 @@ await scene.add(camera);
 
 let gltf = await createGLTFModel({
     scene: scene,
-    url: "/models/gltf/base/skin/simpleSkin.gltf"
+    url: "/models/gltf/base/skin/simpleSkin.gltf",
+    // dataTypeOfAttribute:"BOL"
 }
 );
 window.gltf = gltf;
