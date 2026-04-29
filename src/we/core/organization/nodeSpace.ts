@@ -413,7 +413,7 @@ export abstract class NodeSpace extends RootGPU {
                 this._quaternionOld = vec4.create();
                 vec4.copy(this._quaternion, this._quaternionOld);
             }
-            else if (this._quaternionOld !== undefined && vec4.equals(this._quaternion, this._quaternionOld) === false) {//是否有四元数变化
+            else if (vec4.equals(this._quaternion, this._quaternionOld) === false) {//是否有四元数变化
                 flagQuaternion = true;
                 vec4.copy(this._quaternion, this._quaternionOld);
             }
@@ -422,13 +422,11 @@ export abstract class NodeSpace extends RootGPU {
             if (this._rotateOld == undefined) {
                 flagRotate = true;
                 this._rotateOld = vec4.create();
-                vec3.copy(this._rotate, this._rotateOld);
+                vec4.copy(this._rotate, this._rotateOld);
             }
-            else if (this._rotate !== undefined && this._rotateOld !== undefined) {
-                if (vec3.equals(this._rotate, this._rotateOld) === false) {
-                    flagRotate = true;
-                    vec3.copy(this._rotate, this._rotateOld);
-                }
+            else if (vec4.equals(this._rotate, this._rotateOld) === false) {
+                flagRotate = true;
+                vec4.copy(this._rotate, this._rotateOld);
             }
         }
         if (this._rodriguesRotation) {//罗德里格斯旋转

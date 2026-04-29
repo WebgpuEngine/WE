@@ -184,7 +184,8 @@ let joint_3 = new NodeInstance({
 joint_0.add(joint_1);
 joint_1.add(joint_2);
 joint_2.add(joint_3);
-/////////////////////////////////////////旋转的关键帧/////////////////////////////////////////////////
+
+/////////////////////////////////////////旋转的采样/////////////////////////////////////////////////
 let scale = 0.5;
 let sampler: I_AnimationSampler = {
   interpolation: E_InterpolationModes.linear,
@@ -200,6 +201,8 @@ let sampler: I_AnimationSampler = {
   targetStride: 4
 }
 
+///////////////////////////////关键帧动画///////////////////////////////
+// 关键帧动画
 let keyFrame_0: KeyFrameAnimation = new KeyFrameAnimation({
   parent: joint_0,
   sampler: sampler,
@@ -220,7 +223,7 @@ let keyFrame_3: KeyFrameAnimation = new KeyFrameAnimation({
 
 
 ///////////////////////////////skeleton and  skins ///////////////////
-
+// 逆绑定矩阵
 let bonesJointsMatWorld = [
   mat4.create(
     1, 0, 0, 0,
@@ -247,8 +250,9 @@ let bonesJointsMatWorld = [
     -12, 0, 0, 1,
   ),
 ];
+// 骨骼节点
 let jointsNodeObject = [joint_0, joint_1, joint_2, joint_3];
-
+// 骨骼
 let skeletons = new Skeleton({
   joints: jointsNodeObject,
   jointsMatrices: bonesJointsMatWorld
@@ -259,10 +263,12 @@ let skins = new SkinAnimation(
   {
     parent: joint_0,
     skeleton: skeletons,
-    entity: joint_0.Entity!,
+    // entity: joint_0.Entity!,
+    entity: lines,
   }
 );
 
+// 动画组:关键帧+皮肤骨骼动画
 let animationGroup = new AnimationGroup({
   animations: [keyFrame_0, keyFrame_1, keyFrame_2, keyFrame_3, skins],
   scene,
