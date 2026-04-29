@@ -12,7 +12,7 @@
  */
 import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
-// import { IV_NodeSpace, NodeInstanceModel, NodeObject, RootGPU } from "../../core/organization/root";
+// import { IV_NodeSpace, NodeObject, NodeObject, RootGPU } from "../../core/organization/root";
 import { createCommonGPUBuffer } from "../../core/command/baseFunction";
 import { I_indexGPUBufferBundle, I_vsGPUBufferBundle, T_indexAttribute } from "../../core/command/DrawCommandGenerator";
 import { IV_MeshEntity, Mesh } from "../../core/entity/mesh/mesh";
@@ -39,7 +39,7 @@ import { KeyFrameAnimation } from "../../core/animation/keyFrame";
 import { MorphTargetAnimation } from "../../core/animation/morphTarget";
 import { SkinAnimation } from "../../core/animation/skin";
 import { Skeleton } from "../../core/animation/skeleton";
-import { NodeObject, NodeInstanceModel } from "../../core/organization/nodeObject";
+import { NodeObject } from "../../core/organization/nodeObject";
 import { IV_NodeSpace } from "../../core/organization/nodeSpace";
 import { RootGPU } from "../../core/organization/root";
 import { MeshMorphTarget } from "../../core/entity/animationEntity/meshOfMorphTarget";
@@ -128,8 +128,8 @@ export class GLTFModel extends BaseModel {
     * @param attachValue 节点空间属性
     * @returns 场景节点实例
     */
-    async initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
-        let nodeOfScene: NodeInstanceModel = await this.initModelScene(parent, this.currentScene, attachValue);
+    async initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeObject> {
+        let nodeOfScene: NodeObject = await this.initModelScene(parent, this.currentScene, attachValue);
         await this.initAnimationsForInstance(nodeOfScene);
         await this.initSkinsForInstance(nodeOfScene);
         if (this.debug === false) {
@@ -149,8 +149,8 @@ export class GLTFModel extends BaseModel {
      * @param attachValue 节点空间属性
      * @returns 场景节点实例
      */
-    async initModelScene(parent: NodeObject, id?: number, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
-        let nodeOfScene: NodeInstanceModel = new NodeInstanceModel(attachValue);   //创建node object
+    async initModelScene(parent: NodeObject, id?: number, attachValue?: IV_NodeSpace): Promise<NodeObject> {
+        let nodeOfScene: NodeObject = new NodeObject(attachValue);   //创建node object
         await nodeOfScene.init(this.scene, parent);         // 初始化node object
         this.instanceNodes.set(nodeOfScene, {
             nodes: new Map<any, NodeObject>(),
@@ -188,9 +188,9 @@ export class GLTFModel extends BaseModel {
     /**
      * 初始化皮肤
      * 1、皮肤附加到NodeObject
-     * 2、皮肤实例附加到NodeInstanceModel
+     * 2、皮肤实例附加到NodeObject
      */
-    async initSkinsForInstance(nodeOfScene: NodeInstanceModel) {
+    async initSkinsForInstance(nodeOfScene: NodeObject) {
         //1、递归获得mesh和skin的组合，以及对应的node ,输出[{meshID,skinID,nodeID}]
 
         //2、遍历mesh和skin的组合，初始化SkinAnimation,输出  [SkinAnimation]
@@ -273,9 +273,9 @@ export class GLTFModel extends BaseModel {
     /**
      * 初始化动画
      * 1、基础动画附加到NodeObject
-     * 2、动画组附加到NodeInstanceModel
+     * 2、动画组附加到NodeObject
      */
-    async initAnimationsForInstance(nodeOfScene: NodeInstanceModel) {
+    async initAnimationsForInstance(nodeOfScene: NodeObject) {
         let animationGroupsJSON = this.DataLoader.gltfJSON().animations;
         if (animationGroupsJSON == undefined) {
             return;

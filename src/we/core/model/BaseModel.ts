@@ -1,6 +1,6 @@
 import { AnimationGroup } from "../animation/animationGroup";
 import { I_Update } from "../base/coreDefine";
-import { NodeInstanceModel, NodeObject } from "../organization/nodeObject";
+import { NodeObject } from "../organization/nodeObject";
 import { IV_NodeSpace } from "../organization/nodeSpace";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
@@ -135,7 +135,7 @@ export abstract class BaseModel extends NodeObject {
      * @param attachValue 节点空间属性
      * @returns 场景节点实例
      */
-    abstract initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel>
+    abstract initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeObject>
 
     /**
      * 释放模型原始资源

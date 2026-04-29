@@ -7,7 +7,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { RootManager } from "../../../src/we/core/scene/rootManager";
-import { NodeInstance, NodeObject } from "../../../src/we/core/organization/nodeObject";
+import {  NodeObject } from "../../../src/we/core/organization/nodeObject";
 
 declare global {
   interface Window {
@@ -174,7 +174,7 @@ let camera = new PerspectiveCamera({
 });
 // await scene.add(camera);
 
-let node_1 = new NodeInstance(scene);
+let node_1 = new NodeObject(scene);
 node_1.Position = vec3.create(0, 0, 11);
 // node_1.Rotate={
 //   axis:vec3.create(0,1,0),

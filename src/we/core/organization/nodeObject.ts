@@ -121,9 +121,19 @@ export interface IV_Node extends IV_NodeSpace {
  * 3、_destroy需要实例化
  * 4、updateSelf需要实例化
  */
-export abstract class NodeObject extends NodeSpace {
+export class NodeObject extends NodeSpace {
+    override async readyForGPU(): Promise<any> {
+        // throw new Error("Method not implemented.");
+    }
+    override _destroy(): void {
+        // throw new Error("Method not implemented.");
+    }
+    override updateSelf(clock: Clock): void {
+        // throw new Error("Method not implemented.");
+    }
     /** BVH空间类型 */
     _spaceType: E_BVHSpaceType = E_BVHSpaceType.none;
+    /** 设置空间类型 */
     set SpaceType(value: E_BVHSpaceType | string) {
         if (typeof value === "string") {
             if (value in E_BVHSpaceType) {
@@ -135,17 +145,19 @@ export abstract class NodeObject extends NodeSpace {
             this._spaceType = value;
         }
     }
+    /** 获取空间类型 */
     get SpaceType(): E_BVHSpaceType {
         return this._spaceType;
     }
     /** 物理体对象 physical body object */
-    _physicalBody: PhysicBody | undefined;
-
-    set PhysicalBody(value: PhysicBody) {
-        this._physicalBody = value;
+    _physicBody: PhysicBody | undefined;
+    /** 设置物理体对象 physical body object */
+    set PhysicBody(value: PhysicBody) {
+        this._physicBody = value;
     }
-    get PhysicalBody(): PhysicBody | undefined {
-        return this._physicalBody;
+    /** 获取物理体对象 physical body object */
+    get PhysicBody(): PhysicBody | undefined {
+        return this._physicBody;
     }
 
     constructor(input?: IV_Node) {
@@ -164,7 +176,7 @@ export abstract class NodeObject extends NodeSpace {
                 }
             }
             if (input.physicalBody) {
-                this.PhysicalBody = input.physicalBody;
+                this.PhysicBody = input.physicalBody;
                 this.SpaceType = E_BVHSpaceType.physical;
             }
             // if (input.particle) this.Particle = input.particle;
@@ -218,7 +230,10 @@ export abstract class NodeObject extends NodeSpace {
     get renderID() {
         return this._renderID;
     }
-
+    /** 模型对象 model object     
+     * 如果此节点为模型实例化的根节点，则_modelOrigin为模型对象。
+    */
+    _modelOrigin: BaseModel | undefined;
 
 
     /** 实体对象 entity object     */
@@ -529,7 +544,7 @@ export abstract class NodeObject extends NodeSpace {
      * @param child  NodeObject | BaseEntity | IV_Node 
      * @returns  Promise<NodeObject> 
      */
-    async addChild(child: NodeObject | BaseEntity | IV_Node, modelAttachValue?: IV_NodeSpace): Promise<NodeObject> {
+    async addChild(child: NodeObject | BaseEntity | IV_Node | BaseModel, modelAttachValue?: IV_NodeSpace): Promise<NodeObject> {
         let childNode: NodeObject;
         if (child instanceof NodeObject) {
             // child.parent = this;
@@ -567,7 +582,7 @@ export abstract class NodeObject extends NodeSpace {
         //节点，根据参数创建
         else {
             let initValue: IV_Node;
-            if (child instanceof RootGPU) {
+            if (child instanceof BaseEntity) {
                 initValue = {
                     entity: child,
                 };
@@ -583,7 +598,8 @@ export abstract class NodeObject extends NodeSpace {
     add = this.addChild;
 
     async initNodeObject(value: IV_Node): Promise<NodeObject> {
-        let childNode: NodeObject = new NodeInstance(value);//创建node object
+        // let childNode: NodeObject = new NodeInstance(value);//创建node object
+        let childNode: NodeObject = new NodeObject(value);//创建node object
         await childNode.init(this.scene, this);  //初始化node object
         childNode.Parent = this;    //设置parent
         if (value.entity) {//如果有entity
@@ -728,21 +744,24 @@ export abstract class NodeObject extends NodeSpace {
      */
     override update(clock: Clock, updateSelftFN: boolean = true, updateAtEndFN: boolean = true): boolean {
         super.update(clock, false, false);                             //更新I_Update.update()，不更新updateSelf(),不更新updateAtEnd().都只执行一次
-        //使用树状层级结构(不是直接在世界空间坐标系中)，层级更新世界矩阵
-        if (this.DirectInWorldSpace === false) {
-            this.needUpdateWorldMatrix = this.checkNeedUpdateWorldMatrix();//调用slef class 的checkNeedUpdateWorldMatrix()，确认parent的matrixWorld是否有变化
-            //用于减少无变化NodeObject的矩阵计算量。这里之哟NodeObject，包括了，Light，Camera
-            if (this.needUpdateWorldMatrix) {
-                this.updateMatrixWorld();//更新 world matrix
+        //判断NodeObject的SpaceType是否不为physical,才需要更新世界矩阵．physic由this._PhysicBody及其ECS更新
+        if (this.SpaceType !== E_BVHSpaceType.physical) {
+            //使用树状层级结构(不是直接在世界空间坐标系中)，层级更新世界矩阵
+            if (this.DirectInWorldSpace === false) {
+                this.needUpdateWorldMatrix = this.checkNeedUpdateWorldMatrix();//调用slef class 的checkNeedUpdateWorldMatrix()，确认parent的matrixWorld是否有变化
+                //用于减少无变化NodeObject的矩阵计算量。这里之哟NodeObject，包括了，Light，Camera
+                if (this.needUpdateWorldMatrix) {
+                    this.updateMatrixWorld();//更新 world matrix
+                    this.updateWorldPosition(); //更新 world position
+                }
+                //更新自身属性，AABB
+                this.updateSelfAttribute();
+            }
+            //直接存在世界空间坐标系中
+            else {
+                mat4.copy(this.matrix, this.matrixWorld);
                 this.updateWorldPosition(); //更新 world position
             }
-            //更新自身属性，AABB
-            this.updateSelfAttribute();
-        }
-        //直接存在世界空间坐标系中
-        else {
-            mat4.copy(this.matrix, this.matrixWorld);
-            this.updateWorldPosition(); //更新 world position
         }
 
         //更新updateSelf()。只更新一次,在所有自身更新之后
@@ -880,12 +899,13 @@ export abstract class NodeObject extends NodeSpace {
      * 输出JSON格式
      * 需要每个继承类覆盖属性实现
      */
-    abstract saveJSON(): any;
+    // abstract saveJSON(): any;
     /**
      * 加载JSON格式数据
      * @param json 输入的JSON格式数据
      */
-    abstract loadJSON(json: any): void;
+    // abstract loadJSON(json: any): void;
+
     // getBaseJSON(): NodeObjectJSON {
     //     let outputJSON: NodeObjectJSON = {
     //         type: this.type,
@@ -952,80 +972,80 @@ export abstract class NodeObject extends NodeSpace {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // NodeInstance and NodeInstanceModel
 
-/**
- * 节点实例
- * 用于实例化节点对象
- */
-export class NodeInstance extends NodeObject {
-    _destroy(): void {
-        // throw new Error("Method not implemented.");
-    }
-    //20260313，为了TTPF，明确ID，的临时测试代码
-    // constructor(input?: IV_Node) {
-    //     super(input);
-    //     if (input.id !== undefined) {
-    //         this.ID = input.id;
-    //     }
-    // }
-    override type: string = "NodeInstance";
+// /**
+//  * 节点实例
+//  * 用于实例化节点对象
+//  */
+// export class NodeInstance extends NodeObject {
+//     _destroy(): void {
+//         // throw new Error("Method not implemented.");
+//     }
+//     //20260313，为了TTPF，明确ID，的临时测试代码
+//     // constructor(input?: IV_Node) {
+//     //     super(input);
+//     //     if (input.id !== undefined) {
+//     //         this.ID = input.id;
+//     //     }
+//     // }
+//     override type: string = "NodeInstance";
 
-    saveJSON() {
-        throw new Error("Method not implemented.");
-    }
-    loadJSON(json: any): void {
-        throw new Error("Method not implemented.");
-    }
-    async readyForGPU(): Promise<any> {
-        // throw new Error("Method not implemented.");
+//     saveJSON() {
+//         throw new Error("Method not implemented.");
+//     }
+//     loadJSON(json: any): void {
+//         throw new Error("Method not implemented.");
+//     }
+//     async readyForGPU(): Promise<any> {
+//         // throw new Error("Method not implemented.");
 
-    }
-    // _destroy(): void {
-    //     if (this._isDestroy) return;
-    //     // throw new Error("Method not implemented.");
-    // }
-    updateSelf(clock: Clock): void {
-        // throw new Error("Method not implemented.");
-    }
-}
-/**
- * 节点实例
- * 用于实例化节点对象
- */
-export class NodeInstanceModel extends NodeObject {
-    // override destroy(): void {
-    //     if(this._children.length > 0) {
-    //         for(let i of this._children) {
-    //             i.destroy();
-    //         }
-    //     }
-    //     super.destroy();
-    // }
-    _destroy(): void {
-        // throw new Error("Method not implemented.");
-    }
-    /**
-     *  模型来源 : 指向原始模型
-     * 1、animation的数据来源使用modelOrigin
-    */
-    _modelOrigin!: BaseModel;
-    override type: string = "NodeInstanceModel";
-    saveJSON() {
-        throw new Error("Method not implemented.");
-    }
-    loadJSON(json: any): void {
-        throw new Error("Method not implemented.");
-    }
-    async readyForGPU(): Promise<any> {
-        // throw new Error("Method not implemented.");
+//     }
+//     // _destroy(): void {
+//     //     if (this._isDestroy) return;
+//     //     // throw new Error("Method not implemented.");
+//     // }
+//     updateSelf(clock: Clock): void {
+//         // throw new Error("Method not implemented.");
+//     }
+// }
+// /**
+//  * 节点实例
+//  * 用于实例化节点对象
+//  */
+// export class NodeInstanceModel extends NodeObject {
+//     // override destroy(): void {
+//     //     if(this._children.length > 0) {
+//     //         for(let i of this._children) {
+//     //             i.destroy();
+//     //         }
+//     //     }
+//     //     super.destroy();
+//     // }
+//     _destroy(): void {
+//         // throw new Error("Method not implemented.");
+//     }
+//     /**
+//      *  模型来源 : 指向原始模型
+//      * 1、animation的数据来源使用modelOrigin
+//     */
+//     _modelOrigin!: BaseModel;
+//     override type: string = "NodeInstanceModel";
+//     saveJSON() {
+//         throw new Error("Method not implemented.");
+//     }
+//     loadJSON(json: any): void {
+//         throw new Error("Method not implemented.");
+//     }
+//     async readyForGPU(): Promise<any> {
+//         // throw new Error("Method not implemented.");
 
-    }
-    // _destroy(): void {
-    //     // throw new Error("Method not implemented.");
-    // }
-    updateSelf(clock: Clock): void {
-        // throw new Error("Method not implemented.");
-    }
-}
+//     }
+//     // _destroy(): void {
+//     //     // throw new Error("Method not implemented.");
+//     // }
+//     updateSelf(clock: Clock): void {
+//         // throw new Error("Method not implemented.");
+//     }
+// }
 
 /**
  * 创建一个新的空节点实例
@@ -1033,9 +1053,9 @@ export class NodeInstanceModel extends NodeObject {
  * @param parent 父节点
  * @returns 新的节点实例
  */
-export async function newNode(parent: NodeInstance) {
+export async function newNode(parent: NodeObject) {
     let scene: Scene = parent.scene;
-    let node = new NodeInstance();
+    let node = new NodeObject();
     await node.init(scene, parent);
     return node;
 }

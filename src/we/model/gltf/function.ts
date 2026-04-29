@@ -2,7 +2,6 @@ import { GLTFAccessor, GLTFBufferView, GLTFNode } from "@loaders.gl/gltf";
 import { weVec3, weVec4 } from "../../core/base/coreDefine";
 import { mat4 } from "wgpu-matrix";
 import { BaseEntity } from "../../core/entity/baseEntity";
-// import { newNode, NodeInstance, NodeObject } from "../../core/organization/root";
 import { GLTFModel } from "./gltf";
 import { T_ModelResKind } from "../../core/model/BaseModel";
 import { TypedArray } from "webgpu-utils";
@@ -32,9 +31,7 @@ export async function addNode(gltf: GLTFModel, nodeID: number, parent: NodeObjec
     if (node.mesh != undefined && node.skin != undefined) {
         gltf.meshAndSkinBundle.push({ meshID: node.mesh, skinID: node.skin, nodeID: nodeID });
     }
-    // let node = gltf.modelData.json.nodes[nodeID];
-    // let oneNode: NodeInstance = new NodeInstance();
-    // await oneNode.init(gltf.scene, parent);
+
     let oneNode = await newNode(parent);
     oneNode.Name = node.name || nodeID;
     // console.log(oneNode.ID, oneNode.Name);

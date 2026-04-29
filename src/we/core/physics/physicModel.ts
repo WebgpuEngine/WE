@@ -6,12 +6,12 @@
 */
 
 import { BaseModel } from "../model/BaseModel";
-import { NodeInstanceModel, NodeObject } from "../organization/nodeObject";
+import { NodeObject } from "../organization/nodeObject";
 import { IV_NodeSpace } from "../organization/nodeSpace";
 import { Clock } from "../scene/clock";
 
 export abstract class PhysicalModel extends BaseModel {
-    initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeInstanceModel> {
+    initInstance(parent: NodeObject, attachValue?: IV_NodeSpace): Promise<NodeObject> {
         throw new Error("Method not implemented.");
     }
     detachData(): void {

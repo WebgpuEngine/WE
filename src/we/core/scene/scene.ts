@@ -736,7 +736,7 @@ export class Scene {
         //render target manager
         //physices engine manager
 
-        //animation manager update, 动画更新需要在entity更新之前
+        //animation manager update, 动画更新需要在entity更新之前(插值会改变TRS值)
         this.animationManager.update(this.clock); //动画更新
         this.animationGroupManager.update(this.clock); //动画组更新,需要在动画更新之前
 

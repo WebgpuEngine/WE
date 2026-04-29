@@ -3,7 +3,7 @@ import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
-import { NodeInstance, NodeObject } from "../../../src/we/core/organization/nodeObject";
+import {  NodeObject } from "../../../src/we/core/organization/nodeObject";
 import { Mat4, mat4, vec3 } from "wgpu-matrix";
 import { IV_LinesEntity, Lines } from "../../../src/we/core/entity/mesh/lines";
 import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_InterpolationModes, I_AnimationSampler } from "../../../src/we/core/animation/base";
@@ -155,14 +155,14 @@ let joint_0 = await scene.add(
 // joint_0.JointsMat = boneArray;
 
 //第二个骨骼
-let joint_1 = new NodeInstance({
+let joint_1 = new NodeObject({
   position: [4, 0, 0],
   // update: function (scope: NodeObject) {
   //   scope.Rotate = [0, 0, 1, window.angle()];
   // },
 })
 //第三个骨骼
-let joint_2 = new NodeInstance({
+let joint_2 = new NodeObject({
   position: [4, 0, 0],
   // update: function (scope: NodeObject) {
   //   scope.Rotate = [0, 0, 1, window.angle()];
@@ -170,7 +170,7 @@ let joint_2 = new NodeInstance({
 })
 
 //第四个骨骼,无动作，用于计算最终的世界逆绑定矩阵
-let joint_3 = new NodeInstance({
+let joint_3 = new NodeObject({
   position: [4, 0, 0],
   // update: function (scope: NodeObject) {
   //   for (let i in jointsNodeObject) {
