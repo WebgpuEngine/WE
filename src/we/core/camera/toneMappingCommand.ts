@@ -1,11 +1,10 @@
 import { commmandType } from "../command/base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
-import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { E_GBufferNames } from "../gbuffers/base";
 import { E_ToneMappingType } from "../scene/base";
 import { Scene } from "../scene/scene";
-import { WGSL_colorSpaceFunction } from "../shadermanagemnet/colorSpace/colorSpace";
+import { WGSL_colorSpaceFunction, WGSL_toneMappingFunction } from "../shadermanagemnet/colorSpace/colorSpace";
 import { CameraManager } from "./cameraManager";
 
 export class ToneMappingCommandGenerator {
@@ -21,7 +20,6 @@ export class ToneMappingCommandGenerator {
         }
     } = {};
     shaderModule: GPUShaderModule;
-    pipeline: GPURenderPipeline;
 
 
     constructor(input: {
@@ -155,12 +153,21 @@ export class ToneMappingCommandGenerator {
         switch (this.scene.E_ToneMappingType) {
             case E_ToneMappingType.acesToSRGB:
                 returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
+                // returnColor = `
+                //  var c = ACESFilmicToneMapping( color.rgb ); 
+                //  c = linearToSRGB( c );
+                // return vec4f(c, 1.0);
+                // `;
                 break;
             case E_ToneMappingType.acesToSRGB_White:
                 returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
+                // returnColor = `
+                //  var c = LinearToneMapping( color.rgb ); 
+                // return vec4f(c, color.a);
+                // `;
                 break;
             case E_ToneMappingType.linearToSRGB:
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
+                returnColor = "return vec4f( LinearToneMapping(color.rgb), color.a);";
                 break;
             case E_ToneMappingType.acesToP3:
                 returnColor = "return vec4f( acesToP3(color.rgb), color.a);";
@@ -178,6 +185,7 @@ export class ToneMappingCommandGenerator {
         // 如果颜色空间是srgb，那么就不需要转换
         if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
             returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
+        //WGSL_colorSpaceFunction  WGSL_toneMappingFunction
         let shader = `   
             ${WGSL_colorSpaceFunction}            
             @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;

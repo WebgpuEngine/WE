@@ -167,8 +167,8 @@ export class Scene {
      * 
      * 3、如果是显示类的颜色，建议使用acesToSRGB。todo：还需要更新，有偏色
      */
-    // E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.acesToSRGB;
-    E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.linearToSRGB;
+    E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.acesToSRGB;
+    // E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.linearToSRGB;
 
 
 

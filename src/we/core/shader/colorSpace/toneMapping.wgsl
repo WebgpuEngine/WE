@@ -1,81 +1,191 @@
-//ACES 色调映射（线性 HDR → 线性 LDR）
-fn acesToneMap(linearHDR : vec3 < f32>) -> vec3 < f32> {
-  let a = 2.51;
-  let b = 0.03;
-  let c = 2.43;
-  let d = 0.59;
-  let e = 0.14;
-  return clamp((linearHDR * (a * linearHDR + b)) / (linearHDR * (c * linearHDR + d) + e),  vec3f(0.0), vec3f(1.0));
+// ==============================================
+// Three.js r184 Tonemapping 精确 WGSL 版
+// 无 push_constant | 曝光直接写死 = 1.0
+// 可直接复制使用
+// ==============================================
+
+var<private> toneMappingExposure: f32 = 1.; // 直接固定默认值
+
+fn saturate(a: vec3<f32>) -> vec3<f32> {
+  return clamp(a, vec3<f32>(0.0), vec3<f32>(1.0));
 }
 
-//reinhard色调映射
-fn reinhardToneMap(hdrColor : vec3 < f32>, gamma : f32) -> vec3 < f32> {
-  //const gamma = 2.2;
-  //Reinhard色调映射
-  var mapped = hdrColor / (hdrColor + vec3(1.0));
-  //Gamma校正,注销掉的原因时，之后还需要进行colorspace的转换，会进行gamma校正
-  //mapped = pow(mapped, vec3(1.0 / gamma));
-  return mapped;
-}
-//exposure曝光色调映射
-fn exposureToneMap(hdrColor : vec3 < f32>, exposure : f32) -> vec3 < f32> {
-  //const gamma = 2.2;
-  //曝光色调映射
-  var mapped = vec3f(1.0) - exp(-hdrColor * exposure);
-  return mapped;
+// --------------------------
+// 1. Linear
+// --------------------------
+fn LinearToneMapping(color: vec3<f32>) -> vec3<f32> {
+  return saturate(toneMappingExposure * color);
 }
 
-// HDR-to-HDR 色调映射：将源HDR亮度压缩到设备支持的HDR范围
-// 输入：
-// - hdrColor：线性空间的源HDR颜色（可能包含超过设备上限的亮度）
-// - sourceMaxNits：源数据的最大亮度（如10000.0 nits）
-// - deviceMaxNits：当前设备支持的最大亮度（如1000.0 nits）
-// 输出：压缩后仍在HDR范围内的颜色（亮度 ≤ deviceMaxNits）
-
-fn hdrToHdrToneMap(hdrColor : vec3f, sourceMaxNits : f32, deviceMaxNits : f32) -> vec3f {
-    // 1. 计算相对亮度（将亮度归一化到源最大亮度）
-    // 亮度转换系数（Rec.709标准）
-    let luminanceWeights = vec3f(0.2126, 0.7152, 0.0722);
-    let luminance = dot(hdrColor, luminanceWeights); // 线性亮度值
-    let normalizedLuminance = luminance / sourceMaxNits; // 归一化到0~1（源范围）
-
-    // 2. 计算压缩因子：源超出设备的部分需要被压缩的比例
-    let compressionRatio = deviceMaxNits / sourceMaxNits;
-    var compressedLuminance : f32;
-
-    // 3. 对超范围的亮度进行非线性压缩（保留细节）
-    if (normalizedLuminance <= compressionRatio) {
-        // 设备能直接显示的范围：线性映射（保留原始比例）
-        compressedLuminance = normalizedLuminance / compressionRatio;
-    } else {
-        // 超范围部分：使用类似Reinhard的曲线压缩，避免硬截断
-        // 公式：x / (x + k)，k为压缩系数（控制曲线陡峭度）
-        let x = normalizedLuminance - compressionRatio;
-        let k = 0.1 * compressionRatio; // 可调整以控制高光压缩强度
-        compressedLuminance = compressionRatio + (x / (x + k));
-    }
-
-    // 4. 计算亮度缩放比例，将压缩后的亮度应用到原始颜色
-    let scale = compressedLuminance * deviceMaxNits / max(luminance, 1e-6); // 避免除以0
-    let compressedColor = hdrColor * scale;
-
-    return compressedColor;
+// --------------------------
+// 2. Reinhard
+// --------------------------
+fn ReinhardToneMapping(color: vec3<f32>) -> vec3<f32> {
+  var c = color * toneMappingExposure;
+  return saturate(c / (vec3<f32>(1.0) + c));
 }
 
-// // 示例：在片段着色器中使用
-// void main() {
-//     // 假设：
-//     // - 源HDR数据最大亮度为10000 nits
-//     // - 当前设备最大亮度为1000 nits
-//     float sourceMax = 10000.0;
-//     float deviceMax = 1000.0;
+// --------------------------
+// 3. Cineon
+// --------------------------
+fn CineonToneMapping(color: vec3<f32>) -> vec3<f32> {
+  var c = color * toneMappingExposure;
+  c = max(vec3<f32>(0.0), c - 0.004);
+  let n = c * (6.2 * c + 0.5);
+  let d = c * (6.2 * c + 1.7) + 0.06;
+  return pow(n / d, vec3<f32>(2.2));
+}
 
-//     // 获取线性空间的源HDR颜色（可能包含超范围值）
-//     vec3 linearHDRColor = ...; // 从纹理或光照计算获取
+// --------------------------
+// 4. ACES Filmic
+// --------------------------
+fn RRTAndODTFit(v: vec3<f32>) -> vec3<f32> {
+  let a = v * (v + 0.0245786) - 0.000090537;
+  let b = v * (0.983729 * v + 0.4329510) + 0.238081;
+  return a / b;
+}
 
-//     // 应用HDR-to-HDR色调映射
-//     vec3 compressedHDRColor = hdrToHdrToneMap(linearHDRColor, sourceMax, deviceMax);
+fn ACESFilmicToneMapping(color: vec3<f32>) -> vec3<f32> {
+  const ACESInputMat: mat3x3<f32> = mat3x3<f32>(
+    vec3<f32>(0.59719, 0.07600, 0.02840),
+    vec3<f32>(0.35458, 0.90834, 0.13383),
+    vec3<f32>(0.04823, 0.01566, 0.83777)
+  );
 
-//     // 输出到HDR设备（无需gamma校正，设备会处理）
-//     gl_FragColor = vec4(compressedHDRColor, 1.0);
-// }
+  const ACESOutputMat: mat3x3<f32> = mat3x3<f32>(
+    vec3<f32>(1.60475, -0.10208, -0.00327),
+    vec3<f32>(-0.53108, 1.10813, -0.07276),
+    vec3<f32>(-0.07367, -0.00605, 1.07602)
+  );
+
+  var c = color * toneMappingExposure / 0.6;
+  c = ACESInputMat * c;
+  c = RRTAndODTFit(c);
+  c = ACESOutputMat * c;
+  return saturate(c);
+}
+
+// --------------------------
+// Color Space Matrices
+// --------------------------
+const LINEAR_REC2020_TO_LINEAR_SRGB: mat3x3<f32> = mat3x3<f32>(
+  vec3<f32>(1.6605, -0.1246, -0.0182),
+  vec3<f32>(-0.5876, 1.1329, -0.1006),
+  vec3<f32>(-0.0728, -0.0083, 1.1187)
+);
+
+const LINEAR_SRGB_TO_LINEAR_REC2020: mat3x3<f32> = mat3x3<f32>(
+  vec3<f32>(0.6274, 0.0691, 0.0164),
+  vec3<f32>(0.3293, 0.9195, 0.0880),
+  vec3<f32>(0.0433, 0.0113, 0.8956)
+);
+
+// --------------------------
+// 5. AgX
+// --------------------------
+fn agxDefaultContrastApprox(x: vec3<f32>) -> vec3<f32> {
+  let x2 = x * x;
+  let x4 = x2 * x2;
+  return 15.5 * x4 * x2
+    - 40.14 * x4 * x
+    + 31.96 * x4
+    - 6.868 * x2 * x
+    + 0.4298 * x2
+    + 0.1191 * x
+    - 0.00232;
+}
+
+fn AgXToneMapping(color: vec3<f32>) -> vec3<f32> {
+  const AgXInsetMatrix: mat3x3<f32> = mat3x3<f32>(
+    vec3<f32>(0.856627153315983, 0.137318972929847, 0.11189821299995),
+    vec3<f32>(0.0951212405381588, 0.761241990602591, 0.0767994186031903),
+    vec3<f32>(0.0482516061458583, 0.101439036467562, 0.811302368396859)
+  );
+
+  const AgXOutsetMatrix: mat3x3<f32> = mat3x3<f32>(
+    vec3<f32>(1.1271005818144368, -0.1413297634984383, -0.14132976349843826),
+    vec3<f32>(-0.11060664309660323, 1.157823702216272, -0.11060664309660294),
+    vec3<f32>(-0.016493938717834573, -0.016493938717834257, 1.2519364065950405)
+  );
+
+  const AgxMinEv: f32 = -12.47393;
+  const AgxMaxEv: f32 = 4.026069;
+
+  var c = color * toneMappingExposure;
+  c = LINEAR_SRGB_TO_LINEAR_REC2020 * c;
+  c = AgXInsetMatrix * c;
+
+  c = max(c, vec3<f32>(1e-10));
+  c = log2(c);
+  c = (c - AgxMinEv) / (AgxMaxEv - AgxMinEv);
+  c = clamp(c, vec3<f32>(0.0), vec3<f32>(1.0));
+
+  c = agxDefaultContrastApprox(c);
+  c = AgXOutsetMatrix * c;
+
+  c = pow(max(c, vec3<f32>(0.0)), vec3<f32>(2.2));
+  c = LINEAR_REC2020_TO_LINEAR_SRGB * c;
+  return clamp(c, vec3<f32>(0.0), vec3<f32>(1.0));
+}
+
+// --------------------------
+// 6. Neutral
+// --------------------------
+fn NeutralToneMapping(color: vec3<f32>) -> vec3<f32> {
+  const StartCompression: f32 = 0.8 - 0.04;
+  const Desaturation: f32 = 0.15;
+
+  var c = color * toneMappingExposure;
+  let x = min(c.r, min(c.g, c.b));
+
+  var offset: f32;
+  if (x < 0.08) {
+    offset = x - 6.25 * x * x;
+  } else {
+    offset = 0.04;
+  }
+
+  c -= offset;
+  let peak = max(c.r, max(c.g, c.b));
+
+  if (peak < StartCompression) {
+    return c;
+  }
+
+  let d = 1.0 - StartCompression;
+  let newPeak = 1.0 - d * d / (peak + d - StartCompression);
+  c *= newPeak / peak;
+
+  let g = 1.0 - 1.0 / (Desaturation * (peak - newPeak) + 1.0);
+  return mix(c, vec3<f32>(newPeak), g);
+}
+
+// --------------------------
+// 7. gamma 编码
+// --------------------------
+//sRGBgamma两段式编码
+//线性空间 → sRGB 转换函数
+fn linearToSRGB(linearColor : vec3f) -> vec3f  {
+    //分段gamma校正，更精确的sRGB转换
+    //let isLow = linearColor <= vec3f(0.0031308);
+    let low: vec3f = linearColor * 12.92;
+    let high: vec3f = 1.055 * pow(linearColor, vec3f(1.0 / 2.4)) - 0.055;
+    
+    return select(high, low, linearColor <= vec3f(0.0031308));
+}
+// 线性 Rec709 (sRGB) → 线性 Display P3
+const SRGB_TO_P3: mat3x3f = mat3x3f(
+    vec3f(1.224684, -0.224684, 0.000000),
+    vec3f(0.041994,  0.958006, 0.000000),
+    vec3f(0.000000,  0.000000, 1.000000)
+);
+//线性 Display P3 → 线性 Rec709 (sRGB)
+const P3_TO_SRGB: mat3x3f = mat3x3f(
+    vec3f(0.826191,  0.173809, 0.000000),
+    vec3f(-0.041994, 1.041994, 0.000000),
+    vec3f(0.000000,  0.000000, 1.000000)
+);
+
+fn linearToDisplayP3(lin: vec3f) -> vec3f {
+    return linearToSRGB(SRGB_TO_P3 * lin);
+}

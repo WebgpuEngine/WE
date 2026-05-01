@@ -56,6 +56,7 @@ export abstract class BaseTexture extends RootGPU {
         this.inputValues = inputValues;
 
         if (inputValues.format == undefined) {
+            // this.inputValues.format = "rgba8unorm";
             this.inputValues.format = 'rgba8unorm-srgb';
         }
         this.textureFormat = this.inputValues.format!;
