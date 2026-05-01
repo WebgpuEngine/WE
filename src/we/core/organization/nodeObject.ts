@@ -20,7 +20,7 @@ import { IV_NodeSpace, NodeSpace } from "./nodeSpace";
 import { RootGPU } from "./root";
 import { PhysicBody } from "../physics/physicBody";
 
-/** 空间类型
+/** 空间类型,需要Scene的BVH开启或物理引擎开启
  * 1、BVH使用instance Mesh 的AABB信息
  * 2、物理引擎驱动需要刚体和碰撞器的类型
  */

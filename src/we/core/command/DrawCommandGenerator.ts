@@ -1141,7 +1141,7 @@ export class DrawCommandGenerator {
                         };
                         pointerOfVertex = this.pointers.createPointer(pointerParams);
                         if (values.system?.parent) values.system.parent.vertexPointers[lowKey] = { pointer: pointerOfVertex };
-                                   //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
+                        //合并属性没有办法绑定name，不支持动态更新vertex GPUBuffer
                     }
                     vertexBufferEntry = pointerOfVertex;
                     // vertexBufferEntry = {
@@ -1225,7 +1225,7 @@ export class DrawCommandGenerator {
                 }
                 //索引资源为数组
                 else if (Array.isArray(values.data.indices)) {
-                    let wireFrame = values.label.includes("wireframe") ? "Mesh" : "Wireframe";
+                    let wireFrame = values.label.toLowerCase().includes("wireframe") ? "Wireframe" : "Mesh";
                     let index: I_pointerStruct;
                     // let md5OfIndicesOfArray = MD5.hex(values.data.indices);
                     if (values.data.indices && values.data.indices.length > 0) {
@@ -1316,7 +1316,7 @@ export class DrawCommandGenerator {
                     if (values.system.material?.type == undefined) {
                         throw new Error("material type do not define");
                     }
-                    if (values.label.includes("wireframe")) {
+                    if (values.label.toLowerCase().includes("wireframe")) {
                         if ((values.system?.parent as Mesh)._materialWireframe) {
                             let bindGroupLayout = (values.system?.parent as Mesh)._materialWireframe.getBindGroupLayout(values.system.material.type);
                             DC_bindGroups[layoutNumber] = undefined;

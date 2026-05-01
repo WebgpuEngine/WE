@@ -9,7 +9,6 @@
 //              * 2、WE空间中，固定位置，不会移动。
 //             */
 //             fixed: "fixed",
-
 //             /** 物理引擎属性的移动，位置受物理引擎控制 
 //              * 1、物理引擎中等同于rigidbody，类型为dynamic
 //              * 2、WE空间中，动态移动，受物理引擎控制
@@ -33,9 +32,12 @@
 //         sensor: boolean,
 //     }
 // };
+import { ColliderBody } from "./colliderBody";
+import { RigidBody } from "./rigidBody";
 
 export abstract class PhysicBody {
-
+    rigidbody: RigidBody | undefined;
+    collider: ColliderBody | undefined;
     constructor() {
     }
 }

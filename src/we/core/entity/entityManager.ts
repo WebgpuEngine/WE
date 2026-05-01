@@ -63,7 +63,7 @@ export class EntityManager extends ECSManager<BaseEntity> {
                             };
                             for (let i_renderPass in dcArray) {     //遍历所有renderPass
                                 for (let perDC of dcArray[i_renderPass as keyof typeof dcArray]) {       //遍历所有DC
-                                    if (perDC.label.indexOf("wireFrame") == -1) {                                               //如果不是线框
+                                    if (perDC.label.toLowerCase().indexOf("wireframe") == -1) {                                               //如果不是线框
                                         this.renderManager.push(
                                             {
                                                 command: perDC,
