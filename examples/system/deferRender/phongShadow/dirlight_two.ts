@@ -22,7 +22,8 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   // reversedZ:true,
-  deferRender: "color"
+  renderMode: "deferRender",
+
 };
 let scene = await initScene({
   initConfig: input,
@@ -52,12 +53,12 @@ await scene.add(camera);
 //方向光1
 let onelight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1,-1],
+  direction: [1, 1, -1],
   intensity: 0.13,
   shadow: true,
   update: (light) => {
-    const now = Date.now() / 400; 
-    light.Direction=[Math.sin(now), 1,Math.cos(now)];
+    const now = Date.now() / 400;
+    light.Direction = [Math.sin(now), 1, Math.cos(now)];
   }
 });
 await scene.add(onelight);
@@ -65,12 +66,12 @@ await scene.add(onelight);
 //方向光2
 let twolight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [1, 1,-1],
+  direction: [1, 1, -1],
   intensity: 0.13,
   shadow: true,
   update: (light) => {
-    const now = Date.now() / 2000; 
-    light.Direction=[Math.sin(now), 1,Math.cos(now)];
+    const now = Date.now() / 2000;
+    light.Direction = [Math.sin(now), 1, Math.cos(now)];
   }
 });
 await scene.add(twolight);
@@ -116,7 +117,7 @@ let planeGeometry = new PlaneGeometry({
   height: 10
 });
 let groundMaterial = new PhongMaterial({
-  color: [1,1,1, 1],
+  color: [1, 1, 1, 1],
   roughness: 1,
   metalness: 0.1,
   shininess: 32

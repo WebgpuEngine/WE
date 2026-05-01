@@ -11,6 +11,7 @@ import { SphereGeometry } from "../../../../src/we/core/geometry/sphereGeometry"
 import { PhongMaterial } from "../../../../src/we/core/material/phong/phongMaterial";
 import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight";
 import { PlaneGeometry } from "../../../../src/we/core/geometry/planeGeomertry";
+import { IV_PBRMaterial, PBRMaterial } from "../../../../src/we/core/material/PBR/PBRMaterial";
 
 declare global {
   interface Window {
@@ -90,7 +91,7 @@ let onelight = new PointLight(
   {
     position: [0, 0, 0],
     // position: [1, 1, 1],
-    intensity: .750,
+    intensity: 10,
     shadow: true,
     // update(scope) {
     //   const now = Date.now() / 1000;
@@ -207,13 +208,23 @@ let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
 });
-let groundMaterial = new PhongMaterial(
-  {
-    color: [1, 1, 1, 1],
-    shininess: 1,
-    metalness: 0.0,
-    roughness: 1,
-  });
+// let groundMaterial = new PhongMaterial(
+//   {
+//     color: [1, 1, 1, 1],
+//     shininess: 1,
+//     metalness: 0.0,
+//     roughness: 1,
+//   });
+let groundMaterialPBROption: IV_PBRMaterial = {
+  textures: {
+    albedo: { value: [1, 1, 1, 1] },
+    normal: { texture: { source: "/resource/PBR/grainy-concrete/grainy-concrete_normal-ogl.png" } },
+    metallic: { value: 0.50 },
+    roughness: { value: .50 },
+    ao: { value: 1 },
+  }
+}
+let groundMaterial = new PBRMaterial(groundMaterialPBROption);
 
 let bottomPlane = new Mesh({
   attributes: {

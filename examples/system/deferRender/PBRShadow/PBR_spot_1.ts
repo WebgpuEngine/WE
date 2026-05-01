@@ -24,8 +24,8 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
   // reversedZ:true,
-    renderMode:"deferRender",
-    // toneMapping:E_ToneMappingType.linearToSRGB,
+  renderMode: "deferRender",
+  // toneMapping:E_ToneMappingType.linearToSRGB,
 };
 let scene = await initScene({
   initConfig: input,
@@ -35,7 +35,7 @@ window.scene = scene;
 let radius = 2;
 let Y = 0;
 let camera = new PerspectiveCamera({
-  name:"defaultCamera",
+  name: "defaultCamera",
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
   near: 0.01,
@@ -76,13 +76,13 @@ let light1Entity1 = new Mesh(
   });
 let light1Entity1Node = await scene.add({
   entity: light1Entity1,
-    position: [1, 1, 1],
-    update: (scope: any) => {
-      const now = Date.now() / 1000;
-      let pos = [Math.sin(now) * lightRadius, lightY, Math.cos(now) * lightRadius];
-      scope.Position = pos;
-      // console.log(pos);
-    }
+  position: [1, 1, 1],
+  update: (scope: any) => {
+    const now = Date.now() / 1000;
+    let pos = [Math.sin(now) * lightRadius, lightY, Math.cos(now) * lightRadius];
+    scope.Position = pos;
+    // console.log(pos);
+  }
 });
 
 let onelight = new SpotLight({
@@ -122,17 +122,17 @@ let sphere = new SphereGeometry({
 
 
 let ballPBROption: IV_PBRMaterial = {
-  name:"PBRMaterial",
+  name: "PBRMaterial",
   textures: {
-    albedo: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-albedo.png" }},
-    normal: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-normal.png" }},
-    metallic: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-metalness.png" }},
-    roughness: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-roughness.png" }},
+    albedo: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-albedo.png" } },
+    normal: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-normal.png" } },
+    metallic: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-metalness.png" } },
+    roughness: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-roughness.png" } },
   }
 }
 let ballpbrMaterial = new PBRMaterial(ballPBROption);
 let inputMeshsphere: IV_MeshEntity = {
-  name:"sphereMesh",
+  name: "sphereMesh",
   attributes: {
     geometry: sphere,
   },
@@ -147,8 +147,8 @@ let meshSphere = new Mesh(inputMeshsphere);
 await scene.add(meshSphere);
 
 let box = new BoxGeometry();
-let inputMeshbox: IV_MeshEntity = { 
-  name:"boxMesh",
+let inputMeshbox: IV_MeshEntity = {
+  name: "boxMesh",
   attributes: {
     geometry: box,
   },
@@ -174,7 +174,7 @@ let groundMaterial = new PhongMaterial(
   });
 
 let bottomPlane = new Mesh({
-  name:"bottomPlaneMesh",
+  name: "bottomPlaneMesh",
   attributes: {
     geometry: planeGeometry
   },
