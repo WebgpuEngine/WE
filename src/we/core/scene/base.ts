@@ -62,10 +62,10 @@ export interface IV_Scene {
  */
 export enum E_ToneMappingType {
     acesToSRGB = "acesToSRGB",
-    /**
-     * 补偿了白色，白色会被映射到1.0，不是0.8
-     */
-    acesToSRGB_White = "acesToSRGB_White",
+    // /**
+    //  * 补偿了白色，白色会被映射到1.0，不是0.8
+    //  */
+    // acesToSRGB_White = "acesToSRGB_White",
     linearToSRGB = "linearToSRGB",
     linearToP3 = "linearToP3",
     acesToP3 = "acesToP3",
@@ -121,7 +121,7 @@ export interface IJ_Scene {
     description: string,
     surface: optionSurface,
     weRender: {
-        AA: AA,
+        // AA: AA,
         backgroudColor: [number, number, number, number],
         colorFormat: "rgba16float" | "rgba32float",
     },

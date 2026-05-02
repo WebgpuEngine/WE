@@ -1,14 +1,9 @@
-import { vec3 } from "wgpu-matrix";
 import { PerspectiveCamera } from "../../../../../src/we/core/camera/perspectiveCamera";
-import { IV_Scene } from "../../../../../src/we/core/scene/base";
+import { E_ToneMappingType, IV_Scene } from "../../../../../src/we/core/scene/base";
 import { initScene } from "../../../../../src/we/core/scene/fn";
 import { createGLTFModel } from "../../../../../src/we/model/gltf/gltf";
-import { SphereGeometry } from "../../../../../src/we/core/geometry/sphereGeometry";
-import { ColorMaterial } from "../../../../../src/we/core/material/standard/colorMaterial";
-import { IV_MeshEntity, Mesh } from "../../../../../src/we/core/entity/mesh/mesh";
 import { DirectionalLight } from "../../../../../src/we/core/light/DirectionalLight";
 import { AmbientLight } from "../../../../../src/we/core/light/ambientLight";
-import { FXAA } from "../../../../../src/we/core/postprocess/FXAA";
 
 declare global {
   interface Window {
@@ -20,8 +15,8 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
-  toneMapping: "linear",
-  renderMode:"deferRender",
+  toneMapping: E_ToneMappingType.acesToSRGB,
+  renderMode: "deferRender",
 };
 let scene = await initScene({
   initConfig: input,
@@ -29,8 +24,8 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [0, 1, 1],
-  intensity: 0.3,
+  direction: [-1, 1, 1],
+  intensity: 1.,
   shadow: false,
 });
 await scene.add(oneDirlight);
@@ -38,10 +33,11 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.85
+    intensity: 0.3
   }
 )
 await scene.add(ambientLight);
+// let blur = new FXAA({ scene });
 
 
 let radius = 5;
@@ -51,7 +47,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 1,
   far: 1000,
-  position: [3, 3, 200],
+  position: [3, 3, 80],
   lookAt: [0, 0, 0],
   controlType: "orbit",
 
@@ -62,15 +58,14 @@ await scene.add(camera);
 let gltf = await createGLTFModel({
   scene: scene,
   url: "/models/gltf/model/LittlestTokyo/LittlestTokyo.glb"
-  // url: "/models/gltf/model/LittlestTokyo/LittlestTokyo.gltf"
 }
 );
 window.gltf = gltf;
 window.gltfInstance = await scene.add(gltf, {
-  // position: [0, 0, 0],
-  scale: [0.3, 0.3, 0.3],
+  position: [2, 1, 0],
+  scale: [0.1, 0.1, 0.1],
   // rotate: [1, 0, 0, Math.PI/2],
 });
 
-let blur = new FXAA({ scene });
+window.gltfInstance.AnimationGroup[0].play("loop");
 

@@ -3,11 +3,11 @@ import { I_uniformArrayBufferEntry, isGPUBindGroupEntry, isUniformBufferPart, T_
 import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { DrawCommand } from "../command/DrawCommand";
 import { BaseMaterial } from "../material/baseMaterial";
-import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
 import { Scene } from "../scene/scene";
 import { DefaultCubeTexture } from "../texture/defaultCubeTexture";
 import { DefaultTexture } from "../texture/defaultTexture";
 import { Texture } from "../texture/texture";
+import { IV_PBRMaterial, PBRMaterial } from "../material/PBR/PBRMaterial";
 
 
 

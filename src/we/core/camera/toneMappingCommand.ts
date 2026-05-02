@@ -21,7 +21,8 @@ export class ToneMappingCommandGenerator {
     } = {};
     shaderModule: GPUShaderModule;
 
-
+    uniformGPUBuffer: GPUBuffer;
+    uniformCPUBuffer: ArrayBuffer = new ArrayBuffer(4);
     constructor(input: {
         scene: Scene,
         parent: CameraManager,
@@ -30,7 +31,19 @@ export class ToneMappingCommandGenerator {
         this.scene = input.scene;
         this.device = input.scene.device;
         this.shaderModule = this.createShaderModule();
-
+        this.uniformGPUBuffer = this.device.createBuffer({
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            size: 4,
+        });
+        this.setToneMappingExposure(1.0);
+    }
+    /** 设置toneMapping的曝光值
+     * @param exposure 曝光值,默认值为1.0
+     */
+    setToneMappingExposure(exposure: number) {
+        let uniformCPUBufferView = new Float32Array(this.uniformCPUBuffer);
+        uniformCPUBufferView[0] = exposure;
+        this.device.queue.writeBuffer(this.uniformGPUBuffer, 0, this.uniformCPUBuffer);
     }
     clear() {
         for (let key in this.dcArray) {
@@ -58,11 +71,11 @@ export class ToneMappingCommandGenerator {
         }
         //uniform00 颜色纹理来源：camera的GBuffer的color
         // ToneMapping 绑定的uniform 00 是颜色纹理
-        let uniform00_ColorTexture: GPUBindGroupEntry = {
-            // label: "ToneMapping uniform color texture0",
-            binding: 0,
-            resource: this.parent.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
-        };
+        // let uniform00_ColorTexture: GPUBindGroupEntry = {
+        //     // label: "ToneMapping uniform color texture0",
+        //     binding: 0,
+        //     resource: this.parent.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
+        // };
 
         //bindgroup layout 0 的描述
         let bindGroupLayoutDescriptor0: GPUBindGroupLayoutDescriptor =
@@ -71,11 +84,18 @@ export class ToneMappingCommandGenerator {
             entries: [
                 {//00
                     binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.FRAGMENT,
                     texture: {
                         sampleType: "float",
                         viewDimension: "2d",
                         // multisampled: false,
+                    },
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: "uniform",
                     },
                 }
             ]
@@ -86,7 +106,16 @@ export class ToneMappingCommandGenerator {
         let bindGroupDesc0: GPUBindGroupDescriptor = {
             label: "ToneMapping BindGroup" + UUID,
             layout: bindGroupLayout0,
-            entries: [uniform00_ColorTexture],
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.parent.GBufferManager.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
+                },
+                {
+                    binding: 1,
+                    resource: this.uniformGPUBuffer,
+                },
+            ],
         };
         let bindGroup0: GPUBindGroup = this.device.createBindGroup(bindGroupDesc0);
 
@@ -151,44 +180,40 @@ export class ToneMappingCommandGenerator {
     createShaderModule() {
         let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
         switch (this.scene.E_ToneMappingType) {
-            case E_ToneMappingType.acesToSRGB:
-                returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-                // returnColor = `
-                //  var c = ACESFilmicToneMapping( color.rgb ); 
-                //  c = linearToSRGB( c );
-                // return vec4f(c, 1.0);
-                // `;
-                break;
-            case E_ToneMappingType.acesToSRGB_White:
-                returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
-                // returnColor = `
-                //  var c = LinearToneMapping( color.rgb ); 
-                // return vec4f(c, color.a);
-                // `;
-                break;
-            case E_ToneMappingType.linearToSRGB:
-                returnColor = "return vec4f( LinearToneMapping(color.rgb), color.a);";
-                break;
             case E_ToneMappingType.acesToP3:
-                returnColor = "return vec4f( acesToP3(color.rgb), color.a);";
+                returnColor = "return aces_to_p3(color);";
                 break;
+            case E_ToneMappingType.acesToSRGB:
+                returnColor = "return aces_to_srgb(color);";
+                break;
+            // case E_ToneMappingType.acesToSRGB_White:
+            //     returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
+            //     // returnColor = `
+            //     //  var c = LinearToneMapping( color.rgb ); 
+            //     // return vec4f(c, color.a);
+            //     // `;
+            //     break;
+            case E_ToneMappingType.linearToSRGB:
+                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
+                break;
+
             case E_ToneMappingType.linearToP3:
                 returnColor = "return vec4f( linearToDisplayP3(color.rgb), color.a);";
                 break;
             case E_ToneMappingType.linear:
-                returnColor = "return vec4f(linearToHDR(color.rgb), color.a);";
+                returnColor = "return vec4f(LinearToneMapping(color.rgb), color.a);";
                 break;
             default:
-                // returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
+                returnColor = "return aces_to_srgb(color);";
         }
         // 如果颜色空间是srgb，那么就不需要转换
         if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
             returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
         //WGSL_colorSpaceFunction  WGSL_toneMappingFunction
         let shader = `   
-            ${WGSL_colorSpaceFunction}            
+            ${WGSL_toneMappingFunction}            
             @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;
+            @group(0) @binding(1) var<uniform> u_Exposure : f32;
             @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position)  vec4f {
                 let pos = array(
                         vec2f( -1.0,  -1.0),  // bottom left
@@ -199,6 +224,7 @@ export class ToneMappingCommandGenerator {
                 return vec4f(pos[vertexIndex], 0.0, 1.0);
             }
             @fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f{
+                 toneMappingExposure = u_Exposure;
                 let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
                 ${returnColor}
             }`;

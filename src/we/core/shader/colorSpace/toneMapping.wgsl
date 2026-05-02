@@ -1,9 +1,4 @@
-// ==============================================
-// Three.js r184 Tonemapping 精确 WGSL 版
-// 无 push_constant | 曝光直接写死 = 1.0
-// 可直接复制使用
-// ==============================================
-
+//曝光值
 var<private> toneMappingExposure: f32 = 1.; // 直接固定默认值
 
 fn saturate(a: vec3<f32>) -> vec3<f32> {
@@ -187,5 +182,13 @@ const P3_TO_SRGB: mat3x3f = mat3x3f(
 );
 
 fn linearToDisplayP3(lin: vec3f) -> vec3f {
-    return linearToSRGB(SRGB_TO_P3 * lin);
+    let color_p3= linearToSRGB(SRGB_TO_P3 * lin);
+    return linearToSRGB(color_p3);
+}
+
+fn aces_to_srgb(color: vec4<f32>) -> vec4<f32> {
+  return  vec4f(linearToSRGB(ACESFilmicToneMapping(color.rgb)), color.a);
+}
+fn aces_to_p3(color: vec4<f32>) -> vec4<f32> {
+  return vec4f(linearToDisplayP3(ACESFilmicToneMapping(color.rgb)), color.a);
 }

@@ -16,7 +16,7 @@ import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
 import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_materialBundleOutput, I_UniformBundleOfMaterial, isAlphaTransparentOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS, SHT_materialTexture_TTPF_FS, SHT_materialTextureFS, SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo } from "../../shadermanagemnet/material/textureMaterial";
@@ -24,7 +24,6 @@ import { BaseCamera } from "../../camera/baseCamera";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
-import { E_GBufferNames } from "../../gbuffers/base";
 
 
 

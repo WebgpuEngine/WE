@@ -10,6 +10,8 @@
  *      5、TEXCOORD_0对应到了属性uv，对于TEXCOORD_1对应属性uv1
  * 
  */
+import { BaseMaterial } from "../../core/material/baseMaterial";
+
 import { Clock } from "../../core/scene/clock";
 import { BaseModel, I_Model, T_ModelResKind } from "../../core/model/BaseModel";
 // import { IV_NodeSpace, NodeObject, NodeObject, RootGPU } from "../../core/organization/root";
@@ -18,7 +20,6 @@ import { I_indexGPUBufferBundle, I_vsGPUBufferBundle, T_indexAttribute } from ".
 import { IV_MeshEntity, Mesh } from "../../core/entity/mesh/mesh";
 import { IV_PointsEntity, Points } from "../../core/entity/mesh/points";
 import { IV_LinesEntity, Lines } from "../../core/entity/mesh/lines";
-import { I_TextureWithChanneAndNumberlForPBR, I_TextureWithChanneAndVec3lForPBR, IV_PBRMaterial, PBRMaterial } from "../../core/material/PBR/PBRMaterial";
 import { I_drawMode, I_drawModeIndexed } from "../../core/command/base";
 import { ColorMaterial } from "../../core/material/standard/colorMaterial";
 import * as BaseFunction from "./function";
@@ -28,7 +29,6 @@ import { Texture } from "../../core/texture/texture";
 import { E_TextureChannel } from "../../core/texture/base";
 import { E_accessorUseFor } from "./base";
 import { BaseTexture } from "../../core/texture/baseTexture";
-import { BaseMaterial } from "../../core/material/baseMaterial";
 import { ModelDataLoader } from "../../core/model/ModelDataLoader";
 import { GltfDataAtLoaders } from "./gltfAtLoaders";
 import { weVec4 } from "../../core/base/coreDefine";
@@ -47,6 +47,7 @@ import { LinesMorphTarget } from "../../core/entity/animationEntity/linesOfMorph
 import { LinesSkins } from "../../core/entity/animationEntity/linesOfSkins";
 import { MeshSkins } from "../../core/entity/animationEntity/meshOfSkins";
 import { SkinsEntity } from "../../core/entity/animationEntity/skinsEntity";
+import { I_TextureWithChanneAndNumberlForPBR, I_TextureWithChanneAndVec3lForPBR, IV_PBRMaterial, PBRMaterial } from "../../core/material/PBR/PBRMaterial";
 
 /** 实例化gltf绑定动画与动画组的资源 */
 export interface I_gltfInstanceResource {

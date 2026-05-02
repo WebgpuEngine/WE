@@ -15,7 +15,6 @@ export class DeferDrawCommandGenerator {
     device: GPUDevice;
 
     shaderModule: GPUShaderModule | undefined;
-    pipeline: GPURenderPipeline;
     dcArray: {
         [UUID in string]: commmandType[]
     } = {};
@@ -241,7 +240,11 @@ export class DeferDrawCommandGenerator {
             }
         }
         let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
-        return { bindingNumber, uniformGroup, shaderTemplateFinal };
+        return {
+            bindingNumber,
+            // uniformGroup, 
+            shaderTemplateFinal
+        };
     }
     formatShaderCode(template: I_singleShaderTemplate): string {
         let code: string = "";

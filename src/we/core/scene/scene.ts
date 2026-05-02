@@ -12,7 +12,6 @@ import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
 import { LightsManager } from "../light/lightsManager";
 import { MaterialManager } from "../material/materialManager";
-import { PBRMaterial } from "../material/PBR/PBRMaterial";
 import { generateBox3ByArrayBox3s, type boundingBox } from "../math/Box";
 import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { pickupManager } from "../pickup/pickupManager";
@@ -34,6 +33,7 @@ import { MemoryBlockManager } from "../bufferBlock/MBM";
 import { Pointers } from "../bufferBlock/pointer";
 import { BlockPointerCoordinator } from "../bufferBlock/BPC";
 import { I_BolRebulidPercent, I_BolSize, I_BolStrideSizeOfUpdate } from "../bufferBlock/base";
+// import type { PBRMaterial } from "../material/PBR/PBRMaterial";
 
 
 
@@ -450,21 +450,23 @@ export class Scene {
 
 
 
-        const devicePixelRatio = 1;// window.devicePixelRatio;//设备像素比
+        const devicePixelRatio = window.devicePixelRatio;//设备像素比
         const width = this.canvas.clientWidth * devicePixelRatio;
         const height = this.canvas.clientHeight * devicePixelRatio;
         this.canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
         this.canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
         this.reSize(this.canvas.clientWidth * devicePixelRatio, this.canvas.clientHeight * devicePixelRatio);
 
+        this.textureManager = new TextureManager(this);
+        this.materialManager = new MaterialManager(this);
+
         this.memoryBlockManager = new MemoryBlockManager(this);
         this.BPC = new BlockPointerCoordinator(this);
         this.pointers = this.BPC.pointers;
         this.renderManager = new RenderManager(this);//需要在entityManager等需要push DC 的ECS之前初始化
+        // this.commonResource = new CommonResource(device);
         this.resourcesGPU = new ResourceManagerOfGPU(this);
-        this.commonResource = new CommonResource(device);
-        this.textureManager = new TextureManager(this);
-        this.materialManager = new MaterialManager(this);
+
         this.animationManager = new AnimationManager(this);
         this.animationGroupManager = new AnimationGroupManager(this);
         this.root = new RootManager(this);
@@ -478,9 +480,9 @@ export class Scene {
         this.postProcessManager = new PostProcessManager(this);
         this.DCG = new DrawCommandGenerator({ scene: this, parent: this });
     }
-    getResourceDefaultPBR(): PBRMaterial {
+    getResourceDefaultPBR() {
         let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");
-        if (one) return one as PBRMaterial;
+        if (one) return one;
         else {
             throw new Error("default defaultPBR 不存在");
         }
@@ -923,13 +925,13 @@ export class Scene {
         this.root.removeChild(child);
     }
     removeFromScene(child: NodeObject) {
-       let parent = child.Parent;
-       if(parent){
-           parent.removeChild(child);
-       }
-       else{
+        let parent = child.Parent;
+        if (parent) {
+            parent.removeChild(child);
+        }
+        else {
             console.warn("未找到对应的子节点", child);
-       }
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

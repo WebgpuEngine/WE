@@ -6,7 +6,6 @@ import { SHT_add_PBR_function } from "../material/pbrMaterial";
 import DeferRenderFS_WGSL from "../../shader/defer/deferRender.fs.wgsl?raw";
 var DeferRenderFS = DeferRenderFS_WGSL.toString();
 
-import QuadVS_WGSL from "../../shader/quad/quad.vs.wgsl?raw";
 import { SHT_add_Phong_function } from "../material/phongMaterial";
 import { QuadVS } from "../mesh/quad";
 /**Defer PBR light and shadow shader template */
@@ -15,11 +14,11 @@ export var SHT_DeferRender: I_ShaderTemplate = {
     entity: {
         add: [
             QuadVS
-        ]
+        ],
+        owner: "deferRender"
     },
     scene: SHT_ScenOfCamera_FS,
     material: {
-        owner: "Defer DC, cameraManager",
         add: [
             SHT_addMathBase,
             SHT_addMathRandom,
@@ -30,8 +29,7 @@ export var SHT_DeferRender: I_ShaderTemplate = {
                 name: "fs",
                 code: DeferRenderFS,
             },
-
-
         ],
+        owner: "deferRender"
     }
 }

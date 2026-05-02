@@ -9,21 +9,31 @@
  *          1、更改PBR中textures的各类 texture?: Texture | I_BaseTexture；
  *          2、更改shader【struct PBRUniformTexture】和TS中insideUniformBundle数组中value作为factor使用，而不是二选一；
  */
-import { E_lifeState, weColor4, weVec4 } from "../../base/coreDefine";
-import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
-import { E_resourceKind } from "../../resources/resourcesGPU";
-import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
-import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
-import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
-import { Texture } from "../../texture/texture";
-import { E_MaterialType, E_materialTypeForBindGroup, E_MaterialUniformKind, E_TextureType, I_materialBundleOutput, I_MaterialUniformTextureBundle, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
+
+import {
+    E_MaterialType,
+    E_materialTypeForBindGroup,
+    E_MaterialUniformKind,
+    E_TextureType,
+    I_materialBundleOutput,
+    I_MaterialUniformTextureBundle,
+    IV_BaseMaterial,
+    materialAddBindGroupLayoutOfMSAA,
+    materialAddBindGroupOfMSAA,
+    materialAddGroupBindStringOfMSAA
+} from "../base";
 import { BaseMaterial } from "../baseMaterial";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
-
+import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
+import { E_lifeState, weColor4, weVec4 } from "../../base/coreDefine";
+import { BaseCamera } from "../../camera/baseCamera";
+import { T_uniformEntries } from "../../command/base";
+import { I_ShadowMapValueOfDC } from "../../entity/base";
+import { E_resourceKind } from "../../resources/resourcesGPU";
+import { Clock } from "../../scene/clock";
+import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
+import { Texture } from "../../texture/texture";
 
 
 
