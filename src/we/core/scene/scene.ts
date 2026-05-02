@@ -6,7 +6,6 @@ import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
 import { I_bindGroupAndGroupLayout, T_rpdInfomationOfMSAA } from "../command/base";
-import { CamreaControl } from "../control/cameracControl";
 import { EntityManager } from "../entity/entityManager";
 import { InputManager } from "../input/inputManager";
 import { AmbientLight } from "../light/ambientLight";
@@ -43,11 +42,13 @@ export class Scene {
     //基础内容。base content.
     clock: Clock;
     inputValue: IV_Scene;
+    /** 设备像素比 */
+    dpr: number = 1;
     /**场景的标志位
      * 用途：经常会改变的重要标志
      */
     flags: {
-        /**是否使用反向Z */
+        /**是否 reSize */
         reSize: {
             status: boolean,
             width: number;
@@ -69,8 +70,6 @@ export class Scene {
             width: number;
             height: number;
         },
-
-
     } = {
             size: {
                 width: 0,
@@ -83,8 +82,8 @@ export class Scene {
     adapter!: GPUAdapter;
     device!: GPUDevice;
     canvas!: HTMLCanvasElement;
-    /**是否禁用canvas的context, 默认=true */
-    disableCanvasContext: boolean = true;
+    // /**是否禁用canvas的context, 默认=true */
+    // disableCanvasContext: boolean = true;
     /** 渲染对象: 默认的渲染对象输出：GPUCanvasContext;    */
     context!: GPUCanvasContext | GPUTexture;
     /**颜色通道输出的纹理格式     *  presentationFormat*/
@@ -96,17 +95,6 @@ export class Scene {
 
     //////////////////////////////////////////////////////////
     //基础 render Pass Descriptor 和about GBuffer 
-
-    // /**不透明entity的输出纹理格式 
-    //  * 包括：          
-    //  * format: GPUTextureFormat;
-    //  * pipeline fragment 中的target 与 GPURenderPassDescriptor中的colorAttachment的数组的内容一一对应
-    // */
-    // colorAttachmentTargets!: GPUColorTargetState[];
-    // /**cameras 的RPD */
-    // renderPassDescriptor: {
-    //     [name: string]: GPURenderPassDescriptor
-    // };
 
     /**最后的各个功能输出的target texture 
      * color: 这里是最后输出到canvas的颜色纹理，绘制
@@ -154,27 +142,18 @@ export class Scene {
         colorSpace: PredefinedColorSpace,//"srgb"|"display-p3",
         linearSpace: GPUTextureFormat,
     } = {
-            colorSpace: "display-p3",
+            colorSpace: "srgb",
             linearSpace: V_weLinearFormat,
         };
 
-    /** 
-     * 色调映射，默认：linearToSRGB
-     * 
-     * 1、不同的色调映射，会有不同的效果
-     * 
-     * 2、如果是计算类的颜色，建议使用linearToSRGB 或 linear
-     * 
-     * 3、如果是显示类的颜色，建议使用acesToSRGB。todo：还需要更新，有偏色
-     */
-    E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.ACES;
-    // E_ToneMappingType: E_ToneMappingType = E_ToneMappingType.linearToSRGB;
-
-
-
+    /** 色调映射，默认：ACES     */
+    toneMappingType: E_ToneMappingType = E_ToneMappingType.ACES;
     /////////////////////////////////////////////////////////////
     //about Z ,deferRender 
 
+    /**深度模式
+     * 参数化配置所有用到的深度模式相关的参数
+     */
     depthMode: {
         /**深度输出的纹理格式 */
         depthDefaultFormat: GPUTextureFormat,// = "depth32float"
@@ -213,19 +192,6 @@ export class Scene {
             },
         };
 
-    // deferRender: {
-    //     /**是否开启延迟渲染 */
-    //     enable: boolean;
-    //     /**单像素延迟渲染 */
-    //     deferRenderDepth: boolean;
-    //     /**todo：fs 合批延迟渲染 */
-    //     deferRenderColor: boolean;
-    // } = {
-    //         enable: false,
-    //         deferRenderDepth: false,
-    //         deferRenderColor: false
-    //     };
-
     /**是否使用反向Z的标志位 */
     reversedZ: {
         isReversedZ: boolean,
@@ -237,13 +203,6 @@ export class Scene {
             cleanValue: 0,
             depthCompare: 'greater',
         }
-    // {
-    //     isReversedZ: false,
-    //     cleanValue: 1,
-    //     depthCompare: 'less',
-    // }
-
-
     //////////////////////////////////////////////////////////
     //boundingBox
     boundingBox!: boundingBox;
@@ -258,23 +217,18 @@ export class Scene {
      * 3、forwardRender：前向渲染，MSAA=false
      */
     renderMode: "deferRender" | "MSAARender" | "forwardRender" = "forwardRender";
-    /**是否使用MSAA */
+    /**是否使用MSAA，只有renderMode为MSAARender时，才有效。 默认：false     */
     MSAA: boolean = false;
     ////////////////////////////////////////////////////////////////////////////////
     /** default cameras       默认摄像机 */
     defaultCamera!: BaseCamera;
     /**视场比例 */
     aspect!: number;
-    /**相机控制器 */
-    inputControl!: CamreaControl;
-
     ////////////////////////////////////////////////////////////////////////////////
     // lights,光源
     _maxlightNumber!: number;
-
     ////////////////////////////////////////////////////////////////////////////////
     //资源与管理
-
     /**场景的根节点 */
     root!: RootManager;
     /**GPU资源管理器 */
@@ -338,14 +292,15 @@ export class Scene {
             this.finalTarget.NDC = true;
         this.clock = new Clock();
         this.inputValue = value;
-        if (value.disableCanvasContext) this.disableCanvasContext = value.disableCanvasContext;
+        // if (value.disableCanvasContext) this.disableCanvasContext = value.disableCanvasContext;
 
         this._maxlightNumber = V_lightNumber;
         if (value.toneMapping) {
-            this.E_ToneMappingType = value.toneMapping;
+            this.toneMappingType = value.toneMapping;
         }
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //input赋值
+
         if (value.BOL) {
             this.BOL = value.BOL;
         }
@@ -371,7 +326,7 @@ export class Scene {
                 depthCompare: value.reversedZ ? "greater-equal" : 'less-equal',
             }
         }
-        //深度模板的默认设置
+        //深度模板的默认设置，根据input初始化后的参数，再次赋值
         this.depthMode.depthStencil = {
             depthWriteEnabled: true,
             depthCompare: this.reversedZ.depthCompare,
@@ -410,6 +365,15 @@ export class Scene {
         return new URL(url, import.meta.url).href;
     }
 
+    getDPR() {
+        if (this.inputValue.useDevicePixelRatio == undefined || this.inputValue.useDevicePixelRatio === true) {
+            this.dpr = window.devicePixelRatio || 1
+        }
+        else {
+            this.dpr = 1;
+        }
+        return this.dpr;
+    }
 
     /**GPU init
      * 初始化GPU设备
@@ -450,12 +414,13 @@ export class Scene {
 
 
 
-        const devicePixelRatio = window.devicePixelRatio;//设备像素比
-        const width = this.canvas.clientWidth * devicePixelRatio;
-        const height = this.canvas.clientHeight * devicePixelRatio;
-        this.canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
-        this.canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
-        this.reSize(this.canvas.clientWidth * devicePixelRatio, this.canvas.clientHeight * devicePixelRatio);
+        const dpr = this.getDPR();
+        const style = getComputedStyle(this.canvas);
+        let width: number=parseFloat(style.width);
+        let height: number=parseFloat(style.height);
+         width = Math.ceil(Math.max(1, Math.min(width * dpr, device.limits.maxTextureDimension2D)));
+         height = Math.ceil(Math.max(1, Math.min(height * dpr, device.limits.maxTextureDimension2D)));
+        this.reSize(width, height);
 
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);
@@ -522,31 +487,11 @@ export class Scene {
      */
     configure() {
         let usage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING;
-        if (this.inputValue.surface) {
-            try {
-                (this.context as GPUCanvasContext).configure({
-                    device: this.device,
-                    format: this.inputValue.surface.format,
-                    colorSpace: this.inputValue.surface.colorSpace,
-                    toneMapping: this.inputValue.surface.toneMapping,
-                    alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
-                    usage
-                });
-                this.colorFormatOfCanvas = this.inputValue.surface.format;
-                this.colorSpaceAndLinearSpace.colorSpace = this.inputValue.surface.colorSpace;
-            } catch (e) {
-                (this.context as GPUCanvasContext).configure({
-                    device: this.device,
-                    format: this.presentationFormat,
-                    colorSpace: "srgb",
-                    alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
-                    usage
-                });
-                this.colorSpaceAndLinearSpace.colorSpace = "srgb";
-                this.colorFormatOfCanvas = this.presentationFormat;
-            }
-        }
-        else {//非加载场景模式
+
+        const hasP3Display = window.matchMedia('(color-gamut: p3)').matches || window.matchMedia('(color-gamut: rec2020)').matches;
+        const hasHighDynamicRange = window.matchMedia('(dynamic-range: high)').matches;
+
+        {//非加载场景模式
             try {//尝试P3
                 (this.context as GPUCanvasContext).configure({
                     device: this.device,
@@ -579,7 +524,7 @@ export class Scene {
      * @param height 高度
      */
     reSize(width: number, height: number) {
-        // console.log("Scene reSize()", this.clock.now);
+        console.log("Scene reSize()", this.clock.now, width, height);
         if (width != this.surface.size.width || height != this.surface.size.height) {
             this.surface.size.width = width;
             this.surface.size.height = height;
@@ -630,8 +575,9 @@ export class Scene {
                 //即使在100%的比例，devicePixcel得到的size还是大于contentRect，在pickup时，定位会不准
                 // const width = entry.devicePixelContentBoxSize[0].inlineSize;
                 // const height = entry.devicePixelContentBoxSize[0].blockSize;
-                const width = Math.ceil(entry.contentRect.width);
-                const height = Math.ceil(entry.contentRect.height);
+                const dpr = scope.getDPR();
+                const width = Math.ceil(entry.contentRect.width * dpr);
+                const height = Math.ceil(entry.contentRect.height * dpr);
                 if (width != scope.surface.size.width || height != scope.surface.size.height) {
                     scope.aspect = width / height;
                     scope.flags.reSize.width = width;

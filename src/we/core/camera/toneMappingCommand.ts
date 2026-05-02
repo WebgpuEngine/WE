@@ -179,7 +179,7 @@ export class ToneMappingCommandGenerator {
     }
     createShaderModule() {
         let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
-        switch (this.scene.E_ToneMappingType) {
+        switch (this.scene.toneMappingType) {
             case E_ToneMappingType.ACES:
                 returnColor = "return aces_to_srgb(color);";
                 break;

@@ -6,8 +6,8 @@ import { Scene } from "./scene"
 export interface IV_Scene {
     /**canvas id */
     canvas: string,
-    /**是否禁用canvas的context, 默认=true */
-    disableCanvasContext?: boolean,
+    // /**是否禁用canvas的context, 默认=true */
+    // disableCanvasContext?: boolean,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
     /**是否预乘底色，默认=true */
@@ -20,7 +20,7 @@ export interface IV_Scene {
     backgroudColor?: [number, number, number, number],
     /**渲染模式，默认：deferRender */
     renderMode?: "deferRender" | "MSAARender" | "forwardRender",
-    surface?: optionSurface,
+    // surface?: optionSurface,
     /** 是否进行实时渲染*/
     realTimeRender?: boolean,
     modeNDC?: boolean,
@@ -36,7 +36,9 @@ export interface IV_Scene {
         size?: I_BolSize,
         /** BOL重建百分比 */
         rebuildPecent?: I_BolRebulidPercent,
-    }
+    },
+    /** 是否使用设备像素比，默认=true */
+    useDevicePixelRatio?: boolean,
 }
 
 /**
@@ -111,19 +113,19 @@ export interface commandsOfShadowOfEntity {
     [name: string]: commmandType[]
 }
 
-interface optionSurface {
-    colorSpace: PredefinedColorSpace,//"sRGB" | "display-p3",
-    format: 'rgba16float' | "bgra8unorm" | "rgba8unorm" | GPUTextureFormat,
-    premultipliedAlpha: boolean,
-    toneMapping: GPUCanvasToneMapping,
-};
+// interface optionSurface {
+//     colorSpace: PredefinedColorSpace,//"sRGB" | "display-p3",
+//     format: 'rgba16float' | "bgra8unorm" | "rgba8unorm" | GPUTextureFormat,
+//     premultipliedAlpha: boolean,
+//     toneMapping: GPUCanvasToneMapping,
+// };
 
 export interface IJ_Scene {
     /**场景的名称 */
     name: string,
     /**场景的描述 */
     description: string,
-    surface: optionSurface,
+    // surface: optionSurface,
     weRender: {
         // AA: AA,
         backgroudColor: [number, number, number, number],
