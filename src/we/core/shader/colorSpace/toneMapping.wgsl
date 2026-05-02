@@ -180,15 +180,15 @@ const P3_TO_SRGB: mat3x3f = mat3x3f(
     vec3f(-0.041994, 1.041994, 0.000000),
     vec3f(0.000000,  0.000000, 1.000000)
 );
-
+// 线性 Rec709 (sRGB) → 线性 Display P3 转换函数,并进行gamma编码转换
 fn linearToDisplayP3(lin: vec3f) -> vec3f {
     let color_p3= linearToSRGB(SRGB_TO_P3 * lin);
     return linearToSRGB(color_p3);
 }
 
-fn aces_to_srgb(color: vec4<f32>) -> vec4<f32> {
-  return  vec4f(linearToSRGB(ACESFilmicToneMapping(color.rgb)), color.a);
-}
-fn aces_to_p3(color: vec4<f32>) -> vec4<f32> {
-  return vec4f(linearToDisplayP3(ACESFilmicToneMapping(color.rgb)), color.a);
-}
+// fn aces_to_srgb(color: vec4<f32>) -> vec4<f32> {
+//   return  vec4f(linearToSRGB(ACESFilmicToneMapping(color.rgb)), color.a);
+// }
+// fn aces_to_p3(color: vec4<f32>) -> vec4<f32> {
+//   return vec4f(linearToDisplayP3(ACESFilmicToneMapping(color.rgb)), color.a);
+// }

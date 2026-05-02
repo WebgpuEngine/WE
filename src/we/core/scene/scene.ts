@@ -44,6 +44,7 @@ export class Scene {
     inputValue: IV_Scene;
     /** 设备像素比 */
     dpr: number = 1;
+
     /**场景的标志位
      * 用途：经常会改变的重要标志
      */
@@ -141,9 +142,11 @@ export class Scene {
     colorSpaceAndLinearSpace: {
         colorSpace: PredefinedColorSpace,//"srgb"|"display-p3",
         linearSpace: GPUTextureFormat,
+        hdr: boolean,
     } = {
             colorSpace: "srgb",
             linearSpace: V_weLinearFormat,
+            hdr: false,
         };
 
     /** 色调映射，默认：ACES     */
@@ -416,10 +419,10 @@ export class Scene {
 
         const dpr = this.getDPR();
         const style = getComputedStyle(this.canvas);
-        let width: number=parseFloat(style.width);
-        let height: number=parseFloat(style.height);
-         width = Math.ceil(Math.max(1, Math.min(width * dpr, device.limits.maxTextureDimension2D)));
-         height = Math.ceil(Math.max(1, Math.min(height * dpr, device.limits.maxTextureDimension2D)));
+        let width: number = parseFloat(style.width);
+        let height: number = parseFloat(style.height);
+        width = Math.ceil(Math.max(1, Math.min(width * dpr, device.limits.maxTextureDimension2D)));
+        height = Math.ceil(Math.max(1, Math.min(height * dpr, device.limits.maxTextureDimension2D)));
         this.reSize(width, height);
 
         this.textureManager = new TextureManager(this);
@@ -491,8 +494,11 @@ export class Scene {
         const hasP3Display = window.matchMedia('(color-gamut: p3)').matches || window.matchMedia('(color-gamut: rec2020)').matches;
         const hasHighDynamicRange = window.matchMedia('(dynamic-range: high)').matches;
 
+        this.colorSpaceAndLinearSpace.colorSpace = hasP3Display ? "display-p3" : "srgb";
+        this.colorSpaceAndLinearSpace.hdr = hasHighDynamicRange;
+
         {//非加载场景模式
-            try {//尝试P3
+            if (hasP3Display) {//尝试P3
                 (this.context as GPUCanvasContext).configure({
                     device: this.device,
                     format: V_weLinearFormat,//'rgba16float',
@@ -502,16 +508,28 @@ export class Scene {
                     usage
                 });
                 this.colorFormatOfCanvas = V_weLinearFormat;//"rgba16float";
-                this.colorSpaceAndLinearSpace.colorSpace = "display-p3";
-            } catch (e) {
-                (this.context as GPUCanvasContext).configure({
-                    device: this.device,
-                    format: this.presentationFormat,
-                    alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
-                    usage
-                });
-                this.colorFormatOfCanvas = this.presentationFormat;
-                this.colorSpaceAndLinearSpace.colorSpace = "srgb";
+            }
+            else {
+                try {
+                    (this.context as GPUCanvasContext).configure({
+                        device: this.device,
+                        format: V_weLinearFormat,
+                        alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
+                        usage
+                    });
+                } catch (error) {
+                    /**
+                     * todo:20260503
+                     * GBuffers 未匹配this.presentationFormat，而是使用V_weLinearFormat
+                     */
+                    (this.context as GPUCanvasContext).configure({
+                        device: this.device,
+                        format: this.presentationFormat,
+                        alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
+                        usage
+                    });
+                    this.colorFormatOfCanvas = this.presentationFormat;
+                }
             }
         }
         this.colorSpaceAndLinearSpace.linearSpace = this.colorFormatOfCanvas;

@@ -35,7 +35,17 @@ export class ToneMappingCommandGenerator {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             size: 4,
         });
-        this.setToneMappingExposure(1.0);
+        if (this.scene.toneMappingType == E_ToneMappingType.ACES) {
+            if (this.scene.colorSpaceAndLinearSpace.hdr == true) {
+                this.setToneMappingExposure(1.0);
+            }
+            else {
+                this.setToneMappingExposure(0.6);
+            }
+        }
+        else {
+            this.setToneMappingExposure(1.0);
+        }
     }
     /** 设置toneMapping的曝光值
      * @param exposure 曝光值,默认值为1.0
@@ -181,36 +191,36 @@ export class ToneMappingCommandGenerator {
         let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
         switch (this.scene.toneMappingType) {
             case E_ToneMappingType.ACES:
-                returnColor = "return aces_to_srgb(color);";
+                returnColor = "let color_tonemapping :vec3f = ACESFilmicToneMapping(color.rgb);\n";
                 break;
-            case E_ToneMappingType.ACESToP3:
-                returnColor = "return aces_to_p3(color);";
-                break;
-            case E_ToneMappingType.linearToSRGB:
-                returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
-                break;
-
-            case E_ToneMappingType.linearToP3:
-                returnColor = "return vec4f( linearToDisplayP3(color.rgb), color.a);";
-                break;
+            // case E_ToneMappingType.linearToSRGB:
+            //     returnColor = "let color_tonemapping :vec3f = linearToSRGB(color.rgb);\n";
+            //     break;
+            // case E_ToneMappingType.linearToP3:
+            //     returnColor = "let color_tonemapping :vec3f = linearToDisplayP3(color.rgb);\n";
+            //     break;
             case E_ToneMappingType.linear:
-                returnColor = "return vec4f(LinearToneMapping(color.rgb), color.a);";
+                returnColor = "let color_tonemapping :vec3f = LinearToneMapping(color.rgb);\n";
                 break;
             case E_ToneMappingType.Reinhard:
-                returnColor = "return vec4f(linearToSRGB(ReinhardToneMapping(color.rgb)), color.a);";
+                returnColor = "let color_tonemapping :vec3f = linearToSRGB(ReinhardToneMapping(color.rgb));\n";
                 break;
             case E_ToneMappingType.Cineon:
-                returnColor = "return vec4f(linearToSRGB(CineonToneMapping(color.rgb)), color.a);";
+                returnColor = "let color_tonemapping :vec3f = linearToSRGB(CineonToneMapping(color.rgb));\n";
                 break;
             case E_ToneMappingType.AgX:
-                returnColor = "return vec4f(linearToSRGB(AgXToneMapping(color.rgb)), color.a);";
+                returnColor = "let color_tonemapping :vec3f = linearToSRGB(AgXToneMapping(color.rgb));\n";
                 break;
             default:
-                returnColor = "return aces_to_srgb(color);";
+                throw new Error("toneMappingType not support");
         }
         // 如果颜色空间是srgb，那么就不需要转换
-        if (this.scene.colorSpaceAndLinearSpace.colorSpace == "srgb")
-            returnColor = "return vec4f( processColorToSRGB(color.rgb), color.a);";
+        if (this.scene.colorSpaceAndLinearSpace.colorSpace == "display-p3") {
+            returnColor += "return vec4f( linearToDisplayP3(color_tonemapping), color.a);\n";
+        }
+        else {
+            returnColor += "return vec4f(linearToSRGB(color_tonemapping), color.a);\n";
+        }
         //WGSL_colorSpaceFunction  WGSL_toneMappingFunction
         let shader = `   
             ${WGSL_toneMappingFunction}            

@@ -63,14 +63,13 @@ export interface IV_Scene {
 *      B、HDR的上限是多少的确定，因显示器的不同而不同。目前无法明确确定HDR2HDR的上限。预计这个需要等待HDR标准以及在浏览器中的进一步发展。
  */
 export enum E_ToneMappingType {
-    ACES = "acesToSRGB",
-    ACESToP3 = "acesToP3",
+    ACES = "ACES",
     // /**
     //  * 补偿了白色，白色会被映射到1.0，不是0.8
     //  */
     // acesToSRGB_White = "acesToSRGB_White",
-    linearToSRGB = "linearToSRGB",
-    linearToP3 = "linearToP3",
+    // linearToSRGB = "linearToSRGB",
+    // linearToP3 = "linearToP3",
     /**
      * 线性映射，不进行任何映射
      * 
