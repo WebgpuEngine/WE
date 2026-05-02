@@ -3,9 +3,21 @@ import { I_pointerStruct, isI_pointerStruct } from "../bufferBlock/pointer";
 import { E_renderPassName } from "../scene/renderManager";
 import { I_drawMode, I_drawModeIndexed, I_viewport, T_drawMode } from "./base";
 
+/**绘制调用选项
+ * 1、passEncoder：渲染pass编码器 
+ * 2、renderPassName：渲染pass名称
+ * 3、mergeID：
+ *  A、camera：即为UUID
+ *  B、light：为shadowmap渲染：UUID + shadowMapIndex
+ * 4、drawModeData：draw mode 定义
+ */
 export interface I_drawCallOption {
     passEncoder: GPURenderPassEncoder,
     renderPassName?: E_renderPassName,
+    /**合并ID
+     * 1、camera：即为UUID
+     * 2、light：为shadowmap渲染：UUID + shadowMapIndex
+    */
     mergeID?: string,
     drawModeData?: I_drawMode[] | I_drawModeIndexed[],
 }

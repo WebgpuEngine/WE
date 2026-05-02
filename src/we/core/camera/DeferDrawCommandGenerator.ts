@@ -14,7 +14,7 @@ export class DeferDrawCommandGenerator {
     scene: Scene;
     device: GPUDevice;
 
-    shaderModule: GPUShaderModule;
+    shaderModule: GPUShaderModule | undefined;
     pipeline: GPURenderPipeline;
     dcArray: {
         [UUID in string]: commmandType[]
@@ -27,8 +27,6 @@ export class DeferDrawCommandGenerator {
         this.parent = input.parent;
         this.scene = input.scene;
         this.device = input.scene.device;
-        this.shaderModule = this.createShaderModule();
-        // this.pipeline = this.createPipeline();
     }
     clear() {
         for (let key in this.dcArray) {
@@ -37,7 +35,7 @@ export class DeferDrawCommandGenerator {
             }
         }
         this.dcArray = {};
-        // this.shaderModule = undefined;
+        this.shaderModule = undefined;
     }
 
     /**
@@ -49,7 +47,7 @@ export class DeferDrawCommandGenerator {
      * 2、Scene.refreshSystemBindGroupAndBindGroupLayoutZeroForCamera();
      */
     add(UUID: string,) {
-        // this.createShaderModule();
+        this.createShaderModule();
         if (this.dcArray[UUID] === undefined) {
             this.dcArray[UUID] = [];
         }
@@ -213,13 +211,15 @@ export class DeferDrawCommandGenerator {
 
 
     createShaderModule() {
-        let template: I_ShaderTemplate = SHT_DeferRender;
-        let bundle = this.getCodeOfSHT(template);
-        let shaderCode = this.outPutShaderCode(bundle.shaderTemplateFinal);
-        return this.device.createShaderModule({
-            label: "DeferRender",
-            code: shaderCode,
-        });
+        if (this.shaderModule == undefined) {//必须判断，每次光源有变化，需要重新获取system 部分shader
+            let template: I_ShaderTemplate = SHT_DeferRender;
+            let bundle = this.getCodeOfSHT(template);
+            let shaderCode = this.outPutShaderCode(bundle.shaderTemplateFinal);
+            this.shaderModule = this.device.createShaderModule({
+                label: "DeferRender",
+                code: shaderCode,
+            });
+        }
     }
     getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
         //uniform 部分
