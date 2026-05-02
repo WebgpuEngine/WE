@@ -180,19 +180,12 @@ export class ToneMappingCommandGenerator {
     createShaderModule() {
         let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";
         switch (this.scene.E_ToneMappingType) {
-            case E_ToneMappingType.acesToP3:
-                returnColor = "return aces_to_p3(color);";
-                break;
-            case E_ToneMappingType.acesToSRGB:
+            case E_ToneMappingType.ACES:
                 returnColor = "return aces_to_srgb(color);";
                 break;
-            // case E_ToneMappingType.acesToSRGB_White:
-            //     returnColor = "return vec4f( ACESToSRGB_white(color.rgb), color.a);";
-            //     // returnColor = `
-            //     //  var c = LinearToneMapping( color.rgb ); 
-            //     // return vec4f(c, color.a);
-            //     // `;
-            //     break;
+            case E_ToneMappingType.ACESToP3:
+                returnColor = "return aces_to_p3(color);";
+                break;
             case E_ToneMappingType.linearToSRGB:
                 returnColor = "return vec4f( linearToSRGB(color.rgb), color.a);";
                 break;
@@ -202,6 +195,15 @@ export class ToneMappingCommandGenerator {
                 break;
             case E_ToneMappingType.linear:
                 returnColor = "return vec4f(LinearToneMapping(color.rgb), color.a);";
+                break;
+            case E_ToneMappingType.Reinhard:
+                returnColor = "return vec4f(linearToSRGB(ReinhardToneMapping(color.rgb)), color.a);";
+                break;
+            case E_ToneMappingType.Cineon:
+                returnColor = "return vec4f(linearToSRGB(CineonToneMapping(color.rgb)), color.a);";
+                break;
+            case E_ToneMappingType.AgX:
+                returnColor = "return vec4f(linearToSRGB(AgXToneMapping(color.rgb)), color.a);";
                 break;
             default:
                 returnColor = "return aces_to_srgb(color);";

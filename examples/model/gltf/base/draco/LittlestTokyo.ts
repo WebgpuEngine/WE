@@ -15,7 +15,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0, 0, 0.1],
   reversedZ: true,
-  toneMapping: E_ToneMappingType.acesToSRGB,
+  toneMapping: E_ToneMappingType.ACES,
   renderMode: "deferRender",
 };
 let scene = await initScene({
