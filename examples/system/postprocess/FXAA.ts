@@ -6,8 +6,6 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { TextureMaterial } from "../../../src/we/core/material/standard/textureMaterial";
-import { Blur3x3 } from "../../../src/we/core/postprocess/blur3x3";
-import { PP_RedToOne } from "../../../src/we/core/postprocess/RedToOne";
 import { FXAA } from "../../../src/we/core/postprocess/FXAA";
 
 declare global {
@@ -20,7 +18,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.2],
   reversedZ:true,
-  toneMapping:E_ToneMappingType.linearToSRGB
+  toneMapping:E_ToneMappingType.linear
 };
 let scene = await initScene({
   initConfig: input,
@@ -70,4 +68,6 @@ console.log(mesh);
 await scene.add(mesh);
 
 
-let blur = new FXAA({ scene });
+let fxaa = new FXAA({ scene ,autoAddToECS:false});
+fxaa.setShowEdges(1);
+scene.postProcessManager.add(fxaa);

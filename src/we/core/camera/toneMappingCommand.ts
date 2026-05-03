@@ -1,5 +1,6 @@
 import { commmandType } from "../command/base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
+import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { E_GBufferNames } from "../gbuffers/base";
 import { E_ToneMappingType } from "../scene/base";
@@ -174,18 +175,18 @@ export class ToneMappingCommandGenerator {
             }
         }
         this.dcArray[UUID].toneMapping.push(new BaseDrawCommand(valuesDC));
-        // if (UUID === this.parent.defaultCamera.UUID) {
-        //     let size = this.scene.surface.size;
-        //     let copyToColorTexture = new CopyCommandT2T(
-        //         {
-        //             A: this.parent.GBufferManager.GBuffer[UUID].finalRender.color,
-        //             B: this.scene.finalTarget.color!,
-        //             size: { width: size.width, height: size.height },
-        //             device: this.device
-        //         }
-        //     );
-        //     this.dcArray[UUID].toneMapping.push(copyToColorTexture);
-        // }
+        if (UUID === this.parent.defaultCamera.UUID) {
+            let size = this.scene.surface.size;
+            let copyToColorTexture = new CopyCommandT2T(
+                {
+                    A: this.parent.GBufferManager.GBuffer[UUID].finalRender.color,
+                    B: this.scene.finalTarget.color!,
+                    size: { width: size.width, height: size.height },
+                    device: this.device
+                }
+            );
+            this.dcArray[UUID].toneMapping.push(copyToColorTexture);
+        }
     }
     createShaderModule() {
         let returnColor = "return vec4f( ACESToSRGB(color.rgb), color.a);";

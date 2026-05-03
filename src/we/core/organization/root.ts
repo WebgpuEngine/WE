@@ -7,8 +7,8 @@ import { ECSManager } from "./manager";
 
 
 export interface I_UUID {
-    _manager: any;
     UUID: string,
+    _manager: any;
     _id: number,
     _isDestroy: boolean,
 }

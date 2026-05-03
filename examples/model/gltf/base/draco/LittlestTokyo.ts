@@ -4,6 +4,8 @@ import { initScene } from "../../../../../src/we/core/scene/fn";
 import { createGLTFModel } from "../../../../../src/we/model/gltf/gltf";
 import { DirectionalLight } from "../../../../../src/we/core/light/DirectionalLight";
 import { AmbientLight } from "../../../../../src/we/core/light/ambientLight";
+import { FXAA } from "../../../../../src/we/core/postprocess/FXAA";
+import { PointLight } from "../../../../../src/we/core/light/pointLight";
 
 declare global {
   interface Window {
@@ -24,20 +26,23 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [-1, 1, 1],
-  intensity: 1.,
+  direction: [-1, 1, 3],
+  intensity: 5,
   shadow: false,
 });
 await scene.add(oneDirlight);
 
+
+
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.3
+    intensity: 0.4
   }
 )
 await scene.add(ambientLight);
-// let blur = new FXAA({ scene });
+let fxaa = new FXAA({ scene });
+// fxaa.setShowEdges(1);
 
 
 let radius = 5;

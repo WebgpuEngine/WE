@@ -11,13 +11,12 @@ import { weVec4, weVec3, weMat4, E_lifeState } from "../base/coreDefine";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight } from "../light/baseLight";
-import { BaseModel } from "../model/BaseModel";
+import type { BaseModel } from "../model/BaseModel";
 import { BaseParticle } from "../particle/baseParticle";
 import { Clock } from "../scene/clock";
 import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { IV_NodeSpace, NodeSpace } from "./nodeSpace";
-import { RootGPU } from "./root";
 import { PhysicBody } from "../physics/physicBody";
 
 /** 空间类型,需要Scene的BVH开启或物理引擎开启

@@ -6,7 +6,10 @@
 @fragment
 fn fs(@builtin(position) coord: vec4f) -> @location(0)  vec4f {
     var color = textureLoad(u_screen_texture, vec2i(floor(vec2f(coord.x , coord.y ))), 0);
-    color.r=1.0;
+    if(color.a>0.000001)
+    {
+        color.r=1.0;
+    }
     return  color ;
     // return vec4f(1,0,0,1);
 }

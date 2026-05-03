@@ -4,18 +4,25 @@ import { ComputeCommand } from "../command/ComputeCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { SimpleDrawCommand } from "../command/SimpleDrawCommand";
-import { WeGenerateUUID } from "../math/baseFunction";
+import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { PostProcessManager } from "./postProcessManager";
 
+/**
+ * PostProcess 建立参数
+ * @param scene 
+ * @param autoAddToECS 是否自动添加到ECS
+ */
 export interface IV_PostProcess extends I_Update {
     scene: Scene;
+    autoAddToECS?: boolean;
 }
 
 export abstract class BasePostProcess implements I_UUID {
     UUID: string;
+    _id: number;
     _isDestroy: boolean = false;
     scene: Scene;
     manager: PostProcessManager;
@@ -28,14 +35,18 @@ export abstract class BasePostProcess implements I_UUID {
 
     constructor(input: IV_PostProcess) {
         this.inputValues = input;
+        this._id = WeGenerateID();
         this.UUID = WeGenerateUUID();
         this.scene = input.scene;
         this.device = this.scene.device;
         this.size = this.scene.surface.size;
         this.manager = this.scene.postProcessManager;
         // this.init();
-        this.manager.add(this);
+        if (input.autoAddToECS == undefined || input.autoAddToECS === true) {
+            this.manager.add(this);
+        }
     }
+    _manager: any;
     abstract _destroy(): void;
     /**
      * PostProcess 功能实现
@@ -53,7 +64,7 @@ export abstract class BasePostProcess implements I_UUID {
             }
         }
         this.commands = [];
-        this._isDestroy=true;
+        this._isDestroy = true;
     }
     /**
      * 1、更新自身

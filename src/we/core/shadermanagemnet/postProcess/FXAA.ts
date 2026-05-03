@@ -11,7 +11,8 @@ export var SHT_PP_FXAA: I_ShaderTemplate = {
     entity: {
         add: [
             QuadVS,
-        ]
+        ],
+        owner: "QuadVS",
     },
     // scene: SHT_ScenOfCamera_FS,    
     material: {
