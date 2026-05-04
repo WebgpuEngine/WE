@@ -123,7 +123,7 @@ export interface IV_BaseEntity extends IV_NodeSpace {
             /** 索引数据 */
             indices?: T_indexAttribute,
             /** 顶点步长模式 */
-            vertexStepMode?: GPUVertexStepMode,
+            vertexStepMode?: GPUVertexStepMode[],
         },
         //20260427 问题：
         // 1、单个entity与material配对使用没问题，如果多个entity与material配对使用，由于material中的this.entity对应多个，其多个同时init(),且异步问题，会出现参数传递问题。
@@ -204,7 +204,7 @@ export interface I_entityInstance {
 export interface I_EntityAttributes {
     // vertices: Map<string, T_vsAttribute>,
     vertices: { [name in string]: T_vsAttribute },
-    vertexStepMode: GPUVertexStepMode,
+    vertexStepMode: GPUVertexStepMode[],
     indices?: T_indexAttribute,//number[],
 }
 

@@ -43,7 +43,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     /** 顶点数据 */
     attributes: I_EntityAttributes = {
         vertices: {},
-        vertexStepMode: "vertex",
+        vertexStepMode: [],//"vertex",
         // indices: [],
     };
     // _pologyMode: pologyMode = "triangle";
@@ -63,6 +63,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             if (indices) {
                 this.attributes.indices = indices;
             }
+            this.attributes.vertexStepMode = new Array(Object.keys(attributes).length).fill("vertex");
+
         }
         else if (input.attributes.data) {
             let attributes = input.attributes.data.vertices;
@@ -74,6 +76,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
             if (input.attributes.data.vertexStepMode) {
                 this.attributes.vertexStepMode = input.attributes.data.vertexStepMode;
+            }
+            else {
+                this.attributes.vertexStepMode = new Array(Object.keys(attributes).length).fill("vertex");
             }
         }
         else {

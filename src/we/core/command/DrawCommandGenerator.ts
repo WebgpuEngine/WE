@@ -188,7 +188,7 @@ export interface IV_DC {
     data: {
         vertices?: { [name in string]: T_vsAttribute },
         // vertices?: Map<string, T_vsAttribute>,
-        vertexStepMode?: GPUVertexStepMode,
+        vertexStepMode?: GPUVertexStepMode[],
         indices?: T_indexAttribute,//number[] | I_indexGPUBufferBundle,
         /**
          * 1、最多4个bind group；
@@ -1189,7 +1189,7 @@ export class DrawCommandGenerator {
                     continue;
                 }
                 if (values.data.vertexStepMode) {
-                    _GPUVertexBufferLayout.stepMode = values.data.vertexStepMode;
+                    _GPUVertexBufferLayout.stepMode = values.data.vertexStepMode[location_i];
                 }
 
                 DC_verticesBufferLayout.push(_GPUVertexBufferLayout);      //顺序push顶点Buffer的layout
