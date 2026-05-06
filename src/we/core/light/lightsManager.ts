@@ -113,17 +113,6 @@ export class LightsManager extends ECSManager<BaseLight> {
      */
     shadowMapTexture: GPUTexture;
 
-    /**
-     * @group(0) @binding(5)  var U_shadowMap_transparent_depth_texture : texture_depth_2d_array;  
-     * @group(0) @binding(6)  var U_shadowMap_transparent_color_texture : texture_2d_array<f32>;  
-     * shadow map transparent texture，也都是 2d array 。数量是shadowMapTexture的透明层数的N(1-4)倍数
-     * 1、color和depth 作为透明阴影颜色的输入uniform
-     * 2、depth进行比较,然后根据层级与color，计算光的强度与颜色
-     */
-    shadowMapTransparentTexture!: {
-        color: GPUTexture,
-        depth: GPUTexture
-    };
 
     /** 
      * shadowmap数量的计数器：indexID，从0开始
@@ -132,13 +121,7 @@ export class LightsManager extends ECSManager<BaseLight> {
      */
     shadowIndexID: number = 0;
 
-    /**
-     * copy shadowMapTexture[i of light ] 的transparent depth texture(公用的临时copy depth texture)
-     * 
-     * 1、每个light的transparent 都会copy一次
-     * 2、然后此纹理作为输入的depth 比较纹理
-     */
-    shadowMapCopyTransparentDepthTexture: GPUTexture;
+
     /**
      * todo：20250105，目前写成固定的
      * 
@@ -147,17 +130,8 @@ export class LightsManager extends ECSManager<BaseLight> {
     reNewLightsNumberOfShadow: boolean = false;
 
 
-
-
-
-
     /////////////////////////////////////////////////////////////
     // about lights
-    /** 
-     * lights array ,only for scene,stage use lightsIndex[]
-     * 
-     * */
-    // lights: BaseLight[] = [];
 
     /***上一帧光源数量，动态增减光源，uniform的光源的GPUBuffer大小会变化，这个值如果与this.lights.length相同，不更新；不同，更新GPUBuffer */
     _lastNumberOfLights: number = 0;
@@ -165,74 +139,40 @@ export class LightsManager extends ECSManager<BaseLight> {
      * 这个值如果与this.shadowArrayOfDepthMapAndMVP.length相同，不更新；不同，怎更新GPUBuffer */
     _lastNumberOfShadow: number = 0;
 
-    /**最大光源数量 
-    * 默认在coreDefine.ts 中:V_lightNumber=32
-    * 这个实际上是没有限制的，考虑两个因素
-    *  1、渲染：
-    *          A、前向渲染，不可能太多
-    *          B、延迟渲染，基本不影响
-    *  2、阴影
-    *          A、这个是主要的影响，由于使用shadow map，还是需要进行一遍灯光视角的渲染，全向光/点光源/spot角度过大的会产生cube shadow map
-    *          B、如果光源不产生阴影，就无所谓数量了
-   */
-    _maxlightNumber: number;
+    getLightNumber() {
+        return this.list.length || 1;
+    }
     /**     环境光     
      * 1、在PBR中，尽可能小
      * 2、在非PBR，设置在0.01比较合适。原有设定为0.21
     */
     ambientLight: AmbientLight = new AmbientLight({ color: [1, 1, 1], intensity: 0.004 });
 
-    //20250918 ,取消，使用renderManger的 renderShadowMapOpacityCommand
-    // /**
-    //  * 每个光源的不透明的command， name=light的id
-    //  * 1、由每个entity输出command
-    //  * 2、由stage在update()中push到这个commands中
-    //  * 3、每个entity在每个光源的shadowmap中的可见性判断，在
-    //  * */
-    // lightsCommands: {
-    //     [name: string]: commmandType[]
-    // }
+
 
     constructor(scene: Scene) {
         super(scene);
         this.reNewLightsNumberOfShadow = false;
-        this._maxlightNumber = scene._maxlightNumber;
         ////////////////////////////////////////////////
         //创建GPUBuffer，大小与shader中的ST_Lights一致，光源数量与初始化参数一致
-        this.lightsUniformGPUBuffer = this.device.createBuffer({
-            label: 'lightsGPUBuffer',
-            size: 16 + 16 + this._maxlightNumber * lightStructSize,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
+        this.lightsUniformGPUBuffer = this.createlightsUniformGPUBuffer();
         this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
-        this.shadowMapCopyTransparentDepthTexture = this.device.createTexture({
-            label: "未使用 shadowMap CopyTransparentDepthTexture",
-            size: {
-                width: V_shadowMapSize,
-                height: V_shadowMapSize,
-            },
-            format: "depth32float",
-            // format: "depth24plus-stencil8",
-            // format: this.scene.depthDefaultFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-        });
+        // this.shadowMapCopyTransparentDepthTexture = this.device.createTexture({
+        //     label: "未使用 shadowMap CopyTransparentDepthTexture",
+        //     size: {
+        //         width: V_shadowMapSize,
+        //         height: V_shadowMapSize,
+        //     },
+        //     format: "depth32float",
+        //     // format: "depth24plus-stencil8",
+        //     // format: this.scene.depthDefaultFormat,
+        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+        // });
         this.shadowMapTexture = this.generateShadowMapTexture(1);//todo 20250105,目前是固定的，后期改成动态
     }
-    /**
-     * 设置最大光源数量,并且更新reNewLightsNumberOfShadow=true
-     * set max light number,and set reNewLightsNumberOfShadow=true
-     * @param number 
-     */
-    setMaxLightNumber(number: number) {
-        this._maxlightNumber = number;
-        this.reNewLightsNumberOfShadow = true;
-    }
 
-    getLightNumber() {
-        return this._maxlightNumber;
-    }
+
     getShadowMapNumber() {
-        // return this._maxlightNumber;
         return this.shadowArrayOfDepthMapAndMVP.length;
     }
     /**生成shadow map 的 texture_depth_2d_array
@@ -259,8 +199,6 @@ export class LightsManager extends ECSManager<BaseLight> {
                 width: V_shadowMapSize,
                 height: V_shadowMapSize,
                 depthOrArrayLayers: layerNumber,
-
-                // depthOrArrayLayers: this._maxlightNumber * 6,
             },
             format: "depth32float",
             // format: "depth24plus-stencil8",
@@ -283,8 +221,21 @@ export class LightsManager extends ECSManager<BaseLight> {
         }
         return this.device.createBuffer({
             label: 'Shadow Map GPUBuffer',
-            size: this._maxlightNumber * 6 * ST_shadowMapMatrix_Size,//这里是按照默认cube来计算size的，与dept texture 的*6相同//todo，20250122
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            size: this.getLightNumber() * 6 * ST_shadowMapMatrix_Size,//这里是按照默认cube来计算size的，与dept texture 的*6相同//todo，20250122
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+    }
+    /**生成所有光源的MVP，是MVP*lightNumber的大小
+     * @returns GPUBuffer
+     */
+    createlightsUniformGPUBuffer(): GPUBuffer {
+        if (this.lightsUniformGPUBuffer) {
+            this.lightsUniformGPUBuffer.destroy();
+        }
+        return this.device.createBuffer({
+            label: 'lightsGPUBuffer',
+            size: 16 + 16 + this.getLightNumber() * lightStructSize,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
     }
     /////////////////////////////////////////////////////////////////////////
@@ -312,7 +263,7 @@ export class LightsManager extends ECSManager<BaseLight> {
                 one.updateShdowMapValues(this.shadowIndexID, count, count);
                 // this.shadowIndexID ++;
             }
-            this.shadowMapTexture = this.generateShadowMapTexture(this.shadowIndexID + count);//todo 20250105,目前是固定的，后期改成动态
+            this.shadowMapTexture = this.generateShadowMapTexture(this.shadowIndexID + count);//动态注销与创建，只创建产生阴影的光源的shadowmap texture
 
             //这里有个问题，即使是使用async/await，也出现得不到matrixp[],所以更改为现在的初始化为单位矩阵
             // let MVPs = one.getMVP();//获取MVP，并for
@@ -337,12 +288,17 @@ export class LightsManager extends ECSManager<BaseLight> {
             }
             this.reNewLightsNumberOfShadow = true;//动态更新用，目前没有用途
         }
-        this.updateAllShadowMapRPD();
+
         one.manager = this;
         this.list.push(one);
+        //更新所有光源的MVP,RPD,GPUBuffer;需要在push之后，因为用到this.list.length
+        this.updateAllShadowMapRPD();
     }
-
+    /**更新所有光源的storageGPUBuffer(uniform ),MVP,RPD */
     updateAllShadowMapRPD() {
+        this.lightsUniformGPUBuffer = this.createlightsUniformGPUBuffer();
+        this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
+
         for (let i = 0; i < this.shadowArrayOfDepthMapAndMVP.length; i++) {
             let oneMVP = this.shadowArrayOfDepthMapAndMVP[i];
             oneMVP.RPD = this.createShadowMapRPD(oneMVP.index, oneMVP.matrix_self_index);
@@ -446,13 +402,13 @@ export class LightsManager extends ECSManager<BaseLight> {
     /**
     * 更新所有光源在主渲染过程中的system uniform 的GPUBuffe
     * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构。
-    * @returns 光源的GPUBuffer,大小=16 + 16 +this._maxlightNumber * lightStructSize,
+    * @returns 光源的GPUBuffer,大小=16 + 16 +(this.list.length ||1) * lightStructSize,
     */
     async updateSystemUniformBufferForlights() {
         let stageName: string = "default";
         let size = lightStructSize;
         // let lightNumber = lightNumber;
-        let lightRealNumberOfSystem = this.getLightNumbers();
+        let lightRealNumberOfSystem = this.list.length ;//this.getLightNumbers();
 
         //  {//不同，注销并新建
         //     if (this.lightsUniformGPUBuffer) {
@@ -467,7 +423,7 @@ export class LightsManager extends ECSManager<BaseLight> {
         // }
 
         //总arraybuffer
-        let buffer = new ArrayBuffer(16 + 16 + this._maxlightNumber * size);
+        let buffer = new ArrayBuffer(16 + 16 + this.getLightNumber() * size);
 
         //第一个16，是光源数量
         let ST_lightNumber = new Uint32Array(buffer, 0, 1);
@@ -513,7 +469,7 @@ export class LightsManager extends ECSManager<BaseLight> {
     updateSystemUniformOfShadowMap(): GPUBuffer {
 
         //重点，ArrayBuffer是一个整体的缓冲区，而不是多个小缓冲区
-        const ST_shadowMapMatrixValues = new ArrayBuffer(ST_shadowMapMatrix_Size * this._maxlightNumber);//@group(0)@binding(2) var<uniform> U_shadowMapMatrix,all
+        const ST_shadowMapMatrixValues = new ArrayBuffer(ST_shadowMapMatrix_Size * 6 * this.getLightNumber());//@group(0)@binding(2) var<uniform> U_shadowMapMatrix,all
 
         //for 所有MVP，是动态的（addlight中增加的）
         for (let i = 0; i < this.shadowArrayOfDepthMapAndMVP.length; i++) {
@@ -896,142 +852,139 @@ export class LightsManager extends ECSManager<BaseLight> {
 
 
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //目前没有使用，todo
-    reInit() {
-        this.reNewLightsNumberOfShadow = false;
 
-        this._lastNumberOfLights = 0;
-
-        this.list = [];
-        // this.lightsCommands = {};
-        this.ambientLight = new AmbientLight({ color: [1, 1, 1], intensity: 1 });
-        this.shadowArrayOfDepthMapAndMVP = [];
-
-        ////////////////////////////////////////////////
-        //创建GPUBuffer，大小与shader中的ST_Lights一致，光源数量与初始化参数一致
-        this.lightsUniformGPUBuffer = this.device.createBuffer({
-            label: 'lightsGPUBuffer',
-            size: 16 + 16 + this._maxlightNumber * lightStructSize,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-
-
-        this.shadowIndexID = 0;//MVP and depth texture index;
-        this.shadowMapTexture = this.generateShadowMapTexture(this.shadowIndexID);//todo 20250105,目前是固定的，后期改成动态
-        this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
-    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //透明阴影
-    /**
-     * 获取光源shadowmap渲染的colorAttachmentTargets
-     * 1、按照mergeID获取光源的ID和matrixIndex
-     * 2、不透明阴影没有color target,返回透明的，但会由于没有FS，所以不会使用此调用
-     * @param mergeID 光源的mergeID
-     * @returns GPUColorTargetState[]
-     */
-    getColorAttachmentTargetsByMergeID(mergeID: string): GPUColorTargetState[] {
-        let transparentLayer = this.shadowMapTransparentLayerTexture[mergeID];
-        if (transparentLayer) {
-            return transparentLayer.colorAttachmentTargets;
-        }
-        return [];
-    }
 
     /**
-    * shadowmap的transparent color texture texture_depth_2d_array
-    * 动态的
+    * copy shadowMapTexture[i of light ] 的transparent depth texture(公用的临时copy depth texture)
+    * 
+    * 1、每个light的transparent 都会copy一次
+    * 2、然后此纹理作为输入的depth 比较纹理
     */
-    shadowMapTransparentLayerTexture: {
-        [mergeID: string]: {
-            colorTexture: GPUTexture,
-            depthTexture: GPUTexture,
-            rpd: GPURenderPassDescriptor,
-            colorAttachmentTargets: GPUColorTargetState[]
-        }
-    } = {};
-
-
+    // shadowMapCopyTransparentDepthTexture: GPUTexture;
 
     /**
-     * 为阴影的透明使用，创建相同层数的color和depth texture，但都用于ColorAttachment
-     * @param mergeID 光源的mergeID
+     * @group(0) @binding(5)  var U_shadowMap_transparent_depth_texture : texture_depth_2d_array;  
+     * @group(0) @binding(6)  var U_shadowMap_transparent_color_texture : texture_2d_array<f32>;  
+     * shadow map transparent texture，也都是 2d array 。数量是shadowMapTexture的透明层数的N(1-4)倍数
+     * 1、color和depth 作为透明阴影颜色的输入uniform
+     * 2、depth进行比较,然后根据层级与color，计算光的强度与颜色
      */
-    initRenderColorTargetTextureRPD(mergeID: string) {
-        if (this.shadowMapTransparentLayerTexture[mergeID]) {
+    // shadowMapTransparentTexture!: {
+    //     color: GPUTexture,
+    //     depth: GPUTexture
+    // };
 
-        }
-        const depthTextureDesc: GPUTextureDescriptor = {
-            label: "LightsManager create shadow map depth texture",
-            size: {
-                width: V_shadowMapSize,
-                height: V_shadowMapSize,
-                depthOrArrayLayers: V_layerOfShadowMapTransparnet,
-            },
-            format: "depth32float",
-            // format: "depth24plus-stencil8",
-            // format: this.scene.depthDefaultFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-        };
-        let depthTexture = this.device.createTexture(depthTextureDesc);
+    // /**
+    //  * 获取光源shadowmap渲染的colorAttachmentTargets
+    //  * 1、按照mergeID获取光源的ID和matrixIndex
+    //  * 2、不透明阴影没有color target,返回透明的，但会由于没有FS，所以不会使用此调用
+    //  * @param mergeID 光源的mergeID
+    //  * @returns GPUColorTargetState[]
+    //  */
+    // getColorAttachmentTargetsByMergeID(mergeID: string): GPUColorTargetState[] {
+    //     let transparentLayer = this.shadowMapTransparentLayerTexture[mergeID];
+    //     if (transparentLayer) {
+    //         return transparentLayer.colorAttachmentTargets;
+    //     }
+    //     return [];
+    // }
 
-        const colorTextureDesc: GPUTextureDescriptor = {
-            label: "LightsManager create shadow map depth texture",
-            size: {
-                width: V_shadowMapSize,
-                height: V_shadowMapSize,
-                depthOrArrayLayers: V_layerOfShadowMapTransparnet,
-            },
-            format: V_weLinearFormat,
-            // format: "depth24plus-stencil8",
-            // format: this.scene.depthDefaultFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-        };
-        let colorTexture = this.device.createTexture(colorTextureDesc);
+    // /**
+    // * shadowmap的transparent color texture texture_depth_2d_array
+    // * 动态的
+    // */
+    // shadowMapTransparentLayerTexture: {
+    //     [mergeID: string]: {
+    //         colorTexture: GPUTexture,
+    //         depthTexture: GPUTexture,
+    //         rpd: GPURenderPassDescriptor,
+    //         colorAttachmentTargets: GPUColorTargetState[]
+    //     }
+    // } = {};
 
-        let colorAttachmentTargets: GPUColorTargetState[] = [];
-        let colorAttachments: GPURenderPassColorAttachment[] = [];
-        for (let i = 0; i < V_layerOfShadowMapTransparnet; i++) {
-            colorAttachmentTargets.push({ format: V_weLinearFormat });
-            colorAttachments.push({
-                view: colorTexture.createView({
-                    dimension: "2d",
-                    baseArrayLayer: i,
-                    arrayLayerCount: 1,
-                }),
-                resolveTarget: undefined,
-                loadOp: 'clear',
-                storeOp: 'store',
-            });
-        }
-        for (let i = 0; i < V_layerOfShadowMapTransparnet; i++) {
-            colorAttachmentTargets.push({ format: "depth32float" });
-            colorAttachments.push({
-                view: depthTexture.createView({
-                    dimension: "2d",
-                    baseArrayLayer: i,
-                    arrayLayerCount: 1,
-                }),
-                resolveTarget: undefined,
-                loadOp: 'clear',
-                storeOp: 'store',
-            });
-        }
-        const rpd: GPURenderPassDescriptor = {
-            colorAttachments: colorAttachments,
-            depthStencilAttachment: {
-                view: this.shadowMapCopyTransparentDepthTexture.createView(),
-                depthClearValue: 0,
-                depthLoadOp: 'clear',// depthLoadOp: 'load',
-                depthStoreOp: 'store',
-            },
-        };
-        this.shadowMapTransparentLayerTexture[mergeID] = {
-            colorTexture,
-            depthTexture,
-            rpd,
-            colorAttachmentTargets
-        }
 
-    }
+
+    // /**
+    //  * 为阴影的透明使用，创建相同层数的color和depth texture，但都用于ColorAttachment
+    //  * @param mergeID 光源的mergeID
+    //  */
+    // initRenderColorTargetTextureRPD(mergeID: string) {
+    //     if (this.shadowMapTransparentLayerTexture[mergeID]) {
+
+    //     }
+    //     const depthTextureDesc: GPUTextureDescriptor = {
+    //         label: "LightsManager create shadow map depth texture",
+    //         size: {
+    //             width: V_shadowMapSize,
+    //             height: V_shadowMapSize,
+    //             depthOrArrayLayers: V_layerOfShadowMapTransparnet,
+    //         },
+    //         format: "depth32float",
+    //         // format: "depth24plus-stencil8",
+    //         // format: this.scene.depthDefaultFormat,
+    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+    //     };
+    //     let depthTexture = this.device.createTexture(depthTextureDesc);
+
+    //     const colorTextureDesc: GPUTextureDescriptor = {
+    //         label: "LightsManager create shadow map depth texture",
+    //         size: {
+    //             width: V_shadowMapSize,
+    //             height: V_shadowMapSize,
+    //             depthOrArrayLayers: V_layerOfShadowMapTransparnet,
+    //         },
+    //         format: V_weLinearFormat,
+    //         // format: "depth24plus-stencil8",
+    //         // format: this.scene.depthDefaultFormat,
+    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+    //     };
+    //     let colorTexture = this.device.createTexture(colorTextureDesc);
+
+    //     let colorAttachmentTargets: GPUColorTargetState[] = [];
+    //     let colorAttachments: GPURenderPassColorAttachment[] = [];
+    //     for (let i = 0; i < V_layerOfShadowMapTransparnet; i++) {
+    //         colorAttachmentTargets.push({ format: V_weLinearFormat });
+    //         colorAttachments.push({
+    //             view: colorTexture.createView({
+    //                 dimension: "2d",
+    //                 baseArrayLayer: i,
+    //                 arrayLayerCount: 1,
+    //             }),
+    //             resolveTarget: undefined,
+    //             loadOp: 'clear',
+    //             storeOp: 'store',
+    //         });
+    //     }
+    //     for (let i = 0; i < V_layerOfShadowMapTransparnet; i++) {
+    //         colorAttachmentTargets.push({ format: "depth32float" });
+    //         colorAttachments.push({
+    //             view: depthTexture.createView({
+    //                 dimension: "2d",
+    //                 baseArrayLayer: i,
+    //                 arrayLayerCount: 1,
+    //             }),
+    //             resolveTarget: undefined,
+    //             loadOp: 'clear',
+    //             storeOp: 'store',
+    //         });
+    //     }
+    //     const rpd: GPURenderPassDescriptor = {
+    //         colorAttachments: colorAttachments,
+    //         depthStencilAttachment: {
+    //             view: this.shadowMapCopyTransparentDepthTexture.createView(),
+    //             depthClearValue: 0,
+    //             depthLoadOp: 'clear',// depthLoadOp: 'load',
+    //             depthStoreOp: 'store',
+    //         },
+    //     };
+    //     this.shadowMapTransparentLayerTexture[mergeID] = {
+    //         colorTexture,
+    //         depthTexture,
+    //         rpd,
+    //         colorAttachmentTargets
+    //     }
+
+    // }
 }

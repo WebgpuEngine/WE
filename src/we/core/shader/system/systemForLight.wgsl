@@ -9,10 +9,6 @@ struct ST_SystemMVP {
   reversedZ: u32,
 };
 
-// struct ST_shadows {
-//   shadow: array<ST_shadow,$lightNumber>,//这里与ST_lights保持相同
-// }
-
 
 var<private> weZero=0.000001;
 var<private > MVP : mat4x4f;

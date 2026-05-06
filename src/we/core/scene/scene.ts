@@ -1,7 +1,7 @@
 import { IV_NodeSpace } from "../organization/nodeSpace";
 import { IV_Node, NodeObject } from "../organization/nodeObject";
 import { Texture } from "../texture/texture";
-import { V_lightNumber, limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
+import { limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
@@ -227,9 +227,7 @@ export class Scene {
     defaultCamera!: BaseCamera;
     /**视场比例 */
     aspect!: number;
-    ////////////////////////////////////////////////////////////////////////////////
-    // lights,光源
-    _maxlightNumber!: number;
+    ;
     ////////////////////////////////////////////////////////////////////////////////
     //资源与管理
     /**场景的根节点 */
@@ -297,7 +295,6 @@ export class Scene {
         this.inputValue = value;
         // if (value.disableCanvasContext) this.disableCanvasContext = value.disableCanvasContext;
 
-        this._maxlightNumber = V_lightNumber;
         if (value.toneMapping) {
             this.toneMappingType = value.toneMapping;
         }
@@ -921,8 +918,11 @@ export class Scene {
         }
         return { bindGroup: bindGroup!, bindGroupLayout: bindGroupLayout! };
     }
+    /** 系统的bindGroupLayoutZeroOfCamera，用于渲染camera */
     _bindGroupLayoutZeroOfCamera!: GPUBindGroupLayout;
+    /** 系统的bindGroupZeroOfCamera，用于渲染camera bindgroup,*/
     _bindGroupZeroOfCamera: { [key: string]: GPUBindGroup } = {};
+    /** 获取系统的bindGroupLayoutZeroOfCamera，用于渲染camera */
     getBindGroupLayoutZeroOfCamera(): GPUBindGroupLayout {
         if (this._bindGroupLayoutZeroOfCamera === undefined) {
             let bindGroupLayoutDescriptor: GPUBindGroupLayoutDescriptor = {
@@ -939,14 +939,14 @@ export class Scene {
                         binding: 1,
                         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                         buffer: {
-                            type: "uniform"
+                            type: "read-only-storage"
                         }
                     },
                     {
                         binding: 2,
                         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                         buffer: {
-                            type: "uniform"
+                            type: "read-only-storage"
                         }
                     },
                     {
@@ -971,6 +971,7 @@ export class Scene {
         }
         return this._bindGroupLayoutZeroOfCamera;
     }
+    /** 获取系统的bindGroupZeroOfCamera，用于渲染camera */
     getBindGroupZeroOfCamera(UUID: string): GPUBindGroup {
         if (this._bindGroupZeroOfCamera[UUID] == undefined) {
             let camera = this.cameraManager.getCameraByUUID(UUID);
