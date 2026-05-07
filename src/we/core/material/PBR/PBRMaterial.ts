@@ -431,8 +431,6 @@ export class PBRMaterial extends BaseMaterial {
         },
 
     ];
-    uniformPhong: ArrayBuffer = new ArrayBuffer(4 * 4);
-    color: weColor4 = [1, 1, 1, 1];
 
     constructor(input: IV_PBRMaterial) {
         super(input);
@@ -445,10 +443,10 @@ export class PBRMaterial extends BaseMaterial {
             opacityMSAA: SHT_materialPBRFS_MSAA,
             opacityMSAAInfo: SHT_materialPBRFS_MSAA_info,
 
-            TO_Forward: undefined,
-            TO_Defer: undefined,
-            TO_MSAA: undefined,
-            TO_MsaaInfo: undefined,
+            TO_Forward: SHT_materialPBRFS,
+            TO_Defer: SHT_materialPBRFS_defer,
+            TO_MSAA: SHT_materialPBRFS_MSAA,
+            TO_MsaaInfo: SHT_materialPBRFS_MSAA_info,
 
             TT: undefined,
 

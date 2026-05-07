@@ -144,13 +144,13 @@ struct PBRUniformInput{
         depthmap = get_one_channel_value(depthmap_uniform,u_pbr_uniform.depthmap.texture_channel);
     }
     //alpha
-    if(u_pbr_uniform.alpha.kind == 0){//alpha test ,use uniform alpha
+    if(u_pbr_uniform.alpha.kind == 0){//使用uniform数值作为alpha test 
         alpha_uniform = u_pbr_uniform.alpha.value;
     }
-    else if(u_pbr_uniform.alpha.kind == 1){//use texture alpha * (uniform alpha as factor) 
+    else if(u_pbr_uniform.alpha.kind == 1){//使用texture alpha 作为alpha test 。此时uniform数值作为 (uniform alpha as factor，默认都是1，等于无变化) 
         alpha_uniform *= u_pbr_uniform.alpha.value;
     }
-    else if(u_pbr_uniform.alpha.kind == -1){//opaque:unuse alpha
+    else if(u_pbr_uniform.alpha.kind == -1){//不使用alpha test
         alphamap = 1;
     }
     alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值

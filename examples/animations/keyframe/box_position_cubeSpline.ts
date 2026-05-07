@@ -12,7 +12,6 @@ import { KeyFrameAnimation } from "../../../src/we/core/animation/keyFrame";
 declare global {
   interface Window {
     scene: any
-    DC: any
   }
 }
 let input: IV_Scene = {
@@ -86,4 +85,4 @@ let aniValue: IV_AnimationValue = {
 let keyFrame: KeyFrameAnimation = new KeyFrameAnimation(aniValue);
 window.keyFrame = keyFrame;
 
-keyFrame.play({speed:2,mode:{type:"count",count:1}})
+keyFrame.play({ speed: 2, mode: { type: "count", count: 1 } })

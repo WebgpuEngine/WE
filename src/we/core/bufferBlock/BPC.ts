@@ -70,44 +70,44 @@ export class BlockPointerCoordinator {
         this.device = scene.device;
         this.clock = scene.clock;
         this.MBM = scene.memoryBlockManager;
-        if (scene.BOL !== undefined) {
+        if (scene.configBOL !== undefined) {
             // BOL合并更新间距阈值，需要计算整除情况：4 || 256
-            if (scene.BOL.updateStrideSize !== undefined) {
-                for (let i in scene.BOL.updateStrideSize) {
+            if (scene.configBOL.updateStrideSize !== undefined) {
+                for (let i in scene.configBOL.updateStrideSize) {
                     let baseStride=4;
                     if (i == E_BOLBufferType.uniform) {
                         baseStride=256;
                     }
-                    let complementOfNumber = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! % baseStride;
+                    let complementOfNumber = scene.configBOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! % baseStride;
                     if (complementOfNumber !== 0) {
                         complementOfNumber = baseStride - complementOfNumber;
-                        scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! += complementOfNumber;
-                        console.warn(`updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]}`);
+                        scene.configBOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]! += complementOfNumber;
+                        console.warn(`updateStrideSize ${i} must be should be a multiple of 4. Adjust to ${scene.configBOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate]}`);
                     }
-                    this.BOL_params.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] = scene.BOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate];
+                    this.BOL_params.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate] = scene.configBOL.updateStrideSize[i as keyof I_BolStrideSizeOfUpdate];
                 }
             }
             // BOL大小，需要计算整除情况：4 || 256
-            if (scene.BOL.size !== undefined) {
-                for (let i in scene.BOL.size) {
+            if (scene.configBOL.size !== undefined) {
+                for (let i in scene.configBOL.size) {
                     let baseStride=4;
                     if (i == E_BOLBufferType.uniform) {
                         baseStride=256;
                     }
-                    let complementOfNumber = scene.BOL.size[i as E_BOLBufferType]! %baseStride;
+                    let complementOfNumber = scene.configBOL.size[i as E_BOLBufferType]! %baseStride;
                     
                     if (complementOfNumber !== 0) {
                         complementOfNumber = baseStride - complementOfNumber;
-                        scene.BOL.size[i as E_BOLBufferType]! += complementOfNumber;
-                        console.warn(`size ${i} must be should be a multiple of 4. Adjust to ${scene.BOL.size[i as E_BOLBufferType]}`);
+                        scene.configBOL.size[i as E_BOLBufferType]! += complementOfNumber;
+                        console.warn(`size ${i} must be should be a multiple of 4. Adjust to ${scene.configBOL.size[i as E_BOLBufferType]}`);
                     }
-                    this.BOL_params.sizeOfBOL[i as E_BOLBufferType] = scene.BOL.size[i as E_BOLBufferType];
+                    this.BOL_params.sizeOfBOL[i as E_BOLBufferType] = scene.configBOL.size[i as E_BOLBufferType];
                 }
             }
             // BOL重建百分比
-            if (scene.BOL.rebuildPecent !== undefined) {
-                for (let i in scene.BOL.rebuildPecent) {
-                    this.BOL_params.rebuildPecent[i as keyof I_BolRebulidPercent] = scene.BOL.rebuildPecent[i as keyof I_BolRebulidPercent];
+            if (scene.configBOL.rebuildPecent !== undefined) {
+                for (let i in scene.configBOL.rebuildPecent) {
+                    this.BOL_params.rebuildPecent[i as keyof I_BolRebulidPercent] = scene.configBOL.rebuildPecent[i as keyof I_BolRebulidPercent];
                 }
             }
 

@@ -24,7 +24,6 @@ import { BaseEntity } from "../entity/baseEntity";
 import { AnimationManager } from "../animation/animationManager";
 import { AnimationGroupManager } from "../animation/animationGroupManager";
 import { SkinsManager } from "../animation/skinsManager";
-import { CommonResource } from "../resources/commonResource";
 import { RootManager } from "./rootManager";
 import { TextureManager } from "../texture/textureManager";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";
@@ -129,13 +128,12 @@ export class Scene {
             id: undefined
         }
     //////////////////////////////
-    //临时配置,初期重构使用
     /**
      * 保留！
      * 给DCCC直接测试使用的，为了在Raw的fragment的targets中使用
      * canvas颜色通道输出的纹理格式
      */
-    colorFormatOfCanvas: GPUTextureFormat = V_weLinearFormat;
+    colorFormatOfLinearSpace: GPUTextureFormat = V_weLinearFormat;
     /**
      * 颜色空间和线性空间的配置
      */
@@ -227,15 +225,12 @@ export class Scene {
     defaultCamera!: BaseCamera;
     /**视场比例 */
     aspect!: number;
-    ;
     ////////////////////////////////////////////////////////////////////////////////
     //资源与管理
     /**场景的根节点 */
     root!: RootManager;
     /**GPU资源管理器 */
     resourcesGPU!: ResourceManagerOfGPU;
-    /**通用资源管理器 */
-    commonResource!: CommonResource;
     /**渲染管理器 */
     renderManager!: RenderManager;
     /**相机管理器
@@ -275,7 +270,7 @@ export class Scene {
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
     /** BOL配置 */
-    BOL: {
+    configBOL: {
         /** BOL合并更新间距阈值*/
         updateStrideSize?: I_BolStrideSizeOfUpdate,
         /** BOL大小 */
@@ -302,7 +297,7 @@ export class Scene {
         //input赋值
 
         if (value.BOL) {
-            this.BOL = value.BOL;
+            this.configBOL = value.BOL;
         }
         if (value.renderMode) {
             this.renderMode = value.renderMode;
@@ -504,7 +499,7 @@ export class Scene {
                     alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
                     usage
                 });
-                this.colorFormatOfCanvas = V_weLinearFormat;//"rgba16float";
+                this.colorFormatOfLinearSpace = V_weLinearFormat;//"rgba16float";
             }
             else {
                 try {
@@ -525,11 +520,11 @@ export class Scene {
                         alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
                         usage
                     });
-                    this.colorFormatOfCanvas = this.presentationFormat;
+                    this.colorFormatOfLinearSpace = this.presentationFormat;
                 }
             }
         }
-        this.colorSpaceAndLinearSpace.linearSpace = this.colorFormatOfCanvas;
+        this.colorSpaceAndLinearSpace.linearSpace = this.colorFormatOfLinearSpace;
     }
 
     /**
@@ -559,14 +554,14 @@ export class Scene {
             this.finalTarget.color = this.device.createTexture({
                 label: "finalTarget color",
                 size: [width, height],
-                format: this.colorFormatOfCanvas,
+                format: this.colorFormatOfLinearSpace,
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
                 // sampleCount: this.MSAA ? 4 : 1,
             });
             this.finalTarget.colorPostProcess = this.device.createTexture({
                 label: "finalTarget color post process for uniform ",
                 size: [width, height],
-                format: this.colorFormatOfCanvas,
+                format: this.colorFormatOfLinearSpace,
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
                 // sampleCount: this.MSAA ? 4 : 1,
             });
