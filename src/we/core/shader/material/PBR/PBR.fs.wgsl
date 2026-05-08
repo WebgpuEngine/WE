@@ -1,31 +1,23 @@
 //PBRColor.fs.wgsl   ,start
-//统一uniform，将data和texture统一进行处理
-struct PBRBaseUniform{
-    color : vec4f,           //颜色
-    normal : vec3f,          //法线
-    height: f32,             //高度,没有数据版本的高度图(只看use)，默认:1
-    albedo : vec3f,          //反射率
-    metallic : f32,          //金属度
-    roughness : f32,         //粗糙度
-    ao : f32,                //环境光遮蔽,没有数据版本的AO图(只看use)，默认:1
-    emissive : vec4f,        //自发光颜色,只有数据版本的自发光
-    //20260303 todo,uv 和uv2 不同的处理方式，修改为1=uv，2=uv1，3=uniform  color。其他纹理类似
-    useColorModel: u32,     //是否使用颜色纹理:0=vs color, 1=texture,2= uniform color
-    useNormalModel: u32,    //是否使用法线纹理:0=vs normal, 1=texture
-    useHeightModel: u32,    //是否使用高度纹理:0=没有高度图, 1=有高度图
-    useAlbedoModel: u32,    //是否使用反射率纹理:0= uniform albedo, 1=texture
-    useMetallicModel: u32,   //是否使用金属度纹理:0= uniform metallic, 1=texture
-    useRoughnessModel: u32,   //是否使用粗糙度纹理:0= uniform roughness, 1=texture
-    useAOModel: u32,        //是否使用环境光遮蔽纹理:0= 1, 1=texture,2= uniform ao
+//透明模式
+struct alpha_mode{
+    mode:i32,//0:OPACITY,1:MASK(alaha test),2:BLEND
+    alpha_cut_off:f32,//alphaTest值 值
 }
 
+struct  pbr_material{
+    alpha:alpha_mode,
+}
+
+/**PBR的统一参数化单项，用于判断PBR相关参数是否使用，及来源：是来自于数值，还是纹理 */
 struct PBRUniformTexture{
     kind: i32, //uniform 种类,-1=notUse,0=texture,1=value,2=vs
     texture_channel: i32,//E_TextureChannel 纹理通道:-1=user define,0=R,1=G,2=B,3=A,4=RG,5=RB,6=RA,7=GB,8=BA,9=RGB,10=RGBA
     data1:f32,//自定义:alphaTest,intensity,scale,
-    data2:i32,//自定义:
+    data2:i32,//自定义:模式判别使用，各自不同，按需处理
     value: vec4f,//factor uniform value,按需匹配textureChannel适用
 }
+/**所有参数的统一化输入，判断参数来源，以进行统一控制流处理 */
 struct PBRUniformInput{
     albedo:PBRUniformTexture,   //u_texture_albedo, u_sampler_albedo
     metallic:PBRUniformTexture,  //u_texture_metallic, u_sampler_metallic
@@ -51,11 +43,31 @@ struct PBRUniformInput{
     //占位符,统一工作流在这里处理
     // $PBR_Uniform
     var albedo_uniform : vec4f = textureSample(u_texture_albedo,u_sampler_albedo,uv);
+    var color_uniform : vec4f = textureSample(u_texture_color,u_sampler_color,uv);
+
+
+    // alpha discard ,before early Z of hardware
+    if(u_pbr_uniform.alpha.kind == -1){//直接使用纹理（albedo或color）的alpha通道值
+        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data2  ==0){//有单独的color 纹理  data2应该=0，目前TS没有设置数据
+            // alphamap = color_uniform.a; 
+            if(color_uniform.a <=  u_pbr_uniform.alpha.data1){
+                discard;
+            }
+        }
+        // else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data2  ==1){//有单独的albedo 纹理
+        else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data2  ==0){//有单独的albedo 纹理  data2应该=1，目前TS没有设置数据
+            // alphamap = albedo_uniform.a; 
+            if(albedo_uniform.a <=  u_pbr_uniform.alpha.data1){
+                discard;
+            }
+        }
+        // alphamap = 1;
+        // alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
+    }
     var metallic_uniform : vec4f = textureSample(u_texture_metallic,u_sampler_metallic,uv);
     var roughness_uniform : vec4f = textureSample(u_texture_roughness,u_sampler_roughness,uv);
     var ao_uniform : vec4f = textureSample(u_texture_ao,u_sampler_ao,uv);
     var normal_uniform : vec4f = textureSample(u_texture_normal,u_sampler_normal,uv);
-    var color_uniform : vec4f = textureSample(u_texture_color,u_sampler_color,uv);
     var emissive_uniform : vec4f = textureSample(u_texture_emissive,u_sampler_emissive,uv);
     var emissive_intensity_uniform : f32 = u_pbr_uniform.emissive.value.a;
     var depthmap_uniform : vec4f = textureSample(u_texture_depthmap,u_sampler_depthmap,uv);
@@ -117,11 +129,11 @@ struct PBRUniformInput{
         color_uniform = u_pbr_uniform.color.value;
     }
     else if(u_pbr_uniform.color.kind == 1){//use texture color * (uniform color as factor)
-        color_uniform *= u_pbr_uniform.color.value;
+        // color_uniform *= u_pbr_uniform.color.value;//考虑的过于复杂，取消，直接使用纹理颜色（rgba）；2026058；
     }
-    else{ //} if(u_pbr_uniform.color.kind !=-1){
-        materialColor = color_uniform;
-    }
+    // else{ //} if(u_pbr_uniform.color.kind !=-1){
+    //     materialColor = color_uniform;//这时是(0,0,0)
+    // }
     //emissive
     if(u_pbr_uniform.emissive.kind == 0){
         emissive_uniform = u_pbr_uniform.emissive.value;
@@ -144,16 +156,39 @@ struct PBRUniformInput{
         depthmap = get_one_channel_value(depthmap_uniform,u_pbr_uniform.depthmap.texture_channel);
     }
     //alpha
-    if(u_pbr_uniform.alpha.kind == 0){//使用uniform数值作为alpha test 
-        alpha_uniform = u_pbr_uniform.alpha.value;
-    }
-    else if(u_pbr_uniform.alpha.kind == 1){//使用texture alpha 作为alpha test 。此时uniform数值作为 (uniform alpha as factor，默认都是1，等于无变化) 
-        alpha_uniform *= u_pbr_uniform.alpha.value;
-    }
-    else if(u_pbr_uniform.alpha.kind == -1){//不使用alpha test
-        alphamap = 1;
-    }
-    alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
+    //  if(u_pbr_uniform.alpha.kind == -1){//直接使用纹理（albedo或color）的alpha通道值
+    //     if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data2  ==1){//有单独的color 纹理
+    //         alphamap = color_uniform.a; 
+    //     }
+    //     else if(u_pbr_uniform.albedo.kind == 1){//有单独的albedo 纹理
+    //         alphamap = albedo_uniform.a; 
+    //     }
+    //     alphamap = 1;
+    //     alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
+    // }
+
+    // else {
+    //     if(u_pbr_uniform.alpha.kind == 0){//使用uniform数值作为alpha test 
+    //         alpha_uniform = u_pbr_uniform.alpha.value;
+    //     }
+    //     else if(u_pbr_uniform.alpha.kind == 1){//使用texture alpha 作为alpha test 。此时uniform数值作为 (uniform alpha as factor，默认都是1，等于无变化) 
+    //         alpha_uniform *= u_pbr_uniform.alpha.value;
+    //     }
+    // }
+    // //判断alpha mode，由于统一控制流（上面有 textureSampleCompare 读取shadowmap），discar的，只能在这里
+    // if(u_pbr_uniform.alpha.data2  ==0){//alpha mode =OPACITY
+    //     //不透明，直接输出
+    // }
+    // else if(u_pbr_uniform.alpha.data2  ==1){//alpha mode =MASK
+    //     //Opacity或TO，抛弃小于阈值的像素
+    //     if(alphamap < u_pbr_uniform.alpha.data1){
+    //         // discard; //尽量不使用 discar，可以将alp哈设为=0，depth写到最远。避免关闭GPU硬件优化
+    //     }
+    //     // //透明，只输出大于alpha值的
+    //     // if(alphamap > u_pbr_uniform.alaha.data1){
+    //     //     discard;
+    //     // }
+    // }
 
     //envmap,todo
     if( u_pbr_uniform.envmap.kind == 1){
@@ -179,6 +214,14 @@ struct PBRUniformInput{
     RMAO=vec3f(roughness,metallic,ao);
     var output : ST_GBuffer;
     $fsOutput                         //fs 输出
+    
+
+    // else if(u_pbr_uniform.alpha.data2  ==2){//alpha mode =BLend
+    //     //两种方式
+    //     //1、非成组模式，由pipeline渲染
+    //     //2、TTP -A-Buffer, 由TT渲染
+    // }
+
     //output.color = vec4f(normal*0.5+0.5, 1);    //
     // output.color = vec4f(colorOfPBR, 1);    //
     //    let depthTest=textureLoad(U_shadowMap_depth_texture, vec2i(i32(fsInput.position.x),i32(fsInput.position.y)),0,0) *1.;

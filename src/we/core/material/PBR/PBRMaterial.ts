@@ -187,74 +187,129 @@ export class PBRMaterial extends BaseMaterial {
      * 
      */
     uniformArrayBufferViews !: {
+        /**对应于 gltf 2.0 中的baseColorFactor和baseColorTexture */
         albedo: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
+        /**对应于 gltf 2.0 中的metallicFactor和 metallicRoughnessTexture （金属粗糙度纹理，gltf2.0 中是同一个纹理）
+         * 金属粗糙度纹理。金属度值从 B 通道采样
+         */
         metallic: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
+        /**对应于 gltf 2.0 中的roughnessFactor和 metallicRoughnessTexture 
+         * 粗糙度值从 G 通道采样
+         */
         roughness: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
+        /**
+         * 对应glTF 2.0 中的 occlusionTexture
+         * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-occlusiontextureinfo
+         * 遮挡值从红色通道（R 通道）进行线性采样
+         * strength 强度:data1,f32
+         * texCoord 纹理坐标:data2,i32,0=uv0,1=uv1
+         */
         ao: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
+        /**
+         * 对应glTF 2.0 中的 normalTexture
+         * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-normaltextureinfo
+         * texCoord 纹理坐标:data2,i32,0=uv0,1=uv1
+         * scale 缩放:data1,f32，默认1.0
+         * scaledNormal = normalize(<sampled normal texture value> * 2.0 - 1.0) * vec3(<normal scale>, <normal scale>, 1.0);
+         */
         normal: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
         color: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
+        /**
+         * 对应glTF 2.0 中的 emissiveTexture
+         * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-textureinfo
+         * texCoord 纹理坐标:data2,i32,0=uv0,1=uv1
+         */
         emissive: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
+        /**
+         * todo：20260508
+         * 对应glTF 2.0 中的 emissiveFactor，只有数值，没有纹理
+         * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_emissivefactor
+         * 默认值为 [0,0,0]
+         */
+        // emissiveFactor: {
+        //     kind: Int32Array,
+        //     textureChannel: Int32Array,
+        //     data1: Float32Array,
+        //     data2: Uint32Array,
+        //     value: Float32Array,
+        // },
         [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
         alpha: {
+            /** alpha 数据源
+             * -1：不使用，使用albedo 或color 的alpha通道
+             * 0：使用value值，f32，r通道
+             * 1：使用texture，r通道
+             */
             kind: Int32Array,
             textureChannel: Int32Array,
+            /**
+             * alphaTest 值（alpha_cut_off）
+             * 对应glTF 2.0 中的 alphaCutoff
+             * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphacutoff
+             */
             data1: Float32Array,
-            data2: Float32Array,
+            /**
+             * alpha mode 0=opacity,1=alphaTest,2=alphaBlend
+             * 对应glTF 2.0 中的 alphaMode
+             * 0=OPAQUE,1=MASK,2=BLEND
+             * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphamode
+             */
+            data2: Uint32Array,
             value: Float32Array,
         },
         [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Float32Array,
-            data2: Float32Array,
+            data2: Uint32Array,
             value: Float32Array,
         },
     };
@@ -276,70 +331,70 @@ export class PBRMaterial extends BaseMaterial {
                     kind: new Int32Array(uniformArrayBuffer, offset + 0, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 4, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 8, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 12, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 12, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 16, 4),
                 },
                 metallic: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 32, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 36, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 40, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 44, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 44, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 48, 4),
                 },
                 roughness: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 64, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 68, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 72, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 76, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 76, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 80, 4),
                 },
                 ao: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 96, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 100, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 104, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 108, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 108, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 112, 4),
                 },
                 normal: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 128, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 132, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 136, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 140, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 140, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 144, 4),
                 },
                 color: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 160, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 164, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 168, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 172, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 172, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 176, 4),
                 },
                 emissive: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 192, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 196, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 200, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 204, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 204, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 208, 4),
                 },
                 [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
                     kind: new Int32Array(uniformArrayBuffer, offset + 224, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 228, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 232, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 236, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 236, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 240, 4),
                 },
                 alpha: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 256, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 260, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 264, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 268, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 268, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 272, 4),
                 },
                 [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
                     kind: new Int32Array(uniformArrayBuffer, offset + 288, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 292, 1),
                     data1: new Float32Array(uniformArrayBuffer, offset + 296, 1),
-                    data2: new Float32Array(uniformArrayBuffer, offset + 300, 1),
+                    data2: new Uint32Array(uniformArrayBuffer, offset + 300, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 304, 4),
                 },
             }

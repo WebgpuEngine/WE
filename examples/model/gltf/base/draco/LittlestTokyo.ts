@@ -15,9 +15,9 @@ declare global {
 }
 let input: IV_Scene = {
   canvas: "render",
-  backgroudColor: [0, 0, 0, 0.1],
+  backgroudColor: [0, 0, 0, 0.],
   reversedZ: true,
-  toneMapping: E_ToneMappingType.ACES,
+  toneMapping: E_ToneMappingType.linear,
   renderMode: "deferRender",
 };
 let scene = await initScene({
@@ -26,8 +26,8 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [-1, 1, 3],
-  intensity: 5,
+  direction: [-1, 1, 10],
+  intensity: 0.2,
   shadow: false,
 });
 await scene.add(oneDirlight);
@@ -37,7 +37,7 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.4
+    intensity: 0.5
   }
 )
 await scene.add(ambientLight);

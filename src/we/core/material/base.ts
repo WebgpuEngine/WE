@@ -271,14 +271,20 @@ export interface I_UniformBundleOfMaterial {
  */
 export enum E_MaterialUniformKind {
     notUse = -1,
-    value = 0,//只使用value
+    /** 只使用value 
+     * 1、一般作为数值使用，在数值与texture之间二选一
+     * 2、特殊处理的
+     *      A:alha,需要配合data2（alpha mode）使用
+    */
+    value = 0,
     /**
      * 1、使用texture，最终值=纹理值*value。注释时间：20260114，在此之前是二选一
      * 2、特定类型不使用乘法，只有二选一。exp：normal
      */
     texture = 1,
     /**
-     * vs 只适用从vertex shader中传递过来的uniform参数,exp:normal
+     * vs 只适用从vertex shader中传递过来的uniform参数,
+     * 使用者限于有VS传入的，如:normal，color；
      */
     vs = 2,
 }
