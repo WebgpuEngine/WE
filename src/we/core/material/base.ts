@@ -178,6 +178,8 @@ export enum E_TextureType {
     alpha = "alpha",
     /** 自发光贴图 :rgb*/
     emissive = "emissive",
+    /** 自发光贴图的影响因素贴图 :rgb*/
+    emissiveFactor = "emissiveFactor",
     /** 立方体贴图 :rgba*/
     cube = "cube",
     lightMap = "lightMap",

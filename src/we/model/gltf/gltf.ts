@@ -47,7 +47,7 @@ import { LinesMorphTarget } from "../../core/entity/animationEntity/linesOfMorph
 import { LinesSkins } from "../../core/entity/animationEntity/linesOfSkins";
 import { MeshSkins } from "../../core/entity/animationEntity/meshOfSkins";
 import { SkinsEntity } from "../../core/entity/animationEntity/skinsEntity";
-import { I_TextureWithChanneAndNumberlForPBR, I_TextureWithChanneAndVec3lForPBR, IV_PBRMaterial, PBRMaterial } from "../../core/material/PBR/PBRMaterial";
+import { I_TextureForPBR, IV_PBRMaterial, PBRMaterial } from "../../core/material/PBR/PBRMaterial";
 
 /** 实例化gltf绑定动画与动画组的资源 */
 export interface I_gltfInstanceResource {
@@ -56,12 +56,19 @@ export interface I_gltfInstanceResource {
     animationGroup: Map<any, any>;
 }
 
-export async function createGLTFModel(input: I_Model): Promise<GLTFModel> {
+export async function createGLTFModel(input: I_Model,
+    callBack?: {
+        beforeGltfInit?: (gltf: GLTFModel, dataLoader: GltfDataAtLoaders) => void,
+        afterGltfInit?: (gltf: GLTFModel) => void,
+    }
+): Promise<GLTFModel> {
     let type: "gltf" | "glb";
     let gltf = new GLTFModel(input);
     let DataLoader = new GltfDataAtLoaders(input.url, input.scene.device, gltf);
     await DataLoader.init();
+    callBack?.beforeGltfInit?.(gltf, DataLoader);
     await gltf.initData(DataLoader);
+    callBack?.afterGltfInit?.(gltf);
     return gltf;
 }
 
@@ -716,7 +723,18 @@ export class GLTFModel extends BaseModel {
 
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 let name = perMaterialData.name || i;
-                let normalTexture = perMaterialData.normalTexture;
+                let normalTextureData = perMaterialData.normalTexture;
+                let normalForPbr: I_TextureForPBR | undefined = undefined;
+                if (normalTextureData != undefined) {
+                    normalForPbr = {} as I_TextureForPBR;
+                    normalForPbr.texture = <Texture>this.getRes(T_ModelResKind.texture, normalTextureData.index);
+                    if (normalTextureData.texCoord !== undefined) {
+                        normalForPbr.data1 = normalTextureData.texCoord;
+                    }
+                    if (normalTextureData.scale !== undefined) {
+                        normalForPbr.data2 = normalTextureData.scale;
+                    }
+                }
                 /**
                  * 当alphaMode为"MASK"时，指定alphaCutoff值。
                  * 该值定义了alpha值的阈值，低于该值的像素将被视为完全透明。
@@ -728,6 +746,27 @@ export class GLTFModel extends BaseModel {
                  * 使用data2:i32进行传输
                  */
                 let alphaMode = perMaterialData.alphaMode || "OPAQUE";
+                let alphaForPbr: I_TextureForPBR | undefined = undefined;
+                if (alphaMode != undefined) {
+                    if (alphaForPbr == undefined) {
+                        alphaForPbr = {} as I_TextureForPBR;
+                    }
+                    if (alphaMode == "OPAQUE") {
+                        alphaForPbr.data1 = 0;
+                    } else if (alphaMode == "MASK") {
+                        alphaForPbr.data1 = alphaMode;
+                    }
+                    else if (alphaMode == "BLEND") {
+                        alphaForPbr.data1 = 1;
+                    }
+                    else {
+                        alphaForPbr.data1 = 0;
+                        console.warn(`alphaMode ${alphaMode} not support,use OPAQUE`);
+                    }
+                    if (alphaMode == "MASK") {
+                        alphaForPbr!.data2 = alphaCutoff;
+                    }
+                }
 
                 /**
                  * 发光纹理。它控制着材质所发射光的颜色和强度。该纹理包含通过sRGB转换函数编码的RGB分量。
@@ -735,12 +774,25 @@ export class GLTFModel extends BaseModel {
                  * 未定义时，对该纹理进行采样时，其RGB分量必须为1.0
                  */
                 let emissiveTexture = perMaterialData.emissiveTexture;
+                let emissiveForPbr: I_TextureForPBR | undefined = undefined;
+                if (emissiveTexture != undefined) {
+                    emissiveForPbr = {} as I_TextureForPBR;
+                    emissiveForPbr.texture = <Texture>this.getRes(T_ModelResKind.texture, emissiveTexture.index);
+                    if (emissiveTexture.texCoord !== undefined) {
+                        emissiveForPbr.data1 = emissiveTexture.texCoord;
+                    }
+                }
                 /**
                  * 材料发光颜色的影响因素。该值定义了发光纹理采样纹素的线性倍增系数。
                  * 数组中的每个元素都必须大于或等于0且小于或等于1。
                  * 必填：否，默认值：[0,0,0]
                  */
-                let emissiveFactor = perMaterialData.emissiveFactor || [0, 0, 0];
+                let emissiveFactor = perMaterialData.emissiveFactor;
+                let emissiveFactorForPbr: I_TextureForPBR | undefined = undefined;
+                if (emissiveFactor != undefined) {
+                    emissiveFactorForPbr = {} as I_TextureForPBR;
+                    emissiveFactorForPbr.value = [...emissiveFactor, 1] as weVec4;
+                }
                 /**
                  * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphamode
                  * "OPAQUE" 忽略 alpha 值，渲染输出完全不透明。
@@ -755,50 +807,78 @@ export class GLTFModel extends BaseModel {
                  * 未定义时，该材质没有occlusion纹理。
                  */
                 let occlusionTexture = perMaterialData.occlusionTexture;
-                /**
-                 * 当为true时，渲染输出将在两个面都可见。
-                 * 当为false时，仅渲染输出在前端可见的面。
-                 * 必填：否，默认值：false
-                 */
+                let occlusionForPbr: I_TextureForPBR | undefined = undefined;
+                if (occlusionTexture != undefined) {
+                    occlusionForPbr = {} as I_TextureForPBR;
+                    occlusionForPbr.texture = <Texture>this.getRes(T_ModelResKind.texture, occlusionTexture.index);
+                    occlusionForPbr.channel = E_TextureChannel.R;
+                    if (occlusionTexture.texCoord !== undefined) {
+                        occlusionForPbr.data1 = occlusionTexture.texCoord;
+                    }
+                    if (occlusionTexture.strength != undefined) {
+                        occlusionForPbr.data2 = occlusionTexture.strength;
+                    }
+                    else {
+                        occlusionForPbr.data2 = 1;
+                    }
+                    console.log("occlusionForPbr", occlusionForPbr);
+                }
+
                 let doubleSided = perMaterialData.doubleSided || false;
                 // PBR材质基础
                 let pbrMetallicRoughness = perMaterialData.pbrMetallicRoughness;
                 //albedo
                 let baseColor = pbrMetallicRoughness?.baseColorFactor || [1, 1, 1, 1];
                 let albedoTexture: Texture;
-                let albedo: I_TextureWithChanneAndVec3lForPBR = { value: baseColor as weVec4 };
+                let albedoForPbr: I_TextureForPBR = { value: baseColor as weVec4 };
                 if (pbrMetallicRoughness && pbrMetallicRoughness.baseColorTexture?.index != undefined) {
                     albedoTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.baseColorTexture?.index);
-                    albedo.texture = albedoTexture;
-
+                    albedoForPbr.texture = albedoTexture;
                 }
                 //metallic
                 let metallicFactor = pbrMetallicRoughness?.metallicFactor || 1;
                 let metallicTexture: Texture;
-                let metallic: I_TextureWithChanneAndNumberlForPBR = { value: metallicFactor };
+                let metallicForPbr: I_TextureForPBR = { value: metallicFactor };
                 if (pbrMetallicRoughness && pbrMetallicRoughness.metallicRoughnessTexture?.index != undefined) {
                     metallicTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.metallicRoughnessTexture?.index);
-                    metallic.texture = metallicTexture;
-                    metallic.channel = E_TextureChannel.B;
+                    metallicForPbr.texture = metallicTexture;
+                    metallicForPbr.channel = E_TextureChannel.B;
                 }
                 //roughness
                 let roughnessFactor = pbrMetallicRoughness?.roughnessFactor || 1;
                 let roughnessTexture: Texture;
-                let roughness: I_TextureWithChanneAndNumberlForPBR = { value: roughnessFactor };
+                let roughnessForPbr: I_TextureForPBR = { value: roughnessFactor };
                 if (pbrMetallicRoughness && pbrMetallicRoughness.metallicRoughnessTexture?.index != undefined) {
                     roughnessTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.metallicRoughnessTexture?.index);
-                    roughness.texture = roughnessTexture;
-                    roughness.channel = E_TextureChannel.G;
+                    roughnessForPbr.texture = roughnessTexture;
+                    roughnessForPbr.channel = E_TextureChannel.G;
                 }
 
                 let inputPBRMaterial: IV_PBRMaterial = {
                     textures: {
-                        albedo,
+                        albedo: albedoForPbr,
                         // normal: { texture: { source: "/resource/PBR/rustediron/rustediron2_normal.png" } },
-                        metallic,
-                        roughness,
-                    }
+                        metallic: metallicForPbr,
+                        roughness: roughnessForPbr,
+                    },
+                    doubleSided: doubleSided,
                 };
+                if (alphaForPbr != undefined) {
+                    inputPBRMaterial.textures.alpha = alphaForPbr;
+                }
+                if (normalForPbr != undefined) {
+                    inputPBRMaterial.textures.normal = normalForPbr;
+                }
+                if (emissiveForPbr != undefined) {
+                    inputPBRMaterial.textures.emissive = emissiveForPbr;
+                }
+                if (emissiveFactorForPbr != undefined) {
+                    inputPBRMaterial.textures.emissiveFactor = emissiveFactorForPbr;
+                }
+                if (occlusionForPbr != undefined) {
+                    inputPBRMaterial.textures.ao = occlusionForPbr;
+                }
+
                 // let perMaterial;
                 // if (pbrMetallicRoughness!.baseColorTexture != undefined) {
                 //     metallicTexture = <Texture>this.getRes(T_ModelResKind.texture, Number(pbrMetallicRoughness!.baseColorTexture!.index));
@@ -869,20 +949,20 @@ export class GLTFModel extends BaseModel {
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //attribute part 
                     //初始化mesh顶点数据为 we entity的顶点数据格式；
-                    let verticesOfDataOfEntity ;
-                    if(this.dataTypeOfAttribute == "inModel"){
+                    let verticesOfDataOfEntity;
+                    if (this.dataTypeOfAttribute == "inModel") {
                         verticesOfDataOfEntity = await this.getVerticesOfPrimitive(primitive, i, j);
                     }
-                    else{
+                    else {
                         verticesOfDataOfEntity = await this.getVerticesArrayOfPrimitive(primitive, i, j);
                     }
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
                     //gpubuffer of index and draw mode   part
-                    let indecis ;
-                    if(this.dataTypeOfAttribute == "inModel"){
+                    let indecis;
+                    if (this.dataTypeOfAttribute == "inModel") {
                         indecis = await this.getIndecisOfPrimitive(primitive, i, j);
                     }
-                    else{
+                    else {
                         indecis = await this.getIndecisArrayOfPrimitive(primitive, i, j);
                     }
                     let drawMode = indecis.drawMode;

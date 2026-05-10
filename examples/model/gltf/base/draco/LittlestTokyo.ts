@@ -6,6 +6,7 @@ import { DirectionalLight } from "../../../../../src/we/core/light/DirectionalLi
 import { AmbientLight } from "../../../../../src/we/core/light/ambientLight";
 import { FXAA } from "../../../../../src/we/core/postprocess/FXAA";
 import { PointLight } from "../../../../../src/we/core/light/pointLight";
+import { GltfDataAtLoaders } from "../../../../../src/we/model/gltf/gltfAtLoaders";
 
 declare global {
   interface Window {
@@ -26,8 +27,8 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [-1, 1, 10],
-  intensity: 0.2,
+  direction: [-1, 1, 1],
+  intensity: .2,
   shadow: false,
 });
 await scene.add(oneDirlight);
@@ -37,7 +38,7 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.5
+    intensity: 0.75
   }
 )
 await scene.add(ambientLight);
@@ -63,7 +64,14 @@ await scene.add(camera);
 let gltf = await createGLTFModel({
   scene: scene,
   url: "/models/gltf/model/LittlestTokyo/LittlestTokyo.glb"
-}
+},
+  {
+    beforeGltfInit: (gltf, dataLoader) => {
+      dataLoader.gltfJson.materials![1].occlusionTexture=undefined;
+      dataLoader.gltfJson.materials![7].occlusionTexture=undefined;
+      // dataLoader.gltfJson.materials![1].occlusionTexture!.texCoord = 0;
+    }
+  }
 );
 window.gltf = gltf;
 window.gltfInstance = await scene.add(gltf, {

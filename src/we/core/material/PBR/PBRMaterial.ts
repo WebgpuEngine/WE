@@ -35,8 +35,14 @@ import { Clock } from "../../scene/clock";
 import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 
+export interface I_TextureForPBR {
+    data1?: number,//f32
+    data2?: number,//i32,data2.texCoord,alphaMod...
 
-
+    texture?: Texture | I_BaseTexture,
+    value?: weVec4 | number,
+    channel?: E_TextureChannel,
+}
 /**
  * PBR材质RGB形式纹理参数:normal ,color,albedo ...
  * 1、value是factor因子，无texture时是基础值。
@@ -50,12 +56,11 @@ import { Texture } from "../../texture/texture";
  *          c、GPUCopyExternalImageSource;
  * 3、无channel, 默认：RGB
  */
-export interface I_TextureWithChanneAndVec3lForPBR {
-    // texture?: I_BaseTexture,
-    texture?: Texture | I_BaseTexture,
-    value?: weVec4,
-    // channel?: E_TextureChannel,
-}
+// export interface I_TextureWithChanneAndVec3lForPBR extends I_TextureForPBR {
+//     // texture?: Texture | I_BaseTexture,
+//     value?: weVec4,
+//     // channel: E_TextureChannel.RGB,
+// }
 /**
  * PBR材质单通道数据形式纹理参数:metallic,roughness,ao ...
  * 1、value是factor因子，无texture时是基础值。
@@ -69,54 +74,54 @@ export interface I_TextureWithChanneAndVec3lForPBR {
  *          c、GPUCopyExternalImageSource;
  * 3、channel?: E_TextureChannel，默认：R
  */
-export interface I_TextureWithChanneAndNumberlForPBR {
-    // texture?: I_BaseTexture,
-    texture?: Texture | I_BaseTexture,
-    value?: number,
-    channel?: E_TextureChannel,
-}
+// export interface I_TextureWithChanneAndNumberlForPBR extends I_TextureForPBR {
+//     // texture?: Texture | I_BaseTexture,
+//     value?: number,
+//     channel?: E_TextureChannel,
+// }
 // function I_TextureWithChannelForPBR(texture: any): texture is I_TextureWithChanneAndNumberlForPBR {
 //     return texture && (texture.texture || texture.value);
 // }
 
-/**
- * todo:未实现
- * 
- * 默认:0,其他alpha也是0，后期考虑为：0.5 */
-interface I_TextureAlphaTestForPBR extends I_TextureWithChanneAndNumberlForPBR {
-    alphaTest?: number,
-}
-/**
- * todo:未实现
- * 
- * 自发光强度，默认：1.0
- */
-interface I_EmissiveForPBR extends I_TextureWithChanneAndNumberlForPBR {
-    intensity?: number,
-}
-/**
- * todo:未实现
- * 
- * 深度缩放，默认：0.1
- */
-interface I_DepthMapForPBR extends I_TextureWithChanneAndNumberlForPBR {
-    scale?: number,
-}
+// /**
+//  * todo:未实现
+//  * 
+//  * 默认:0,其他alpha也是0，后期考虑为：0.5 */
+// interface I_TextureAlphaTestForPBR extends I_TextureWithChanneAndNumberlForPBR {
+//     alphaTest?: number,
+// }
+// /**
+//  * todo:未实现
+//  * 
+//  * 自发光强度，默认：1.0
+//  */
+// interface I_EmissiveForPBR extends I_TextureWithChanneAndNumberlForPBR {
+//     intensity?: number,
+// }
+// /**
+//  * todo:未实现
+//  * 
+//  * 深度缩放，默认：0.1
+//  */
+// interface I_DepthMapForPBR extends I_TextureWithChanneAndNumberlForPBR {
+//     scale?: number,
+// }
 /**
  * PBR材质 init参数：
  * todo：emssive,depthMap,alpha,envMap
  */
 export interface IV_PBRMaterial extends IV_BaseMaterial {
     textures: {
-        [E_TextureType.albedo]: I_TextureWithChanneAndVec3lForPBR,
-        [E_TextureType.metallic]: I_TextureWithChanneAndNumberlForPBR,
-        [E_TextureType.roughness]: I_TextureWithChanneAndNumberlForPBR,
-        [E_TextureType.ao]?: I_TextureWithChanneAndNumberlForPBR,
-        [E_TextureType.normal]?: I_TextureWithChanneAndVec3lForPBR,
-        [E_TextureType.color]?: I_TextureWithChanneAndVec3lForPBR,
-        [E_TextureType.emissive]?: I_EmissiveForPBR,
-        [E_TextureType.depthMap]?: I_DepthMapForPBR,
-        [E_TextureType.alpha]?: I_TextureAlphaTestForPBR,
+        [E_TextureType.albedo]: I_TextureForPBR,
+        [E_TextureType.metallic]: I_TextureForPBR,
+        [E_TextureType.roughness]: I_TextureForPBR,
+        [E_TextureType.ao]?: I_TextureForPBR,
+        [E_TextureType.normal]?: I_TextureForPBR,
+        [E_TextureType.color]?: I_TextureForPBR,
+        [E_TextureType.emissive]?: I_TextureForPBR,
+        [E_TextureType.emissiveFactor]?: I_TextureForPBR,
+        [E_TextureType.depthMap]?:  I_TextureForPBR,
+        [E_TextureType.alpha]?: I_TextureForPBR,
         /** 是否使用环境贴图 */
         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
     },
@@ -191,8 +196,8 @@ export class PBRMaterial extends BaseMaterial {
         albedo: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         /**对应于 gltf 2.0 中的metallicFactor和 metallicRoughnessTexture （金属粗糙度纹理，gltf2.0 中是同一个纹理）
@@ -201,8 +206,8 @@ export class PBRMaterial extends BaseMaterial {
         metallic: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         /**对应于 gltf 2.0 中的roughnessFactor和 metallicRoughnessTexture 
@@ -211,8 +216,8 @@ export class PBRMaterial extends BaseMaterial {
         roughness: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         /**
@@ -225,8 +230,8 @@ export class PBRMaterial extends BaseMaterial {
         ao: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         /**
@@ -239,15 +244,15 @@ export class PBRMaterial extends BaseMaterial {
         normal: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         color: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         /**
@@ -258,8 +263,8 @@ export class PBRMaterial extends BaseMaterial {
         emissive: {
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         /**
@@ -278,8 +283,8 @@ export class PBRMaterial extends BaseMaterial {
         [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
         alpha: {
@@ -291,25 +296,25 @@ export class PBRMaterial extends BaseMaterial {
             kind: Int32Array,
             textureChannel: Int32Array,
             /**
-             * alphaTest 值（alpha_cut_off）
-             * 对应glTF 2.0 中的 alphaCutoff
-             * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphacutoff
-             */
-            data1: Float32Array,
+            * alpha mode 0=opacity,1=alphaTest,2=alphaBlend
+            * 对应glTF 2.0 中的 alphaMode
+            * 0=OPAQUE,1=MASK,2=BLEND
+            * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphamode
+            */
+            data1: Uint32Array,
             /**
-             * alpha mode 0=opacity,1=alphaTest,2=alphaBlend
-             * 对应glTF 2.0 中的 alphaMode
-             * 0=OPAQUE,1=MASK,2=BLEND
-             * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphamode
-             */
-            data2: Uint32Array,
+              * alphaTest 值（alpha_cut_off）
+              * 对应glTF 2.0 中的 alphaCutoff
+              * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_alphacutoff
+              */
+            data2: Float32Array,
             value: Float32Array,
         },
         [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
             kind: Int32Array,
             textureChannel: Int32Array,
-            data1: Float32Array,
-            data2: Uint32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
             value: Float32Array,
         },
     };
@@ -330,71 +335,71 @@ export class PBRMaterial extends BaseMaterial {
                 albedo: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 0, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 4, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 8, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 12, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 8, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 12, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 16, 4),
                 },
                 metallic: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 32, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 36, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 40, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 44, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 40, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 44, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 48, 4),
                 },
                 roughness: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 64, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 68, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 72, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 76, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 72, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 76, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 80, 4),
                 },
                 ao: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 96, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 100, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 104, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 108, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 104, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 108, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 112, 4),
                 },
                 normal: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 128, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 132, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 136, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 140, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 136, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 140, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 144, 4),
                 },
                 color: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 160, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 164, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 168, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 172, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 168, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 172, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 176, 4),
                 },
                 emissive: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 192, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 196, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 200, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 204, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 200, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 204, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 208, 4),
                 },
                 [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
                     kind: new Int32Array(uniformArrayBuffer, offset + 224, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 228, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 232, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 236, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 232, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 236, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 240, 4),
                 },
                 alpha: {
                     kind: new Int32Array(uniformArrayBuffer, offset + 256, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 260, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 264, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 268, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 264, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 268, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 272, 4),
                 },
                 [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
                     kind: new Int32Array(uniformArrayBuffer, offset + 288, 1),
                     textureChannel: new Int32Array(uniformArrayBuffer, offset + 292, 1),
-                    data1: new Float32Array(uniformArrayBuffer, offset + 296, 1),
-                    data2: new Uint32Array(uniformArrayBuffer, offset + 300, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 296, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 300, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 304, 4),
                 },
             }
@@ -416,36 +421,42 @@ export class PBRMaterial extends BaseMaterial {
             value: [1, 1, 1, 0],
             textureName: E_TextureType.albedo,
             textureChannel: E_TextureChannel.RGB,
+            extra: [0., 0],
         },
         {
             kind: E_MaterialUniformKind.value,
             value: [1, 0, 0, 0],
             textureName: E_TextureType.metallic,
             textureChannel: E_TextureChannel.R,
+            extra: [0., 0],
         },
         {
             kind: E_MaterialUniformKind.value,
             value: [1, 0, 0, 0],
             textureName: E_TextureType.roughness,
             textureChannel: E_TextureChannel.R,
+            extra: [0., 0],
         },
         {
             kind: E_MaterialUniformKind.value,
             value: [1, 0, 0, 0],
             textureName: E_TextureType.ao,
             textureChannel: E_TextureChannel.R,
+            extra: [0., 0],
         },
         {
             kind: E_MaterialUniformKind.vs,
             value: [1, 1, 1, 0],
             textureName: E_TextureType.normal,
             textureChannel: E_TextureChannel.RGB,
+            extra: [0., 0],
         },
         {
             kind: E_MaterialUniformKind.notUse,
             value: [1, 1, 1, 1],
             textureName: E_TextureType.color,
             textureChannel: E_TextureChannel.RGBA,
+            extra: [0., 0],
         },
         {
             kind: E_MaterialUniformKind.notUse,
@@ -483,6 +494,7 @@ export class PBRMaterial extends BaseMaterial {
             value: [0, 0, 0, 0],
             textureName: E_TextureType.envMap,
             textureChannel: E_TextureChannel.User,
+            extra: [0., 0],
         },
 
     ];
@@ -514,6 +526,9 @@ export class PBRMaterial extends BaseMaterial {
         this.createUniformPointer();
         //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
+            if(key == E_TextureType.emissiveFactor){
+                continue;       //20260509 未实现，gltf中实现了参数化，如果不跳过，会产生顺序错误；
+            }
             let textureSource = this.inputValues.textures[key as vialidPBRTextureType];
             //envMap 单独处理，IBL，使用system envMap
             if (key == E_TextureType.envMap) {
@@ -526,7 +541,7 @@ export class PBRMaterial extends BaseMaterial {
                 }
             }
             else {
-                let perOne: I_TextureWithChanneAndVec3lForPBR | I_TextureWithChanneAndNumberlForPBR;
+                let perOne: I_TextureForPBR;
                 if (typeof textureSource != "boolean" && textureSource != undefined) {//不是未定义
                     perOne = textureSource;
                 }
@@ -536,10 +551,16 @@ export class PBRMaterial extends BaseMaterial {
                 let index: number = 0;//this.insideUniformBundle数组的下标索引
                 let isVec3: boolean = true;//是否是vec3类型数组，RGB或R,G,B,A
                 let extra: [number, number] = [0, 0];//默认扩展数据
+                if(perOne.data1 != undefined){
+                    extra[0] = perOne.data1;
+                }
+                if(perOne.data2 != undefined){
+                    extra[1] = perOne.data2;
+                }
                 // let texture: Texture | undefined = perOne.texture;
                 switch (key) {
                     case E_TextureType.albedo:
-                        perOne = (textureSource as I_TextureWithChanneAndVec3lForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 0;
                         isVec3 = true;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -547,7 +568,7 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.metallic:
-                        perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 1;
                         isVec3 = false;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -555,7 +576,7 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.roughness:
-                        perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 2;
                         isVec3 = false;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -563,7 +584,7 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.ao:
-                        perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 3;
                         isVec3 = false;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -571,7 +592,7 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.normal:
-                        perOne = (textureSource as I_TextureWithChanneAndVec3lForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 4;
                         isVec3 = true;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -579,7 +600,7 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.color:
-                        perOne = (textureSource as I_TextureWithChanneAndVec3lForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 5;
                         isVec3 = true;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -587,17 +608,17 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.emissive:
-                        perOne = (textureSource as I_EmissiveForPBR);
+                        perOne = (textureSource as I_TextureForPBR);
                         index = 6;
                         isVec3 = true;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
                             perOne.texture.format = "rgba8unorm-srgb";
                         }
-                        if ((perOne as I_EmissiveForPBR).intensity)
-                            extra[0] = (perOne as I_EmissiveForPBR).intensity as number;
+                        // if ((perOne as I_TextureForPBR).intensity)
+                        //     extra[0] = (perOne as I_TextureForPBR).intensity as number;
                         break;
                     case E_TextureType.depthMap:
-                        perOne = (textureSource as I_DepthMapForPBR);
+                        perOne = (textureSource as I_TextureForPBR);
                         index = 7;
                         isVec3 = false;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
@@ -605,13 +626,15 @@ export class PBRMaterial extends BaseMaterial {
                         }
                         break;
                     case E_TextureType.alpha:
-                        perOne = (textureSource as I_TextureWithChanneAndNumberlForPBR)
+                        perOne = (textureSource as I_TextureForPBR)
                         index = 8;
                         isVec3 = false;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
                             perOne.texture.format = "rgba8unorm";
                         }
                         break;
+                    default:
+                        throw new Error(`texture ${key} not implemented`);
                 }
                 //如果value和texture都没有，就不使用这个uniform
                 if (perOne.value == undefined && perOne.texture == undefined) {
@@ -657,7 +680,7 @@ export class PBRMaterial extends BaseMaterial {
                             this.insideUniformBundle[index].value[0] = perOne.value as number;
                             if ("channel" in perOne)
                                 if (perOne.channel) {
-                                    this.insideUniformBundle[3].textureChannel = perOne.channel;
+                                    this.insideUniformBundle[index].textureChannel = perOne.channel;
                                 }
                         }
                         this.insideUniformBundle[index].kind = E_MaterialUniformKind.value;
@@ -900,104 +923,7 @@ export class PBRMaterial extends BaseMaterial {
         }
         return groupAndBindingString;
     }
-    // /**
-    //  * 通用部分的uniform绑定
-    //  * @param startBinding 
-    //  * @returns 
-    //  */
-    // getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-    //     this.unifromEntryLayout = [];// 每次重置layout
-    //     let groupAndBindingString: string = "";
-    //     let binding: number = startBinding;
-    //     let uniformEntries: T_uniformOneGroup = [];
-    //     let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-    //     let code: string = "";
-    //     ///////////group binding
-    //     {/////uniform 
-    //         groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var<uniform> u_pbr_uniform : PBRUniformInput; \n `;
-    //         let uniformBuffer: GPUBindGroupEntry = {
-    //             binding: binding,
-    //             resource: this.uniformPointer.gpuBufferView,
-    //         };
-    //         let uniformBufferLayout: GPUBindGroupLayoutEntry = {
-    //             binding: binding,
-    //             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-    //             buffer: {
-    //                 type: "uniform",
-    //             },
-    //         };
-    //         layoutEntries.push(uniformBufferLayout);
-    //         //push到uniform1队列
-    //         uniformEntries.push(uniformBuffer);
-    //         //+1
-    //         binding++;
-    //     }
-    //     {//per texture and sampler
-    //         for (let perTexture of this.insideUniformBundle) {
-    //             let uniformName = perTexture.textureName;
-    //             if (uniformName == E_TextureType.envMap) { continue; }
-    //             {//texture
-    //                 groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
-    //                 let uniformTexture: GPUBindGroupEntry = {
-    //                     binding: binding,
-    //                     resource: perTexture.texture!.texture.createView(),//创建texture view,20251204 也可以直接使用texture
-    //                 };
-    //                 //uniform texture layout
-    //                 let uniformTextureLayout: GPUBindGroupLayoutEntry = {
-    //                     binding: binding,
-    //                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-    //                     texture: perTexture.texture!.defaultTextureLayout(),
-    //                 };
-    //                 //push到uniform1队列
-    //                 layoutEntries.push(uniformTextureLayout);
-    //                 uniformEntries.push(uniformTexture);
-    //                 //+1
-    //                 binding++;
-    //             }
-    //             {//sampler
-    //                 groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding}) var u_sampler_${uniformName} : sampler; \n `;
-    //                 let uniformSampler: GPUBindGroupEntry = {
-    //                     binding: binding,
-    //                     resource: perTexture.sampler!,
-    //                 };
-    //                 //uniform sampler layout
-    //                 let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-    //                     binding: binding,
-    //                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-    //                     sampler: {
-    //                         type: perTexture.samplerBindingType!,
-    //                     },
-    //                 };
-    //                 layoutEntries.push(uniformSamplerLayout);
-    //                 //push到uniform1队列
-    //                 uniformEntries.push(uniformSampler);
-    //                 //+1
-    //                 binding++;
-    //             }
-    //         }
-    //     }
-
-    //     let entriesBundle = {
-    //         bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-    //         groupAndBindingString,
-    //         entry: uniformEntries
-    //     };
-    //     return {
-    //         entriesBundle,
-    //         layoutEntries,
-    //     };
-    // }
-    /**
-    //  * 
-    //  * @param template 着色器模板
-    //  * @param startBinding 绑定的起始位置
-    //  * @returns I_materialBundleOutput
-    //  */
-    // generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0): I_materialBundleOutput {
-    //     let replaceList = new Map<string, string | (() => string)>();
-    //     return this.formatSHT(template, replaceList, startBinding);
-    // }
-
+ 
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }

@@ -13,8 +13,9 @@ struct  pbr_material{
 struct PBRUniformTexture{
     kind: i32, //uniform 种类,-1=notUse,0=texture,1=value,2=vs
     texture_channel: i32,//E_TextureChannel 纹理通道:-1=user define,0=R,1=G,2=B,3=A,4=RG,5=RB,6=RA,7=GB,8=BA,9=RGB,10=RGBA
-    data1:f32,//自定义:alphaTest,intensity,scale,
-    data2:i32,//自定义:模式判别使用，各自不同，按需处理
+    // uv:i32,//uv channel,0=uv,1=uv1
+    data1:i32,//自定义:模式判别使用，各自不同，按需处理
+    data2:f32,//自定义:alphaTest,intensity,scale,
     value: vec4f,//factor uniform value,按需匹配textureChannel适用
 }
 /**所有参数的统一化输入，判断参数来源，以进行统一控制流处理 */
@@ -42,36 +43,55 @@ struct PBRUniformInput{
     initSystemOfFS();   
     //占位符,统一工作流在这里处理
     // $PBR_Uniform
-    var albedo_uniform : vec4f = textureSample(u_texture_albedo,u_sampler_albedo,uv);
-    var color_uniform : vec4f = textureSample(u_texture_color,u_sampler_color,uv);
-
+    var uv_temp:vec2f=uv;
+    if(u_pbr_uniform.albedo.data1 == 1){        uv_temp = uv1;    }    else {        uv_temp = uv;    }
+    var albedo_uniform : vec4f = textureSample(u_texture_albedo,u_sampler_albedo,uv_temp);
+    if(u_pbr_uniform.color.data1 == 1){        uv_temp = uv1;    }    else {        uv_temp = uv;    }
+    var color_uniform : vec4f = textureSample(u_texture_color,u_sampler_color,uv_temp);
 
     // alpha discard ,before early Z of hardware
     if(u_pbr_uniform.alpha.kind == -1){//直接使用纹理（albedo或color）的alpha通道值
-        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data2  ==0){//有单独的color 纹理  data2应该=0，目前TS没有设置数据
+        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data1  ==0){//有单独的color 纹理  data2应该=0，目前TS没有设置数据
             // alphamap = color_uniform.a; 
-            if(color_uniform.a <=  u_pbr_uniform.alpha.data1){
+            if(color_uniform.a <=  u_pbr_uniform.alpha.data2){
                 discard;
             }
         }
         // else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data2  ==1){//有单独的albedo 纹理
-        else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data2  ==0){//有单独的albedo 纹理  data2应该=1，目前TS没有设置数据
+        else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data1  ==0){//有单独的albedo 纹理  data2应该=1，目前TS没有设置数据
             // alphamap = albedo_uniform.a; 
-            if(albedo_uniform.a <=  u_pbr_uniform.alpha.data1){
+            if(albedo_uniform.a <=  u_pbr_uniform.alpha.data2){
                 discard;
             }
         }
         // alphamap = 1;
         // alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
     }
-    var metallic_uniform : vec4f = textureSample(u_texture_metallic,u_sampler_metallic,uv);
-    var roughness_uniform : vec4f = textureSample(u_texture_roughness,u_sampler_roughness,uv);
-    var ao_uniform : vec4f = textureSample(u_texture_ao,u_sampler_ao,uv);
-    var normal_uniform : vec4f = textureSample(u_texture_normal,u_sampler_normal,uv);
-    var emissive_uniform : vec4f = textureSample(u_texture_emissive,u_sampler_emissive,uv);
+    if(u_pbr_uniform.alpha.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
+    var alpha_uniform : vec4f = textureSample(u_texture_alpha,u_sampler_alpha,uv_temp);
+
+
+    if(u_pbr_uniform.metallic.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
+    var metallic_uniform : vec4f = textureSample(u_texture_metallic,u_sampler_metallic,uv_temp);
+
+    if(u_pbr_uniform.roughness.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var roughness_uniform : vec4f = textureSample(u_texture_roughness,u_sampler_roughness,uv_temp);
+
+    if(u_pbr_uniform.ao.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var ao_uniform : vec4f = textureSample(u_texture_ao,u_sampler_ao,uv_temp);
+
+    if(u_pbr_uniform.normal.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var normal_uniform : vec4f = textureSample(u_texture_normal,u_sampler_normal,uv_temp);
+    
+    if(u_pbr_uniform.emissive.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var emissive_uniform : vec4f = textureSample(u_texture_emissive,u_sampler_emissive,uv_temp);
+    
     var emissive_intensity_uniform : f32 = u_pbr_uniform.emissive.value.a;
-    var depthmap_uniform : vec4f = textureSample(u_texture_depthmap,u_sampler_depthmap,uv);
-    var alpha_uniform : vec4f = textureSample(u_texture_alpha,u_sampler_alpha,uv);
+
+    if(u_pbr_uniform.depthmap.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
+    var depthmap_uniform : vec4f = textureSample(u_texture_depthmap,u_sampler_depthmap,uv_temp);
+
+
     // var lightmap_uniform : vec4f = textureSample(u_texture_lightmap,u_sampler_lightmap,uv);//lightmap,目前未定义
     
     ///RGB通道的直接在赋值时使用；
@@ -110,7 +130,7 @@ struct PBRUniformInput{
         ao_uniform = u_pbr_uniform.ao.value;
     }
     else if(u_pbr_uniform.ao.kind == 1){//use texture ao * (uniform ao as factor)
-        ao_uniform *= u_pbr_uniform.ao.value;
+        // ao_uniform *= u_pbr_uniform.ao.value;
     }
     else if(u_pbr_uniform.ao.kind == -1){//unuse
         ao_uniform = vec4f(1);
