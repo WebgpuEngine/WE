@@ -1,8 +1,7 @@
-import { E_lifeState, weColor4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { SHT_WireFrameFS, SHT_WireFrameFS_MSAA, SHT_WireFrameFS_MSAAinfo } from "../../shadermanagemnet/material/wireFrameMaterial";
-import { E_MaterialType, I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../base";
+import { E_MaterialType, I_materialBundleOutput } from "../base";
 import { ColorMaterial, I_ColorMaterial } from "./colorMaterial";
 
 

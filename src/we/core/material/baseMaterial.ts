@@ -16,7 +16,6 @@ import { getSampler } from "../sampler/baseFunction";
 import { Texture } from "../texture/texture";
 import { CubeTexture } from "../texture/cubeTexxture";
 import { I_pointerStruct } from "../bufferBlock/pointer";
-import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { E_renderPassName } from "../scene/renderManager";
 
 
@@ -41,16 +40,13 @@ import { E_renderPassName } from "../scene/renderManager";
 
 export abstract class BaseMaterial extends RootGPU {
     ///////////////////////////////////////////////////////////////////
-    override inputValues: IV_BaseMaterial;
+    declare inputValues: IV_BaseMaterial;
     kind!: E_MaterialType;
-    entity!: EntityBundleMaterial;
     /** 材质的uniform  Buffer 的指针，用于快速访问 
      * 20260419：
      * 1、这个名称不够直观，需要调整一下，调整为与VS相同的名称
     */
     uniformPointer!: I_pointerStruct;
-    ///////////////////////////////////////////////////////////////////
-    //todo
     _doubleSided: boolean = false;
     get DoubleSided(): boolean { return this._doubleSided; }
     set DoubleSided(value: boolean) { this._doubleSided = value; }
@@ -66,12 +62,8 @@ export abstract class BaseMaterial extends RootGPU {
      * ！！！这里定义的是any，后续各种材质所需要的纹理根据情况，进行declare
     */
     textures: any
-    /**
-     * 材质的sampler是否存在，不存在就创建一个。
-    */
-    // _samplerBindingType: GPUSamplerBindingType = "filtering";
+    /** 材质的sampler是否存在，不存在就创建一个。    */
     defaultSamplerBindingType: GPUSamplerBindingType = "filtering";
-
     /**默认的sampler */
     defaultSampler!: GPUSampler;
     /**默认的2D纹理 */
@@ -97,18 +89,6 @@ export abstract class BaseMaterial extends RootGPU {
         super(input);
         this.type = "material";
         this.DoubleSided = input?.doubleSided || false;
-        // this.reversedZ = false;
-        if (input) {
-            this.inputValues = input;
-            this.checkTransparent(input);
-        }
-        else
-            this.inputValues = {};
-        if (input?.samplerDescriptor != undefined && input.samplerBindingType == undefined) {
-            throw new Error("samplerDescriptor 必须指定samplerBindingType")
-        }
-
-        // if (input?.mipmap) this._mipmap = input.mipmap;
         this._state = E_lifeState.unstart;
     }
     _destroy(): void {
@@ -136,10 +116,10 @@ export abstract class BaseMaterial extends RootGPU {
         return this._state;
     }
 
-    async init(scene: Scene, entity: EntityBundleMaterial): Promise<any> {
+    async init(scene: Scene): Promise<any> {
         // this._shadow = (parent as BaseEntity)._shadow;
         this.scene = scene;
-        this.entity = entity;
+        // this.entity = entity;
         this.defaultTexture2D = this.scene.resourcesGPU.weTextureOfString.get("default") as Texture;
         this.defaultTexture3D = this.scene.resourcesGPU.weTextureOfString.get("defaultCube") as CubeTexture;
         this.defaultSampler = this.checkSampler(this.inputValues);
@@ -310,8 +290,11 @@ export abstract class BaseMaterial extends RootGPU {
             throw new Error(`createBindGroup: uuid(${uuid}) and materialType(${materialType}) are not opacityForward`);
         }
     }
+    /**按照materialType获取bind group layout的layout entry */
     abstract getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[];
+    /**按照materialType获取bind group的entry */
     abstract getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[];
+    /**按照materialType获取bind group的groupAndBindingString */
     abstract getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string;
     /**
      * opacity and TO ：forward,defer,MSAAInfo 通用
@@ -848,149 +831,20 @@ export abstract class BaseMaterial extends RootGPU {
         (this._transparent as I_AlphaTransparentOfMaterial).blend = blend;
         this._state = E_lifeState.updated;
     }
-    /**设置混合常量
-     * @param blendConstants number[] 混合常量
-     *  20251008，目前未测试，未使用过
-     */
-    setblendConstants(blendConstants: number[]) {
-        if (this._transparent) {
-            if (this._transparent?.type == E_TransparentType.alpha) {
-                this._transparent.blendConstants = blendConstants;
-                this._state = E_lifeState.updated;
-            }
-        }
-    }
-    /**
-     * 检查透明状态,如果是透明的，就设置为透明.（color 透明的除外，需要在color material中验证）
-     * 默认：alpha透明，没有设置alphaTest，图像本身alpha=0.0的将透明（diacard） ）
-     * @param input IV_BaseMaterial  基础材质的初始化参数
-     */
-    checkTransparent(input: IV_BaseMaterial) {
-        if (input.transparent != undefined) {// && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
-            //如果input存在，则使用input的参数
-            if (input.transparent != undefined) {
-                this._transparent = input.transparent;
-            }
-            //如果input没有，则判断处理（ColorMaterial 除外）
-            if (input.transparent != undefined) {
-                if (input.transparent?.type == undefined || input.transparent?.type == E_TransparentType.alpha) {
-                    if (this._transparent == undefined) {
-                        this._transparent = {} as I_AlphaTransparentOfMaterial;
-                    }
-                    (this._transparent as I_AlphaTransparentOfMaterial).type = E_TransparentType.alpha;
-                    if (input.transparent.blend != undefined)
-                        (this._transparent as I_AlphaTransparentOfMaterial).blend = input.transparent.blend;
-                    else {
-                        //默认混合 add
-                        (this._transparent as I_AlphaTransparentOfMaterial).blend = {
-                            color: {
-                                srcFactor: "src-alpha",//源
-                                dstFactor: "one-minus-src-alpha",//目标
-                                operation: "add"//操作
-                            },
-                            alpha: {
-                                srcFactor: "one",//源
-                                dstFactor: "one-minus-src-alpha",//目标
-                                operation: "add"//操作  
-                            }
-                        };
-                    }
-                    if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
-                        (this._transparent as I_AlphaTransparentOfMaterial).alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
-                    }
-                    else if (input.transparent.alphaTest != undefined && input.transparent.opacity == undefined) {//如果有设置alphaTest，就设置为alphaTest
-                        (this._transparent as I_AlphaTransparentOfMaterial).alphaTest = input.transparent.alphaTest;//FS 中使用的是alphaTest对应texture的alpha进行比较，小于阈值的= 0.0，大于阈值的不变（因为有可能有大于阈值的半透明）
-                    }
-                    else if (input.transparent.alphaTest == undefined && input.transparent.opacity != undefined) {//如果没有设置alphaTest，就设置为opacity
-                        // this._transparent.alphaTest = input.transparent.opacity;
-                        (this._transparent as I_AlphaTransparentOfMaterial).opacity = input.transparent.opacity;//FS code中使用的是opacity，而不是alphaTest
-                    }
-                }
-            }
-        }
-    }
-    //////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
-    // /**
-    //   * 获取当前材质的uniform组和layout组，必须在材质uniform的第一顺序序列，否则，绑定槽会不同而报错
-    //   * @param startBinding  起始绑定槽位
-    //   * @returns 绑定槽位，组绑定字符串，uniform组，layout组
-    //   */
-    // abstract getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] }
-
-    //     /**MSAA 的uniform Bundle 和layout */
-    //     getUniformEntryBundleOfMSAA(mergeID: string | undefined, startBinding: number): {
-    //         entriesBundle: I_UniformBundleOfMaterial,
-    //         layoutEntries: GPUBindGroupLayoutEntry[]
-    //     } {
-    //         /**
-    //          * 1、获取公共的bundle entries 和layout entries
-    //         //  * 1、获取GBuffer的texture（20260421 目前还是每个camera一个GBuffer）：
-    //         //  *  A、重构Camera，公共GBuffer，每个camera保存自己的color texture，id texture。（SSGI等在defer render层级：after defer ，quad）
-    //         //  *  B、重构renderManager机制（在camera范围内按照事件内容线进行大循环渲染，目前是单体小循环）。
-    //         //  *  C、pickup需要适配
-    //          * 2、增加 uniform entries
-    //          * 3、增加 groupAndBindingString
-    //          * 4、重置 bindingNumber
-    //          * 5、增加 layoutEntries
-    //          * 6、更新 bindingNumber
-    //          * 7、返回 entriesBundle 和 layoutEntries
-    //          */
-
-    //         //1、获取公共的bundle entries 和layout entries
-    //         let materialType = E_materialTypeForBindGroup.opacityMSAA;
-    //         let massBundle = this.getUniformEntryBundleOfCommon(startBinding);
-    //         let bindNumber = massBundle.entriesBundle.bindingNumber;
-    //         //2、增加 uniform entries
-    //         if (mergeID == undefined) {
-
+    // /**设置混合常量
+    //  * @param blendConstants number[] 混合常量
+    //  *  20251008，目前未测试，未使用过
+    //  */
+    // setblendConstants(blendConstants: number[]) {
+    //     if (this._transparent) {
+    //         if (this._transparent?.type == E_TransparentType.alpha) {
+    //             this._transparent.blendConstants = blendConstants;
+    //             this._state = E_lifeState.updated;
     //         }
-    //         else {
-    //             (massBundle.entriesBundle.entry as T_uniformEntries[]).push(
-    //                 {
-    //                     binding: bindNumber++,
-    //                     resource: this.scene.cameraManager.getGBufferTextureByUUID(mergeID, E_GBufferNames.id).createView(),
-    //                 },
-    //                 {
-    //                     binding: bindNumber++,
-    //                     resource: this.scene.cameraManager.getGBufferTextureByUUID(mergeID, E_GBufferNames.normal).createView(),
-    //                 },
-    //             );
-    //         }
-    //         //3、增加 groupAndBindingString
-    //         bindNumber = massBundle.entriesBundle.bindingNumber;
-    //         massBundle.entriesBundle.groupAndBindingString += `
-    //         @group(2) @binding(${bindNumber++}) var u_texture_id: texture_2d<u32>;
-    //         // @group(2) @binding(${bindNumber++}) var u_texture_normal: texture_2d<f32>;         //normal（可能，按需）会被计算过
-    //         //其他适用VS 传输的:uv,color,worldPosition等
-    // `;
-    //         //4、重置 bindingNumber
-    //         bindNumber = massBundle.entriesBundle.bindingNumber;
-    //         //5、增加 layoutEntries
-    //         massBundle.layoutEntries.push(
-    //             {
-    //                 binding: bindNumber++,
-    //                 texture: {
-    //                     sampleType: "uint",
-    //                     viewDimension: "2d",
-    //                 },
-    //                 visibility: GPUShaderStage.FRAGMENT,
-    //             },
-    //             {
-    //                 binding: bindNumber++,
-    //                 texture: {
-    //                     sampleType: "unfilterable-float",
-    //                     viewDimension: "2d",
-    //                 },
-    //                 visibility: GPUShaderStage.FRAGMENT,
-    //             },
-    //         );
-    //         //6、更新 bindingNumber
-    //         massBundle.entriesBundle.bindingNumber = bindNumber;
-
-    //         return massBundle;
     //     }
+    // }
+
+
 
     /**获取camera 使用的TT的uniformEntry  */
     getUniformEntryOfCamera_TTP(renderObject: BaseCamera, _bindingNumber: number = 0): I_PartBundleOfUniform_TT {

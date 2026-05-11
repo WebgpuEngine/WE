@@ -10,20 +10,28 @@
  *    A、alphaTest，alpha值（texture)
  *    B、opacity,整体透明度
  */
-import { BaseMaterial, } from "../baseMaterial";
 
 import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
-import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_materialBundleOutput, I_UniformBundleOfMaterial, isAlphaTransparentOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
+import {
+    E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType,
+    I_materialBundleOutput, IV_BaseStandardMaterial,
+    materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
+} from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
-import { SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS, SHT_materialTexture_TTPF_FS, SHT_materialTextureFS, SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo } from "../../shadermanagemnet/material/textureMaterial";
+import {
+    SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS,
+    SHT_materialTexture_TTPF_FS, SHT_materialTextureFS,
+    SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo
+} from "../../shadermanagemnet/material/textureMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
+import { BaseStandardMaterial } from "./baseStandard";
 
 
 
@@ -34,14 +42,14 @@ import { E_BOLBufferType } from "../../bufferBlock/base";
 /**
  * 纹理材质的初始化参数 * 
  */
-export interface IV_TextureMaterial extends IV_BaseMaterial {
+export interface IV_TextureMaterial extends IV_BaseStandardMaterial {
     // textures: {
     //     [name in E_TextureType]?: T_textureSourceType | Texture
     // },
     texture: T_textureSourceType | Texture
 }
 
-export class TextureMaterial extends BaseMaterial {
+export class TextureMaterial extends BaseStandardMaterial {
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
     /**是否开启透明度测试 */
     hasAlphaTest: boolean = false;
@@ -280,11 +288,10 @@ export class TextureMaterial extends BaseMaterial {
             {//获取当前材质的TTPF的输出uniform bundle 。
                 let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
                 // output.uniformGroup.push(...uniformBundle.entry);
-                (output.uniformGroup as T_uniformEntries[]).push(...uniformBundle.entry as T_uniformEntries[]);
                 output.bindingNumber = uniformBundle.bindingNumber;
                 output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
             }
-            output.materialType = "TTPF";
+            output.materialType = E_materialTypeForBindGroup.TTPF;
             return output;
         }
         else {

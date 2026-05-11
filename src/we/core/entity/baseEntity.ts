@@ -197,26 +197,8 @@ export abstract class BaseEntity extends NodeSpace {
     //     max: [0, 0, 0],
     // };//initDCC中赋值
     boundingSphere!: boundingSphere | undefined;
-
-
-
     ///////////////////////////////////////////////////////////////////
     //状态属性
-
-    // _init: E_lifeState = E_lifeState.unstart;
-    /**是否每帧更新 */
-    // updatePerFrame: boolean = true;
-
-    // /**是否单独更新每个instance  默认=false    */
-    // flagUpdateForPerInstance: boolean = false;
-
-    /**
-     * 是否需要更新,根据初始化状态，或触发更新
-     */
-    // needUpdate: boolean = true;
-
-
-    //////////////////////////////////////////////////////////////////
     //是否透明属性
     /**透明属性     , 默认=false， 通过后续材质或函数设置     */
     _transparent: boolean = false;
@@ -240,42 +222,6 @@ export abstract class BaseEntity extends NodeSpace {
     deferRenderDepth!: boolean;
     //延迟渲染，color模式，todo：先绘制color，depth，材质集中在一起处理，需要一个shader进行处理，即，合批shader
     deferRenderColor!: boolean;
-    // /**
-    //  * cameraDC 队列 
-    //  * 1、由enity生成(每个摄像机)
-    //  * 2、由entityManager调度给renderManager
-    //  */
-    // cameraDC: {
-    //     // [name: string]: {
-    //     // [E_renderPassName.depth]: DrawCommand[],
-    //     [E_renderPassName.MSAA]: BaseDrawCommand[],
-    //     [E_renderPassName.forward]: BaseDrawCommand[],
-    //     [E_renderPassName.transparent]: BaseDrawCommand[],
-    //     // }
-    // } = {
-    //         MSAA: [],
-    //         forward: [],
-    //         transparent: [],
-    //     };
-
-    // /**
-    //  * light的shadow map DC 队列 
-    //  * 1、由enity生成(每个摄像机)
-    //  * 2、由entityManager调度给renderManager
-    //  */
-    // shadowmapDC: {
-    //     // [name: string]: {
-    //     // depth: DrawCommand[],
-    //     // transparent: DrawCommand[],
-    //     [E_renderPassName.shadowmapOpacity]: BaseDrawCommand[],
-    //     [E_renderPassName.shadowmapTransparent]: BaseDrawCommand[],
-    //     // }
-    // } = {
-    //         shadowmapOpacity: [],
-    //         shadowmapTransparent: [],
-    //     };
-
-    // renderPass: E_renderPassName | undefined;
     renderPassArray: {
         [E_renderPassName.sprite]: DrawCommand[],
         [E_renderPassName.MSAA]: DrawCommand[],

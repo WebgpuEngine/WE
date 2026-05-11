@@ -2,18 +2,21 @@ import { E_lifeState, weColor4, weColorToColorOfF32, weHexColor, weHexColorToCol
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialPhongFS_defer, SHT_materialPhongFS, SHT_materialPhongFS_MSAA_info, SHT_materialPhongFS_MSAA } from "../../shadermanagemnet/material/phongMaterial";
 import { I_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
-import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
-import { BaseMaterial } from "../baseMaterial";
+import {
+  E_MaterialType, E_materialTypeForBindGroup, E_TextureType, I_materialBundleOutput,
+  IV_BaseStandardMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA,
+  materialAddGroupBindStringOfMSAA
+} from "../base";
+import { BaseStandardMaterial } from "../standard/baseStandard";
 
 /** phong材质的初始化参数 */
-export interface IV_PhongMaterial extends IV_BaseMaterial {
+export interface IV_PhongMaterial extends IV_BaseStandardMaterial {
   color?: weColor4 | weHexColor;
   textures?: {
     [E_TextureType.color]?: I_BaseTexture | Texture,
@@ -35,7 +38,7 @@ export interface IV_PhongMaterial extends IV_BaseMaterial {
   roughness?: number,
 }
 
-export class PhongMaterial extends BaseMaterial {
+export class PhongMaterial extends BaseStandardMaterial {
   override inputValues: IV_PhongMaterial;
   override textures: {
     [name: string]: Texture

@@ -5,14 +5,18 @@ import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialVertexColorFS, SHT_materialVertexColorFS_MSAA, SHT_materialVertexColorFS_MSAA_info } from "../../shadermanagemnet/material/vertexColorMaterial";
-import { E_MaterialType, E_materialTypeForBindGroup, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
-import { BaseMaterial } from "../baseMaterial";
+import {
+    E_MaterialType, E_materialTypeForBindGroup, I_materialBundleOutput,
+    IV_BaseMaterial, IV_BaseStandardMaterial, materialAddBindGroupLayoutOfMSAA,
+    materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
+} from "../base";
+import { BaseStandardMaterial } from "./baseStandard";
 
-export interface IV_VertexColorMaterial extends IV_BaseMaterial {
+export interface IV_VertexColorMaterial extends IV_BaseStandardMaterial {
     // vertexColor: boolean,
 }
 
-export class VertexColorMaterial extends BaseMaterial {
+export class VertexColorMaterial extends BaseStandardMaterial {
     declare inputValues: IV_BaseMaterial;
     constructor() {
         super({});
@@ -92,7 +96,7 @@ export class VertexColorMaterial extends BaseMaterial {
         }
         return groupAndBindingString;
     }
-  
+
 
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");

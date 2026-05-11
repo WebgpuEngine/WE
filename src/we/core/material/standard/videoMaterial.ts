@@ -1,18 +1,22 @@
-import { BaseMaterial, } from "../baseMaterial";
-import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, IV_BaseMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
+import {
+    E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
+    I_BundleOfMaterialForMSAA, I_materialBundleOutput,
+    IV_BaseStandardMaterial, materialAddBindGroupLayoutOfMSAA,
+    materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
+} from "../base";
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate_Final } from "../../shadermanagemnet/base";
+import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_OptionVideoTexture, T_modelOfVideo, T_VIdeoSourceType, VideoTexture } from "../../texture/videoTexture";
 import { SHT_materialVideoTextureFS, SHT_materialVideoTextureFS_MSAA_info, SHT_materialVideoTextureFS_MSAA } from "../../shadermanagemnet/material/videoMaterial";
 import { BaseCamera } from "../../camera/baseCamera";
-import { BaseLight } from "../../light/baseLight";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
+import { BaseStandardMaterial } from "./baseStandard";
 /**
  * 视频材质的初始化参数 * 
  */
-export interface IV_VideoMaterial extends IV_BaseMaterial {
+export interface IV_VideoMaterial extends IV_BaseStandardMaterial {
     textures: {
         [E_TextureType.video]: T_VIdeoSourceType | VideoTexture
     },
@@ -26,7 +30,7 @@ export interface IV_VideoMaterial extends IV_BaseMaterial {
     }
 }
 
-export class VideoMaterial extends BaseMaterial {
+export class VideoMaterial extends BaseStandardMaterial {
     declare inputValues: IV_VideoMaterial;
     // /**是否上下翻转Y轴 */
     // _upsideDownY: boolean;

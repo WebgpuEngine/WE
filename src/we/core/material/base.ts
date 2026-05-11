@@ -102,15 +102,26 @@ export interface I_TransparentOptionOfMaterial {
      * 2、加载场景模式，原则上是通过加载器带入parent参数。todo
      */
 export interface IV_BaseMaterial extends I_Update {
-
+    /** 是否双面渲染，默认false 
+     * 1、WE中有两处可以涉及渲染的剔除
+     *      A、本处设置，只会涉及是否是双面
+     *      B、entity的primitive的参数;
+     * 2、执行判断顺序
+     *     VS设置->材质的doubleSided
+     * 3、优先级与覆盖
+     *     材质doubleSided高于entity的primitive设置，如果有材质的doubleSided参数，会覆盖entity的primitive的参数。
+    */
+    doubleSided?: boolean
+}
+export interface IV_shaderMaterial extends IV_BaseMaterial {
     /**指定的fragment code */
     code?: string,
-
+}
+export interface IV_BaseStandardMaterial extends IV_BaseMaterial {
     /**透明材质的初始化参数
      * 默认不透明：没有此参数
      */
     transparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
-
     //以下部分为 material 的 default sampler
     /** 
      * 1、简单设置采样器模式，如果有samplerDescriptor设置 ，则忽略此设置 
@@ -127,20 +138,9 @@ export interface IV_BaseMaterial extends I_Update {
      * 如果指定了samplerDescriptor，则必须指定samplerBindingType
      */
     samplerBindingType?: GPUSamplerBindingType,
-
-    /** 是否双面渲染，默认false 
-     * 1、WE中有两处可以涉及渲染的剔除
-     *      A、本处设置，只会涉及是否是双面
-     *      B、entity的primitive的参数;
-     * 2、执行判断顺序
-     *     VS设置->材质的doubleSided
-     * 3、优先级与覆盖
-     *     材质doubleSided高于entity的primitive设置，如果有材质的doubleSided参数，会覆盖entity的primitive的参数。
-    */
-    doubleSided?: boolean,
-    // mipmap?: I_mipmap
-
 }
+
+
 /**三段式初始化的第二步：init */
 export interface IV_BaseMaterialStep2 {
     parent: any,    //20250911 测试更改

@@ -9,14 +9,15 @@ import { E_GBufferNames } from "../../gbuffers/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_materialColor_TTP_FS, SHT_materialColor_TT_FS, SHT_materialColorFS, SHT_materialColor_TTPF_FS, SHT_materialColorFS_MSAA, SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
-import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, E_MaterialType, E_materialTypeForBindGroup, materialAddGroupBindStringOfMSAA, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA } from "../base";
+import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, E_MaterialType, E_materialTypeForBindGroup, materialAddGroupBindStringOfMSAA, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, IV_BaseStandardMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
+import { BaseStandardMaterial } from "./baseStandard";
 
-export interface I_ColorMaterial extends IV_BaseMaterial {
+export interface I_ColorMaterial extends IV_BaseStandardMaterial {
     color: weColor4;
 }
 
-export class ColorMaterial extends BaseMaterial {
+export class ColorMaterial extends BaseStandardMaterial {
 
 
     override inputValues: I_ColorMaterial;

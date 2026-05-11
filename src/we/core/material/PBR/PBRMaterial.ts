@@ -26,7 +26,7 @@ import { BaseMaterial } from "../baseMaterial";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
-import { E_lifeState, weColor4, weVec4 } from "../../base/coreDefine";
+import { E_lifeState, weVec4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
 import { I_ShadowMapValueOfDC } from "../../entity/base";
@@ -36,9 +36,8 @@ import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/
 import { Texture } from "../../texture/texture";
 
 export interface I_TextureForPBR {
-    data1?: number,//f32
-    data2?: number,//i32,data2.texCoord,alphaMod...
-
+    data1?: number,//i32,data2.texCoord,alphaMod...
+    data2?: number,//f32
     texture?: Texture | I_BaseTexture,
     value?: weVec4 | number,
     channel?: E_TextureChannel,
@@ -120,7 +119,7 @@ export interface IV_PBRMaterial extends IV_BaseMaterial {
         [E_TextureType.color]?: I_TextureForPBR,
         [E_TextureType.emissive]?: I_TextureForPBR,
         [E_TextureType.emissiveFactor]?: I_TextureForPBR,
-        [E_TextureType.depthMap]?:  I_TextureForPBR,
+        [E_TextureType.depthMap]?: I_TextureForPBR,
         [E_TextureType.alpha]?: I_TextureForPBR,
         /** 是否使用环境贴图 */
         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
@@ -526,7 +525,7 @@ export class PBRMaterial extends BaseMaterial {
         this.createUniformPointer();
         //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
-            if(key == E_TextureType.emissiveFactor){
+            if (key == E_TextureType.emissiveFactor) {
                 continue;       //20260509 未实现，gltf中实现了参数化，如果不跳过，会产生顺序错误；
             }
             let textureSource = this.inputValues.textures[key as vialidPBRTextureType];
@@ -551,10 +550,10 @@ export class PBRMaterial extends BaseMaterial {
                 let index: number = 0;//this.insideUniformBundle数组的下标索引
                 let isVec3: boolean = true;//是否是vec3类型数组，RGB或R,G,B,A
                 let extra: [number, number] = [0, 0];//默认扩展数据
-                if(perOne.data1 != undefined){
+                if (perOne.data1 != undefined) {
                     extra[0] = perOne.data1;
                 }
-                if(perOne.data2 != undefined){
+                if (perOne.data2 != undefined) {
                     extra[1] = perOne.data2;
                 }
                 // let texture: Texture | undefined = perOne.texture;
@@ -811,7 +810,26 @@ export class PBRMaterial extends BaseMaterial {
         }
     }
     setTO(): void {
-        // throw new Error("Method not implemented.");
+        // // throw new Error("Method not implemented.");
+        // if (this.inputValues.textures[E_TextureType.alpha] == undefined) {
+        //     this._ToTaTp.opaqueOfTransparent = false;
+        //     this._ToTaTp.alphaOfTransparent = false;
+        // }
+        // else if (this.inputValues.textures[E_TextureType.alpha].data1 === 0) {//OPAQUE
+        //     this._ToTaTp.opaqueOfTransparent = false;
+        //     this._ToTaTp.alphaOfTransparent = false;
+        // }
+        // else if (this.inputValues.textures[E_TextureType.alpha].data1 === 1) {//mask，cutoff alpha
+        //     this._ToTaTp.opaqueOfTransparent = true;
+        //     this._ToTaTp.alphaOfTransparent = false;     
+        // }
+        // else if (this.inputValues.textures[E_TextureType.alpha].data1 === 2) {//alpha blend
+        //     this._ToTaTp.opaqueOfTransparent = true;
+        //     this._ToTaTp.alphaOfTransparent = true;  
+        // }
+    }
+    setAlphaOfTT(): void {
+
     }
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
@@ -923,7 +941,7 @@ export class PBRMaterial extends BaseMaterial {
         }
         return groupAndBindingString;
     }
- 
+
     getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
         throw new Error("Method not implemented.");
     }
