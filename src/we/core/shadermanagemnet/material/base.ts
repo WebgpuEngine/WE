@@ -3,7 +3,7 @@ import { E_shaderTemplateReplaceType, I_shaderTemplateReplace } from "../base";
 import replaceMsaaStringWGSL from "../../shader/material/MSAA/msaa.wgsl?raw";
 var replaceMsaaString = replaceMsaaStringWGSL.toString();
 
-//replace MSAA 在forword系列的shader中
+/** replace $MSAA 为空*/
 export var SHT_replaceMsaaInForward: I_shaderTemplateReplace =
 {
     name: "$MSAA",
@@ -12,7 +12,7 @@ export var SHT_replaceMsaaInForward: I_shaderTemplateReplace =
     replaceCode: ""
 }
 
-//replace MSAA 在msaa系列的shader中
+/** replace $MSAA 为判断内容在msaa系列的shader中 */
 export var SHT_replaceMsaaInMsaa: I_shaderTemplateReplace =
 {
     name: "$MSAA",

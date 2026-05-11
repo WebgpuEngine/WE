@@ -98,7 +98,7 @@ export class VideoMaterial extends BaseMaterial {
         this._state = E_lifeState.finished;
     }
     setTO(): void {
-        this.hasOpaqueOfTransparent = false;
+        this._opaqueOfTransparent = false;
     }
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;

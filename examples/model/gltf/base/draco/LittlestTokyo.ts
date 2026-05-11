@@ -18,7 +18,7 @@ let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0, 0, 0.],
   reversedZ: true,
-  toneMapping: E_ToneMappingType.linear,
+  toneMapping: E_ToneMappingType.ACES,
   renderMode: "deferRender",
 };
 let scene = await initScene({
@@ -27,8 +27,8 @@ let scene = await initScene({
 window.scene = scene;
 let oneDirlight = new DirectionalLight({
   color: [1, 1, 1],
-  direction: [-1, 1, 1],
-  intensity: .2,
+  direction: [0, 1, 1],
+  intensity: 1.5,
   shadow: false,
 });
 await scene.add(oneDirlight);
@@ -38,7 +38,7 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.75
+    intensity: .50
   }
 )
 await scene.add(ambientLight);
@@ -67,9 +67,11 @@ let gltf = await createGLTFModel({
 },
   {
     beforeGltfInit: (gltf, dataLoader) => {
-      dataLoader.gltfJson.materials![1].occlusionTexture=undefined;
-      dataLoader.gltfJson.materials![7].occlusionTexture=undefined;
-      // dataLoader.gltfJson.materials![1].occlusionTexture!.texCoord = 0;
+      // dataLoader.gltfJson.materials![0].occlusionTexture=undefined;//移除occlusionTexture,normal,也感觉不对
+      // dataLoader.gltfJson.materials![1].occlusionTexture=undefined;//移除occlusionTexture,修正铁的颜色过多
+      // dataLoader.gltfJson.materials![7].occlusionTexture=undefined;//移除occlusionTexture,修正透明的ao混乱
+      // dataLoader.gltfJson.materials![12].occlusionTexture=undefined;//移除occlusionTexture,修正植物花ao混乱
+      // dataLoader.gltfJson.materials![1].occlusionTexture!.strength = .62;
     }
   }
 );

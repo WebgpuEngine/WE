@@ -3,8 +3,8 @@ import { RootGPU } from "../organization/root";
 
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
-import { IV_BaseMaterial, I_PartBundleOfUniform_TT, T_TransparentOfMaterial, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType, E_materialTypeForBindGroup } from "./base";
-import { commmandType, I_bindGroupAndGroupLayout, I_dynamicTextureEntryForView, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
+import { IV_BaseMaterial, I_PartBundleOfUniform_TT, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType, E_materialTypeForBindGroup } from "./base";
+import { commmandType, I_dynamicTextureEntryForView, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "../camera/baseCamera";
@@ -57,34 +57,15 @@ export abstract class BaseMaterial extends RootGPU {
 
     ///////////////////////////////////////////////////////////////////
     //材质相关
-    /** 透明材质是否有不透明的部分     */
-    hasOpaqueOfTransparent: boolean = false;
-    /** 是否动态材质 
-     * 1、video材质的External就需要动态材质
-    */
+    /** 是否动态材质 :video材质的External就需要动态材质    */
     _dynamic: boolean = false;
     get Dynamic(): boolean { return this._dynamic; }
     set Dynamic(value: boolean) { this._dynamic = value; }
-    /**
-     * blending混合的状态interface
-     * 
-     * 1、如果是undefined，说明不混合
-     * 2、如果是object，说明混合
-     */
-    _transparent: T_TransparentOfMaterial | undefined;
     /**
      * 纹理
      * ！！！这里定义的是any，后续各种材质所需要的纹理根据情况，进行declare
     */
     textures: any
-
-    /**
-     * 是否更新过，由entity调用，
-     * 1、如果是true，说明已经更新过（比如非uniform的内容，FS code、texture等），entity则需要重新生成command、pipeline。
-     * 2、如果是false，说明没有更新过。
-     */
-    _reBuild: boolean = false;
-
     /**
      * 材质的sampler是否存在，不存在就创建一个。
     */
@@ -138,8 +119,7 @@ export abstract class BaseMaterial extends RootGPU {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础功能部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    get needUpdate() { return this._reBuild; }
-    set needUpdate(value: boolean) { this._reBuild = value; }
+
     /**设置状态 */
     set LifeState(state: E_lifeState) { this._state = state; }
     /**获取状态 */
@@ -602,7 +582,7 @@ export abstract class BaseMaterial extends RootGPU {
             TT,
             // TTP, TTPF
         };
-        if (this.hasOpaqueOfTransparent) {
+        if (this._opaqueOfTransparent) {
             TO = this.getFS_TO(startBinding);
             TTTT.TO = TO;
         }
@@ -649,8 +629,6 @@ export abstract class BaseMaterial extends RootGPU {
             output.bindingNumber = partBundleOfUniform_TT.bindingNumber;
             //更新groupAndBindingString
             output.shaderTemplateFinal.material.groupAndBindingString += partBundleOfUniform_TT.groupAndBindingString;
-            //合并 TTP的uniform 到 output
-            (output.uniformGroup as T_uniformEntries[]).push(...(partBundleOfUniform_TT.uniformGroup as T_uniformEntries[]));
             //由于使用camera的gbuffer，所以bindgroup 需要动态获取（resize 会重建gbuffer）
             output.shaderTemplateFinal.material.dynamic = true;
             return output;
@@ -791,6 +769,15 @@ export abstract class BaseMaterial extends RootGPU {
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // 透明相关信息部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////
+    /** 透明材质是否有不透明的部分     */
+    _opaqueOfTransparent: boolean = false;
+    /**
+     * blending混合的状态interface
+     * 
+     * 1、如果是undefined，说明不混合
+     * 2、如果是object，说明混合
+     */
+    _transparent: I_AlphaTransparentOfMaterial | undefined;
     /**获取透明材质的初始化参数
      * @returns I_TransparentOptionOfMaterial | boolean 透明材质的初始化参数，或者false表示不是透明材质
      * 
@@ -828,7 +815,7 @@ export abstract class BaseMaterial extends RootGPU {
      * 2、如果是object，说明透明
      * 3、如果是object，并且object中没有alphaTest，那么alphaTest会被设置为0
     */
-    setTransparentOption(transparent: T_TransparentOfMaterial) {
+    setTransparentOption(transparent: I_AlphaTransparentOfMaterial) {
         this._transparent = transparent;
         // this._state = E_lifeState.updated;
     }
@@ -888,7 +875,7 @@ export abstract class BaseMaterial extends RootGPU {
             if (input.transparent != undefined) {
                 if (input.transparent?.type == undefined || input.transparent?.type == E_TransparentType.alpha) {
                     if (this._transparent == undefined) {
-                        this._transparent = {} as T_TransparentOfMaterial;
+                        this._transparent = {} as I_AlphaTransparentOfMaterial;
                     }
                     (this._transparent as I_AlphaTransparentOfMaterial).type = E_TransparentType.alpha;
                     if (input.transparent.blend != undefined)

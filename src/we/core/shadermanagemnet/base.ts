@@ -138,7 +138,9 @@ export interface I_ShaderTemplate_Final {
 // vs output
 import st_outputWGSL from "../shader/entity/st_output.vs.wgsl?raw"
 export var WGSL_st_output = st_outputWGSL.toString();
-
+/**
+ * vs 输出的struct 定义
+ */
 export var SHT_vsStructOutput: I_shaderTemplateAdd =
 {
     name: "st_output",
@@ -192,7 +194,7 @@ export var WGSL_replace_MSAAinfo_gbuffer_output = replace_MSAAinfo_gbuffer_outpu
 import WGSL_replace_gbuffer_commonValues from "../shader/gbuffers/commonGBufferValue.wgsl?raw";
 var replace_gbuffer_commonValues = WGSL_replace_gbuffer_commonValues.toString();
 
-//GBuffer的通用值替换项
+/**替换初始化GBuffer的通用值($gbufferCommonValues)*/
 export var SHT_replaceGBufferCommonValue: I_shaderTemplateReplace =
 {
     name: "common values",
@@ -201,7 +203,7 @@ export var SHT_replaceGBufferCommonValue: I_shaderTemplateReplace =
     replaceCode: replace_gbuffer_commonValues
 }
 
-//replace GBuffer的通用单项
+/**替换$fsOutput 的通用单项（GBuffer相关）*/
 export var SHT_replaceGBufferFSOutput: I_shaderTemplateReplace =
 {
     name: "colorFS.output content",
@@ -233,12 +235,16 @@ var mathTBN = mathTBNWGSL.toString();
 import mathRandomWGSL from "../shader/math/random.wgsl?raw"
 var mathRandom = mathRandomWGSL.toString();
 
-//math base const
+/**
+ * math base 常量
+ */
 export var SHT_addMathBase: I_shaderTemplateAdd = {
     name: "mathBase",
     code: mathConst,
 }
-//math TBN
+/**
+ * math tbn 相关函数
+ */
 export var SHT_addMathTBN: I_shaderTemplateAdd = {
     name: "mathTBN",
     code: mathTBN,

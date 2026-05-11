@@ -130,7 +130,7 @@ export class ColorMaterial extends BaseMaterial {
     }
     /**没有透明中的不透明部分，要不透明，要么全部alpha的透明 */
     setTO(): void {
-        this.hasOpaqueOfTransparent = false;
+        this._opaqueOfTransparent = false;
     }
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;

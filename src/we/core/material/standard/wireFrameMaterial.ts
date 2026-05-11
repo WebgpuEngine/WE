@@ -15,7 +15,7 @@ export class WireFrameMaterial extends ColorMaterial {
         throw new Error("Method not implemented.");
     }
     setTO(): void {
-        this.hasOpaqueOfTransparent = false;
+        this._opaqueOfTransparent = false;
     }
 
     getTOFS(_startBinding: number): I_materialBundleOutput {

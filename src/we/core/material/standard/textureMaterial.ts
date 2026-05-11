@@ -178,7 +178,7 @@ export class TextureMaterial extends BaseMaterial {
         this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
     }
     setTO(): void {
-        this.hasOpaqueOfTransparent = true;
+        this._opaqueOfTransparent = true;
     }
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;

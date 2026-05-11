@@ -103,7 +103,7 @@ struct PBRUniformInput{
         albedo_uniform = u_pbr_uniform.albedo.value;
     }
     else if(u_pbr_uniform.albedo.kind == 1){//use texture albedo * (uniform albedo as factor)
-        albedo_uniform *= u_pbr_uniform.albedo.value;
+        // albedo_uniform *= u_pbr_uniform.albedo.value;
     }    
     albedo=albedo_uniform.rgb;
 
@@ -112,7 +112,7 @@ struct PBRUniformInput{
         metallic_uniform = u_pbr_uniform.metallic.value;
     }
     else if(u_pbr_uniform.metallic.kind == 1){//use texture metallic * (uniform metallic as factor)
-        metallic_uniform *= u_pbr_uniform.metallic.value;
+        // metallic_uniform *= u_pbr_uniform.metallic.value;
     }
     metallic=get_one_channel_value(metallic_uniform,u_pbr_uniform.metallic.texture_channel);
 
@@ -121,7 +121,7 @@ struct PBRUniformInput{
         roughness_uniform = u_pbr_uniform.roughness.value;
     }
     else if(u_pbr_uniform.roughness.kind == 1){//use texture roughness * (uniform roughness as factor)
-        roughness_uniform *= u_pbr_uniform.roughness.value;
+        // roughness_uniform *= u_pbr_uniform.roughness.value;
     }
     roughness=get_one_channel_value(roughness_uniform,u_pbr_uniform.roughness.texture_channel);    
 
@@ -130,7 +130,7 @@ struct PBRUniformInput{
         ao_uniform = u_pbr_uniform.ao.value;
     }
     else if(u_pbr_uniform.ao.kind == 1){//use texture ao * (uniform ao as factor)
-        // ao_uniform *= u_pbr_uniform.ao.value;
+        ao_uniform *= u_pbr_uniform.ao.data2;
     }
     else if(u_pbr_uniform.ao.kind == -1){//unuse
         ao_uniform = vec4f(1);
@@ -159,7 +159,7 @@ struct PBRUniformInput{
         emissive_uniform = u_pbr_uniform.emissive.value;
     }
     else if(u_pbr_uniform.emissive.kind == 1){//use texture emissive * (uniform emissive as factor)
-        emissive_uniform *= u_pbr_uniform.emissive.value;
+        // emissive_uniform *= u_pbr_uniform.emissive.value;
     }
     if(u_pbr_uniform.emissive.kind !=-1){
         emissiveRGB = emissive_uniform.rgb;
@@ -170,45 +170,12 @@ struct PBRUniformInput{
         depthmap_uniform = u_pbr_uniform.depthmap.value;
     }
     else if(u_pbr_uniform.depthmap.kind == 1){//use texture depthmap * (uniform depthmap as factor)
-        depthmap_uniform *= u_pbr_uniform.depthmap.value;
+        // depthmap_uniform *= u_pbr_uniform.depthmap.value;
     }
     if(u_pbr_uniform.depthmap.kind !=-1){
         depthmap = get_one_channel_value(depthmap_uniform,u_pbr_uniform.depthmap.texture_channel);
     }
-    //alpha
-    //  if(u_pbr_uniform.alpha.kind == -1){//直接使用纹理（albedo或color）的alpha通道值
-    //     if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data2  ==1){//有单独的color 纹理
-    //         alphamap = color_uniform.a; 
-    //     }
-    //     else if(u_pbr_uniform.albedo.kind == 1){//有单独的albedo 纹理
-    //         alphamap = albedo_uniform.a; 
-    //     }
-    //     alphamap = 1;
-    //     alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
-    // }
 
-    // else {
-    //     if(u_pbr_uniform.alpha.kind == 0){//使用uniform数值作为alpha test 
-    //         alpha_uniform = u_pbr_uniform.alpha.value;
-    //     }
-    //     else if(u_pbr_uniform.alpha.kind == 1){//使用texture alpha 作为alpha test 。此时uniform数值作为 (uniform alpha as factor，默认都是1，等于无变化) 
-    //         alpha_uniform *= u_pbr_uniform.alpha.value;
-    //     }
-    // }
-    // //判断alpha mode，由于统一控制流（上面有 textureSampleCompare 读取shadowmap），discar的，只能在这里
-    // if(u_pbr_uniform.alpha.data2  ==0){//alpha mode =OPACITY
-    //     //不透明，直接输出
-    // }
-    // else if(u_pbr_uniform.alpha.data2  ==1){//alpha mode =MASK
-    //     //Opacity或TO，抛弃小于阈值的像素
-    //     if(alphamap < u_pbr_uniform.alpha.data1){
-    //         // discard; //尽量不使用 discar，可以将alp哈设为=0，depth写到最远。避免关闭GPU硬件优化
-    //     }
-    //     // //透明，只输出大于alpha值的
-    //     // if(alphamap > u_pbr_uniform.alaha.data1){
-    //     //     discard;
-    //     // }
-    // }
 
     //envmap,todo
     if( u_pbr_uniform.envmap.kind == 1){

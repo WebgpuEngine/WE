@@ -23,8 +23,8 @@ export enum E_MaterialType {
     Phong = "PhongMaterial",
 }
 
-/** 透明材质的类型 */
-export type T_TransparentOfMaterial = I_AlphaTransparentOfMaterial | I_PhysicalTransparentOfMaterial | I_SSSTransparentOfMaterial
+// /** 透明材质的类型 */
+// export type T_TransparentOfMaterial = I_AlphaTransparentOfMaterial | I_PhysicalTransparentOfMaterial | I_SSSTransparentOfMaterial
 /**透明材质的初始化参数 */
 export interface I_AlphaTransparentOfMaterial {
     /** 不透明度（即alpha值），float32，默认=1.0 
@@ -53,21 +53,21 @@ export interface I_AlphaTransparentOfMaterial {
     blendConstants?: number[],
     type: E_TransparentType.alpha,
 }
-export function isAlphaTransparentOfMaterial(transparent: T_TransparentOfMaterial): transparent is I_AlphaTransparentOfMaterial {
-    return transparent.type === E_TransparentType.alpha;
-}
-/**
- * 物理透明材质参数
- */
-export interface I_PhysicalTransparentOfMaterial {
-    type: E_TransparentType.physical,
-}
-/**
- * 半透明材质参数
- */
-export interface I_SSSTransparentOfMaterial {
-    type: E_TransparentType.sss,
-}
+// export function isAlphaTransparentOfMaterial(transparent: T_TransparentOfMaterial): transparent is I_AlphaTransparentOfMaterial {
+//     return transparent.type === E_TransparentType.alpha;
+// }
+// /**
+//  * 物理透明材质参数
+//  */
+// export interface I_PhysicalTransparentOfMaterial {
+//     type: E_TransparentType.physical,
+// }
+// /**
+//  * 半透明材质参数
+//  */
+// export interface I_SSSTransparentOfMaterial {
+//     type: E_TransparentType.sss,
+// }
 /**
  * 透明材质的类型
  */

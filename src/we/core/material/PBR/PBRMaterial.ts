@@ -421,42 +421,42 @@ export class PBRMaterial extends BaseMaterial {
             value: [1, 1, 1, 0],
             textureName: E_TextureType.albedo,
             textureChannel: E_TextureChannel.RGB,
-            extra: [0., 0],
+            extra: [0, 0],
         },
         {
             kind: E_MaterialUniformKind.value,
             value: [1, 0, 0, 0],
             textureName: E_TextureType.metallic,
             textureChannel: E_TextureChannel.R,
-            extra: [0., 0],
+            extra: [0, 0],
         },
         {
             kind: E_MaterialUniformKind.value,
             value: [1, 0, 0, 0],
             textureName: E_TextureType.roughness,
             textureChannel: E_TextureChannel.R,
-            extra: [0., 0],
+            extra: [0, 0],
         },
         {
             kind: E_MaterialUniformKind.value,
             value: [1, 0, 0, 0],
             textureName: E_TextureType.ao,
             textureChannel: E_TextureChannel.R,
-            extra: [0., 0],
+            extra: [0, 1],
         },
         {
             kind: E_MaterialUniformKind.vs,
             value: [1, 1, 1, 0],
             textureName: E_TextureType.normal,
             textureChannel: E_TextureChannel.RGB,
-            extra: [0., 0],
+            extra: [0, 0],
         },
         {
             kind: E_MaterialUniformKind.notUse,
             value: [1, 1, 1, 1],
             textureName: E_TextureType.color,
             textureChannel: E_TextureChannel.RGBA,
-            extra: [0., 0],
+            extra: [0, 0],
         },
         {
             kind: E_MaterialUniformKind.notUse,
@@ -471,14 +471,14 @@ export class PBRMaterial extends BaseMaterial {
             value: [1, 1, 1, 0],
             textureName: E_TextureType.depthMap,
             textureChannel: E_TextureChannel.R,
-            extra: [0.1, 0],
+            extra: [0, 0.1],
         },
         {
             kind: E_MaterialUniformKind.notUse,
             value: [1, 1, 1, 1],//opaque:use alpha
             textureName: E_TextureType.alpha,
             textureChannel: E_TextureChannel.A,
-            extra: [0., 0],
+            extra: [0, 0],
         },
         //延迟，暂时不考虑lightMap
         // {
@@ -494,7 +494,7 @@ export class PBRMaterial extends BaseMaterial {
             value: [0, 0, 0, 0],
             textureName: E_TextureType.envMap,
             textureChannel: E_TextureChannel.User,
-            extra: [0., 0],
+            extra: [0, 0],
         },
 
     ];

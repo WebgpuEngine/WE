@@ -42,7 +42,7 @@ export class VertexColorMaterial extends BaseMaterial {
         this._state = E_lifeState.finished;
     }
     setTO(): void {
-        this.hasOpaqueOfTransparent = false;
+        this._opaqueOfTransparent = false;
     }
     getTransparent(): boolean {
         return false;
