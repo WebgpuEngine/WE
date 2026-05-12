@@ -38,43 +38,42 @@ export class ColorMaterial extends BaseStandardMaterial {
         if (isWeColor4(input.color)) {
 
             this._color = input.color;
-            if (input.color[3] < 1.0 || (input.transparent != undefined && (input.transparent?.type == undefined || input.transparent.type == "alpha"))) {
-                //在BaseMaterial中只验证了有transparent参数时
-                //colorMaterial 如果没有transparent参数，就需要验证alpha是否小于1.0
-                let transparentValue: I_AlphaTransparentOfMaterial | undefined;
-                if (input.transparent)
-                    transparentValue = input.transparent as I_AlphaTransparentOfMaterial;
-                else
-                    transparentValue = undefined;
-                //如果是透明的，就设置为透明
-                let transparent: I_AlphaTransparentOfMaterial = {
-                    blend: {
-                        color: {
-                            operation: "add",//操作
-                            srcFactor: "src-alpha",//源
-                            dstFactor: "one-minus-src-alpha",//目标
-                        },
-                        alpha: {
-                            operation: "add",//操作  
-                            srcFactor: "one",//源
-                            dstFactor: "one-minus-src-alpha",//目标
-                        }
-                    },
-                    type: E_TransparentType.alpha,
-                };
-                this._transparent = transparent;
-                if (this._color[3] < 1.0) {//如果alpha<1.0，就设置为alpha
-                    //预乘
+            let transparent: GPUBlendState = {
+                color: {
+                    operation: "add",//操作
+                    srcFactor: "src-alpha",//源
+                    dstFactor: "one-minus-src-alpha",//目标
+                },
+                alpha: {
+                    operation: "add",//操作  
+                    srcFactor: "one",//源
+                    dstFactor: "one-minus-src-alpha",//目标
                 }
-                else if (transparentValue && transparentValue.opacity && transparentValue.opacity < 1.0) {//如果alpha=1.0，就设置为opacity
-                    //预乘
-
-                    this._color = [
-                        this._color[0] * transparentValue.opacity,
-                        this._color[1] * transparentValue.opacity,
-                        this._color[2] * transparentValue.opacity,
-                        transparentValue.opacity
-                    ];
+            };
+            let blendMode = false;
+            if (input.color[3] < 1.0) {
+                blendMode = true;
+            }
+            else if (input.transparent?.alphaMode == "blend" && input.transparent?.blendParams?.opacity !== undefined && input.transparent?.blendParams?.opacity !== 1.0) {
+                let opacity = input.transparent.blendParams.opacity;
+                this._color = [
+                    this._color[0] * opacity,
+                    this._color[1] * opacity,
+                    this._color[2] * opacity,
+                    opacity
+                ];
+                if (input.transparent.blendParams.blend !== undefined) {
+                    transparent = input.transparent.blendParams.blend;
+                }
+            }
+            if (blendMode) {
+                this._ToTaTp.opaqueOfTransparent = false;
+                this._ToTaTp.alphaOfTransparent = true;
+                this._ToTaTp.alphaParams = {
+                    alphaMode: "blend",
+                    blendParams: {
+                        blend: transparent,
+                    }
                 }
             }
         }

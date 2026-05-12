@@ -178,7 +178,7 @@ export interface IV_DC {
     /**
      * 是否透明渲染,包括alpha 透明，物理透明
      */
-    transparent?: I_TransparentOptionOfMaterial,
+    transparent?: GPUBlendState[],//I_TransparentOptionOfMaterial,
 
     label: string,
     /**
@@ -1671,9 +1671,9 @@ export class DrawCommandGenerator {
                 throw new Error("fragment targets 为空或未设置DCG生成参数种的获取途径。");
             }
             //3.4.3 透明处理,alpha blend
-            if (values.transparent?.type == E_TransparentType.alpha && values.transparent.blend) {
-                for (let i = 0; i < values.transparent.blend.length; i++) {
-                    targets[i].blend = values.transparent.blend[i];
+            if (values.transparent) {
+                for (let i = 0; i < values.transparent.length; i++) {
+                    targets[i].blend = values.transparent[i];
                 }
             }
             // if (values.render.fragment.code) {

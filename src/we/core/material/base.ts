@@ -23,35 +23,55 @@ export enum E_MaterialType {
     Phong = "PhongMaterial",
 }
 
+export type T_alphaMode = "opaque" | "alphaTest" | "blend";
 // /** 透明材质的类型 */
 // export type T_TransparentOfMaterial = I_AlphaTransparentOfMaterial | I_PhysicalTransparentOfMaterial | I_SSSTransparentOfMaterial
 /**透明材质的初始化参数 */
 export interface I_AlphaTransparentOfMaterial {
-    /** 不透明度（即alpha值），float32，默认=1.0 
-     * 如果opacity与alphaTest同时存在，那么alphaTest会覆盖opacity。
-    */
-    opacity?: number,
-    /**alphaTest时要使用的alpha值。
-     * 1、默认值为0 ，当前值=0时，即使纹理有alpha值，也会被忽略（可能会重新透明的图片的地方，成为黑色或其他颜色）。
-     * 2、如果不透明度低于此值，则不会渲染，即透明（discard）。
-    */
-    alphaTest?: number,
-    /** blending ，直接使用webGPU的GPUBlendState interface格式
-     * 
-     * 如果动态更改blending内容，则entity的pipeline需要重新创建
-     * opacityopacity
-     * The blending behavior for this color target. 
-    */
-    blend?: GPUBlendState,
-    /** color 4f 
-     * https://www.w3.org/TR/webgpu/#dom-gpurenderpassencoder-setblendconstant
-     * 
-     * Sets the constant blend color and alpha values used with "constant" and "one-minus-constant" GPUBlendFactors.
-     * If this value is not specified, the value of the color attachment's clear color is used.
-     * If the color attachment has no clear color, the value is [0, 0, 0, 0].
-    */
-    blendConstants?: number[],
-    type: E_TransparentType.alpha,
+    /** 透明模式 */
+    alphaMode: T_alphaMode;
+    /** 透明阈值 */
+    alphaCutOff?: number;
+    /** 透明混合参数 */
+    blendParams?: {
+        /** 透明混合状态 */
+        blend?: GPUBlendState;
+        /** 透明混合常量 
+         *  color 4f 
+        * https://www.w3.org/TR/webgpu/#dom-gpurenderpassencoder-setblendconstant
+        * Sets the constant blend color and alpha values used with "constant" and "one-minus-constant" GPUBlendFactors.
+        * If this value is not specified, the value of the color attachment's clear color is used.
+        * If the color attachment has no clear color, the value is [0, 0, 0, 0].   
+        */
+        blendConstants?: number[];
+        /** 不透明度（即alpha值），float32，默认=1.0 
+         * 两种情况：
+         *  1、使用统一的透明度（opacity）
+         *  2、使用来自texture的透明度（alpha）
+        */
+        opacity?: number;
+    }
+
+
+    // /** 不透明度（即alpha值），float32，默认=1.0 
+    //  * 如果opacity与alphaTest同时存在，那么alphaTest会覆盖opacity。
+    // */
+    // opacity?: number,
+    // /**alphaTest时要使用的alpha值。
+    //  * 1、默认值为0 ，当前值=0时，即使纹理有alpha值，也会被忽略（可能会重新透明的图片的地方，成为黑色或其他颜色）。
+    //  * 2、如果不透明度低于此值，则不会渲染，即透明（discard）。
+    // */
+    // alphaTest?: number,
+    // /** blending ，直接使用webGPU的GPUBlendState interface格式
+    //  * 
+    //  * 如果动态更改blending内容，则entity的pipeline需要重新创建
+    //  * opacityopacity
+    //  * The blending behavior for this color target. 
+    // */
+    // blend?: GPUBlendState,
+
+    // blendConstants?: number[],
+    // // type: E_TransparentType.alpha,
 }
 // export function isAlphaTransparentOfMaterial(transparent: T_TransparentOfMaterial): transparent is I_AlphaTransparentOfMaterial {
 //     return transparent.type === E_TransparentType.alpha;
@@ -87,13 +107,13 @@ export enum E_TransparentType {
  * 2、DCG
  * 3、DC，标注透明类型
  */
-export interface I_TransparentOptionOfMaterial {
-    type: E_TransparentType,
-    /**这里是数组，因为透明材质可能会有多个blend状态
-     * 例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
-     */
-    blend?: GPUBlendState[],
-}
+// export interface I_TransparentOptionOfMaterial {
+//     type: E_TransparentType,
+//     /**这里是数组，因为透明材质可能会有多个blend状态
+//      * 例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
+//      */
+//     blend?: GPUBlendState[],
+// }
 
 /**基础材质的初始化参数
      * 

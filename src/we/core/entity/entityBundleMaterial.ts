@@ -41,6 +41,7 @@ import {
 import { Scene } from "../scene/scene";
 import { NodeObject } from "../organization/nodeObject";
 import { vec3, Vec3 } from "wgpu-matrix";
+import { I_VertexBufferEntry } from "../command/BaseDrawCommand";
 
 
 export abstract class EntityBundleMaterial extends BaseEntity {
@@ -140,7 +141,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     * 覆写 Root的function,因为材料类需要GPUDevice 
     */
     async readyForGPU() {
-        await this._material.init(this.scene, this);
+        await this._material.init(this.scene);
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";//透明具有双面性
         }
@@ -184,7 +185,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * 20251008，目前获取blend的状态不在使用此function
      * @returns 
      */
-    getBlend(): GPUBlendState | undefined {
+    getBlend(): GPUBlendState[] {
         return this._material.getBlend();
     }
     /**
@@ -911,14 +912,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         {
             let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TT });
             //设置为透明
-            let transparentOption = this._material.getTransparentOption();
-            //材质的透明混合参数
-            if (transparentOption) {
-                valueDC.transparent = transparentOption as I_TransparentOptionOfMaterial;
-            }
-            else {
-                throw new Error("透明材质的transparentOption不能为空");
-            }
+            valueDC.transparent = this.getBlend();//材质的透明混合参数
             valueDC.label = "TT mesh:" + this.Name;
             // valueDC.label = this.ID.toString();
             dcTT = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
@@ -1078,7 +1072,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                     for (let perDC of this.renderPassArray[i as keyof typeof this.renderPassArray]) {
                         for (let perVertexBuffer of perDC.vertexBuffers) {
                             if (perVertexBuffer.name == name) {
-                                perVertexBuffer.buffer = vertexBufferNew;
+                                (perVertexBuffer as I_VertexBufferEntry).buffer = vertexBufferNew;
                             }
                         }
                     }
@@ -1140,7 +1134,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                                 continue;
                             }
                             if (perDC.indexBuffer) {
-                                perDC.indexBuffer.buffer = indexBuffer;
+                                (perDC.indexBuffer as I_VertexBufferEntry).buffer = indexBuffer;
                             }
                         }
                     }

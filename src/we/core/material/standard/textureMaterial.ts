@@ -52,39 +52,15 @@ export interface IV_TextureMaterial extends IV_BaseStandardMaterial {
 export class TextureMaterial extends BaseStandardMaterial {
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
     /**是否开启透明度测试 */
-    hasAlphaTest: boolean = false;
+    // hasAlphaTest: boolean = false;
     /**透明度测试阈值：0-1之间的浮点数，默认0.0（不开启） */
-    _alphaTest: number = 0.0;
-    get AlphaTest() {
-        return this._alphaTest;
-    }
-    set AlphaTest(value: number) {
-        this._alphaTest = value;
-        if (this._alphaTest > 0.0) {
-            this.hasAlphaTest = true;
-        }
-        else {
-            this.hasAlphaTest = false;
-        }
-        this.writeUniformBuffer(true);
-    }
+    // _alphaTest: number = 0.0;
+
     /**是否开启不透明度 */
-    hasOpacity: boolean = false;
+    // hasOpacity: boolean = false;
     /**不透明度：0-1之间的浮点数，默认1.0（完全不透明） */
-    _opacity: number = 1.0;
-    get Opacity() {
-        return this._opacity;
-    }
-    set Opacity(value: number) {
-        this._opacity = value;
-        if (this._opacity < 1.0) {
-            this.hasOpacity = true;
-        }
-        else {
-            this.hasOpacity = false;
-        }
-        this.writeUniformBuffer(true);
-    }
+    // _opacity: number = 1.0;
+
 
     declare inputValues: IV_TextureMaterial;
     // /**是否上下翻转Y轴 */
@@ -103,16 +79,16 @@ export class TextureMaterial extends BaseStandardMaterial {
             throw new Error("TextureMaterial: texture is undefined");
         }
 
-        if (input.transparent && isAlphaTransparentOfMaterial(input.transparent)) {
-            if (input.transparent.alphaTest != undefined) {
-                this._alphaTest = input.transparent.alphaTest;
-                this.hasAlphaTest = true;
-            }
-            if (input.transparent.opacity != undefined) {
-                this._opacity = input.transparent.opacity;
-                this.hasOpacity = true;
-            }
-        }
+        // if (input.transparent ) {
+        //     if (input.transparent.alphaTest != undefined) {
+        //         this._alphaTest = input.transparent.alphaTest;
+        //         this.hasAlphaTest = true;
+        //     }
+        //     if (input.transparent.opacity != undefined) {
+        //         this._opacity = input.transparent.opacity;
+        //         this.hasOpacity = true;
+        //     }
+        // }
 
         this._state = E_lifeState.unstart;
 
@@ -179,11 +155,55 @@ export class TextureMaterial extends BaseStandardMaterial {
             has_alphaTest: new Int32Array(unifromCPUBuffer, offset + 8, 1),
             alphaTest: new Float32Array(unifromCPUBuffer, offset + 12, 1),
         };
-        uniform_texture_materialViews.has_opacity_percent[0] = this.hasOpacity ? 1.0 : 0.0;
+        uniform_texture_materialViews.has_opacity_percent[0] = this.HasOpacity;
         uniform_texture_materialViews.opacity[0] = this.Opacity;
-        uniform_texture_materialViews.has_alphaTest[0] = this.hasAlphaTest ? 1 : 0;
+        uniform_texture_materialViews.has_alphaTest[0] = this.getHasAlphaTest();
         uniform_texture_materialViews.alphaTest[0] = this.AlphaTest;
         this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
+    }
+    /**是否有alphaTest */
+    getHasAlphaTest() {
+        if (this._ToTaTp.alphaParams?.alphaMode == "alphaTest") {
+            return 1;
+        }
+        return 0;
+    }
+    get AlphaTest() {
+        let alphaCutOff = 0.0;
+        if (this._ToTaTp.alphaParams?.alphaCutOff)
+            alphaCutOff = this._ToTaTp.alphaParams.alphaCutOff;
+        return alphaCutOff;
+    }
+    set AlphaTest(value: number) {
+        this._ToTaTp.alphaParams = {
+            alphaMode: "alphaTest",
+            alphaCutOff: value,
+        }
+        this.writeUniformBuffer(true);
+    }
+    get Opacity() {
+        let opacity = 1.0;
+        if (this._ToTaTp.alphaOfTransparent === true && this._ToTaTp.alphaParams?.blendParams?.opacity)
+            opacity = this._ToTaTp.alphaParams.blendParams.opacity;
+        return opacity;
+    }
+    set Opacity(value: number) {
+        this._ToTaTp.alphaOfTransparent = true;
+        this._ToTaTp.opaqueOfTransparent = false;
+        this._ToTaTp.alphaParams = {
+            alphaMode: "blend",
+            blendParams: {
+                opacity: value,
+            }
+        }
+        this.writeUniformBuffer(true);
+    }
+    get HasOpacity() {
+        let hasOpacity = 0;
+        if (this._ToTaTp.alphaOfTransparent && this._ToTaTp.alphaParams?.blendParams?.opacity) {
+            hasOpacity = 1;
+        }
+        return hasOpacity;
     }
     setTO(): void {
         this._opaqueOfTransparent = true;
@@ -310,8 +330,8 @@ export class TextureMaterial extends BaseStandardMaterial {
             let replaceList = new Map<string, string | (() => string)>();
             // replaceList.set("$materialColorRule", this.materialColorRule(this));
             // replaceList.set("$opacityPercent", this.opacityPercent(this));
-            replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
-            replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
+            // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
+            // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
             let output = this.formatSHT(template, replaceList, 0);
             return output;
         }
@@ -320,40 +340,40 @@ export class TextureMaterial extends BaseStandardMaterial {
             throw new Error("light shadow map 透明 todo");
         }
     }
-    materialColorRule(scope: TextureMaterial): string {
-        let replaceString = "";
-        let opacityPercent: number | false = false;
-        if (scope._transparent != undefined) {
-            if (scope._transparent?.type == E_TransparentType.alpha) {
-                if (scope._transparent.alphaTest != undefined) {//与不透明相反，>test值，discard;大于输出，并写入深度纹理
-                    replaceString = ` materialColor.a >= ${scope._transparent.alphaTest} `;
-                }
-                else if (scope._transparent.opacity != undefined) {
-                    replaceString = ` false`;
-                    opacityPercent = scope._transparent.opacity;
-                }
-            }
-        }
-        else {
-            replaceString = " materialColor.a<1.0 ";
-        }
-        return replaceString;
-    };
-    opacityPercent(scope: TextureMaterial): string {
-        let replaceString = "";
-        let opacityPercent: number | false = false;
-        if (scope._transparent != undefined) {
-            if (scope._transparent?.type == E_TransparentType.alpha) {
-                if (scope._transparent.opacity != undefined) {
-                    opacityPercent = scope._transparent.opacity;
-                }
-            }
-        }
-        if (opacityPercent !== false) {
-            replaceString = `  materialColor.a=${opacityPercent}; \n `;
-        }
-        return replaceString;
-    };
+    // materialColorRule(scope: TextureMaterial): string {
+    //     let replaceString = "";
+    //     let opacityPercent: number | false = false;
+    //     if (scope._transparent != undefined) {
+    //         if (scope._transparent?.type == E_TransparentType.alpha) {
+    //             if (scope._transparent.alphaTest != undefined) {//与不透明相反，>test值，discard;大于输出，并写入深度纹理
+    //                 replaceString = ` materialColor.a >= ${scope._transparent.alphaTest} `;
+    //             }
+    //             else if (scope._transparent.opacity != undefined) {
+    //                 replaceString = ` false`;
+    //                 opacityPercent = scope._transparent.opacity;
+    //             }
+    //         }
+    //     }
+    //     else {
+    //         replaceString = " materialColor.a<1.0 ";
+    //     }
+    //     return replaceString;
+    // };
+    // opacityPercent(scope: TextureMaterial): string {
+    //     let replaceString = "";
+    //     let opacityPercent: number | false = false;
+    //     if (scope._transparent != undefined) {
+    //         if (scope._transparent?.type == E_TransparentType.alpha) {
+    //             if (scope._transparent.opacity != undefined) {
+    //                 opacityPercent = scope._transparent.opacity;
+    //             }
+    //         }
+    //     }
+    //     if (opacityPercent !== false) {
+    //         replaceString = `  materialColor.a=${opacityPercent}; \n `;
+    //     }
+    //     return replaceString;
+    // };
 
     updateSelf(clock: Clock): void {
     }

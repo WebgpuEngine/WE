@@ -57,8 +57,10 @@ let colorMaterial1 = new ColorMaterial({
 let textureMaterial = new TextureMaterial({
   texture: "/resource/images/img/we3D.png",
   transparent: {
-    type: E_TransparentType.alpha,
-    opacity: 0.5,
+    alphaMode:"blend",
+    blendParams:{
+      opacity: 0.5,
+    }
   }
 });
 

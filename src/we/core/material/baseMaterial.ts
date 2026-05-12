@@ -761,36 +761,52 @@ export abstract class BaseMaterial extends RootGPU {
      * 2、如果是object，说明混合
      */
     _transparent: I_AlphaTransparentOfMaterial | undefined;
+
+    _ToTaTp: {
+        /** 透明材质是否有不透明的部分     */
+        opaqueOfTransparent: boolean,
+        /** 透明材质是否有alpha透明的部分   ，是否有BLEND。
+         * 两种情况：
+         *  1、使用统一的透明度（opacity）
+         *  2、使用来自texture的透明度（alpha）
+          */
+        alphaOfTransparent: boolean,
+        alphaParams: I_AlphaTransparentOfMaterial | undefined,
+    } = {
+            opaqueOfTransparent: false,
+            alphaOfTransparent: false,
+            alphaParams: undefined,
+        }
     /**获取透明材质的初始化参数
      * @returns I_TransparentOptionOfMaterial | boolean 透明材质的初始化参数，或者false表示不是透明材质
      * 
      * 1、alpha的blend：是数组，因为透明材质可能会有多个blend状态
      *      例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
      */
-    getTransparentOption(): I_TransparentOptionOfMaterial | boolean {
-        let isTransparent = this.getTransparent();
-        if (isTransparent) {
-            let transparentOption: I_TransparentOptionOfMaterial = {
-                type: this._transparent!.type
-            };
-            if ((this._transparent as I_AlphaTransparentOfMaterial)!.blend) {
-                let blend = this.getBlend();
-                if (blend) {
-                    /**
-                     * I_TransparentOptionOfMaterial
-                     * 这里是数组，因为透明材质可能会有多个blend状态
-                     * 例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
-                     */
-                    transparentOption.blend = [blend];
-                }
-                else {
-                    throw new Error("透明材质的blend状态不能为空");
-                }
-            }
-            return transparentOption;
-        }
-        return isTransparent;
-    }
+    // getTransparentOption(): I_TransparentOptionOfMaterial | boolean {
+    //     let isTransparent = this.getTransparent();
+    //     if (isTransparent) {
+    //         let transparentOption: I_TransparentOptionOfMaterial = {
+    //             type: this._transparent!.type
+    //         };
+    //         if ((this._transparent as I_AlphaTransparentOfMaterial)!.blend) {
+    //             let blend = this.getBlend();
+    //             if (blend) {
+    //                 /**
+    //                  * I_TransparentOptionOfMaterial
+    //                  * 这里是数组，因为透明材质可能会有多个blend状态
+    //                  * 例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
+    //                  */
+    //                 transparentOption.blend = [blend];
+    //             }
+    //             else {
+    //                 throw new Error("透明材质的blend状态不能为空");
+    //             }
+    //         }
+    //         return transparentOption;
+    //     }
+    //     return isTransparent;
+    // }
 
     /**设置透明状态 
      * @param transparent  T_TransparentOfMaterial 透明状态
@@ -798,39 +814,47 @@ export abstract class BaseMaterial extends RootGPU {
      * 2、如果是object，说明透明
      * 3、如果是object，并且object中没有alphaTest，那么alphaTest会被设置为0
     */
-    setTransparentOption(transparent: I_AlphaTransparentOfMaterial) {
-        this._transparent = transparent;
-        // this._state = E_lifeState.updated;
-    }
+    // setTransparentOption(transparent: I_AlphaTransparentOfMaterial) {
+    //     this._transparent = transparent;
+    //     // this._state = E_lifeState.updated;
+    // }
     /**
      * 是否为透明材质
      * @returns boolean  true：是透明材质，false：不是透明材质
      */
     getTransparent(): boolean {
-        if (this._transparent) {
-            return true;
-        }
-        else return false;
+        return this._ToTaTp.alphaOfTransparent;
+        // if (this._transparent) {
+        //     return true;
+        // }
+        // else return false;
     }
     /**
      * 获取混合状态
      * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
      */
     // abstract getBlend(): GPUBlendState | undefined;
-    getBlend(): GPUBlendState | undefined {
-        if (this._transparent?.type == E_TransparentType.alpha) {
-            return this._transparent?.blend;
+    getBlend(): GPUBlendState[]  {
+        // if (this._transparent?.type == E_TransparentType.alpha) {
+        //     return [this._transparent.blend!];
+        // }
+        // else return false;
+        if (this._ToTaTp.alphaOfTransparent && this._ToTaTp.alphaParams?.blendParams?.blend) {
+            return [this._ToTaTp.alphaParams?.blendParams?.blend!];
         }
-        else return undefined;
+        else {
+            throw new Error("透明材质的blend状态不能为空");
+            return [];
+        }
     }
-    /**
-     * 设置混合状态
-     * @param blend GPUBlendState 混合状态
-     */
-    setBlend(blend: GPUBlendState) {
-        (this._transparent as I_AlphaTransparentOfMaterial).blend = blend;
-        this._state = E_lifeState.updated;
-    }
+    // /**
+    //  * 设置混合状态
+    //  * @param blend GPUBlendState 混合状态
+    //  */
+    // setBlend(blend: GPUBlendState) {
+    //     (this._transparent as I_AlphaTransparentOfMaterial).blend = blend;
+    //     this._state = E_lifeState.updated;
+    // }
     // /**设置混合常量
     //  * @param blendConstants number[] 混合常量
     //  *  20251008，目前未测试，未使用过

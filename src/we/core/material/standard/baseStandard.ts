@@ -23,47 +23,48 @@ export abstract class BaseStandardMaterial extends BaseMaterial {
      * @param input IV_BaseMaterial  基础材质的初始化参数
      */
     checkTransparent(input: IV_BaseStandardMaterial) {
-        if (input.transparent != undefined) {// && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
-            //如果input存在，则使用input的参数
-            if (input.transparent != undefined) {
-                this._transparent = input.transparent;
+        if (input.transparent) {
+            if (input.transparent.alphaMode == "opaque") {
+                this._ToTaTp.opaqueOfTransparent = false;
+                this._ToTaTp.alphaOfTransparent = false;
             }
-            //如果input没有，则判断处理（ColorMaterial 除外）
-            if (input.transparent != undefined) {
-                if (input.transparent?.type == undefined || input.transparent?.type == E_TransparentType.alpha) {
-                    if (this._transparent == undefined) {
-                        this._transparent = {} as I_AlphaTransparentOfMaterial;
-                    }
-                    (this._transparent as I_AlphaTransparentOfMaterial).type = E_TransparentType.alpha;
-                    if (input.transparent.blend != undefined)
-                        (this._transparent as I_AlphaTransparentOfMaterial).blend = input.transparent.blend;
-                    else {
-                        //默认混合 add
-                        (this._transparent as I_AlphaTransparentOfMaterial).blend = {
-                            color: {
-                                srcFactor: "src-alpha",//源
-                                dstFactor: "one-minus-src-alpha",//目标
-                                operation: "add"//操作
-                            },
-                            alpha: {
-                                srcFactor: "one",//源
-                                dstFactor: "one-minus-src-alpha",//目标
-                                operation: "add"//操作  
-                            }
-                        };
-                    }
-                    if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
-                        (this._transparent as I_AlphaTransparentOfMaterial).alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
-                    }
-                    else if (input.transparent.alphaTest != undefined && input.transparent.opacity == undefined) {//如果有设置alphaTest，就设置为alphaTest
-                        (this._transparent as I_AlphaTransparentOfMaterial).alphaTest = input.transparent.alphaTest;//FS 中使用的是alphaTest对应texture的alpha进行比较，小于阈值的= 0.0，大于阈值的不变（因为有可能有大于阈值的半透明）
-                    }
-                    else if (input.transparent.alphaTest == undefined && input.transparent.opacity != undefined) {//如果没有设置alphaTest，就设置为opacity
-                        // this._transparent.alphaTest = input.transparent.opacity;
-                        (this._transparent as I_AlphaTransparentOfMaterial).opacity = input.transparent.opacity;//FS code中使用的是opacity，而不是alphaTest
-                    }
+            else if (input.transparent.alphaMode == "alphaTest") {
+                this._ToTaTp.opaqueOfTransparent = true;
+                this._ToTaTp.alphaOfTransparent = false;
+                this._ToTaTp.alphaParams = {
+                    alphaMode: "alphaTest",
+                    alphaCutOff: input.transparent.alphaCutOff || 0.5,
                 }
             }
+            else if (input.transparent.alphaMode == "blend") {
+                this._ToTaTp.opaqueOfTransparent = true;
+                this._ToTaTp.alphaOfTransparent = true;
+                let blend: GPUBlendState = {
+                    color: {
+                        operation: "add",//操作
+                        srcFactor: "src-alpha",//源
+                        dstFactor: "one-minus-src-alpha",//目标
+                    },
+                    alpha: {
+                        operation: "add",//操作  
+                        srcFactor: "one",//源
+                        dstFactor: "one-minus-src-alpha",//目标
+                    }
+                };
+                if (input.transparent.blendParams == undefined) {
+                    input.transparent.blendParams = { blend };
+                }
+                else if (input.transparent.blendParams.blend == undefined) {
+                    input.transparent.blendParams.blend = blend;
+                }
+                this._ToTaTp.alphaParams = {
+                    alphaMode: "blend",
+                    blendParams: input.transparent.blendParams
+                }
+            }
+        }
+        else {
+
         }
     }
 }

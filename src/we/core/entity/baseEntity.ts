@@ -259,7 +259,7 @@ export abstract class BaseEntity extends NodeSpace {
     /** 生成原始包围盒和原始包围球 */
     abstract generateBoxAndSphere(): void
     /** 获取混合模式 */
-    abstract getBlend(): GPUBlendState | undefined;
+    abstract getBlend(): GPUBlendState[] ;
     /** 获取是否透明 */
     abstract getTransparent(): boolean;
 
@@ -463,14 +463,14 @@ export abstract class BaseEntity extends NodeSpace {
     }
     /** 创建绘制命令 */
     createDrawCommands() {
-        //检查是否有新摄像机，有进行更新
+        //创建透明DC
         if (this.transparent === true) {
             this.createTransparent();
         }
         else {
             this.createForwardDC();
         }
-        //检查是否有新光源，有进行更新
+        //创建透明shadowmapDC
         if (this.transparent === true) {
             // this.createShadowMapTransparentDC();
         }
