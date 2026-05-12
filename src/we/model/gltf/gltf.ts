@@ -880,7 +880,7 @@ export class GLTFModel extends BaseModel {
                 let occlusionForPbr: I_TextureForPBR | undefined = undefined;
                 if (occlusionTexture != undefined) {
                     occlusionForPbr = {} as I_TextureForPBR;
-                    occlusionForPbr.texture = await this.getRes(T_ModelResKind.texture, occlusionTexture.index) as Texture;
+                    occlusionForPbr.texture = await this.getRes(T_ModelResKind.texture, occlusionTexture.index, { format: "rgba8unorm", premultipliedAlpha: true }) as Texture;
                     occlusionForPbr.channel = E_TextureChannel.R;
                     if (occlusionTexture.texCoord !== undefined) {
                         occlusionForPbr.data1 = occlusionTexture.texCoord;
