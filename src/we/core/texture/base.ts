@@ -50,9 +50,24 @@ export interface I_BaseTexture extends I_Update {  /**纹理名称 */
      */
     samplerBindingType?: GPUSamplerBindingType,
 
-    /**纹理的premultipliedAlpha，只在有透明的情况下有效。
-     * 1、如果为true，说明纹理的premultipliedAlpha为true，需要预乘alpha。
-     * 2、如果为false，说明纹理的premultipliedAlpha为false，不需要预乘alpha。
+    /**纹理的premultipliedAlpha，默认：false(只有color类纹理才需要预乘，数据类纹理不需要预乘)
+     *  1、如果为true，copyExternalImageToTexture（）时，预乘alpha。
+     *  2、如果为false，copyExternalImageToTexture（）时，不预乘alpha。
+     * 
+     * 何时使用：
+     *  1、用标准透明混合（Blending）的纹理。
+     *    标准混合方程：src × 1 + dst × (1−srcA)：要求 src 是预乘的，否则混合结果错误。
+     *    非预乘混合方程：src × srcA + dst × (1−srcA)：要求 src 是非预乘的，否则混合结果错误。（如果这时预乘，则变暗，相当于2次乘法了）
+     *  2、过滤 / 插值更正确（抗锯齿、mipmap）
+     *    预乘：RGB 与 A 同步缩放，过滤 / 插值结果自然正确，无异常色边。
+     *    非预乘：透明边缘插值会出现灰边、黑边（RGB 与 A 插值不同步）
+     *  3、透明度叠加更自然
+     *   多层透明叠加时，预乘能保证：
+     *           半透明物体亮度衰减线性合理
+     *           避免 “透明越叠越暗” 
+     * 何时不用：
+     *  1、不透明纹理
+     *  2、alphaTest
      */
     premultipliedAlpha?: boolean,
     /**是否上下翻转Y轴

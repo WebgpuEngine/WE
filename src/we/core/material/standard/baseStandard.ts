@@ -1,4 +1,5 @@
 
+import { getSampler } from "../../sampler/baseFunction";
 import { E_TransparentType, I_AlphaTransparentOfMaterial, IV_BaseStandardMaterial } from "../base";
 import { BaseMaterial } from "../baseMaterial";
 
@@ -42,7 +43,8 @@ export abstract class BaseStandardMaterial extends BaseMaterial {
                 let blend: GPUBlendState = {
                     color: {
                         operation: "add",//操作
-                        srcFactor: "src-alpha",//源
+                        // srcFactor: "src-alpha",//源
+                        srcFactor: "one",//源
                         dstFactor: "one-minus-src-alpha",//目标
                     },
                     alpha: {
@@ -67,4 +69,17 @@ export abstract class BaseStandardMaterial extends BaseMaterial {
 
         }
     }
+    /**
+     * 1、检查材质的sampler是否存在，不存在就创建一个。
+     * 2、设置this._samplerBindingType:GPUSamplerBindingType
+     * @param input IV_BaseMaterial 材质的输入参数
+     * @returns GPUSampler 材质的sampler
+     */
+    override checkSampler(input: IV_BaseStandardMaterial): GPUSampler {
+        let { sampler, bindingType } = getSampler(input, this.scene);
+        this.defaultSamplerBindingType = bindingType;
+        this.defaultSampler = sampler;
+        return sampler;
+    }
+
 }

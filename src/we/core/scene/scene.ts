@@ -490,7 +490,7 @@ export class Scene {
         this.colorSpaceAndLinearSpace.hdr = hasHighDynamicRange;
 
         {//非加载场景模式
-            if (hasP3Display) {//尝试P3
+            if (hasP3Display) {//P3
                 (this.context as GPUCanvasContext).configure({
                     device: this.device,
                     format: V_weLinearFormat,//'rgba16float',
@@ -502,14 +502,14 @@ export class Scene {
                 this.colorFormatOfLinearSpace = V_weLinearFormat;//"rgba16float";
             }
             else {
-                try {
+                try {//尝试V_weLinearFormat
                     (this.context as GPUCanvasContext).configure({
                         device: this.device,
                         format: V_weLinearFormat,
                         alphaMode: this.premultipliedAlpha ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
                         usage
                     });
-                } catch (error) {
+                } catch (error) {//如果V_weLinearFormat失败，尝试this.presentationFormat
                     /**
                      * todo:20260503
                      * GBuffers 未匹配this.presentationFormat，而是使用V_weLinearFormat

@@ -415,10 +415,13 @@ export class GLTFModel extends BaseModel {
         // }
         // this.initBufferViews();
         // this.initAccessors();//改为，获取accessor数据并按需创建GPUBuffer
+
+        //20260512,GPUTexture的创建由于在此阶段无法确定是linear 还是 sRGB的，需要延迟到material明确指定格式。
         await this.initGPUTextures();
         this.initSamplers();
+        //20260512,Texture的创建由于在此阶段无法确定是linear 还是 sRGB的，需要延迟到material明确指定格式。
         await this.initTextures();
-        this.initMaterials();
+        await this.initMaterials();
         await this.initMeshes();
         this.currentScene = this.DataLoader.getCurrentScene();
         // this.initAnimationSamplers();
@@ -444,7 +447,10 @@ export class GLTFModel extends BaseModel {
      * @param id 资源id
      * @returns 资源<T>或false
      */
-    getRes<T>(kind: T_ModelResKind, id: number | string): T | false {
+    async getRes<T>(kind: T_ModelResKind, id: number | string, optione?: {
+        format?: GPUTextureFormat
+        premultipliedAlpha?: boolean
+    }): Promise<T | false> {
         let key = id;
         switch (kind) {
             case T_ModelResKind.GPUBuffers:
@@ -466,6 +472,9 @@ export class GLTFModel extends BaseModel {
                 if (this.modelRes.GPUTexture.has(key)) {
                     return this.modelRes.GPUTexture.get(key) as T;
                 }
+                else {
+                    return await this.getGPUTexture(Number(id), optione?.format, optione?.premultipliedAlpha) as T;
+                }
                 break;
             case T_ModelResKind.accessor:
                 if (this.modelRes.accessor.has(key)) {
@@ -476,6 +485,9 @@ export class GLTFModel extends BaseModel {
             case T_ModelResKind.texture:
                 if (this.modelRes.texture.has(key)) {
                     return this.modelRes.texture.get(key) as T;
+                }
+                else {
+                    return await this.getTexture(Number(id), optione?.format, optione?.premultipliedAlpha) as T;
                 }
                 break;
             case T_ModelResKind.material:
@@ -623,30 +635,60 @@ export class GLTFModel extends BaseModel {
     async initGPUTextures() {
         let defaultGPUTexture = this.scene.resourcesGPU.textureOfString.get("default");
         this.modelRes.GPUTexture.set("default", defaultGPUTexture);
+        // let images = this.DataLoader.getImages();
+        // if (images) {
+        //     for (let i in images) {
+        //         let perImageData = await this.DataLoader.getImage(Number(i));
+        //         if (!perImageData) {
+        //             continue;
+        //         }
+        //         let gpuTexture = this.device.createTexture({
+        //             label: i,
+        //             size: [perImageData.width, perImageData.height],
+        //             format: "rgba8unorm-srgb",
+        //             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        //         });
+        //         this.device.queue.copyExternalImageToTexture(
+        //             { source: perImageData as ImageBitmap, flipY: false }, //翻转Y轴,纹理错误
+        //             /**
+        //              * 存储的纹理像素不得进行预乘
+        //              * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
+        //              */
+        //             { texture: gpuTexture, premultipliedAlpha: false },
+        //             [perImageData.width, perImageData.height]
+        //         );
+        //         this.modelRes.GPUTexture.set(Number(i), gpuTexture);
+        //     }
+        // }
+    }
+    async getGPUTexture(id: number | string, format: GPUTextureFormat = "rgba8unorm-srgb", premultipliedAlpha: boolean = false) {
         let images = this.DataLoader.getImages();
         if (images) {
-            for (let i in images) {
-                let perImageData = await this.DataLoader.getImage(Number(i));
-                if (!perImageData) {
-                    continue;
-                }
-                let gpuTexture = this.device.createTexture({
-                    label: i,
-                    size: [perImageData.width, perImageData.height],
-                    format: "rgba8unorm",
-                    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
-                });
-                this.device.queue.copyExternalImageToTexture(
-                    { source: perImageData as ImageBitmap, flipY: false }, //翻转Y轴,纹理错误
-                    /**
-                     * 存储的纹理像素不得进行预乘
-                     * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
-                     */
-                    { texture: gpuTexture, premultipliedAlpha: false },
-                    [perImageData.width, perImageData.height]
-                );
-                this.modelRes.GPUTexture.set(Number(i), gpuTexture);
+            let perImageData = await this.DataLoader.getImage(Number(id));
+            if (!perImageData) {
+                console.error("getGPUTextures error, id:", id);
+                return;
             }
+            let gpuTexture = this.device.createTexture({
+                label: id.toString(),
+                size: [perImageData.width, perImageData.height],
+                format: format,
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+            });
+            this.device.queue.copyExternalImageToTexture(
+                { source: perImageData as ImageBitmap, flipY: false }, //翻转Y轴,纹理错误
+                /**
+                 * 存储的纹理像素不得进行预乘
+                 * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
+                 */
+                { texture: gpuTexture, premultipliedAlpha: premultipliedAlpha },
+                [perImageData.width, perImageData.height]
+            );
+            this.modelRes.GPUTexture.set(Number(id), gpuTexture);
+            return gpuTexture;
+        }
+        else {
+            console.error("images not found.");
         }
     }
     /**
@@ -656,31 +698,59 @@ export class GLTFModel extends BaseModel {
     async initTextures() {
         let defaultTexture = this.scene.resourcesGPU.weTextureOfString.get("default");
         this.modelRes.texture.set("default", defaultTexture);
+        // let textures = this.DataLoader.getTextures();
+        // if (textures)
+        //     for (let i in textures) {
+        //         let perTextureData = textures[i];
+        //         let sampler: GPUSampler | undefined = undefined;
+        //         if (perTextureData.sampler !== undefined) {
+        //             // sampler = this.modelRes.sampler.get(Number(perTextureData.sampler));
+        //             sampler = <GPUSampler>this.getRes(T_ModelResKind.sampler, perTextureData.sampler);
+        //         }
+        //         let gpuTexture: GPUTexture;
+        //         if (perTextureData.source !== undefined) {
+        //             gpuTexture = <GPUTexture>this.getRes(T_ModelResKind.GPUTexture, perTextureData.source);
+        //         }
+        //         else {
+        //             gpuTexture = <GPUTexture>this.getRes(T_ModelResKind.GPUTexture, "default");
+        //         }
+        //         let perTexture = new Texture({
+        //             source: gpuTexture,
+        //             sampler: sampler,
+        //             samplerBindingType: this.modelRes.GPUSamplerBindingType.get(Number(perTextureData.sampler)),
+        //         }, this.device, this.scene);
+        //         await perTexture.init(this.scene);
+        //         this.modelRes.texture.set(Number(i), perTexture);
+        //     }
+    }
+    async getTexture(id: number, format: GPUTextureFormat = "rgba8unorm-srgb", premultipliedAlpha: boolean = false) {
         let textures = this.DataLoader.getTextures();
-
-        if (textures)
-            for (let i in textures) {
-                let perTextureData = textures[i];
-                let sampler: GPUSampler | undefined = undefined;
-                if (perTextureData.sampler !== undefined) {
-                    // sampler = this.modelRes.sampler.get(Number(perTextureData.sampler));
-                    sampler = <GPUSampler>this.getRes(T_ModelResKind.sampler, perTextureData.sampler);
-                }
-                let gpuTexture: GPUTexture;
-                if (perTextureData.source !== undefined) {
-                    gpuTexture = <GPUTexture>this.getRes(T_ModelResKind.GPUTexture, perTextureData.source);
-                }
-                else {
-                    gpuTexture = <GPUTexture>this.getRes(T_ModelResKind.GPUTexture, "default");
-                }
-                let perTexture = new Texture({
-                    source: gpuTexture,
-                    sampler: sampler,
-                    samplerBindingType: this.modelRes.GPUSamplerBindingType.get(Number(perTextureData.sampler)),
-                }, this.device, this.scene);
-                await perTexture.init(this.scene);
-                this.modelRes.texture.set(Number(i), perTexture);
+        if (textures) {
+            let perTextureData = textures[id];
+            let sampler: GPUSampler | undefined = undefined;
+            if (perTextureData.sampler !== undefined) {
+                // sampler = this.modelRes.sampler.get(Number(perTextureData.sampler));
+                sampler = await this.getRes(T_ModelResKind.sampler, perTextureData.sampler) as GPUSampler;
             }
+            let gpuTexture: GPUTexture;
+            if (perTextureData.source !== undefined) {
+                gpuTexture = await this.getRes(T_ModelResKind.GPUTexture, perTextureData.source, { format, premultipliedAlpha }) as GPUTexture;
+            }
+            else {
+                gpuTexture = await this.getRes(T_ModelResKind.GPUTexture, "default") as GPUTexture;
+            }
+            let perTexture = new Texture({
+                source: gpuTexture,
+                sampler: sampler,
+                samplerBindingType: this.modelRes.GPUSamplerBindingType.get(Number(perTextureData.sampler)),
+            }, this.device, this.scene);
+            await perTexture.init(this.scene);
+            this.modelRes.texture.set(Number(id), perTexture);
+            return perTexture;
+        }
+        else {
+            throw new Error("textures not found.");
+        }
     }
     /**
      * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-textureinfo
@@ -694,7 +764,7 @@ export class GLTFModel extends BaseModel {
      * 1、初始化默认材质
      * 2、按照gltf的material，初始化材质
      */
-    initMaterials() {
+    async initMaterials() {
         // this.modelRes.material.set("default", this.scene.resourcesGPU.weMaterialOfString.get("defaultPBR"));
         let colorMaterial = new ColorMaterial({
             color: [1, 1, 1, 1],
@@ -727,7 +797,7 @@ export class GLTFModel extends BaseModel {
                 let normalForPbr: I_TextureForPBR | undefined = undefined;
                 if (normalTextureData != undefined) {
                     normalForPbr = {} as I_TextureForPBR;
-                    normalForPbr.texture = <Texture>this.getRes(T_ModelResKind.texture, normalTextureData.index);
+                    normalForPbr.texture = await this.getRes(T_ModelResKind.texture, normalTextureData.index, { format: "rgba8unorm" }) as Texture;
                     if (normalTextureData.texCoord !== undefined) {
                         normalForPbr.data1 = normalTextureData.texCoord;
                     }
@@ -777,7 +847,7 @@ export class GLTFModel extends BaseModel {
                 let emissiveForPbr: I_TextureForPBR | undefined = undefined;
                 if (emissiveTexture != undefined) {
                     emissiveForPbr = {} as I_TextureForPBR;
-                    emissiveForPbr.texture = <Texture>this.getRes(T_ModelResKind.texture, emissiveTexture.index);
+                    emissiveForPbr.texture = await this.getRes(T_ModelResKind.texture, emissiveTexture.index) as Texture;
                     if (emissiveTexture.texCoord !== undefined) {
                         emissiveForPbr.data1 = emissiveTexture.texCoord;
                     }
@@ -810,7 +880,7 @@ export class GLTFModel extends BaseModel {
                 let occlusionForPbr: I_TextureForPBR | undefined = undefined;
                 if (occlusionTexture != undefined) {
                     occlusionForPbr = {} as I_TextureForPBR;
-                    occlusionForPbr.texture = <Texture>this.getRes(T_ModelResKind.texture, occlusionTexture.index);
+                    occlusionForPbr.texture = await this.getRes(T_ModelResKind.texture, occlusionTexture.index) as Texture;
                     occlusionForPbr.channel = E_TextureChannel.R;
                     if (occlusionTexture.texCoord !== undefined) {
                         occlusionForPbr.data1 = occlusionTexture.texCoord;
@@ -832,26 +902,35 @@ export class GLTFModel extends BaseModel {
                 let albedoTexture: Texture;
                 let albedoForPbr: I_TextureForPBR = { value: baseColor as weVec4 };
                 if (pbrMetallicRoughness && pbrMetallicRoughness.baseColorTexture?.index != undefined) {
-                    albedoTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.baseColorTexture?.index);
+                    albedoTexture = await this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.baseColorTexture?.index, { format: "rgba8unorm-srgb", premultipliedAlpha: true }) as Texture;
                     albedoForPbr.texture = albedoTexture;
+                    if (pbrMetallicRoughness.baseColorTexture.texCoord) {
+                        albedoForPbr.data1 = pbrMetallicRoughness.baseColorTexture.texCoord;
+                    }
                 }
                 //metallic
                 let metallicFactor = pbrMetallicRoughness?.metallicFactor || 1;
                 let metallicTexture: Texture;
                 let metallicForPbr: I_TextureForPBR = { value: metallicFactor };
                 if (pbrMetallicRoughness && pbrMetallicRoughness.metallicRoughnessTexture?.index != undefined) {
-                    metallicTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.metallicRoughnessTexture?.index);
+                    metallicTexture = await this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.metallicRoughnessTexture?.index, { format: "rgba8unorm" }) as Texture;
                     metallicForPbr.texture = metallicTexture;
                     metallicForPbr.channel = E_TextureChannel.B;
+                    if (pbrMetallicRoughness.metallicRoughnessTexture.texCoord) {
+                        metallicForPbr.data1 = pbrMetallicRoughness.metallicRoughnessTexture.texCoord;
+                    }
                 }
                 //roughness
                 let roughnessFactor = pbrMetallicRoughness?.roughnessFactor || 1;
                 let roughnessTexture: Texture;
                 let roughnessForPbr: I_TextureForPBR = { value: roughnessFactor };
                 if (pbrMetallicRoughness && pbrMetallicRoughness.metallicRoughnessTexture?.index != undefined) {
-                    roughnessTexture = <Texture>this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.metallicRoughnessTexture?.index);
+                    roughnessTexture = await this.getRes(T_ModelResKind.texture, pbrMetallicRoughness.metallicRoughnessTexture?.index, { format: "rgba8unorm" }) as Texture;
                     roughnessForPbr.texture = roughnessTexture;
                     roughnessForPbr.channel = E_TextureChannel.G;
+                    if (pbrMetallicRoughness.metallicRoughnessTexture.texCoord) {
+                        roughnessForPbr.data1 = pbrMetallicRoughness.metallicRoughnessTexture.texCoord;
+                    }
                 }
 
                 let inputPBRMaterial: IV_PBRMaterial = {
@@ -934,7 +1013,7 @@ export class GLTFModel extends BaseModel {
                     //     console.log("primitive ", primitive);
                     let materialOfPerEntity;                        //当前entity的primitive的材质
                     if (primitive.material == undefined) {          //如果primitive没有材质，默认使用default材质
-                        materialOfPerEntity = this.getRes(T_ModelResKind.material, "default");
+                        materialOfPerEntity = await this.getRes(T_ModelResKind.material, "default");
                         // materialOfPerEntity = <PBRMaterial> this.getRes(T_ModelResKind.material,"default");
                         // materialOfPerEntity = this.modelRes.material.get("default");
                     }
@@ -943,7 +1022,7 @@ export class GLTFModel extends BaseModel {
                         if (materialOfPerEntity == undefined) {
                             console.warn(`mesh ${name} primitive ${j} material ${primitive.material} not found`);
                             // throw new Error(`mesh ${name} primitive ${j} material ${primitive.material} not found`);
-                            materialOfPerEntity = this.getRes(T_ModelResKind.material, "alert");
+                            materialOfPerEntity = await this.getRes(T_ModelResKind.material, "alert");
                         }
                     }
                     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -981,25 +1060,25 @@ export class GLTFModel extends BaseModel {
                                 topology: "point-list",
                             }
                             //point 列表渲染，使用 vertexColorMaterial
-                            materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
+                            materialOfPerEntity = await this.getRes(T_ModelResKind.material, "vertexColor");
                             break;
                         case 1: //line
                             primitiveOfDataOfRender = {
                                 topology: "line-list",
                             }
-                            materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
+                            materialOfPerEntity = await this.getRes(T_ModelResKind.material, "vertexColor");
                             break;
                         case 2: //line loop
                             primitiveOfDataOfRender = {
                                 topology: "line-list",
                             }
-                            materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
+                            materialOfPerEntity = await this.getRes(T_ModelResKind.material, "vertexColor");
                             break;
                         case 3: //line strip
                             primitiveOfDataOfRender = {
                                 topology: "line-strip",
                             }
-                            materialOfPerEntity = this.getRes(T_ModelResKind.material, "vertexColor");
+                            materialOfPerEntity = await this.getRes(T_ModelResKind.material, "vertexColor");
                             break;
                         case 4: //triangle
                             primitiveOfDataOfRender = {

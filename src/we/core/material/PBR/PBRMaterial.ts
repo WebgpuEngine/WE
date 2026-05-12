@@ -43,69 +43,6 @@ export interface I_TextureForPBR {
     channel?: E_TextureChannel,
 }
 /**
- * PBR材质RGB形式纹理参数:normal ,color,albedo ...
- * 1、value是factor因子，无texture时是基础值。
- *      A、value:vec3，默认：RGB
- *      B、在shader处理中是必须的，没有使用默认值（在TS中实现）
- * 2、texture：
- *      A、是Texture，直接使用。但Texture，必须有GPUSamplerBindingType（手动布局使用，尤其是comparison，在Texture中默认是filtering），否则在报错
- *      B、是I_BaseTexture，就是Texture的创建参数，至少需要 source: T_textureSourceType,
- *          a、string
- *          b、GPUTexture 
- *          c、GPUCopyExternalImageSource;
- * 3、无channel, 默认：RGB
- */
-// export interface I_TextureWithChanneAndVec3lForPBR extends I_TextureForPBR {
-//     // texture?: Texture | I_BaseTexture,
-//     value?: weVec4,
-//     // channel: E_TextureChannel.RGB,
-// }
-/**
- * PBR材质单通道数据形式纹理参数:metallic,roughness,ao ...
- * 1、value是factor因子，无texture时是基础值。
- *      A、value:vec3，默认：RGB
- *      B、在shader处理中是必须的，没有使用默认值（在TS中实现）
- * 2、texture：
- *      A、是Texture，直接使用。但Texture，必须有GPUSamplerBindingType（手动布局使用，尤其是comparison，在Texture中默认是filtering），否则在报错
- *      B、是I_BaseTexture，就是Texture的创建参数，至少需要 source: T_textureSourceType,
- *          a、string
- *          b、GPUTexture 
- *          c、GPUCopyExternalImageSource;
- * 3、channel?: E_TextureChannel，默认：R
- */
-// export interface I_TextureWithChanneAndNumberlForPBR extends I_TextureForPBR {
-//     // texture?: Texture | I_BaseTexture,
-//     value?: number,
-//     channel?: E_TextureChannel,
-// }
-// function I_TextureWithChannelForPBR(texture: any): texture is I_TextureWithChanneAndNumberlForPBR {
-//     return texture && (texture.texture || texture.value);
-// }
-
-// /**
-//  * todo:未实现
-//  * 
-//  * 默认:0,其他alpha也是0，后期考虑为：0.5 */
-// interface I_TextureAlphaTestForPBR extends I_TextureWithChanneAndNumberlForPBR {
-//     alphaTest?: number,
-// }
-// /**
-//  * todo:未实现
-//  * 
-//  * 自发光强度，默认：1.0
-//  */
-// interface I_EmissiveForPBR extends I_TextureWithChanneAndNumberlForPBR {
-//     intensity?: number,
-// }
-// /**
-//  * todo:未实现
-//  * 
-//  * 深度缩放，默认：0.1
-//  */
-// interface I_DepthMapForPBR extends I_TextureWithChanneAndNumberlForPBR {
-//     scale?: number,
-// }
-/**
  * PBR材质 init参数：
  * todo：emssive,depthMap,alpha,envMap
  */
@@ -125,48 +62,9 @@ export interface IV_PBRMaterial extends IV_BaseMaterial {
         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
     },
 }
-//作废，保留的意义，在纹理上参考，参见I_TextureWithChanneAndVec3lForPBR todo：后续需要支持texture对象：I_BaseTexture | Texture
-// export interface IV_PBRMaterial_old extends IV_BaseMaterial {
-//     textures: {
-//         [E_TextureType.albedo]: I_BaseTexture | Texture | weVec3,
-//         [E_TextureType.metallic]: I_BaseTexture | Texture | number,
-//         [E_TextureType.roughness]: I_BaseTexture | Texture | number,
-//         [E_TextureType.ao]?: I_BaseTexture | Texture | number,
-//         [E_TextureType.normal]?: I_BaseTexture | Texture,
-//         [E_TextureType.color]?: I_BaseTexture | Texture | weVec3,
-//         [E_TextureType.emissive]?: I_BaseTexture | Texture | weVec3,
-//         [E_TextureType.depthMap]?: I_BaseTexture | Texture,
-//         [E_TextureType.alpha]?: I_BaseTexture | Texture | number,
-//         /** 是否使用环境贴图 */
-//         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
-//     },
-// }
-
-//保留：定义vialidPBRTextureType的两种方式，这里是手写字符串
-// type validPBRTextureTypeString =
-//     | E_TextureType.albedo
-//     | E_TextureType.metallic
-//     | E_TextureType.roughness
-//     | E_TextureType.ao
-//     | E_TextureType.normal
-//     | E_TextureType.color
-//     | E_TextureType.emissive
-//     | E_TextureType.depthMap
-//     | E_TextureType.alpha
-//     | E_TextureType.envMap;
 
 /** PBR材质支持的纹理类型，用于for中对于textures的遍历的index 类型定义（TS的keyof问题，JS不需要） */
 type vialidPBRTextureType = keyof IV_PBRMaterial["textures"];
-
-
-
-enum E_ThisTexturesType {
-    "texture" = "texture",
-    "weVec3" = "weVec3",
-    "number" = "number"
-}
-// type T_ThisTexturesType = Texture | weVec3 | number;
-
 
 export class PBRMaterial extends BaseMaterial {
 

@@ -24,8 +24,7 @@ export enum E_MaterialType {
 }
 
 export type T_alphaMode = "opaque" | "alphaTest" | "blend";
-// /** 透明材质的类型 */
-// export type T_TransparentOfMaterial = I_AlphaTransparentOfMaterial | I_PhysicalTransparentOfMaterial | I_SSSTransparentOfMaterial
+
 /**透明材质的初始化参数 */
 export interface I_AlphaTransparentOfMaterial {
     /** 透明模式 */
@@ -51,43 +50,8 @@ export interface I_AlphaTransparentOfMaterial {
         */
         opacity?: number;
     }
-
-
-    // /** 不透明度（即alpha值），float32，默认=1.0 
-    //  * 如果opacity与alphaTest同时存在，那么alphaTest会覆盖opacity。
-    // */
-    // opacity?: number,
-    // /**alphaTest时要使用的alpha值。
-    //  * 1、默认值为0 ，当前值=0时，即使纹理有alpha值，也会被忽略（可能会重新透明的图片的地方，成为黑色或其他颜色）。
-    //  * 2、如果不透明度低于此值，则不会渲染，即透明（discard）。
-    // */
-    // alphaTest?: number,
-    // /** blending ，直接使用webGPU的GPUBlendState interface格式
-    //  * 
-    //  * 如果动态更改blending内容，则entity的pipeline需要重新创建
-    //  * opacityopacity
-    //  * The blending behavior for this color target. 
-    // */
-    // blend?: GPUBlendState,
-
-    // blendConstants?: number[],
-    // // type: E_TransparentType.alpha,
 }
-// export function isAlphaTransparentOfMaterial(transparent: T_TransparentOfMaterial): transparent is I_AlphaTransparentOfMaterial {
-//     return transparent.type === E_TransparentType.alpha;
-// }
-// /**
-//  * 物理透明材质参数
-//  */
-// export interface I_PhysicalTransparentOfMaterial {
-//     type: E_TransparentType.physical,
-// }
-// /**
-//  * 半透明材质参数
-//  */
-// export interface I_SSSTransparentOfMaterial {
-//     type: E_TransparentType.sss,
-// }
+
 /**
  * 透明材质的类型
  */
@@ -96,31 +60,14 @@ export enum E_TransparentType {
     physical = "physical",
     sss = "sss",
 }
-/**
- * 透明材质的初始化参数
- * type 透明材质的类型
- * blend?: alpha透明材质的blend状态
- * 其他透明材质的参数后期补充
- * 
- * 使用者：
- * 1、entity
- * 2、DCG
- * 3、DC，标注透明类型
- */
-// export interface I_TransparentOptionOfMaterial {
-//     type: E_TransparentType,
-//     /**这里是数组，因为透明材质可能会有多个blend状态
-//      * 例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
-//      */
-//     blend?: GPUBlendState[],
-// }
+
 
 /**基础材质的初始化参数
-     * 
-     * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
-     * 
-     * 2、加载场景模式，原则上是通过加载器带入parent参数。todo
-     */
+ * 
+ * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
+ * 
+ * 2、加载场景模式，原则上是通过加载器带入parent参数。todo
+ */
 export interface IV_BaseMaterial extends I_Update {
     /** 是否双面渲染，默认false 
      * 1、WE中有两处可以涉及渲染的剔除
@@ -133,10 +80,12 @@ export interface IV_BaseMaterial extends I_Update {
     */
     doubleSided?: boolean
 }
+/**自定义shader材质的初始化参数 */
 export interface IV_shaderMaterial extends IV_BaseMaterial {
     /**指定的fragment code */
     code?: string,
 }
+/**非PBR材质的初始化参数 */
 export interface IV_BaseStandardMaterial extends IV_BaseMaterial {
     /**透明材质的初始化参数
      * 默认不透明：没有此参数
@@ -160,16 +109,6 @@ export interface IV_BaseStandardMaterial extends IV_BaseMaterial {
     samplerBindingType?: GPUSamplerBindingType,
 }
 
-
-/**三段式初始化的第二步：init */
-export interface IV_BaseMaterialStep2 {
-    parent: any,    //20250911 测试更改
-    // parent: BaseEntity,
-    scene: Scene,//为获取在scene中注册的resource
-    // deferRenderDepth: boolean,
-    // deferRenderColor: boolean,
-    // reversedZ: boolean,
-}
 
 /** 材质中使用的texture类型 */
 export enum E_TextureType {
@@ -353,8 +292,11 @@ export interface I_MaterialUniformTextureBundle {
 }
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MSAA模式： bindgroup 、bindgroup layout、bindgroup string 的使用
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/**20260422 材质的MSAA的groupAndBindingString 绑定function*/
+/** getGroupAndBindingString()使用*/
 export function materialAddGroupBindStringOfMSAA(binding: number): { code: string, binding: number } {
     let code = `
                 @group(2) @binding(${binding++}) var u_texture_id: texture_2d<u32>;
@@ -366,7 +308,7 @@ export function materialAddGroupBindStringOfMSAA(binding: number): { code: strin
         binding,
     }
 }
-
+/**getEntriesOfBindGroupLayout()使用 */
 export function materialAddBindGroupLayoutOfMSAA(binding: number): { layout: GPUBindGroupLayoutEntry[], binding: number } {
     let layout: GPUBindGroupLayoutEntry[] = [
         {
@@ -391,7 +333,7 @@ export function materialAddBindGroupLayoutOfMSAA(binding: number): { layout: GPU
         binding,
     }
 }
-
+/**getEntriesOfBindGroup()使用 */
 export function materialAddBindGroupOfMSAA(scope: BaseMaterial, binding: number, uuid: string): { group: T_uniformEntries[], binding: number } {
     let group: T_uniformEntries[] = [
         {

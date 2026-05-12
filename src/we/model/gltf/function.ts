@@ -38,7 +38,7 @@ export async function addNode(gltf: GLTFModel, nodeID: number, parent: NodeObjec
     ////////////////////////////////////////////////
     //如果当前节点有mesh，就添加到parent中
     if (node.mesh !== undefined && typeof node.mesh == "number") {//有mesh，就添加到parent中
-        let mesh = <BaseEntity>gltf.getRes(T_ModelResKind.entity, node.mesh);
+        let mesh = await gltf.getRes(T_ModelResKind.entity, node.mesh) as BaseEntity;
         if (node.matrix !== undefined) {
             // mesh.setMatrix(node.matrix);
         }

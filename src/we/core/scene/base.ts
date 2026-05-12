@@ -10,7 +10,11 @@ export interface IV_Scene {
     // disableCanvasContext?: boolean,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
-    /**是否预乘底色，默认=true */
+    /**预乘，根据预乘设置canvas的alphaMode
+     * 1、默认=true   
+     * 2、如果backgroudColor有alpha通道，且需要使用，premultipliedAlpha= true
+     * 3、不透明，alpha=1，乘不乘，一样
+     */
     premultipliedAlpha?: boolean,
     /**环境光 */
     ambientLight?: IV_DirectionalLight,

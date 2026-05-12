@@ -23,6 +23,11 @@ export abstract class BaseTexture extends RootGPU {
     texture: any;// GPUTexture| GPUExternalTexture;
     /**
      * 纹理的绑定布局
+     * dictionary GPUTextureBindingLayout {
+            GPUTextureSampleType sampleType = "float";
+            GPUTextureViewDimension viewDimension = "2d";
+            boolean multisampled = false;
+        };
      */
     textureLayout: GPUTextureBindingLayout = {};
 

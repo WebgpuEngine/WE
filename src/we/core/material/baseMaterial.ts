@@ -3,7 +3,16 @@ import { RootGPU } from "../organization/root";
 
 import { E_lifeState } from "../base/coreDefine";
 import { I_ShadowMapValueOfDC } from "../entity/base";
-import { IV_BaseMaterial, I_PartBundleOfUniform_TT, I_materialBundleOutput, E_TransparentType, I_AlphaTransparentOfMaterial, I_TransparentOptionOfMaterial, I_UniformBundleOfMaterial, I_BundleOfMaterialForMSAA, E_MaterialType, E_materialTypeForBindGroup } from "./base";
+import {
+    IV_BaseMaterial,
+    I_PartBundleOfUniform_TT,
+    I_materialBundleOutput,
+    I_AlphaTransparentOfMaterial,
+    I_UniformBundleOfMaterial,
+    I_BundleOfMaterialForMSAA,
+    E_MaterialType,
+    E_materialTypeForBindGroup
+} from "./base";
 import { commmandType, I_dynamicTextureEntryForView, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
@@ -632,7 +641,7 @@ export abstract class BaseMaterial extends RootGPU {
      * @returns GPUSampler 材质的sampler
      */
     checkSampler(input: IV_BaseMaterial): GPUSampler {
-        let { sampler, bindingType } = getSampler(input, this.scene);
+        let { sampler, bindingType } = getSampler({}, this.scene);
         this.defaultSamplerBindingType = bindingType;
         this.defaultSampler = sampler;
         return sampler;
@@ -777,47 +786,6 @@ export abstract class BaseMaterial extends RootGPU {
             alphaOfTransparent: false,
             alphaParams: undefined,
         }
-    /**获取透明材质的初始化参数
-     * @returns I_TransparentOptionOfMaterial | boolean 透明材质的初始化参数，或者false表示不是透明材质
-     * 
-     * 1、alpha的blend：是数组，因为透明材质可能会有多个blend状态
-     *      例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
-     */
-    // getTransparentOption(): I_TransparentOptionOfMaterial | boolean {
-    //     let isTransparent = this.getTransparent();
-    //     if (isTransparent) {
-    //         let transparentOption: I_TransparentOptionOfMaterial = {
-    //             type: this._transparent!.type
-    //         };
-    //         if ((this._transparent as I_AlphaTransparentOfMaterial)!.blend) {
-    //             let blend = this.getBlend();
-    //             if (blend) {
-    //                 /**
-    //                  * I_TransparentOptionOfMaterial
-    //                  * 这里是数组，因为透明材质可能会有多个blend状态
-    //                  * 例如：alpha透明材质可能会有多个blend状态，分别对应不同的透明度。（todo，20251005，但材质中目前只有一个blend状态，需要后期补充）
-    //                  */
-    //                 transparentOption.blend = [blend];
-    //             }
-    //             else {
-    //                 throw new Error("透明材质的blend状态不能为空");
-    //             }
-    //         }
-    //         return transparentOption;
-    //     }
-    //     return isTransparent;
-    // }
-
-    /**设置透明状态 
-     * @param transparent  T_TransparentOfMaterial 透明状态
-     * 1、如果是undefined，说明不透明
-     * 2、如果是object，说明透明
-     * 3、如果是object，并且object中没有alphaTest，那么alphaTest会被设置为0
-    */
-    // setTransparentOption(transparent: I_AlphaTransparentOfMaterial) {
-    //     this._transparent = transparent;
-    //     // this._state = E_lifeState.updated;
-    // }
     /**
      * 是否为透明材质
      * @returns boolean  true：是透明材质，false：不是透明材质
@@ -834,7 +802,7 @@ export abstract class BaseMaterial extends RootGPU {
      * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
      */
     // abstract getBlend(): GPUBlendState | undefined;
-    getBlend(): GPUBlendState[]  {
+    getBlend(): GPUBlendState[] {
         // if (this._transparent?.type == E_TransparentType.alpha) {
         //     return [this._transparent.blend!];
         // }
@@ -847,26 +815,6 @@ export abstract class BaseMaterial extends RootGPU {
             return [];
         }
     }
-    // /**
-    //  * 设置混合状态
-    //  * @param blend GPUBlendState 混合状态
-    //  */
-    // setBlend(blend: GPUBlendState) {
-    //     (this._transparent as I_AlphaTransparentOfMaterial).blend = blend;
-    //     this._state = E_lifeState.updated;
-    // }
-    // /**设置混合常量
-    //  * @param blendConstants number[] 混合常量
-    //  *  20251008，目前未测试，未使用过
-    //  */
-    // setblendConstants(blendConstants: number[]) {
-    //     if (this._transparent) {
-    //         if (this._transparent?.type == E_TransparentType.alpha) {
-    //             this._transparent.blendConstants = blendConstants;
-    //             this._state = E_lifeState.updated;
-    //         }
-    //     }
-    // }
 
 
 
@@ -1044,5 +992,6 @@ export abstract class BaseMaterial extends RootGPU {
             return this.unifromEntryBundle_TTPF;
         }
     }
+
 }
 
