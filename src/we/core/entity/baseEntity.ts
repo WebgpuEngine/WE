@@ -58,6 +58,8 @@ export abstract class BaseEntity extends NodeSpace {
     deferColor!: boolean;
     /** uv动画使用 */
     _uv: weVec2 = [0, 0];
+    /** OIT的tag */
+    oitTag: string | undefined;
     ///////////////////////////////////////////
     // shader
     /** 顶点偏移量，材质编辑器适用，目前(20260103)未使用*/
@@ -259,7 +261,7 @@ export abstract class BaseEntity extends NodeSpace {
     /** 生成原始包围盒和原始包围球 */
     abstract generateBoxAndSphere(): void
     /** 获取混合模式 */
-    abstract getBlend(): GPUBlendState[] ;
+    abstract getBlend(): GPUBlendState[];
     /** 获取是否透明 */
     abstract getTransparent(): boolean;
 

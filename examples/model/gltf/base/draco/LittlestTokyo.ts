@@ -69,10 +69,10 @@ let gltf = await createGLTFModel({
   {
     beforeGltfInit: (gltf, dataLoader) => {
       // dataLoader.gltfJson.materials![0].occlusionTexture=undefined;//移除occlusionTexture,normal,也感觉不对
-      // dataLoader.gltfJson.materials![1].occlusionTexture=undefined;//移除occlusionTexture,修正铁的颜色过多
+      dataLoader.gltfJson.materials![1].occlusionTexture=undefined;//移除occlusionTexture,修正铁的ao过重
       // dataLoader.gltfJson.materials![7].occlusionTexture=undefined;//移除occlusionTexture,修正透明的ao混乱
       // dataLoader.gltfJson.materials![12].occlusionTexture=undefined;//移除occlusionTexture,修正植物花ao混乱
-      // dataLoader.gltfJson.materials![1].occlusionTexture!.strength = .62;
+      // dataLoader.gltfJson.materials![1].occlusionTexture!.strength = .032;//改变AO强度
     }
   }
 );

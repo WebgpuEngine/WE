@@ -14,7 +14,7 @@ import { DrawCommand } from "../command/DrawCommand";
 import { isIndexGPUBufferBundle, isVSGPUBufferBundle, IV_DC, I_vsAttribute } from "../command/DrawCommandGenerator";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { BaseLight } from "../light/baseLight";
-import { I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_TransparentOptionOfMaterial } from "../material/base";
+import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";

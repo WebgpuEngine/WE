@@ -23,7 +23,7 @@ export enum E_MaterialType {
     Phong = "PhongMaterial",
 }
 
-export type T_alphaMode = "opaque" | "alphaTest" | "blend";
+export type T_alphaMode = "opaque" | "alphaTest" | "blend" | "testAndBlend";
 
 /**透明材质的初始化参数 */
 export interface I_AlphaTransparentOfMaterial {
@@ -78,7 +78,8 @@ export interface IV_BaseMaterial extends I_Update {
      * 3、优先级与覆盖
      *     材质doubleSided高于entity的primitive设置，如果有材质的doubleSided参数，会覆盖entity的primitive的参数。
     */
-    doubleSided?: boolean
+    doubleSided?: boolean,
+    transparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
 }
 /**自定义shader材质的初始化参数 */
 export interface IV_shaderMaterial extends IV_BaseMaterial {
@@ -90,7 +91,7 @@ export interface IV_BaseStandardMaterial extends IV_BaseMaterial {
     /**透明材质的初始化参数
      * 默认不透明：没有此参数
      */
-    transparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
+    // transparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
     //以下部分为 material 的 default sampler
     /** 
      * 1、简单设置采样器模式，如果有samplerDescriptor设置 ，则忽略此设置 
