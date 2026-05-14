@@ -33,9 +33,9 @@ fn GeometrySmith(normal : vec3f, wo : vec3f, wi : vec3f, roughness : f32) -> f32
 
     return ggx1 * ggx2;
 }
-fn getAmbientColor(albedo : vec3f, ao : f32) -> vec3f
+fn get_ambient_color(albedo : vec3f, ao : f32) -> vec3f
 {
-    return AmbientLight.color * AmbientLight.intensity * albedo * ao;
+    return ambient_light.color * ambient_light.intensity * albedo * ao;
 }
 fn calcLightAndShadowOfPBR(
     worldPosition : vec3f,
@@ -52,19 +52,19 @@ fn calcLightAndShadowOfPBR(
 
     let wo = normalize(defaultCameraPosition - worldPosition);
     var Lo = vec3(0.0);
-    if(U_lights.lightNumber >0)
+    if(u_lights.lightNumber >0)
     {
-        for (var i : u32 = 0; i < U_lights.lightNumber; i = i + 1)
+        for (var i : u32 = 0; i < u_lights.lightNumber; i = i + 1)
         {
-            let onelight = U_lights.lights[i ];  
+            let onelight = u_lights.lights[i ];  
 
-            let lightColor = U_lights.lights[i].color;
-            let lightPosition = U_lights.lights[i].position;
-            let lightIntensity = U_lights.lights[i].intensity;
+            let lightColor = u_lights.lights[i].color;
+            let lightPosition = u_lights.lights[i].position;
+            let lightIntensity = u_lights.lights[i].intensity;
             var distance = 0.0;                         //方向光没有距离
             var attenuation = lightIntensity;           //方向光没有衰减
-            var wi = U_lights.lights[i].direction;      //方向光
-            if(U_lights.lights[i].kind!=0)
+            var wi = u_lights.lights[i].direction;      //方向光
+            if(u_lights.lights[i].kind!=0)
             {
                 wi = normalize(lightPosition - worldPosition);
                 distance = length(lightPosition - worldPosition);
@@ -91,17 +91,17 @@ fn calcLightAndShadowOfPBR(
             let NdotL = max(dot(normal, wi), 0.0);
             //add to outgoing radiance Lo
             let diffuse = (kD * albedo / PI) * radiance * NdotL;//only diffuse light is currently implemented
-            //let ambient = getAmbientColor(albedo, ao);
+            //let ambient = get_ambient_color(albedo, ao);
             var visibility = getVisibilityOflight(onelight,worldPosition,normal); 
             Lo += (diffuse + specular) * radiance* visibility;
             // Lo += (diffuse + specular) * radiance;
             //Lo=vec3f(metallic);          
         }
     }
-    let ambient = getAmbientColor(albedo, ao);
+    let ambient = get_ambient_color(albedo, ao);
     let emissive = emissiveColor * emissiveIntensity;
     return vec4f(  color.rgb*(ambient + Lo) + emissive,1);
-    // return vec4f(  color.rgb*AmbientLight.color * AmbientLight.intensity,1);
+    // return vec4f(  color.rgb*ambient_light.color * ambient_light.intensity,1);
 }
 
 //PBRfunction.wgsl   ,end

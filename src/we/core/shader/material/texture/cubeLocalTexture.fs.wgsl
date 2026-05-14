@@ -1,8 +1,8 @@
 //start : cubeLocationtexture.fs.wgsl
 @fragment 
-fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {    
+fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
     $gbufferCommonValues //初始化GBuffer的通用值
-    initSystemOfFS();
+    init_system_fs();
     var output: ST_GBuffer;
     $fsOutput
     var cubemapVec =  fsInput.cubeVecUV;

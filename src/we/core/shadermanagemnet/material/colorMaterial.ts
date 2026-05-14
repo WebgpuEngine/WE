@@ -135,35 +135,35 @@ export var SHT_materialColor_TT_FS: I_ShaderTemplate = {
 
 
 
-/**colorTP: 像素级别 */
-export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,
-    material: {
-        owner: "ColorMaterial_TTP",
-        add: [
-            {
-                name: "fsOnput",
-                code: WGSL_st_transparentbuffer,
-            },
-            SHT_vsStructOutput,
-            SHT_TT,
+// /**colorTP: 像素级别 */
+// export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
+//     scene: SHT_ScenOfCamera_FS,
+//     material: {
+//         owner: "ColorMaterial_TTP",
+//         add: [
+//             {
+//                 name: "fsOnput",
+//                 code: WGSL_st_transparentbuffer,
+//             },
+//             SHT_vsStructOutput,
+//             SHT_TT,
 
-        ],
-        replace: [
-            //20260313 ，TTP不需要材质的color的输出，只需要来自VS的depth和id，进行比较
-            {
-                name: "Color",
-                replace: "$Color",                                     //材质的主体代码,
-                replaceType: E_shaderTemplateReplaceType.replaceCode,  //` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha});
-                replaceCode: "",
-            },
+//         ],
+//         replace: [
+//             //20260313 ，TTP不需要材质的color的输出，只需要来自VS的depth和id，进行比较
+//             {
+//                 name: "Color",
+//                 replace: "$Color",                                     //材质的主体代码,
+//                 replaceType: E_shaderTemplateReplaceType.replaceCode,  //` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha});
+//                 replaceCode: "",
+//             },
 
-            SHT_replaceTT_FSOutput,             // replace: "$fsOutput",   ！！！！！！！
+//             SHT_replaceTT_FSOutput,             // replace: "$fsOutput",   ！！！！！！！
 
 
-        ]
-    }
-}
+//         ]
+//     }
+// }
 
 // import colorTTPF_FSWGSL from "../../shader/transparent/TTPF.fs.wgsl?raw";
 // // import colorTTPF_FSWGSL from "../../shader/material/color/colorTTPF.fs.wgsl?raw";
@@ -173,39 +173,39 @@ export var SHT_materialColor_TTP_FS: I_ShaderTemplate = {
  * 1、使用TTPF的shader，在其中使用材质的输出逻辑替换
  * 2、basecolor的逻辑比较简单，只有一个color=vec4f()。其他的材质需要按需处理
 */
-import colorTTPF_FSWGSL from "../../shader/material/color/colorTTPF.fs.wgsl?raw";
-var colorTTPF_FS = colorTTPF_FSWGSL.toString();
-export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,
-    material: {
-        owner: "ColorMaterial_TTPF",
-        add: [
-            SHT_vsStructOutput,
-            {
-                name: "fsOnput",
-                code: WGSL_st_Guffer,
-            },
-            {
-                name: "fs",
-                code: TTPF_FS,
-            },
-        ],
-        replace: [
-            // {
-            //     name: "colorFS.output content",
-            //     replace: "$fsOutput",           //
-            //     replaceType: E_shaderTemplateReplaceType.replaceCode,
-            //     replaceCode: WGSL_replace_gbuffer_output
-            // },
-            {
-                name: "fsOutputColor",
-                replace: "$fsOutputColor",           //
-                replaceType: E_shaderTemplateReplaceType.replaceCode,                //color = vec4f(red, green, blue, alpha);
-                replaceCode: colorTTPF_FS,
-            }
-        ],
-    }
-}
+// import colorTTPF_FSWGSL from "../../shader/material/color/colorTTPF.fs.wgsl?raw";
+// var colorTTPF_FS = colorTTPF_FSWGSL.toString();
+// export var SHT_materialColor_TTPF_FS: I_ShaderTemplate = {
+//     scene: SHT_ScenOfCamera_FS,
+//     material: {
+//         owner: "ColorMaterial_TTPF",
+//         add: [
+//             SHT_vsStructOutput,
+//             {
+//                 name: "fsOnput",
+//                 code: WGSL_st_Guffer,
+//             },
+//             {
+//                 name: "fs",
+//                 code: TTPF_FS,
+//             },
+//         ],
+//         replace: [
+//             // {
+//             //     name: "colorFS.output content",
+//             //     replace: "$fsOutput",           //
+//             //     replaceType: E_shaderTemplateReplaceType.replaceCode,
+//             //     replaceCode: WGSL_replace_gbuffer_output
+//             // },
+//             {
+//                 name: "fsOutputColor",
+//                 replace: "$fsOutputColor",           //
+//                 replaceType: E_shaderTemplateReplaceType.replaceCode,                //color = vec4f(red, green, blue, alpha);
+//                 replaceCode: colorTTPF_FS,
+//             }
+//         ],
+//     }
+// }
 
 /** 位置颜色材质, 按需合并到VS中 */
 export var SHT_materialOneCubeFS: I_ShaderTemplate = {

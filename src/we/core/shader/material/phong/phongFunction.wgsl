@@ -2,7 +2,7 @@
 //todo,包含占位符，未使用uniform替换，会产生shader简单变体
 
 // 初版方向光计算
-fn phongColorDS(position : vec3f, vNormal : vec3f, onelight: ST_Light, viewerPosition : vec3f,roughness : f32,shininess : f32,metallic : f32) -> vec3f
+fn phongColorDS(position : vec3f, vNormal : vec3f, onelight:  st_light, viewerPosition : vec3f,roughness : f32,shininess : f32,metallic : f32) -> vec3f
 {
     let lightDir : vec3f = onelight.direction;
     let lightColor : vec3f = onelight.color;
@@ -34,10 +34,10 @@ fn dotNormal(normal : vec3f, lightDir : vec3f) -> bool{
     }
 }
 
-fn PhongAmbientColor() -> vec3f{    return AmbientLight.color * AmbientLight.intensity;}
+fn PhongAmbientColor() -> vec3f{    return ambient_light.color * ambient_light.intensity;}
 
 // 方向光计算，返回漫反射和高光颜色
-fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, onelight : ST_Light, viewerPosition : vec3f, inSpecularColor : vec3f,roughness : f32,shininess : f32,metallic : f32) ->array<vec3f, 2>
+fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, onelight :  st_light, viewerPosition : vec3f, inSpecularColor : vec3f,roughness : f32,shininess : f32,metallic : f32) ->array<vec3f, 2>
 {
      let lightDir : vec3f = onelight.direction;
      let lightColor : vec3f = onelight.color;
@@ -66,7 +66,7 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, onelight : ST
 }
 
 // 点光源计算，返回漫反射和高光颜色
-fn phongColorOfPointLight(position : vec3f, vNormal : vec3f,onelight : ST_Light, viewerPosition : vec3f, inSpecularColor : vec3f,roughness : f32,shininess : f32,metallic : f32) -> array<vec3f, 2>
+fn phongColorOfPointLight(position : vec3f, vNormal : vec3f,onelight :  st_light, viewerPosition : vec3f, inSpecularColor : vec3f,roughness : f32,shininess : f32,metallic : f32) -> array<vec3f, 2>
 {
      let lightPosition : vec3f = onelight.position;
      let lightColor : vec3f = onelight.color;
@@ -95,7 +95,7 @@ fn phongColorOfPointLight(position : vec3f, vNormal : vec3f,onelight : ST_Light,
 }
 
 // 聚光灯计算，返回漫反射和高光颜色
-fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, onelight : ST_Light, viewerPosition : vec3f, inSpecularColor : vec3f,roughness : f32,shininess : f32,metallic : f32) ->array<vec3f, 2>
+fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, onelight :  st_light, viewerPosition : vec3f, inSpecularColor : vec3f,roughness : f32,shininess : f32,metallic : f32) ->array<vec3f, 2>
 {
     let lightPosition : vec3f = onelight.position;
     let lightDirection : vec3f = onelight.direction;
@@ -162,11 +162,11 @@ fn calcLightAndShadowOfPhong(
     var depthVisibility = 0.0;
     var posFromLight : vec4f;
     var depth_sub_z : f32;
-    if(U_lights.lightNumber >0)
+    if(u_lights.lightNumber >0)
     {
-        for (var i : u32 = 0; i < U_lights.lightNumber; i = i + 1)
+        for (var i : u32 = 0; i < u_lights.lightNumber; i = i + 1)
         {
-            let onelight = U_lights.lights[i ];             //当前光源的struct 
+            let onelight = u_lights.lights[i ];             //当前光源的struct 
             var visibility = getVisibilityOflight(onelight,worldPosition,normal);  //可见性：是否在阴影中，1：不在阴影中，0：在阴影中
 
             var onelightPhongColor : array<vec3f, 2>;       //当前光源的漫反射，高光反射
@@ -188,8 +188,8 @@ fn calcLightAndShadowOfPhong(
             colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
             colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
         }
-        colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(U_lights.lightNumber);
-        colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(U_lights.lightNumber);
+        colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(u_lights.lightNumber);
+        colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(u_lights.lightNumber);
     }
     return vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * color.rgb + colorOfPhoneOfLights[1], color.a);
 }

@@ -139,7 +139,7 @@ export abstract class BaseCamera extends NodeObject {
   MVP: Mat4[] = [];
   /**
   * shader 中的systemMVP的arraybuffer
-  * struct ST_SystemMVP {   
+  * struct st_system_mvp {   
   *   model: mat4x4f,
   *   view: mat4x4f,
   *   projection: mat4x4f,

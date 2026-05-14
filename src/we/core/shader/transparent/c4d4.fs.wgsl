@@ -1,9 +1,9 @@
 //start : colorTT.fs.wgsl,
-fn checkDepthOfTransparent(fsInput: VertexShaderOutput) -> bool {
+fn checkDepthOfTransparent(fsInput: st_vertex_output) -> bool {
     //u_camera_opacity_depth:texture_depth_2d  是uniform
     let depth = textureLoad(u_camera_opacity_depth, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0);//u_camera_opacity_depth是固定的
     let z = fsInput.position.z;
-    if U_MVP.reversedZ == 1 {    //是否有reveredZ
+    if u_mvp.reversedZ == 1 {    //是否有reveredZ
         if (z> depth)
         {            //输出depth,uv,normal,id，原来的值,透明的在pickup等操作上是穿透的
             return true;
@@ -24,11 +24,11 @@ fn checkDepthOfTransparent(fsInput: VertexShaderOutput) -> bool {
 
 
 @fragment 
-fn fs(fsInput: VertexShaderOutput) -> ST_TransParentGBuffer {    
+fn fs(fsInput: st_vertex_output) -> ST_TransParentGBuffer {    
 
     var output: ST_TransParentGBuffer;
     let isTransparent = checkDepthOfTransparent(fsInput);
-        initSystemOfFS();
+        init_system_fs();
 
     //1、颜色的alpha逻辑.//统一工作流问题，
     var color: vec4f = vec4f(0,0,0,0); 
@@ -62,7 +62,7 @@ fn fs(fsInput: VertexShaderOutput) -> ST_TransParentGBuffer {
          idRender = textureLoad(u_id, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0);
 
          
-        if U_MVP.reversedZ == 1 {    //是否有reveredZ
+        if u_mvp.reversedZ == 1 {    //是否有reveredZ
   
             if(depth >  depthRender.a )
             {

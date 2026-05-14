@@ -38,9 +38,9 @@ struct PBRUniformInput{
 
 
 
-@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+@fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
     $gbufferCommonValues //初始化GBuffer的通用值
-    initSystemOfFS();   
+    init_system_fs();   
     //占位符,统一工作流在这里处理
     // $PBR_Uniform
     var uv_temp:vec2f=uv;
@@ -211,7 +211,7 @@ struct PBRUniformInput{
 
     //output.color = vec4f(normal*0.5+0.5, 1);    //
     // output.color = vec4f(colorOfPBR, 1);    //
-    //    let depthTest=textureLoad(U_shadowMap_depth_texture, vec2i(i32(fsInput.position.x),i32(fsInput.position.y)),0,0) *1.;
+    //    let depthTest=textureLoad(u_shadowmap_depth_texture, vec2i(i32(fsInput.position.x),i32(fsInput.position.y)),0,0) *1.;
     // output.color = vec4f( depthTest,depthTest,depthTest,1);
     return output;
 }

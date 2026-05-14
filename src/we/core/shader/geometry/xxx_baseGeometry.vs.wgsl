@@ -12,8 +12,8 @@ override uvOffset_y : f32 = 0.0;
 @location(3) color : vec3f,
 @builtin(vertex_index) vertexIndex : u32,
 @builtin(instance_index) instanceIndex : u32
-) -> VertexShaderOutput {
-  var vsOutput : VertexShaderOutput;
+) -> st_vertex_output {
+  var vsOutput : st_vertex_output;
   $vsOutput
   return vsOutput;
 }

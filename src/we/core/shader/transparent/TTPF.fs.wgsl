@@ -4,7 +4,7 @@ struct st_TTPF{
      layer:u32,
 }
 
-@fragment  fn fs(fsInput: VertexShaderOutput) -> @location(0) vec4f {    
+@fragment  fn fs(fsInput: st_vertex_output) -> @location(0) vec4f {    
 //@fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f {
     var id:u32 =0;
     let IDs=textureLoad(u_texture_ID, vec2i(floor( fsInput.position.xy)),0 );

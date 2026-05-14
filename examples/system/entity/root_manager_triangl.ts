@@ -33,7 +33,7 @@ window.scene = scene;
 // scene.requestAnimationFrame();
 //这里color输出乘以了0.16,为了区别表现
 let shader = `   
-struct ST_SystemMVP {
+struct st_system_mvp {
   model: mat4x4f,
   view: mat4x4f,
   projection: mat4x4f,
@@ -75,7 +75,7 @@ var<private> matrix_z_reversed : mat4x4f = mat4x4f(
             0.0, 0.0, 1.0, 1.0
         );
 
-@group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;    
+@group(0) @binding(0) var<uniform> U_MVP : st_system_mvp;    
 
       @vertex fn vs(
          @location(0) position : vec3f,

@@ -5,15 +5,15 @@ override boundingBoxMaxSize : f32 = 1.0;
 
 @vertex fn vs(
 attributes: st_location,
-) -> VertexShaderOutput {
-  initSystemOfVS();
+) -> st_vertex_output {
+  init_system_vs();
   $position
   $normal 
   $uv
   $color
-  var vsOutput : VertexShaderOutput;  
+  var vsOutput : st_vertex_output;  
   $vsOutput
-  // let offsetWorld = max(0.01, distance(worldPosition.xyz, U_MVP.cameraPosition) * offsetOfWireframeVale);
+  // let offsetWorld = max(0.01, distance(worldPosition.xyz, u_mvp.cameraPosition) * offsetOfWireframeVale);
   // vsOutput.position.z = vsOutput.position.z +offsetWorld;
 
   $userCodeVS

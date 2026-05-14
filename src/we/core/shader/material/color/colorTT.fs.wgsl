@@ -4,9 +4,9 @@
 // }
 // @group(2) @binding(0) var<uniform> u_color_material_uniform: color_material_uniform;
 
-@fragment fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {    
+@fragment fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
     $gbufferCommonValues //初始化GBuffer的通用值
-    initSystemOfFS();
+    init_system_fs();
     var output: ST_GBuffer;
     $fsOutput
 

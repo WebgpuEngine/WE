@@ -1,5 +1,5 @@
 //start:part.st_vertexOutput.vs.wgsl    //定义了vertex shader 输出的结构体，
-struct VertexShaderOutput {
+struct st_vertex_output {
     @builtin(position) position : vec4f,
     @location(0) normal : vec3f,
     // @location(1) uv : vec2f,

@@ -5,11 +5,11 @@ struct ST_frameline {
     @location(0) color : vec4f,
     @location(1) id : u32,
 }
-@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+@fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
     var output : ST_GBuffer;
     $output
     //在替换之后，更新了depth的值
-    if(U_MVP.reversedZ ==1)
+    if(u_mvp.reversedZ ==1)
     {
         output.depth = fsInput.position.z + 0.00000025;
     }

@@ -11,9 +11,7 @@ import {
     WGSL_st_Guffer,
     WGSL_st_MSAA_Guffer,
     WGSL_st_MSAAinfo_Guffer,
-    WGSL_st_transparentbuffer
 } from "../base"
-import { SHT_replaceTT_FSOutput, SHT_TT, TTPF_FS } from "./TT";
 import { SHT_replaceMsaaInForward, SHT_replaceMsaaInMsaa } from "./base";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -154,75 +152,75 @@ export var SHT_materialTexture_TT_FS: I_ShaderTemplate = {
     }
 }
 
-import textureTTP_FSWGSL from "../../shader/material/texture/textureTTP.fs.wgsl?raw";
-var textureTTP_FS = textureTTP_FSWGSL.toString();
-export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,
-    material: {
-        owner: "TextureMaterial TTP",
-        add: [
-            SHT_vsStructOutput,
-            {
-                name: "uniform",
-                code: textureUniformFS,
-            },
-            SHT_TT,
-            {
-                name: "fsOnput",
-                code: WGSL_st_transparentbuffer,
-            }
-        ],
-        replace: [
-            {
-                name: "Color",
-                replace: "$Color",                                     //材质的主体代码
-                replaceType: E_shaderTemplateReplaceType.replaceCode,  //` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha});
-                replaceCode: textureTTP_FS,
-            },
-            SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
-            SHT_replaceTT_FSOutput,             // replace: "$fsOutput",   ！！！！！！！
-            // //TT,TTP,TTPF相同的replace
-            // replaceAlpha_TT_TTP_TTPF,
-            // replaceOpacityPercent_TT_TTP_TTPF,
-        ],
-    }
-}
-import textureTTPF_FSWGSL from "../../shader/material/texture/textureTTPF.fs.wgsl?raw";
-var textureTTPF_FS = textureTTPF_FSWGSL.toString();
-export var SHT_materialTexture_TTPF_FS: I_ShaderTemplate = {
-    scene: SHT_ScenOfCamera_FS,
-    material: {
-        owner: "TextureMaterial TTPF",
-        add: [
-            SHT_vsStructOutput,
-            {
-                name: "uniform",
-                code: textureUniformFS,
-            },
-            {
-                name: "fsOnput",
-                code: WGSL_st_Guffer,
-            },
-            {
-                name: "fs",
-                code: TTPF_FS,
-            },
-        ],
-        replace: [
-            {
-                name: "fsOutputColor",
-                replace: "$fsOutputColor",           // replace target :  color
-                /**
-                * color = vec4f(red, green, blue, alpha);
-                * 根据材质输出color，blend使用
-                * 图像纹理需要uniform texture，采样器
-                */
-                replaceType: E_shaderTemplateReplaceType.replaceCode,
-                replaceCode: textureTTPF_FS,
-            },
-            // //TT,TTP,TTPF相同的replace
-            // replaceAlpha_TT_TTP_TTPF,
-            // replaceOpacityPercent_TT_TTP_TTPF,
-        ],
-    }
-}
+// import textureTTP_FSWGSL from "../../shader/material/texture/textureTTP.fs.wgsl?raw";
+// var textureTTP_FS = textureTTP_FSWGSL.toString();
+// export var SHT_materialTexture_TTP_FS: I_ShaderTemplate = {
+//     scene: SHT_ScenOfCamera_FS,
+//     material: {
+//         owner: "TextureMaterial TTP",
+//         add: [
+//             SHT_vsStructOutput,
+//             {
+//                 name: "uniform",
+//                 code: textureUniformFS,
+//             },
+//             SHT_TT,
+//             {
+//                 name: "fsOnput",
+//                 code: WGSL_st_transparentbuffer,
+//             }
+//         ],
+//         replace: [
+//             {
+//                 name: "Color",
+//                 replace: "$Color",                                     //材质的主体代码
+//                 replaceType: E_shaderTemplateReplaceType.replaceCode,  //` output.color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha});
+//                 replaceCode: textureTTP_FS,
+//             },
+//             SHT_replaceGBufferCommonValue,                                            // WGSL_replace_gbuffer_commonValues部分
+//             SHT_replaceTT_FSOutput,             // replace: "$fsOutput",   ！！！！！！！
+//             // //TT,TTP,TTPF相同的replace
+//             // replaceAlpha_TT_TTP_TTPF,
+//             // replaceOpacityPercent_TT_TTP_TTPF,
+//         ],
+//     }
+// }
+// import textureTTPF_FSWGSL from "../../shader/material/texture/textureTTPF.fs.wgsl?raw";
+// var textureTTPF_FS = textureTTPF_FSWGSL.toString();
+// export var SHT_materialTexture_TTPF_FS: I_ShaderTemplate = {
+//     scene: SHT_ScenOfCamera_FS,
+//     material: {
+//         owner: "TextureMaterial TTPF",
+//         add: [
+//             SHT_vsStructOutput,
+//             {
+//                 name: "uniform",
+//                 code: textureUniformFS,
+//             },
+//             {
+//                 name: "fsOnput",
+//                 code: WGSL_st_Guffer,
+//             },
+//             {
+//                 name: "fs",
+//                 code: TTPF_FS,
+//             },
+//         ],
+//         replace: [
+//             {
+//                 name: "fsOutputColor",
+//                 replace: "$fsOutputColor",           // replace target :  color
+//                 /**
+//                 * color = vec4f(red, green, blue, alpha);
+//                 * 根据材质输出color，blend使用
+//                 * 图像纹理需要uniform texture，采样器
+//                 */
+//                 replaceType: E_shaderTemplateReplaceType.replaceCode,
+//                 replaceCode: textureTTPF_FS,
+//             },
+//             // //TT,TTP,TTPF相同的replace
+//             // replaceAlpha_TT_TTP_TTPF,
+//             // replaceOpacityPercent_TT_TTP_TTPF,
+//         ],
+//     }
+// }

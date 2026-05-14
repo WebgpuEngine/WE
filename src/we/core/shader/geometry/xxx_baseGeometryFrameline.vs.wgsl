@@ -3,8 +3,8 @@
 @vertex fn vs(
 @location(0) position : vec3f,
 @builtin(instance_index) instanceIndex : u32
-) -> VertexShaderOutput {
-    var vsOutput : VertexShaderOutput;
+) -> st_vertex_output {
+    var vsOutput : st_vertex_output;
     //这个没有使用替换内容
     vsOutput.position = matrix_z * MVP * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
     vsOutput.uv = vec2f(1);

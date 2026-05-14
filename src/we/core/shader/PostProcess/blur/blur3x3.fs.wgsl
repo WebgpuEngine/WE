@@ -1,5 +1,5 @@
 
-@group(0) @binding(0) var<uniform> u_PP_ScreenSize : ST_PP_ScreenSize;
+@group(0) @binding(0) var<uniform> u_PP_ScreenSize : st_PP_screen_size;
 @group(0) @binding(1) var u_screen_texture : texture_2d<f32>;   
      
  

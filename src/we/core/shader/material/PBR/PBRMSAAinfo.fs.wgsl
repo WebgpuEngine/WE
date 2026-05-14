@@ -7,9 +7,9 @@ struct PBRBaseUniform{
     ao : f32,               //环境光遮蔽
 }
 @fragment
-fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
     $gbufferCommonValues //初始化GBuffer的通用值
-    initSystemOfFS();   
+    init_system_fs();   
     let F0 = vec3(0.04);
     //占位符,统一工作流在这里处理
     // $PBR_Uniform

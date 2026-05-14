@@ -6,13 +6,13 @@ override uvOffset_y : f32 = 0.0;
 
 @vertex fn vs(
 attributes: st_location,
-) -> VertexShaderOutput {
-  initSystemOfVS();
+) -> st_vertex_output {
+  init_system_vs();
   $position
   $normal 
   $uv
   $color
-  var vsOutput : VertexShaderOutput;  
+  var vsOutput : st_vertex_output;  
   $vsOutput
 
   let sprite_up_define=vec3f(0,1,0);

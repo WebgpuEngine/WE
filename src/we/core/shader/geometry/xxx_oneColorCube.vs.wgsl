@@ -1,7 +1,7 @@
 
 
 //这个shader 未使用 part定义的VertexShaderOutput结构体，而是用了自定义的VertexShaderOutput_oneCube
-struct VertexShaderOutput_oneCube {
+struct st_vertex_output_oneCube {
     @builtin(position) position : vec4f,
     @location(0) uv : vec2f,
     @location(1) normal : vec3f,
@@ -18,8 +18,8 @@ struct VertexShaderOutput_oneCube {
 @location(3) color : vec3f,
 @builtin(instance_index) instanceIndex : u32,
 @builtin(vertex_index) vertexIndex : u32
-) -> VertexShaderOutput_oneCube {
-    var vsOutput : VertexShaderOutput_oneCube;
+) -> st_vertex_output_oneCube {
+    var vsOutput : st_vertex_output_oneCube;
     vsOutput.position =matrix_z *  MVP * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
     vsOutput.uv = uv;
     vsOutput.normal = vec4f(entity.MatrixWorld[instanceIndex] * vec4f(normal, 0)).xyz;

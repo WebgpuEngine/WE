@@ -321,13 +321,13 @@ export abstract class BaseLight extends NodeObject {
     }
 
     // updateGPUBufferOfMVP() {
-    //     const ST_SystemMVPViews = {
+    //     const st_system_mvpViews = {
     //         MVP: new Float32Array(this.bufferOfMVP, 0, 16),
     //         reversedZ: new Uint32Array(this.bufferOfMVP, 64, 1),
     //     };
-    //     ST_SystemMVPViews.reversedZ[0] = 1;//默认开启
-    //     ST_SystemMVPViews.MVP.set(this.MVP.flat());
-    //     mat4.copy(this.MVP, ST_SystemMVPViews.MVP);
+    //     st_system_mvpViews.reversedZ[0] = 1;//默认开启
+    //     st_system_mvpViews.MVP.set(this.MVP.flat());
+    //     mat4.copy(this.MVP, st_system_mvpViews.MVP);
     //     this.device.queue.writeBuffer(this.GPUBufferOfMVP, 0, this.bufferOfMVP);
     // }
 

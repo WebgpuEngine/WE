@@ -6,7 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //start system.wgsl
-struct ST_SystemMVP {
+struct st_system_mvp {
   MVP: mat4x4f,
   reversedZ: u32,
 };
@@ -21,13 +21,13 @@ var<private> matrix_z : mat4x4f = mat4x4f(
     0.0, 0.0, 0.0, 1.0
 );
 
-@group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;
+@group(0) @binding(0) var<uniform> u_mvp : st_system_mvp;
 
 
-fn initSystemOfVS() {
-    MVP = U_MVP.MVP;
+fn init_system_vs() {
+    MVP = u_mvp.MVP;
 
-    if U_MVP.reversedZ == 1 {
+    if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(
             1.0, 0.0, 0.0, 0.0,
             0.0, 1.0, 0.0, 0.0,
@@ -39,7 +39,7 @@ fn initSystemOfVS() {
 // end system.wgsl
 
 //start:part.st_vertexOutput.vs.wgsl    //定义了vertex shader 输出的结构体，
-struct VertexShaderOutput {
+struct st_vertex_output {
     @builtin(position) position : vec4f,
     @location(0) normal : vec3f,
     @location(1) uv : vec4f,//如果适用2组uv，则通过这组uv进行传递
@@ -93,8 +93,8 @@ override boundingBoxMaxSize : f32 = 1.0;
 
 @vertex fn vs(
 attributes: st_location,
-) -> VertexShaderOutput {
-  initSystemOfVS();
+) -> st_vertex_output {
+  init_system_vs();
    let position = attributes.position; 
  
    let normal = attributes.normal; 
@@ -104,7 +104,7 @@ attributes: st_location,
   
    let color = attributes.color; 
  
-  var vsOutput : VertexShaderOutput;  
+  var vsOutput : st_vertex_output;  
   //start: entity/mesh/replace_output.vs.vs.wgsl 
 
 // let tempWidth=1.0;

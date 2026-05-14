@@ -12,10 +12,10 @@ struct st_bulin_phong {
   has_specular_texture: i32,
   parallax_layer: u32,
 }
-@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+@fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
     $gbufferCommonValues //初始化GBuffer的通用值
 
-    initSystemOfFS();   
+    init_system_fs();   
 
     $normal                             //来自VS，还是来自texture
     var output: ST_GBuffer;

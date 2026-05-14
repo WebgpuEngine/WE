@@ -19,9 +19,9 @@ struct st_bulin_phong {
 // @group(2)  @binding(5) var u_texture_specular : texture_2d<f32>;
 
 
-@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+@fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
     $gbufferCommonValues //初始化GBuffer的通用值，必须
-    initSystemOfFS();   
+    init_system_fs();   
 
     //0、uniform cotrol follow 
     let parallaxScale = u_bulinphong.parallaxScale;
@@ -95,18 +95,18 @@ struct st_bulin_phong {
     // let lightIntensity = 1.0;
     // let lightDir = vec3f(0.0, 1.0, 0.0);
     // let lightColor = vec3f(1.0, 1., 0.0);
-    // let onelight = U_lights.lights[0 ]; 
+    // let onelight = u_lights.lights[0 ]; 
     // let colorOfPhongDS = phongColorDS(fsInput.worldPosition, fsInput.normal, lightDir, lightColor, lightIntensity, defaultCameraPosition,uv);
     // let colorOfAmbient = PhongAmbientColor();
     // output.color =  vec4f((colorOfAmbient + colorOfPhongDS[0]) * materialColor.rgb + colorOfPhongDS[1], materialColor.a);
     // output.color = vec4f( visibility,visibility,visibility   , 1.0);
 
     //测试shadow map
-    // let depth=textureLoad(U_shadowMap_depth_texture, vec2i(i32(fsInput.position.x*2),i32(fsInput.position.y*2)),0,0) ;
+    // let depth=textureLoad(u_shadowmap_depth_texture, vec2i(i32(fsInput.position.x*2),i32(fsInput.position.y*2)),0,0) ;
     // output.color = vec4f( depth,depth,depth,1);
     
     //测试可见性，
-    //  var visibility = getVisibilityOflight(U_lights.lights[1],worldPosition.rgb,normal.rgb); 
+    //  var visibility = getVisibilityOflight(u_lights.lights[1],worldPosition.rgb,normal.rgb); 
     //  output.color  =vec4f(visibility,visibility,visibility,1);
     
     return output;

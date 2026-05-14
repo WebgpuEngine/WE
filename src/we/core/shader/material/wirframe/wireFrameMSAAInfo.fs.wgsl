@@ -7,19 +7,19 @@
 override offsetOfWireframeVale : f32 = 1.0;
 override boundingBoxMaxSize : f32 = 1.0;
 @fragment 
-fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {    
+fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
     $gbufferCommonValues //初始化GBuffer的通用值
-    initSystemOfFS();
+    init_system_fs();
     var output: ST_GBuffer;
     $fsOutput
     $fsOutputColor    
     let scaleOffset=0.00001;
-    let offsetWorld = max(scaleOffset, distance(fsInput.worldPosition.xyz, U_MVP.cameraPosition) * offsetOfWireframeVale*scaleOffset*scaleOffset);
-    // let offsetWorld = max(scaleOffset,pow(scaleOffset,distance(fsInput.worldPosition.xyz, U_MVP.cameraPosition) * offsetOfWireframeVale));
+    let offsetWorld = max(scaleOffset, distance(fsInput.worldPosition.xyz, u_mvp.cameraPosition) * offsetOfWireframeVale*scaleOffset*scaleOffset);
+    // let offsetWorld = max(scaleOffset,pow(scaleOffset,distance(fsInput.worldPosition.xyz, u_mvp.cameraPosition) * offsetOfWireframeVale));
 
     // output.color =  u_color_material_uniform.color;
 
-    if(U_MVP.reversedZ ==1)
+    if(u_mvp.reversedZ ==1)
     {
         output.depth = fsInput.position.z + offsetWorld ;
     }

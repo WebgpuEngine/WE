@@ -1,9 +1,9 @@
 //start : colorTT.fs.wgsl,
 
 @fragment 
-fn fs(fsInput: VertexShaderOutput) -> ST_TransParentGBuffer {    
+fn fs(fsInput: st_vertex_output) -> ST_TransParentGBuffer {    
     var output: ST_TransParentGBuffer;
-    initSystemOfFS();
+    init_system_fs();
 
     
         var color: vec4f = vec4f(0,0,0,0);
@@ -30,7 +30,7 @@ fn fs(fsInput: VertexShaderOutput) -> ST_TransParentGBuffer {
          let depth3 = depthRender.b;
          let depth4 = depthRender.a;    //a near
          
-        if U_MVP.reversedZ == 1 {    //是否有reveredZ
+        if u_mvp.reversedZ == 1 {    //是否有reveredZ
   
             if(depth > depth1 )
             {

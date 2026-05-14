@@ -6,9 +6,9 @@
 //其他适用VS 传输的：uv，color，worldPosition等
 
 @fragment 
-fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {    
+fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
     $gbufferCommonValues //初始化GBuffer的通用值
-    initSystemOfFS();
+    init_system_fs();
     var output: ST_GBuffer;
     $fsOutput
 //MSAA start 

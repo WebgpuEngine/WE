@@ -9,7 +9,7 @@
 // @group(1) @binding(6) var u_Sampler : sampler; 
 
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
-    initSystemOfFS();   
+    init_system_fs();   
     let uv =vec2i(floor(pos.xy));
     var  color =textureLoad(u_colorTexture,uv,0);
     let  normal =textureLoad(u_normalTexture,uv,0);
@@ -86,15 +86,15 @@
     // }
 
     //测试阴影贴图
-    // let depthTest=textureLoad(U_shadowMap_depth_texture, vec2i(i32(pos.x),i32(pos.y)),1,0) ;//第一个方向光的阴影
-    // let depthTest=textureLoad(U_shadowMap_depth_texture, vec2i(i32(pos.x),i32(pos.y)),2,0) ;//第二个方向光的阴影
+    // let depthTest=textureLoad(u_shadowmap_depth_texture, vec2i(i32(pos.x),i32(pos.y)),1,0) ;//第一个方向光的阴影
+    // let depthTest=textureLoad(u_shadowmap_depth_texture, vec2i(i32(pos.x),i32(pos.y)),2,0) ;//第二个方向光的阴影
     // materialColor = vec4f( depthTest,depthTest,depthTest,1);
 
     // //测试可见性
-    //  var visibility = getVisibilityOflight(U_lights.lights[1],worldPosition.rgb,normal.rgb); 
+    //  var visibility = getVisibilityOflight(u_lights.lights[1],worldPosition.rgb,normal.rgb); 
     //  materialColor =vec4f(visibility,visibility,visibility,1);
 
-    // let abc=f32(U_lights.lights[1].shadow_map_array_index);
+    // let abc=f32(u_lights.lights[1].shadow_map_array_index);
     // materialColor =vec4f(abc,abc,abc,1);
     return materialColor;
 }
@@ -122,27 +122,27 @@ fn calcLightAndShadow(
     let wo = normalize(defaultCameraPosition - worldPosition);
     var Lo = vec3(0.0);
     //计算光照模型
-    if(U_lights.lightNumber >0)
+    if(u_lights.lightNumber >0)
     {
-        for (var i : u32 = 0; i < U_lights.lightNumber; i = i + 1)
+        for (var i : u32 = 0; i < u_lights.lightNumber; i = i + 1)
         {
             // if(i==0) {
             //     continue;
             // }
 
             //计算当前光源的可见性
-            let onelight = U_lights.lights[i ];  
+            let onelight = u_lights.lights[i ];  
             var visibility = getVisibilityOflight(onelight,worldPosition,normal); 
             //分别计算PBR和Phong光照模型
             if(materialKind==1){
-                // let onelight = U_lights.lights[i ];  
-                let lightColor = U_lights.lights[i].color;
-                let lightPosition = U_lights.lights[i].position;
-                let lightIntensity = U_lights.lights[i].intensity;
+                // let onelight = u_lights.lights[i ];  
+                let lightColor = u_lights.lights[i].color;
+                let lightPosition = u_lights.lights[i].position;
+                let lightIntensity = u_lights.lights[i].intensity;
                 var distance = 0.0;                         //方向光没有距离
                 var attenuation = lightIntensity;           //方向光没有衰减
-                var wi = U_lights.lights[i].direction;      //方向光
-                if(U_lights.lights[i].kind!=0)
+                var wi = u_lights.lights[i].direction;      //方向光
+                if(u_lights.lights[i].kind!=0)
                 {
                     wi = normalize(lightPosition - worldPosition);
                     distance = length(lightPosition - worldPosition);
@@ -198,14 +198,14 @@ fn calcLightAndShadow(
     }
     var finialColor:vec4f=vec4f(0);
     if(materialKind==1){
-        let ambient = getAmbientColor(albedo, ao);
+        let ambient = get_ambient_color(albedo, ao);
         let emissive = emissiveColor * emissiveIntensity;
         finialColor =vec4f(  color.rgb*(ambient + Lo) + emissive,color.a);
     }
     else if(materialKind==2){
         let colorOfAmbient = PhongAmbientColor();
-        colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(U_lights.lightNumber);
-        colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(U_lights.lightNumber);
+        colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(u_lights.lightNumber);
+        colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(u_lights.lightNumber);
         finialColor = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * color.rgb + colorOfPhoneOfLights[1], color.a);
         finialColor = vec4f(finialColor.rgb, 1.0);
         // finialColor = vec4f(1,0,0,1);

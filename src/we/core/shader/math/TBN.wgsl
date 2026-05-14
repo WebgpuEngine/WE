@@ -1,5 +1,5 @@
 //材质
-fn ParallaxMappingBase( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap:texture_2d<f32>,depthSampler:sampler)-> vec2f
+fn parallax_mapping_base( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap:texture_2d<f32>,depthSampler:sampler)-> vec2f
 { 
     let  height =  textureSample(depthMap,depthSampler, texCoords).r;     
     return texCoords - viewDir.xy/viewDir.z * (height * heightScale);        
