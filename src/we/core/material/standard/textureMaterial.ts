@@ -14,21 +14,18 @@
 import { Texture } from "../../texture/texture";
 import { T_textureSourceType } from "../../texture/base";
 import {
-    E_MaterialType, E_materialTypeForBindGroup, E_TextureType, E_TransparentType,
-    I_materialBundleOutput, IV_BaseStandardMaterial,
+    E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
+    IV_BaseStandardMaterial,
     materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
 } from "../base";
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import {
-    SHT_materialTexture_TT_FS, SHT_materialTexture_TTP_FS,
-    SHT_materialTexture_TTPF_FS, SHT_materialTextureFS,
+    SHT_materialTexture_TT_FS,
+    SHT_materialTextureFS,
     SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo
 } from "../../shadermanagemnet/material/textureMaterial";
-import { BaseCamera } from "../../camera/baseCamera";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { BaseStandardMaterial } from "./baseStandard";
@@ -51,20 +48,9 @@ export interface IV_TextureMaterial extends IV_BaseStandardMaterial {
 
 export class TextureMaterial extends BaseStandardMaterial {
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
-    /**是否开启透明度测试 */
-    // hasAlphaTest: boolean = false;
-    /**透明度测试阈值：0-1之间的浮点数，默认0.0（不开启） */
-    // _alphaTest: number = 0.0;
-
-    /**是否开启不透明度 */
-    // hasOpacity: boolean = false;
-    /**不透明度：0-1之间的浮点数，默认1.0（完全不透明） */
-    // _opacity: number = 1.0;
-
 
     declare inputValues: IV_TextureMaterial;
-    // /**是否上下翻转Y轴 */
-    // _upsideDownY: boolean;
+
     /**纹理收集器 */
     declare textures: {
         [name: string]: Texture
@@ -74,44 +60,22 @@ export class TextureMaterial extends BaseStandardMaterial {
         super(input);
         this.kind = E_MaterialType.texture;
         this.textures = {};
-
         if (input.texture == undefined) {
             throw new Error("TextureMaterial: texture is undefined");
         }
-
-        // if (input.transparent ) {
-        //     if (input.transparent.alphaTest != undefined) {
-        //         this._alphaTest = input.transparent.alphaTest;
-        //         this.hasAlphaTest = true;
-        //     }
-        //     if (input.transparent.opacity != undefined) {
-        //         this._opacity = input.transparent.opacity;
-        //         this.hasOpacity = true;
-        //     }
-        // }
-
         this._state = E_lifeState.unstart;
-
-        //是否上下翻转Y轴
-        // this._upsideDownY = true;
-        // if (input.upsideDownY != undefined) {
-        //     this._upsideDownY = input.upsideDownY;
-        // }
         this.shtOfMaterialType = {
             opacityForward: SHT_materialTextureFS,
             opacityDefer: SHT_materialTextureFS,
             opacityMSAA: SHT_materialTextureFS_MSAA,
             opacityMSAAInfo: SHT_materialTextureFS_MSAAinfo,
-
-            TO_Forward: SHT_materialTextureFS,
-            TO_Defer: SHT_materialTextureFS,
-            TO_MSAA: SHT_materialTextureFS_MSAA,
-            TO_MsaaInfo: SHT_materialTextureFS_MSAAinfo,
-
             TT: SHT_materialTexture_TT_FS,
-
-            TTP: SHT_materialTexture_TTP_FS,
-            TTPF: SHT_materialTexture_TTPF_FS,
+            // TO_Forward: SHT_materialTextureFS,
+            // TO_Defer: SHT_materialTextureFS,
+            // TO_MSAA: SHT_materialTextureFS_MSAA,
+            // TO_MsaaInfo: SHT_materialTextureFS_MSAAinfo,
+            // TTP: SHT_materialTexture_TTP_FS,
+            // TTPF: SHT_materialTexture_TTPF_FS,
         };
     }
     _destroy() {
@@ -163,35 +127,32 @@ export class TextureMaterial extends BaseStandardMaterial {
     }
     /**是否有alphaTest */
     getHasAlphaTest() {
-        if (this._ToTaTp.alphaParams?.alphaMode == "alphaTest") {
+        if (this._transparentMode.mode == "alphaTest") {
             return 1;
         }
         return 0;
     }
     get AlphaTest() {
         let alphaCutOff = 0.0;
-        if (this._ToTaTp.alphaParams?.alphaCutOff)
-            alphaCutOff = this._ToTaTp.alphaParams.alphaCutOff;
+        if (this._transparentMode.alphaParams?.alphaCutOff)
+            alphaCutOff = this._transparentMode.alphaParams.alphaCutOff;
         return alphaCutOff;
     }
     set AlphaTest(value: number) {
-        this._ToTaTp.alphaParams = {
-            alphaMode: "alphaTest",
+        this._transparentMode.alphaParams = {
             alphaCutOff: value,
         }
         this.writeUniformBuffer(true);
     }
     get Opacity() {
         let opacity = 1.0;
-        if (this._ToTaTp.alphaOfTransparent === true && this._ToTaTp.alphaParams?.blendParams?.opacity)
-            opacity = this._ToTaTp.alphaParams.blendParams.opacity;
+        if (this._transparentMode.alphaOfTransparent === true && this._transparentMode.alphaParams?.blendParams?.opacity)
+            opacity = this._transparentMode.alphaParams.blendParams.opacity;
         return opacity;
     }
     set Opacity(value: number) {
-        this._ToTaTp.alphaOfTransparent = true;
-        this._ToTaTp.opaqueOfTransparent = false;
-        this._ToTaTp.alphaParams = {
-            alphaMode: "blend",
+        this._transparentMode.alphaOfTransparent = true;
+        this._transparentMode.alphaParams = {
             blendParams: {
                 opacity: value,
             }
@@ -200,14 +161,12 @@ export class TextureMaterial extends BaseStandardMaterial {
     }
     get HasOpacity() {
         let hasOpacity = 0;
-        if (this._ToTaTp.alphaOfTransparent && this._ToTaTp.alphaParams?.blendParams?.opacity) {
+        if (this._transparentMode.alphaOfTransparent && this._transparentMode.alphaParams?.blendParams?.opacity) {
             hasOpacity = 1;
         }
         return hasOpacity;
     }
-    setTO(): void {
-        this._opaqueOfTransparent = true;
-    }
+
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [
@@ -234,7 +193,7 @@ export class TextureMaterial extends BaseStandardMaterial {
                 },
             }
         ];
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -263,7 +222,7 @@ export class TextureMaterial extends BaseStandardMaterial {
             },
         ];
 
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -281,7 +240,7 @@ export class TextureMaterial extends BaseStandardMaterial {
             @group(${this.bindGroupNumber}) @binding(${binding++}) var u_colorTexture: texture_2d<f32>;
             @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
             `;
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;
@@ -294,52 +253,52 @@ export class TextureMaterial extends BaseStandardMaterial {
 
     /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialTexture_TTPF_FS;
-        if (renderObject instanceof BaseCamera) {
-            let replaceList = new Map<string, string | (() => string)>();
-            // // replaceList.set("$materialColorRule", this.materialColorRule(this));
-            // // replaceList.set("$opacityPercent", this.opacityPercent(this));
-            // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
-            // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
-            let output = this.formatSHT(template, replaceList, 0);
-            // let output = this.formatSHT(template, replaceList, 0,true,renderObject);
-            output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
-            {//获取当前材质的TTPF的输出uniform bundle 。
-                let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
-                // output.uniformGroup.push(...uniformBundle.entry);
-                output.bindingNumber = uniformBundle.bindingNumber;
-                output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
-            }
-            output.materialType = E_materialTypeForBindGroup.TTPF;
-            return output;
-        }
-        else {
-            throw new Error("Method not implemented.");
-        }
-    }
+    // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+    //     let template = SHT_materialTexture_TTPF_FS;
+    //     if (renderObject instanceof BaseCamera) {
+    //         let replaceList = new Map<string, string | (() => string)>();
+    //         // // replaceList.set("$materialColorRule", this.materialColorRule(this));
+    //         // // replaceList.set("$opacityPercent", this.opacityPercent(this));
+    //         // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
+    //         // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
+    //         let output = this.formatSHT(template, replaceList, 0);
+    //         // let output = this.formatSHT(template, replaceList, 0,true,renderObject);
+    //         output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
+    //         {//获取当前材质的TTPF的输出uniform bundle 。
+    //             let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
+    //             // output.uniformGroup.push(...uniformBundle.entry);
+    //             output.bindingNumber = uniformBundle.bindingNumber;
+    //             output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
+    //         }
+    //         output.materialType = E_materialTypeForBindGroup.TTPF;
+    //         return output;
+    //     }
+    //     else {
+    //         throw new Error("Method not implemented.");
+    //     }
+    // }
 
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-        let template: I_ShaderTemplate;
-        let code: string = "";
-        if (renderObject instanceof BaseCamera) {
-            //format code 
-            template = SHT_materialTexture_TTP_FS;
+    // formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
+    //     let template: I_ShaderTemplate;
+    //     let code: string = "";
+    //     if (renderObject instanceof BaseCamera) {
+    //         //format code 
+    //         template = SHT_materialTexture_TTP_FS;
 
 
-            let replaceList = new Map<string, string | (() => string)>();
-            // replaceList.set("$materialColorRule", this.materialColorRule(this));
-            // replaceList.set("$opacityPercent", this.opacityPercent(this));
-            // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
-            // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
-            let output = this.formatSHT(template, replaceList, 0);
-            return output;
-        }
-        //light shadow map TT
-        else {
-            throw new Error("light shadow map 透明 todo");
-        }
-    }
+    //         let replaceList = new Map<string, string | (() => string)>();
+    //         // replaceList.set("$materialColorRule", this.materialColorRule(this));
+    //         // replaceList.set("$opacityPercent", this.opacityPercent(this));
+    //         // replaceList.set("$materialColorRule", () => (this.materialColorRule(this)));
+    //         // replaceList.set("$opacityPercent", () => (this.opacityPercent(this)));
+    //         let output = this.formatSHT(template, replaceList, 0);
+    //         return output;
+    //     }
+    //     //light shadow map TT
+    //     else {
+    //         throw new Error("light shadow map 透明 todo");
+    //     }
+    // }
     // materialColorRule(scope: TextureMaterial): string {
     //     let replaceString = "";
     //     let opacityPercent: number | false = false;

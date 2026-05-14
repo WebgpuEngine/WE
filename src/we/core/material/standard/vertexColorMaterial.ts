@@ -26,16 +26,7 @@ export class VertexColorMaterial extends BaseStandardMaterial {
             opacityDefer: SHT_materialVertexColorFS,
             opacityMSAA: SHT_materialVertexColorFS_MSAA,
             opacityMSAAInfo: SHT_materialVertexColorFS_MSAA_info,
-
-            TO_Forward: undefined,
-            TO_Defer: undefined,
-            TO_MSAA: undefined,
-            TO_MsaaInfo: undefined,
-
             TT: undefined,
-
-            TTP: undefined,
-            TTPF: undefined,
         };
 
     }
@@ -45,15 +36,7 @@ export class VertexColorMaterial extends BaseStandardMaterial {
     async readyForGPU(): Promise<any> {
         this._state = E_lifeState.finished;
     }
-    setTO(): void {
-        this._opaqueOfTransparent = false;
-    }
-    getTransparent(): boolean {
-        return false;
-    }
-    getBlend(): GPUBlendState | undefined {
-        return undefined;
-    }
+
     generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
         let replaceList = new Map<string, string | (() => string)>();
         // let color: string = ` output.color = vec4f(fsInput.color,1); \n`;
@@ -64,7 +47,7 @@ export class VertexColorMaterial extends BaseStandardMaterial {
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -75,7 +58,7 @@ export class VertexColorMaterial extends BaseStandardMaterial {
         let binding: number = 0;
         let uniformEntries: T_uniformEntries[] = [];
 
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -89,7 +72,7 @@ export class VertexColorMaterial extends BaseStandardMaterial {
     getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
         let binding: number = 0;
         let groupAndBindingString: string = "";
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;
@@ -98,12 +81,12 @@ export class VertexColorMaterial extends BaseStandardMaterial {
     }
 
 
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
+    // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
+    // formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
 
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");

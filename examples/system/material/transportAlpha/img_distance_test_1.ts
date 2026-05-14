@@ -56,9 +56,8 @@ let colorMaterialGreen = new ColorMaterial({ color: [0, 1, 0, 0.51] });
 let colorMaterialBlue = new ColorMaterial({ color: [0, 0, 1, 0.51] });
 let textureMaterialAlpha = new TextureMaterial({
   texture: "/resource/images/img/we3D_alpha.png",
-  transparent: {
-    alphaMode:"alphaTest",
-    // opacity: 0.5,
+  transparentMode: "alphaTest",
+  alphaTransparent: {
     alphaCutOff: 0.50,
   }
 });

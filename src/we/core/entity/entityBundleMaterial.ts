@@ -663,16 +663,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 entryPoint: "fs",
             };
         }
-
-        // let uniforms = [bundle.vsBundle.uniformGroup];//old ,未使用parent参数之前的代码
-        //20260403 ，DCG变化，取消了FS部分的uniform传递
         let uniforms = [];
-        // if (bundle.fsBundle) {
-        //     uniforms.push(bundle.fsBundle.uniformGroup);
-        // }
         let valueDC: IV_DC = {
-            // label: `${scope.kind} ${scope.Name} for ${renderType}: ${UUID}`,
-            label: `${scope.kind} ${scope.Name}`,
+            label: `${scope.kind} ${scope.Name || scope.ID}`,
             data: {
                 vertices: scope.attributes.vertices,
                 vertexStepMode: scope.attributes.vertexStepMode,
@@ -772,31 +765,11 @@ export abstract class EntityBundleMaterial extends BaseEntity {
 
         let dc: DrawCommand;
         if (this.MSAA === true) {   //输出两个DC（MSAA 和 info forward）
-            let uniformsMaterialMSAA: I_BundleOfMaterialForMSAA;    
-            {//MSAA 部分
-                // if (this.deferColor) {
-                //     if (TO !== undefined) {
-                //         uniformsMaterialMSAA = material.getFS_TO_DeferColorOfMSAA();
-                //     }
-                //     else
-                //         uniformsMaterialMSAA = material.getOpacity_DeferColorOfMSAA();
-                // }
-                // else 
-                {
-                    if (TO !== undefined) {
-                        uniformsMaterialMSAA = material.getFS_TO_MSAA();
-                    }
-                    else
-                        uniformsMaterialMSAA = material.getOpacity_MSAA();
-                }
-            }
+            let uniformsMaterialMSAA: I_BundleOfMaterialForMSAA = material.getOpacity_MSAA();
             {//MSAA 部分,输出MSAA DC队列
                 let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.MSAA }, false, this);
                 valueDC.system!.MSAA = "MSAA";
-                if (TO !== undefined)
-                    valueDC.label = "TO MSAA:" + valueDC.label;
-                else
-                    valueDC.label = "opacity MSAA:" + valueDC.label;
+                valueDC.label = "MSAA:" + valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
                 // this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
                 this.renderPassArray[E_renderPassName.MSAA].push(dc);
@@ -804,10 +777,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             {//info forward 部分,输出info forward DC队列
                 let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.inforForward }, false, this);
                 valueDC.system!.MSAA = "MSAAinfo";
-                if (TO !== undefined)
-                    valueDC.label = "TO MSAA info:" + valueDC.label;
-                else
-                    valueDC.label = "opacity MSAA info:" + valueDC.label;
+                valueDC.label = "MsaaInfo:" + valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             }
         }
@@ -815,31 +785,19 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             //mesh VS 模板输出
             let uniformsMaterial: I_materialBundleOutput;
             if (this.deferColor) {
-                if (TO !== undefined) {
-                    uniformsMaterial = material.getFS_TO_DeferColor();
-                }
-                else
-                    uniformsMaterial = material.getOpacity_DeferColor();
+                uniformsMaterial = material.getOpacity_DeferColor();
             }
             else {
-                if (TO !== undefined) {
-                    if (TO == undefined) {
-                        throw new Error("Mesh generateOpacityDC: TO is undefined");
-                    }
-                    uniformsMaterial = TO;
-                }
-                else
-                    uniformsMaterial = material.getOpacity_Forward();
+                uniformsMaterial = material.getOpacity_Forward();
             }
             // //材质的shader 模板输出，
             {
                 let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial }, false, this);
                 let drawFor = " forward ";
-                if (this.deferColor) drawFor = " defer "
-                if (TO !== undefined)
-                    valueDC.label = "TO:" + valueDC.label;
+                if (this.deferColor)
+                    valueDC.label = "Defer:" + valueDC.label;
                 else
-                    valueDC.label = "opacity:" + valueDC.label;
+                    valueDC.label = "Forward:" + valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             }
         }
@@ -880,7 +838,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
 
         let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vsBundle: bundle }, true);
-        valueDC.label = "shadowmap opacity:" + valueDC.label;
+        valueDC.label = "shadowmap:" + valueDC.label;
         // valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
         let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
         this.renderPassArray[E_renderPassName.shadowmapOpaque]!.push(dc);
@@ -893,33 +851,20 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * lines和points 需要override该方法。
      * @param camera 
      */
-    createTransparent(): void {
+    createTransparent(sht: I_ShaderTemplate = SHT_MeshVS): void {
         if (this.transparent === false)
             return;
-        // let UUID = camera.UUID;
-        //mesh VS 模板输出
         //材质的shader 模板输出，
-        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshVS);
+        let bundle = this.getVSUniformAndShaderTemplateFinal(sht);
         //获取TTTT，然后分别判断并执行
-        let uniformsMaterialTOTT = this._material.getTTTT();
-        //TO
-        if (uniformsMaterialTOTT.TO) {
-            let dc = this.generateOpacityDC(SHT_MeshVS, uniformsMaterialTOTT.TO) as DrawCommand;
-            this.renderPassArray[E_renderPassName.forward]!.push(dc);
-        }
-        let dcTT: DrawCommand;
-        //TT
-        {
-            let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialTOTT.TT });
-            //设置为透明
-            valueDC.transparent = this.getBlend();//材质的透明混合参数
-            valueDC.label = "TT mesh:" + this.Name;
-            // valueDC.label = this.ID.toString();
-            dcTT = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
-            this.renderPassArray[E_renderPassName.transparent]!.push(dcTT);
-        }
-
-
+        let uniformsMaterialTT = this._material.getFS_TT();
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialTT });
+        //设置为透明
+        valueDC.transparent = this.getBlend();//材质的透明混合参数
+        valueDC.label = "TT mesh:" + this.Name || this.ID.toString();
+        // valueDC.label = this.ID.toString();
+        let dcTT: DrawCommand = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
+        this.renderPassArray[E_renderPassName.transparent]!.push(dcTT);
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 动态更新顶点数据和索引数据

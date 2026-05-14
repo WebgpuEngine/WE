@@ -11,12 +11,14 @@
  *    B、opacity,整体透明度
  */
 import { E_lifeState } from "../../base/coreDefine";
-import { T_uniformEntries, T_uniformOneGroup } from "../../command/base";
+import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_TextureMaterial, TextureMaterial } from "./textureMaterial";
 import { CubeTexture } from "../../texture/cubeTexxture";
-import { E_MaterialType, E_materialTypeForBindGroup, E_TextureType, I_BundleOfMaterialForMSAA, I_materialBundleOutput, I_UniformBundleOfMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA } from "../base";
+import {
+    E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
+    materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
+} from "../base";
 import {
     SHT_materialCubePositionTextureFS,
     SHT_materialCubePositionTextureFS_MSAA,
@@ -48,16 +50,7 @@ export class CubeTextureMaterial extends TextureMaterial {
                 opacityDefer: SHT_materialCubeSkyTextureFS,
                 opacityMSAA: SHT_materialCubeSkyTextureFS_MSAA,
                 opacityMSAAInfo: SHT_materialCubeSkyTextureFS_MSAAinfo,
-
-                TO_Forward: SHT_materialCubeSkyTextureFS,
-                TO_Defer: SHT_materialCubeSkyTextureFS,
-                TO_MSAA: SHT_materialCubeSkyTextureFS_MSAA,
-                TO_MsaaInfo: SHT_materialCubeSkyTextureFS_MSAAinfo,
-
                 TT: undefined,
-
-                TTP: undefined,
-                TTPF: undefined,
             };
         }
         else {
@@ -66,16 +59,7 @@ export class CubeTextureMaterial extends TextureMaterial {
                 opacityDefer: SHT_materialCubePositionTextureFS,
                 opacityMSAA: SHT_materialCubePositionTextureFS_MSAA,
                 opacityMSAAInfo: SHT_materialCubePositionTextureFS_MSAAinfo,
-
-                TO_Forward: SHT_materialCubePositionTextureFS,
-                TO_Defer: SHT_materialCubePositionTextureFS,
-                TO_MSAA: SHT_materialCubePositionTextureFS_MSAA,
-                TO_MsaaInfo: SHT_materialCubePositionTextureFS_MSAAinfo,
-
                 TT: undefined,
-
-                TTP: undefined,
-                TTPF: undefined,
             };
         }
 
@@ -119,7 +103,7 @@ export class CubeTextureMaterial extends TextureMaterial {
                 },
             }
         ];
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -139,7 +123,7 @@ export class CubeTextureMaterial extends TextureMaterial {
             },
         ];
 
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -156,7 +140,7 @@ export class CubeTextureMaterial extends TextureMaterial {
                 @group(${this.bindGroupNumber}) @binding(${binding++}) var u_cubeTexture: texture_cube<f32>;
                 @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
                 `;
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;
@@ -165,7 +149,7 @@ export class CubeTextureMaterial extends TextureMaterial {
     }
 
 
-  
+
 
     updateSelf(clock: Clock): void {
     }

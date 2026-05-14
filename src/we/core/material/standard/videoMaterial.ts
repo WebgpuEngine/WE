@@ -59,16 +59,7 @@ export class VideoMaterial extends BaseStandardMaterial {
             opacityDefer: SHT_materialVideoTextureFS,
             opacityMSAA: SHT_materialVideoTextureFS_MSAA,
             opacityMSAAInfo: SHT_materialVideoTextureFS_MSAA_info,
-
-            TO_Forward: SHT_materialVideoTextureFS,
-            TO_Defer: SHT_materialVideoTextureFS,
-            TO_MSAA: SHT_materialVideoTextureFS_MSAA,
-            TO_MsaaInfo: SHT_materialVideoTextureFS_MSAA_info,
-
             TT: undefined,
-
-            TTP: undefined,
-            TTPF: undefined,
         };
         this._state = E_lifeState.unstart;
     }
@@ -101,9 +92,7 @@ export class VideoMaterial extends BaseStandardMaterial {
         }
         this._state = E_lifeState.finished;
     }
-    setTO(): void {
-        this._opaqueOfTransparent = false;
-    }
+
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
@@ -134,7 +123,7 @@ export class VideoMaterial extends BaseStandardMaterial {
                 type: this.defaultSamplerBindingType,
             },
         });
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -165,7 +154,7 @@ export class VideoMaterial extends BaseStandardMaterial {
             binding: binding++,
             resource: this.defaultSampler,
         });
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -188,7 +177,7 @@ export class VideoMaterial extends BaseStandardMaterial {
             groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
         }
         groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler; \n `;
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;

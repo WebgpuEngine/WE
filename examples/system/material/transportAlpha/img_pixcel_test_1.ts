@@ -56,9 +56,9 @@ let colorMaterial1 = new ColorMaterial({
 });
 let textureMaterial = new TextureMaterial({
   texture: "/resource/images/img/we3D_alpha.png",
-  transparent:{
-    alphaMode:"alphaTest",
-    alphaCutOff:0.50,
+  transparentMode: "alphaTest",
+  alphaTransparent: {
+    alphaCutOff: 0.50,
   }
 });
 

@@ -406,16 +406,7 @@ export class PBRMaterial extends BaseMaterial {
             opacityDefer: SHT_materialPBRFS_defer,
             opacityMSAA: SHT_materialPBRFS_MSAA,
             opacityMSAAInfo: SHT_materialPBRFS_MSAA_info,
-
-            TO_Forward: SHT_materialPBRFS,
-            TO_Defer: SHT_materialPBRFS_defer,
-            TO_MSAA: SHT_materialPBRFS_MSAA,
-            TO_MsaaInfo: SHT_materialPBRFS_MSAA_info,
-
             TT: undefined,
-
-            TTP: undefined,
-            TTPF: undefined,
         };
     }
 
@@ -710,20 +701,20 @@ export class PBRMaterial extends BaseMaterial {
     setTO(): void {
         // // throw new Error("Method not implemented.");
         // if (this.inputValues.textures[E_TextureType.alpha] == undefined) {
-        //     this._ToTaTp.opaqueOfTransparent = false;
-        //     this._ToTaTp.alphaOfTransparent = false;
+        //     this._transparentMode.opaqueOfTransparent = false;
+        //     this._transparentMode.alphaOfTransparent = false;
         // }
         // else if (this.inputValues.textures[E_TextureType.alpha].data1 === 0) {//OPAQUE
-        //     this._ToTaTp.opaqueOfTransparent = false;
-        //     this._ToTaTp.alphaOfTransparent = false;
+        //     this._transparentMode.opaqueOfTransparent = false;
+        //     this._transparentMode.alphaOfTransparent = false;
         // }
         // else if (this.inputValues.textures[E_TextureType.alpha].data1 === 1) {//mask，cutoff alpha
-        //     this._ToTaTp.opaqueOfTransparent = true;
-        //     this._ToTaTp.alphaOfTransparent = false;     
+        //     this._transparentMode.opaqueOfTransparent = true;
+        //     this._transparentMode.alphaOfTransparent = false;     
         // }
         // else if (this.inputValues.textures[E_TextureType.alpha].data1 === 2) {//alpha blend
-        //     this._ToTaTp.opaqueOfTransparent = true;
-        //     this._ToTaTp.alphaOfTransparent = true;  
+        //     this._transparentMode.opaqueOfTransparent = true;
+        //     this._transparentMode.alphaOfTransparent = true;  
         // }
     }
     setAlphaOfTT(): void {
@@ -770,7 +761,7 @@ export class PBRMaterial extends BaseMaterial {
             }
         }
 
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -808,7 +799,7 @@ export class PBRMaterial extends BaseMaterial {
                 binding++;
             }
         }
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -832,7 +823,7 @@ export class PBRMaterial extends BaseMaterial {
             //sampler
             groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_sampler_${uniformName} : sampler; \n `;
         }
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;

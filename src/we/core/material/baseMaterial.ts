@@ -2,25 +2,20 @@
 import { RootGPU } from "../organization/root";
 
 import { E_lifeState } from "../base/coreDefine";
-import { I_ShadowMapValueOfDC } from "../entity/base";
 import {
     IV_BaseMaterial,
-    I_PartBundleOfUniform_TT,
     I_materialBundleOutput,
     I_AlphaTransparentOfMaterial,
-    I_UniformBundleOfMaterial,
     I_BundleOfMaterialForMSAA,
     E_MaterialType,
-    E_materialTypeForBindGroup
+    E_materialTypeForBindGroup,
+    T_transparentMode
 } from "./base";
-import { commmandType, I_dynamicTextureEntryForView, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries, T_uniformOneGroup } from "../command/base";
+import { commmandType, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries } from "../command/base";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
-import { BaseCamera } from "../camera/baseCamera";
-import { E_resourceKind } from "../resources/resourcesGPU";
 import { I_mipmap } from "../texture/base";
 import { Clock } from "../scene/clock";
-import { E_GBufferNames, V_TransparentGBufferNames } from "../gbuffers/base";
 import { getSampler } from "../sampler/baseFunction";
 import { Texture } from "../texture/texture";
 import { CubeTexture } from "../texture/cubeTexxture";
@@ -28,24 +23,7 @@ import { I_pointerStruct } from "../bufferBlock/pointer";
 import { E_renderPassName } from "../scene/renderManager";
 
 
-/**
- *二、 透明材质的说明
- * TO为不透明材质的不透明部分；
- * TT为透明材质的透明部分；
- * TTP为像素级别的排序
- * TTPF为像素级别的排序后的输出
- * 
- * 1、TO部分说明
- *      A、TTTT只获取了TO的forward部分
- *      B、TO_MSAA,TO_deferColor,TO_deferColorOfMSAA需要单独获取。
- *      C、单独获取的意义：
- *              (1)、纯透明：alpha的color材质，alpha的百分比透明（纹理等），全（半）透明的物理透明材质等，可能没有TO。
- *                  所以，如果没有TO，就不进行其他的TO变种的获取，优化初始化性能
- *             （2）、forward为标准的测试模板，必须有
- * 2、TT与TTP和TTPF同时存在，也一定有的，但不一定使用（需要看是否存在BVH判断的相交{AABB、OBB，真相交等}）
 
-
- */
 
 export abstract class BaseMaterial extends RootGPU {
     ///////////////////////////////////////////////////////////////////
@@ -134,10 +112,7 @@ export abstract class BaseMaterial extends RootGPU {
         this.defaultSampler = this.checkSampler(this.inputValues);
         this.resourcesGPU = this.scene.resourcesGPU;
         await super.init(scene);
-
-        this.setTO();
         this.scene.materialManager.add(this);
-        // this._state == E_lifeState.finished;
     }
     /**
      * 正常更新，从上到下 
@@ -162,7 +137,7 @@ export abstract class BaseMaterial extends RootGPU {
         return true;
     }
     /**
-    * 获取当前材质的pointer的byte size
+    * 获取当前材质的指针的byte size
     * @param size 
     * @returns 
     * */
@@ -196,13 +171,13 @@ export abstract class BaseMaterial extends RootGPU {
             [E_materialTypeForBindGroup.opacityDefer]: undefined,
             [E_materialTypeForBindGroup.opacityMSAA]: {},
             [E_materialTypeForBindGroup.opacityMSAAInfo]: undefined,
-            [E_materialTypeForBindGroup.TO_Forward]: undefined,
-            [E_materialTypeForBindGroup.TO_Defer]: undefined,
-            [E_materialTypeForBindGroup.TO_MSAA]: {},
-            [E_materialTypeForBindGroup.TO_MsaaInfo]: undefined,
+            // [E_materialTypeForBindGroup.TO_Forward]: undefined,
+            // [E_materialTypeForBindGroup.TO_Defer]: undefined,
+            // [E_materialTypeForBindGroup.TO_MSAA]: {},
+            // [E_materialTypeForBindGroup.TO_MsaaInfo]: undefined,
             [E_materialTypeForBindGroup.TT]: undefined,
-            [E_materialTypeForBindGroup.TTP]: {},
-            [E_materialTypeForBindGroup.TTPF]: {},
+            // [E_materialTypeForBindGroup.TTP]: {},
+            // [E_materialTypeForBindGroup.TTPF]: {},
         };
     /** VS bind group layout */
     bindGroupLayout: { [key: string]: GPUBindGroupLayout } = {};
@@ -221,10 +196,12 @@ export abstract class BaseMaterial extends RootGPU {
         }
 
         //bindgroup需要使用camera的texture时，需要检查是否存在bind group
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ||
-            materialType == E_materialTypeForBindGroup.TO_MSAA ||
-            materialType == E_materialTypeForBindGroup.TTP ||
-            materialType == E_materialTypeForBindGroup.TTPF) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA
+            // ||
+            // materialType == E_materialTypeForBindGroup.TO_MSAA ||
+            // materialType == E_materialTypeForBindGroup.TTP ||
+            // materialType == E_materialTypeForBindGroup.TTPF
+        ) {
             if (uuid == undefined)
                 flagCreateBindGroup = true;
             else if ((this.bindGroup[materialType] as { [uuid: string]: GPUBindGroup })[uuid] == undefined)
@@ -279,10 +256,12 @@ export abstract class BaseMaterial extends RootGPU {
         //创建BindGroup
 
         if (uuid == undefined &&
-            materialType != E_materialTypeForBindGroup.opacityMSAA &&
-            materialType != E_materialTypeForBindGroup.TO_MSAA &&
-            materialType != E_materialTypeForBindGroup.TTP &&
-            materialType != E_materialTypeForBindGroup.TTPF) {
+            materialType != E_materialTypeForBindGroup.opacityMSAA
+            //  &&
+            // materialType != E_materialTypeForBindGroup.TO_MSAA &&
+            // materialType != E_materialTypeForBindGroup.TTP &&
+            // materialType != E_materialTypeForBindGroup.TTPF
+        ) {
             let bindGroup = this.device.createBindGroup(bindGroupDesc);//防止uuid为空时创建，会产生webGPU错误
             this.bindGroup[materialType] = bindGroup;
         }
@@ -360,40 +339,43 @@ export abstract class BaseMaterial extends RootGPU {
     bindGroupLayoutOfTT(): GPUBindGroupLayout {
         return this.bindGroupLayoutOfForward();
     }
-    bindGroupOfTTP(mergeID: string): GPUBindGroup {
-        throw new Error("Method not implemented: TTPTP");
-    }
-    bindGroupLayoutOfTTP(): GPUBindGroupLayout {
-        throw new Error("Method not implemented: TTPTP");
-    }
-    bindGroupOfTTPF(mergeID: string): GPUBindGroup {
-        throw new Error("Method not implemented: TTPTF");
-    }
-    bindGroupLayoutOfTTPF(): GPUBindGroupLayout {
-        throw new Error("Method not implemented: TTPTF");
-    }
+    // bindGroupOfTTP(mergeID: string): GPUBindGroup {
+    //     throw new Error("Method not implemented: TTPTP");
+    // }
+    // bindGroupLayoutOfTTP(): GPUBindGroupLayout {
+    //     throw new Error("Method not implemented: TTPTP");
+    // }
+    // bindGroupOfTTPF(mergeID: string): GPUBindGroup {
+    //     throw new Error("Method not implemented: TTPTF");
+    // }
+    // bindGroupLayoutOfTTPF(): GPUBindGroupLayout {
+    //     throw new Error("Method not implemented: TTPTF");
+    // }
     getBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayout {
         if (materialType == E_materialTypeForBindGroup.opacityForward ||
             materialType == E_materialTypeForBindGroup.opacityDefer ||
-            materialType == E_materialTypeForBindGroup.opacityMSAAInfo ||
-            materialType == E_materialTypeForBindGroup.TO_Forward ||
-            materialType == E_materialTypeForBindGroup.TO_Defer ||
-            materialType == E_materialTypeForBindGroup.TO_MsaaInfo
+            materialType == E_materialTypeForBindGroup.opacityMSAAInfo
+            //  ||
+            // materialType == E_materialTypeForBindGroup.TO_Forward ||
+            // materialType == E_materialTypeForBindGroup.TO_Defer ||
+            // materialType == E_materialTypeForBindGroup.TO_MsaaInfo
         ) {
             return this.bindGroupLayoutOfForward();
         }
-        else if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        else if (materialType == E_materialTypeForBindGroup.opacityMSAA
+            //  || materialType == E_materialTypeForBindGroup.TO_MSAA
+        ) {
             return this.bindGroupLayoutOfMSAA();
         }
         else if (materialType == E_materialTypeForBindGroup.TT) {
             return this.bindGroupLayoutOfTT();
         }
-        else if (materialType == E_materialTypeForBindGroup.TTP) {
-            return this.bindGroupLayoutOfTTP();
-        }
-        else if (materialType == E_materialTypeForBindGroup.TTPF) {
-            return this.bindGroupLayoutOfTTPF();
-        }
+        // else if (materialType == E_materialTypeForBindGroup.TTP) {
+        //     return this.bindGroupLayoutOfTTP();
+        // }
+        // else if (materialType == E_materialTypeForBindGroup.TTPF) {
+        //     return this.bindGroupLayoutOfTTPF();
+        // }
         else {
             throw new Error(`不支持的材质类型：${materialType}`);
         }
@@ -411,25 +393,26 @@ export abstract class BaseMaterial extends RootGPU {
     ): GPUBindGroup {
         if (materialType == E_materialTypeForBindGroup.opacityForward ||
             materialType == E_materialTypeForBindGroup.opacityDefer ||
-            materialType == E_materialTypeForBindGroup.opacityMSAAInfo ||
-            materialType == E_materialTypeForBindGroup.TO_Forward ||
-            materialType == E_materialTypeForBindGroup.TO_Defer ||
-            materialType == E_materialTypeForBindGroup.TO_MsaaInfo
+            materialType == E_materialTypeForBindGroup.opacityMSAAInfo
+            // ||
+            // materialType == E_materialTypeForBindGroup.TO_Forward ||
+            // materialType == E_materialTypeForBindGroup.TO_Defer ||
+            // materialType == E_materialTypeForBindGroup.TO_MsaaInfo
         ) {
             return this.bindGroupOfForward();
         }
-        else if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        else if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             return this.bindGroupOfMSAA(mergeID);
         }
         else if (materialType == E_materialTypeForBindGroup.TT) {
             return this.bindGroupOfTT();
         }
-        else if (materialType == E_materialTypeForBindGroup.TTP) {
-            return this.bindGroupOfTTP(mergeID);
-        }
-        else if (materialType == E_materialTypeForBindGroup.TTPF) {
-            return this.bindGroupOfTTPF(mergeID);
-        }
+        // else if (materialType == E_materialTypeForBindGroup.TTP) {
+        //     return this.bindGroupOfTTP(mergeID);
+        // }
+        // else if (materialType == E_materialTypeForBindGroup.TTPF) {
+        //     return this.bindGroupOfTTPF(mergeID);
+        // }
         else {
             throw new Error(`不支持的材质类型：${materialType}`);
         }
@@ -485,127 +468,31 @@ export abstract class BaseMaterial extends RootGPU {
         return output;
     }
 
-    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
 
-    /**
-     * 透明材质的不透明code （ transparent  opaque ）
-     * @param startBinding binding开始值
-     * @returns 
-     */
-    getFS_TO(startBinding: number): I_materialBundleOutput {
-        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward] == undefined) {
-            throw new Error(`Material ${this.kind} not support TO_Forward.`);
-        }
-        return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward]!, new Map(), startBinding || 0);
-    }
-
-    /**
-     * MSAA 材质（color及光影计算部分）输出shader模板
-     * @param startBinding 
-     * @returns { MSAA: I_materialBundleOutput, inforForward: I_materialBundleOutput }
-     *  1、MSAA：只输出color和depth
-     *  2、inforForward:输出其他GBuffer信息
-     */
-    getFS_TO_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA {
-        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward] == undefined) {
-            throw new Error(`Material ${this.kind} not support TO_MSAA.`);
-        }
-        let MSAA: I_materialBundleOutput = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_MSAA]!, new Map(), startBinding || 0, E_materialTypeForBindGroup.TO_MSAA);
-        let inforForward: I_materialBundleOutput = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_MsaaInfo]!, new Map(), startBinding || 0, E_materialTypeForBindGroup.TO_MsaaInfo);
-        return { MSAA, inforForward };
-    }
-
-
-    /**
-     * 延迟渲染的shader模板输出（即、不包括光影部分的shader）
-     * @param startBinding 
-     * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
-     */
-    getFS_TO_DeferColor(startBinding?: number): I_materialBundleOutput {
-        if (this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Forward] == undefined) {
-            throw new Error(`Material ${this.kind} not support TO_DeferColor.`);
-        }
-        return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TO_Defer]!, new Map(), startBinding || 0, E_materialTypeForBindGroup.TO_Defer);
-    }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //TTTT 功能实现部分
+    //TT 功能实现部分
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * 设置透明材质的不透明部分是否存在
-     */
-    abstract setTO(): void;
 
-    /**
-     * 获取透明材质的uniform和shader模板输出,
-     * TO为不透明材质的不透明部分；
-     * TT为透明材质的透明部分；
-     * TTP为像素级别的排序
-     * TTPF为像素级别的排序后的输出
-     * 
-     * @param renderObject  BaseCamera | I_ShadowMapValueOfDC
-     * @param startBinding number
-     * @returns   
-     * {
-     *     TT: I_materialBundleOutput,
-     *     TO?: I_materialBundleOutput,
-     *     TTP: I_materialBundleOutput,
-     *     TTPF: I_materialBundleOutput
-     * }
-     */
-    getTTTT(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): {
-        TT: I_materialBundleOutput,
-        TO?: I_materialBundleOutput,
-        TTP: I_materialBundleOutput,
-        TTPF: I_materialBundleOutput
-    } {
-        // this.setUniformIDOfTTPF(meshID);
-
-        let TT: I_materialBundleOutput = this.getFS_TT(renderObject, startBinding);;
-        let TO: I_materialBundleOutput;
-        // let TTP: I_materialBundleOutput = this.getFS_TTP(renderObject, startBinding);;
-        // let TTPF: I_materialBundleOutput = this.getFS_TTPF(renderObject, startBinding);
-        // // TT = this.getFS_TT(renderObject, startBinding);
-        // // TTP = this.getFS_TTP(renderObject, startBinding);
-        let TTTT: {
-            TT: I_materialBundleOutput, TO?: I_materialBundleOutput,
-            TTP: I_materialBundleOutput, TTPF: I_materialBundleOutput
-        } =
-        {
-            TT,
-            // TTP, TTPF
-        };
-        if (this._opaqueOfTransparent) {
-            TO = this.getFS_TO(startBinding);
-            TTTT.TO = TO;
-        }
-        return TTTT;
-    }
-
-    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
     /**
      * 透明材质的code（ transparent ）
      * @param _startBinding 
      * @returns 
      */
-    getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
+    getFS_TT(_startBinding: number = 0): I_materialBundleOutput {
         if (this.shtOfMaterialType[E_materialTypeForBindGroup.TT] == undefined) {
             throw new Error(`Material ${this.kind} not support TT.`);
         }
         return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TT]!, new Map(), _startBinding || 0, E_materialTypeForBindGroup.TT);
     }
-    /**
-     * 透明材质的透明部分的pixel 的最终输出（ transparent's transparent pixcel final render ）
-     * @param _startBinding binding开始值
-     */
-    abstract getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput;
 
-    /**
-     * 格式化TTP的shader代码，并返回
-     * 1、各类材质自行实现，SHT在TTP的代码中
-     * @param renderObject 渲染对象，相机或阴影映射
-     * @returns 
-     */
-    abstract formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput;
+
+    // /**
+    //  * 格式化TTP的shader代码，并返回
+    //  * 1、各类材质自行实现，SHT在TTP的代码中
+    //  * @param renderObject 渲染对象，相机或阴影映射
+    //  * @returns 
+    //  */
+    // abstract formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput;
 
     /**
      * 透明材质的像素级别对比与处理 （ transparent  transparent pixcel  ）
@@ -613,24 +500,25 @@ export abstract class BaseMaterial extends RootGPU {
      * @param renderObject 渲染对象，相机或阴影映射
      * @param _startBinding binding开始值
      */
-    getFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
-        let output: I_materialBundleOutput;
-        if (renderObject instanceof BaseCamera) {
-            output = this.formatFS_TTP(renderObject);
-            let partBundleOfUniform_TT = this.getUniformEntryOfCamera_TTP(renderObject, output.bindingNumber);
-            output.bindingNumber = partBundleOfUniform_TT.bindingNumber;
-            //更新groupAndBindingString
-            output.shaderTemplateFinal.material.groupAndBindingString += partBundleOfUniform_TT.groupAndBindingString;
-            //由于使用camera的gbuffer，所以bindgroup 需要动态获取（resize 会重建gbuffer）
-            output.shaderTemplateFinal.material.dynamic = true;
-            return output;
-        }
-        //light shadow map TT
-        else {
-            //todo
-            throw new Error("light shadow map TT todo");
-        }
-    }
+    // getFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number = 0): I_materialBundleOutput {
+    //     let output: I_materialBundleOutput;
+    //     if (renderObject instanceof BaseCamera) {
+    //         output = this.formatFS_TTP(renderObject);
+    //         let partBundleOfUniform_TT = this.getUniformEntryOfCamera_TTP(renderObject, output.bindingNumber);
+    //         output.bindingNumber = partBundleOfUniform_TT.bindingNumber;
+    //         //更新groupAndBindingString
+    //         output.shaderTemplateFinal.material.groupAndBindingString += partBundleOfUniform_TT.groupAndBindingString;
+    //         //由于使用camera的gbuffer，所以bindgroup 需要动态获取（resize 会重建gbuffer）
+    //         output.shaderTemplateFinal.material.dynamic = true;
+    //         return output;
+    //     }
+    //     //light shadow map TT
+    //     else {
+    //         //todo
+    //         throw new Error("light shadow map TT todo");
+    //     }
+    // }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // function 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -654,16 +542,7 @@ export abstract class BaseMaterial extends RootGPU {
      */
     convertAddPartOfSHT(addPart: I_shaderTemplateAdd[]): string {
         let code: string = "";
-        // console.log("convertAddPartOfSHT",this.entity.ID);
         for (let perOne of addPart) {
-            // if(this.entity.ID ==296) debugger;
-            // if (perOne.name == "st_output") {
-            //     //如果entity有locationInterpolate，就添加st_output。用途：非默认的插值方式
-            //     if (this.entity?.locationInterpolate && this.entity.locationInterpolate != undefined) {
-            //         code += this.entity.getSHT_st_output();
-            //         continue;
-            //     }
-            // }
             code += perOne.code;
         }
         return code;
@@ -678,7 +557,7 @@ export abstract class BaseMaterial extends RootGPU {
     formatSHT(
         template: I_ShaderTemplate,
         replaceList: Map<string, string | ((scope?: any) => string)>,
-        startBinding: number,
+        startBinding: number = 0,
         materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward,
         // isTTPF: boolean = false,
         // renderObject?: BaseCamera
@@ -762,40 +641,40 @@ export abstract class BaseMaterial extends RootGPU {
     // 透明相关信息部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     /** 透明材质是否有不透明的部分     */
-    _opaqueOfTransparent: boolean = false;
+    // _opaqueOfTransparent: boolean = false;
     /**
      * blending混合的状态interface
      * 
      * 1、如果是undefined，说明不混合
      * 2、如果是object，说明混合
      */
-    _transparent: I_AlphaTransparentOfMaterial | undefined;
+    // _transparent: I_AlphaTransparentOfMaterial | undefined;
 
-    _ToTaTp: {
+    _transparentMode: {
+        mode: T_transparentMode,
         /** 透明材质是否有不透明的部分     */
-        opaqueOfTransparent: boolean,
+        // opaqueOfTransparent: boolean,
         /** 透明材质是否有alpha透明的部分   ，是否有BLEND。
          * 两种情况：
          *  1、使用统一的透明度（opacity）
          *  2、使用来自texture的透明度（alpha）
           */
         alphaOfTransparent: boolean,
-        alphaParams: I_AlphaTransparentOfMaterial | undefined,
+        alphaParams: I_AlphaTransparentOfMaterial,
     } = {
-            opaqueOfTransparent: false,
+            mode: "opaque",
+            // opaqueOfTransparent: false,
             alphaOfTransparent: false,
-            alphaParams: undefined,
+            alphaParams: {
+                alphaCutOff: 0.5,//默认值，不一定使用，根据模式而定
+            },
         }
     /**
      * 是否为透明材质
      * @returns boolean  true：是透明材质，false：不是透明材质
      */
     getTransparent(): boolean {
-        return this._ToTaTp.alphaOfTransparent;
-        // if (this._transparent) {
-        //     return true;
-        // }
-        // else return false;
+        return this._transparentMode.alphaOfTransparent;
     }
     /**
      * 获取混合状态
@@ -803,195 +682,14 @@ export abstract class BaseMaterial extends RootGPU {
      */
     // abstract getBlend(): GPUBlendState | undefined;
     getBlend(): GPUBlendState[] {
-        // if (this._transparent?.type == E_TransparentType.alpha) {
-        //     return [this._transparent.blend!];
-        // }
-        // else return false;
-        if (this._ToTaTp.alphaOfTransparent && this._ToTaTp.alphaParams?.blendParams?.blend) {
-            return [this._ToTaTp.alphaParams?.blendParams?.blend!];
+
+        if (this._transparentMode.alphaOfTransparent && this._transparentMode.alphaParams?.blendParams?.blend) {
+            return [this._transparentMode.alphaParams?.blendParams?.blend!];
         }
         else {
             throw new Error("透明材质的blend状态不能为空");
             return [];
         }
     }
-
-
-
-    /**获取camera 使用的TT的uniformEntry  */
-    getUniformEntryOfCamera_TTP(renderObject: BaseCamera, _bindingNumber: number = 0): I_PartBundleOfUniform_TT {
-        let bindingNumber = _bindingNumber;
-        let groupAndBindingString = "";
-        let uniformRoot: T_uniformOneGroup = [];
-
-        // {//获取固定uniform序列
-        //     let uniformBundle = this.getUniformEntryBundleOfCommon(bindingNumber);
-        //     uniformRoot.push(...uniformBundle.entry);
-        //     bindingNumber = uniformBundle.bindingNumber;
-        //     groupAndBindingString += uniformBundle.groupAndBindingString;
-        // }
-        //camera 的深度纹理，用于透明度测试（像素是否在不透明的前面）
-        {/**end 
-         * 是否开启TTP的深度测试	
-         * 20251008，暂缓，开启并去除uniform深度纹理后，有问题，多色混合有问题，待查
-         */
-            let uniform1: I_dynamicTextureEntryForView;
-
-            /**这里不适用map，因为camera相同，但每个材质的uniform顺序不同，绑定binding不同 */
-            // //这里使用map，因为每个相机都有一个深度纹理而且uniform1是动态getResource，就是说：uniform1是不变的（里面是function）
-            // if (this.scene.resourcesGPU.cameraToEntryOfDepthTT.has(renderObject.UUID)) {
-            //     uniform1 = this.scene.resourcesGPU.cameraToEntryOfDepthTT.get(renderObject.UUID) as I_dynamicTextureEntryForView;
-            // }
-            // else
-            {
-                uniform1 = {
-                    label: "colorTT camera depth of " + renderObject.UUID,
-                    binding: bindingNumber,
-                    getResource: () => { return renderObject.manager.getGBufferTextureByUUID(renderObject.UUID, E_GBufferNames.depth); },
-                };
-                // this.scene.resourcesGPU.cameraToEntryOfDepthTT.set(renderObject.UUID, uniform1);
-                // this.mapList.push({ key: uniform1, type: E_resourceKind.cameraToEntryOfDepthTT, map: "cameraToEntryOfDepthTT" });
-            }
-
-            let uniformLayout_1: GPUBindGroupLayoutEntry;
-            // if (this.scene.resourcesGPU.entriesToEntriesLayout.has(uniform1)) {
-            //     uniformLayout_1 = this.scene.resourcesGPU.entriesToEntriesLayout.get(uniform1) as GPUBindGroupLayoutEntry;
-            //     console.log("resoureGPU")
-            // }
-            // else 
-            {
-                uniformLayout_1 = {
-                    binding: bindingNumber,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    texture: {
-                        sampleType: "depth",
-                        viewDimension: "2d",
-                        // multisampled: false,
-                    },
-                };
-                this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform1, uniformLayout_1);
-                this.mapList.push({ key: uniform1, type: E_resourceKind.entriesToEntriesLayout, map: "entriesToEntriesLayout" });
-            }
-            //u_camera_opacity_depth在shader中是固定的
-            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_camera_opacity_depth : texture_depth_2d; \n `;
-            // this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform1, uniformLayout_1);
-            uniformRoot.push(uniform1);
-            // console.log(`1 :TTP uniform binding ${bindingNumber},uniform:${uniform1.binding},layout:${uniformLayout_1.binding}`);
-            bindingNumber++;
-        }
-
-        //循环 绑定透明材质的GBuffer of uniform
-        for (let key in V_TransparentGBufferNames) {
-            let uniform2: I_dynamicTextureEntryForView = {
-                label: "colorTT: " + key + " of " + renderObject.UUID,
-                binding: bindingNumber,
-                getResource: () => { return renderObject.manager.getTTUniformTexture(key as E_GBufferNames); },
-            };
-
-            let uniformLayout_2: GPUBindGroupLayoutEntry;
-            if (this.scene.resourcesGPU.entriesToEntriesLayout.has(uniform2)) {
-                uniformLayout_2 = this.scene.resourcesGPU.entriesToEntriesLayout.get(uniform2) as GPUBindGroupLayoutEntry;
-            }
-            else {
-                if (key.indexOf("color") != -1) {//测试使用的color
-                    uniformLayout_2 = {
-                        binding: bindingNumber,
-                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                        texture: {
-                            sampleType: "float",
-                            viewDimension: "2d",
-                            // multisampled: false,
-                        },
-                    };
-                }
-                else if (key.indexOf("depth") != -1) {
-                    uniformLayout_2 = {
-                        binding: bindingNumber,
-                        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                            // multisampled: false,
-                        },
-                    };
-                }
-                else {
-                    {
-                        uniformLayout_2 = {
-                            binding: bindingNumber,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            texture: {
-                                sampleType: "uint",
-                                viewDimension: "2d",
-                                // multisampled: false,
-                            },
-                        };
-                    }
-                }
-            }
-            this.scene.resourcesGPU.entriesToEntriesLayout.set(uniform2, uniformLayout_2);  //这里的资源需要注销管理
-            this.mapList.push({ key: uniform2, type: E_resourceKind.entriesToEntriesLayout, map: "entriesToEntriesLayout" });
-            uniformRoot.push(uniform2);
-            let uniformType = V_TransparentGBufferNames[key as E_GBufferNames].uniformType;
-            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_${key} : ${uniformType}; \n `;
-            // console.log(`2 :TTP uniform binding ${bindingNumber},uniform:${uniform2.binding},layout:${uniformLayout_2.binding}`, this);
-            bindingNumber++;
-        }
-
-
-        return { uniformGroup: uniformRoot, groupAndBindingString: groupAndBindingString, bindingNumber };
-    }
-    /**
-     * 获取当前材质的TTPF的输出uniform bundle 。（在common uniform bundle之后）
-     * @param renderObject 
-     * @param startBinding 
-     * @returns I_UniformBundleOfMaterial
-     */
-    getUniformEntryBundleOfTTPF(renderObject: BaseCamera, startBinding: number): I_UniformBundleOfMaterial {
-        if (this.unifromEntryBundle_TTPF != undefined) {
-            return this.unifromEntryBundle_TTPF;
-        }
-        else {//uniform ID纹理
-            let bindingNumber = startBinding;
-            let groupAndBindingString = "";
-            let uniform1: T_uniformOneGroup = [];
-            let layout: GPUBindGroupLayoutEntry[] = [];
-            let uniforIDTexture: I_dynamicTextureEntryForView = {
-                label: this.Name + " texture ID at group(2) binding(" + bindingNumber + ")",
-                binding: bindingNumber,
-                getResource: () => { return renderObject.manager.getTTRenderTexture("id"); },
-            };
-            let uniforIDTextureLayout: GPUBindGroupLayoutEntry = {
-                binding: bindingNumber,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                texture: {
-                    sampleType: "uint",
-                    viewDimension: "2d",
-                    // multisampled: false,
-                },
-            };
-            //添加到resourcesGPU的Map中
-            this.scene.resourcesGPU.entriesToEntriesLayout.set(uniforIDTexture, uniforIDTextureLayout);
-            this.mapList.push({
-                key: uniforIDTexture,
-                type: "entriesToEntriesLayout",
-                map: "entriesToEntriesLayout"
-            });
-            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${bindingNumber}) var u_texture_ID: texture_2d<u32>; \n `;
-
-            //push到uniform1队列
-            uniform1.push(uniforIDTexture);
-            //+1
-            bindingNumber++;
-
-            this.unifromEntryBundle_TTPF = {
-                bindingNumber: bindingNumber,
-                groupAndBindingString: groupAndBindingString,
-                entry: uniform1,
-            };
-            return this.unifromEntryBundle_TTPF;
-        }
-    }
-
 }
 

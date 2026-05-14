@@ -23,17 +23,21 @@ export enum E_MaterialType {
     Phong = "PhongMaterial",
 }
 
-export type T_alphaMode = "opaque" | "alphaTest" | "blend" | "testAndBlend";
+export type T_transparentMode = "opaque" | "alphaTest" | "blend" | "testAndBlend";
 
+/**alpha 模式 */
+export interface I_alphaMode {
+
+}
 /**透明材质的初始化参数 */
 export interface I_AlphaTransparentOfMaterial {
-    /** 透明模式 */
-    alphaMode: T_alphaMode;
     /** 透明阈值 */
     alphaCutOff?: number;
     /** 透明混合参数 */
     blendParams?: {
-        /** 透明混合状态 */
+        /** 透明混合状态 
+         * https://www.w3.org/TR/webgpu/#blend-state
+        */
         blend?: GPUBlendState;
         /** 透明混合常量 
          *  color 4f 
@@ -79,7 +83,10 @@ export interface IV_BaseMaterial extends I_Update {
      *     材质doubleSided高于entity的primitive设置，如果有材质的doubleSided参数，会覆盖entity的primitive的参数。
     */
     doubleSided?: boolean,
-    transparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
+    /** alpha透明材质参数     */
+    alphaTransparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
+    /** 透明模式 ,默认opaque */
+    transparentMode?: T_transparentMode;
 }
 /**自定义shader材质的初始化参数 */
 export interface IV_shaderMaterial extends IV_BaseMaterial {
@@ -161,15 +168,15 @@ export enum E_materialTypeForBindGroup {
     opacityMSAA = "opacityMSAA",
     opacityMSAAInfo = "opacityMSAAInfo",
 
-    TO_Forward = "TO_Forward",
-    TO_Defer = "TO_Defer",
-    TO_MSAA = "TO_MSAA",
-    TO_MsaaInfo = "TO_MsaaInfo",
+    // TO_Forward = "TO_Forward",
+    // TO_Defer = "TO_Defer",
+    // TO_MSAA = "TO_MSAA",
+    // TO_MsaaInfo = "TO_MsaaInfo",
 
     TT = "TT",
 
-    TTP = "TTP",
-    TTPF = "TTPF",
+    // TTP = "TTP",
+    // TTPF = "TTPF",
 }
 
 /**

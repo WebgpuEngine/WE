@@ -2,15 +2,22 @@ import { weColor4, E_lifeState } from "../../base/coreDefine";
 import { isWeColor4 } from "../../base/coreFunction";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
-import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
-import { E_GBufferNames } from "../../gbuffers/base";
 import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
-import { SHT_materialColor_TTP_FS, SHT_materialColor_TT_FS, SHT_materialColorFS, SHT_materialColor_TTPF_FS, SHT_materialColorFS_MSAA, SHT_materialColorFS_MSAA_info } from "../../shadermanagemnet/material/colorMaterial";
-import { IV_BaseMaterial, I_materialBundleOutput, I_AlphaTransparentOfMaterial, E_TransparentType, E_MaterialType, E_materialTypeForBindGroup, materialAddGroupBindStringOfMSAA, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, IV_BaseStandardMaterial } from "../base";
-import { BaseMaterial } from "../baseMaterial";
+import {
+    SHT_materialColor_TT_FS,
+    SHT_materialColorFS,
+    SHT_materialColorFS_MSAA,
+    SHT_materialColorFS_MSAA_info
+} from "../../shadermanagemnet/material/colorMaterial";
+import {
+    E_MaterialType,
+    E_materialTypeForBindGroup,
+    materialAddGroupBindStringOfMSAA,
+    materialAddBindGroupLayoutOfMSAA,
+    materialAddBindGroupOfMSAA,
+    IV_BaseStandardMaterial
+} from "../base";
 import { BaseStandardMaterial } from "./baseStandard";
 
 export interface I_ColorMaterial extends IV_BaseStandardMaterial {
@@ -18,7 +25,6 @@ export interface I_ColorMaterial extends IV_BaseStandardMaterial {
 }
 
 export class ColorMaterial extends BaseStandardMaterial {
-
 
     override inputValues: I_ColorMaterial;
 
@@ -38,7 +44,7 @@ export class ColorMaterial extends BaseStandardMaterial {
         if (isWeColor4(input.color)) {
 
             this._color = input.color;
-            let transparent: GPUBlendState = {
+            let blend: GPUBlendState = {
                 color: {
                     operation: "add",//操作
                     srcFactor: "src-alpha",//源
@@ -51,28 +57,30 @@ export class ColorMaterial extends BaseStandardMaterial {
                 }
             };
             let blendMode = false;
+            //使用alpha值
             if (input.color[3] < 1.0) {
                 blendMode = true;
             }
-            else if (input.transparent?.alphaMode == "blend" && input.transparent?.blendParams?.opacity !== undefined && input.transparent?.blendParams?.opacity !== 1.0) {
-                let opacity = input.transparent.blendParams.opacity;
+            //使用透明度值
+            else if (input.transparentMode == "blend" && input.alphaTransparent?.blendParams?.opacity !== undefined && input.alphaTransparent?.blendParams?.opacity !== 1.0) {
+                blendMode = true;
+                let opacity = input.alphaTransparent.blendParams.opacity;
                 this._color = [
                     this._color[0] * opacity,
                     this._color[1] * opacity,
                     this._color[2] * opacity,
                     opacity
                 ];
-                if (input.transparent.blendParams.blend !== undefined) {
-                    transparent = input.transparent.blendParams.blend;
+                if (input.alphaTransparent.blendParams.blend !== undefined) {
+                    blend = input.alphaTransparent.blendParams.blend;
                 }
             }
+            //alpha透明
             if (blendMode) {
-                this._ToTaTp.opaqueOfTransparent = false;
-                this._ToTaTp.alphaOfTransparent = true;
-                this._ToTaTp.alphaParams = {
-                    alphaMode: "blend",
+                this._transparentMode.alphaOfTransparent = true;
+                this._transparentMode.alphaParams = {
                     blendParams: {
-                        blend: transparent,
+                        blend: blend,
                     }
                 }
             }
@@ -85,16 +93,9 @@ export class ColorMaterial extends BaseStandardMaterial {
             opacityDefer: SHT_materialColorFS,
             opacityMSAA: SHT_materialColorFS_MSAA,
             opacityMSAAInfo: SHT_materialColorFS_MSAA_info,
-
-            TO_Forward: undefined,
-            TO_Defer: undefined,
-            TO_MSAA: undefined,
-            TO_MsaaInfo: undefined,
-
             TT: SHT_materialColor_TT_FS,
-
-            TTP: SHT_materialColor_TTP_FS,
-            TTPF: SHT_materialColor_TTPF_FS,
+            // TTP: SHT_materialColor_TTP_FS,
+            // TTPF: SHT_materialColor_TTPF_FS,
         };
     }
     async readyForGPU(): Promise<any> {
@@ -128,10 +129,7 @@ export class ColorMaterial extends BaseStandardMaterial {
             );
         }
     }
-    /**没有透明中的不透明部分，要不透明，要么全部alpha的透明 */
-    setTO(): void {
-        this._opaqueOfTransparent = false;
-    }
+
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
@@ -143,7 +141,7 @@ export class ColorMaterial extends BaseStandardMaterial {
             },
         };
         layoutEntries.push(uniformBufferLayout);
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -163,7 +161,7 @@ export class ColorMaterial extends BaseStandardMaterial {
             // },
         };
         uniformEntries.push(uniformBuffer);
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -182,7 +180,7 @@ export class ColorMaterial extends BaseStandardMaterial {
         }
         @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_color_material_uniform: color_material_uniform;
         `;
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;
@@ -195,50 +193,50 @@ export class ColorMaterial extends BaseStandardMaterial {
 
     /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
 
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        let template = SHT_materialColor_TTPF_FS;
-        let replaceList = new Map<string, string | (() => string)>();
-        // let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
-        if (renderObject instanceof BaseCamera) {
-            // replaceList.set("$fsOutputColor", replaceValue);
-            let output = this.formatSHT(template, replaceList, 0);
-            output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
-            {//获取当前材质的TTPF的输出uniform bundle 。
-                let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
-                (output.uniformGroup as T_uniformEntries[]).push(...uniformBundle.entry as T_uniformEntries[]);
-                output.bindingNumber = uniformBundle.bindingNumber;
-                output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
-            }
-            output.materialType = E_materialTypeForBindGroup.TTPF;
-            return output;
-        }
-        else {
-            throw new Error("Method not implemented.");
-        }
-    }
+    // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+    //     let template = SHT_materialColor_TTPF_FS;
+    //     let replaceList = new Map<string, string | (() => string)>();
+    //     // let replaceValue: string = ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`;
+    //     if (renderObject instanceof BaseCamera) {
+    //         // replaceList.set("$fsOutputColor", replaceValue);
+    //         let output = this.formatSHT(template, replaceList, 0);
+    //         output.shaderTemplateFinal.material.dynamic = true// 因为绑定的uniform有camera的texture，如果resize，会变，所以时动态的
+    //         {//获取当前材质的TTPF的输出uniform bundle 。
+    //             let uniformBundle = this.getUniformEntryBundleOfTTPF(renderObject, output.bindingNumber);
+    //             (output.uniformGroup as T_uniformEntries[]).push(...uniformBundle.entry as T_uniformEntries[]);
+    //             output.bindingNumber = uniformBundle.bindingNumber;
+    //             output.shaderTemplateFinal.material.groupAndBindingString += uniformBundle.groupAndBindingString;
+    //         }
+    //         output.materialType = E_materialTypeForBindGroup.TTPF;
+    //         return output;
+    //     }
+    //     else {
+    //         throw new Error("Method not implemented.");
+    //     }
+    // }
 
-    /**
-     * 格式化TP的shader代码，并返回
-     * @param renderObject 渲染对象，相机或阴影映射
-     * @returns 
-     */
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-        let template: I_ShaderTemplate;
-        let code: string = "";
-        if (renderObject instanceof BaseCamera) {
-            //camera 的TTP  SHT
-            template = SHT_materialColor_TTP_FS;
-            let replaceList = new Map<string, string | (() => string)>();
-            // replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
-            let output = this.formatSHT(template, replaceList, 0);
-            output.materialType = E_materialTypeForBindGroup.TTP;
-            return output;
-        }
-        //light shadow map TT
-        else {
-            throw new Error("ColorMaterial TTP 级别透明阴影 todo");
-        }
-    }
+    // /**
+    //  * 格式化TP的shader代码，并返回
+    //  * @param renderObject 渲染对象，相机或阴影映射
+    //  * @returns 
+    //  */
+    // formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
+    //     let template: I_ShaderTemplate;
+    //     let code: string = "";
+    //     if (renderObject instanceof BaseCamera) {
+    //         //camera 的TTP  SHT
+    //         template = SHT_materialColor_TTP_FS;
+    //         let replaceList = new Map<string, string | (() => string)>();
+    //         // replaceList.set("$fsOutputColor", ` color = vec4f(${this.red}, ${this.green}, ${this.blue}, ${this.alpha}); \n`);
+    //         let output = this.formatSHT(template, replaceList, 0);
+    //         output.materialType = E_materialTypeForBindGroup.TTP;
+    //         return output;
+    //     }
+    //     //light shadow map TT
+    //     else {
+    //         throw new Error("ColorMaterial TTP 级别透明阴影 todo");
+    //     }
+    // }
 
     updateSelf(clock: Clock): void {
         // throw new Error("Method not implemented.");

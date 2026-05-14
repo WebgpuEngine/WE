@@ -24,22 +24,16 @@ export abstract class BaseStandardMaterial extends BaseMaterial {
      * @param input IV_BaseMaterial  基础材质的初始化参数
      */
     checkTransparent(input: IV_BaseStandardMaterial) {
-        if (input.transparent) {
-            if (input.transparent.alphaMode == "opaque") {
-                this._ToTaTp.opaqueOfTransparent = false;
-                this._ToTaTp.alphaOfTransparent = false;
-            }
-            else if (input.transparent.alphaMode == "alphaTest") {
-                this._ToTaTp.opaqueOfTransparent = true;
-                this._ToTaTp.alphaOfTransparent = false;
-                this._ToTaTp.alphaParams = {
-                    alphaMode: "alphaTest",
-                    alphaCutOff: input.transparent.alphaCutOff || 0.5,
+        if (input.transparentMode) {
+            this._transparentMode.mode = input.transparentMode;
+            if (input.transparentMode == "alphaTest") {
+                this._transparentMode.alphaOfTransparent = false;
+                this._transparentMode.alphaParams = {
+                    alphaCutOff: input.alphaTransparent?.alphaCutOff || 0.5,
                 }
             }
-            else if (input.transparent.alphaMode == "blend") {
-                this._ToTaTp.opaqueOfTransparent = true;
-                this._ToTaTp.alphaOfTransparent = true;
+            else if (input.transparentMode == "blend" || input.transparentMode == "testAndBlend") {
+                this._transparentMode.alphaOfTransparent = true;
                 let blend: GPUBlendState = {
                     color: {
                         operation: "add",//操作
@@ -53,15 +47,21 @@ export abstract class BaseStandardMaterial extends BaseMaterial {
                         dstFactor: "one-minus-src-alpha",//目标
                     }
                 };
-                if (input.transparent.blendParams == undefined) {
-                    input.transparent.blendParams = { blend };
+                let blendParams = {
+                    blend,
+                    alphaCutOff: input.alphaTransparent?.alphaCutOff || 0.5,
                 }
-                else if (input.transparent.blendParams.blend == undefined) {
-                    input.transparent.blendParams.blend = blend;
+                if (input.alphaTransparent) {
+                    this._transparentMode.alphaParams = input.alphaTransparent;
+                    if (input.alphaTransparent.blendParams == undefined) {//有没有混合参数
+                        this._transparentMode.alphaParams.blendParams = blendParams;
+                    }
+                    else if (input.alphaTransparent.blendParams.blend == undefined) {//有没有混合方程参数
+                        input.alphaTransparent.blendParams.blend = blend;
+                    }
                 }
-                this._ToTaTp.alphaParams = {
-                    alphaMode: "blend",
-                    blendParams: input.transparent.blendParams
+                else{
+                    this._transparentMode.alphaParams = blendParams;
                 }
             }
         }

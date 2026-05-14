@@ -186,16 +186,7 @@ export class PhongMaterial extends BaseStandardMaterial {
       opacityDefer: SHT_materialPhongFS_defer,
       opacityMSAA: SHT_materialPhongFS_MSAA,
       opacityMSAAInfo: SHT_materialPhongFS_MSAA_info,
-
-      TO_Forward: undefined,
-      TO_Defer: undefined,
-      TO_MSAA: undefined,
-      TO_MsaaInfo: undefined,
-
       TT: undefined,
-
-      TTP: undefined,
-      TTPF: undefined,
     };
   }
   _destroy(): void {
@@ -254,7 +245,7 @@ export class PhongMaterial extends BaseStandardMaterial {
       };
       layoutEntries.push(uniformTextureLayout);
     }
-    if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
       let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
       layoutEntries.push(...layoutMSAA.layout);
       binding = layoutMSAA.binding;
@@ -280,7 +271,7 @@ export class PhongMaterial extends BaseStandardMaterial {
       };
       uniformEntries.push(uniformTexture!);
     }
-    if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
       if (uuid) {
         let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
         uniformEntries.push(...groupMSAA.group);
@@ -300,7 +291,7 @@ export class PhongMaterial extends BaseStandardMaterial {
     for (let i in this.textures) {
       groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding++}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
     }
-    if (materialType == E_materialTypeForBindGroup.opacityMSAA || materialType == E_materialTypeForBindGroup.TO_MSAA) {
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
       let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
       groupAndBindingString += codeAddOfMSAA.code;
       binding = codeAddOfMSAA.binding;
