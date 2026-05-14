@@ -59,7 +59,7 @@ export class EntityManager extends ECSManager<BaseEntity> {
                                 [E_renderPassName.forward]: entity.renderPassArray[E_renderPassName.forward],
                                 [E_renderPassName.sprite]: entity.renderPassArray[E_renderPassName.sprite],
                                 [E_renderPassName.MSAA]: entity.renderPassArray[E_renderPassName.MSAA],
-                                // [E_renderPassName.shadowmapOpacity]: entity.renderPassArray[E_renderPassName.shadowmapOpacity],
+                                // [E_renderPassName.shadowmapOpaque]: entity.renderPassArray[E_renderPassName.shadowmapOpaque],
                             };
                             for (let i_renderPass in dcArray) {     //遍历所有renderPass
                                 for (let perDC of dcArray[i_renderPass as keyof typeof dcArray]) {       //遍历所有DC
@@ -153,7 +153,7 @@ export class EntityManager extends ECSManager<BaseEntity> {
                 // }
 
                 //shadow map Opacity
-                if (entity.renderPassArray[E_renderPassName.shadowmapOpacity].length > 0
+                if (entity.renderPassArray[E_renderPassName.shadowmapOpaque].length > 0
                 ) {
                     for (let i of this.scene.lightsManager.getShdowMapsStructArray()) { //所有shadowmap：light + matrix_self_index（point light有6个）
                         let perLight = this.scene.lightsManager.getLightByID(i.light_id);
@@ -162,14 +162,14 @@ export class EntityManager extends ECSManager<BaseEntity> {
                             let mergeID = mergeLightUUID(uuid, i.matrix_self_index);
                             let instanaceArray = entity.getDrawModeArrayOfInstances(mergeID, E_renderForDC.light);
                             //遍历shadowmap 的render pass，获得DC集合
-                            let shadowMapDC = entity.renderPassArray[E_renderPassName.shadowmapOpacity];
+                            let shadowMapDC = entity.renderPassArray[E_renderPassName.shadowmapOpaque];
                             //遍历DC集合
                             for (let i_DC in shadowMapDC) {
                                 let perDC = shadowMapDC[parseInt(i_DC)];
                                 this.renderManager.push(
                                     {
                                         command: perDC,
-                                        kind: E_renderPassName.shadowmapOpacity,
+                                        kind: E_renderPassName.shadowmapOpaque,
                                         uuid: mergeID,
                                         pipeline: perDC.pipeline,
                                         drawData: instanaceArray,

@@ -156,7 +156,7 @@ export interface IV_BaseEntity extends IV_NodeSpace {
     */
     dynamicAttribute?: boolean,
     // /**自定义渲染pass
-    //  * 1、默认通道包括：forward，MSAA，transparent，shadowmapOpacity，shadowmapTransparent,不需要设置
+    //  * 1、默认通道包括：forward，MSAA，transparent，shadowmapOpaque，shadowmapTransparent,不需要设置
     //  * 2、sprite非top模式：使用默认通道；top模式使用sprite通道
     //  * 3、自定义通道：按需设置，不会使用默认通道
     //  */

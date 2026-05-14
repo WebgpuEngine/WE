@@ -229,7 +229,7 @@ export abstract class BaseEntity extends NodeSpace {
         [E_renderPassName.MSAA]: DrawCommand[],
         [E_renderPassName.forward]: DrawCommand[],
         [E_renderPassName.transparent]: DrawCommand[],
-        [E_renderPassName.shadowmapOpacity]: DrawCommand[],
+        [E_renderPassName.shadowmapOpaque]: DrawCommand[],
         [E_renderPassName.shadowmapTransparent]: DrawCommand[],
         // [key in E_renderPassName]?: DrawCommand[]
     } = {
@@ -237,7 +237,7 @@ export abstract class BaseEntity extends NodeSpace {
             [E_renderPassName.MSAA]: [],
             [E_renderPassName.forward]: [],
             [E_renderPassName.transparent]: [],
-            [E_renderPassName.shadowmapOpacity]: [],
+            [E_renderPassName.shadowmapOpaque]: [],
             [E_renderPassName.shadowmapTransparent]: [],
         };
     /**
@@ -719,7 +719,7 @@ export abstract class BaseEntity extends NodeSpace {
         //     transparent: [],
         // };
         // this.shadowmapDC = {
-        //     shadowmapOpacity: [],
+        //     shadowmapOpaque: [],
         //     shadowmapTransparent: [],
         // }
         this.renderPassArray = {
@@ -727,7 +727,7 @@ export abstract class BaseEntity extends NodeSpace {
             [E_renderPassName.MSAA]: [],
             [E_renderPassName.forward]: [],
             [E_renderPassName.transparent]: [],
-            [E_renderPassName.shadowmapOpacity]: [],
+            [E_renderPassName.shadowmapOpaque]: [],
             [E_renderPassName.shadowmapTransparent]: [],
         };
     }

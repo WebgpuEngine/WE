@@ -28,7 +28,7 @@ export enum E_renderPassName {
     material = "material",
     renderTarget = "renderTarget",
     /**操作等同于forward，只是没有FS */
-    shadowmapOpacity = "shadowmapOpacity",
+    shadowmapOpaque = "shadowmapOpaque",
     /**
      * 等同于透明渲染，需要按照距离进行排序
      * 1、每个shadowMap的到实体的距离是不同的
@@ -257,14 +257,14 @@ export class RenderManager {
      * 渲染命令(按照工作顺序):
      * 1、有内容和时间两条线；
      * 2、pipeline合批，只合并有内容线的，不合并有时间线的（简单情况下无法保障顺序，如果保障了顺序，JS效率是否合算需要再议）；
-     * 3、目前明确只有内容线的：depth、forward、transparency、shadowmapOpacity,shadowmapTransparent，即都是和渲染相关的命令；
+     * 3、目前明确只有内容线的：depth、forward、transparency、shadowmapOpaque,shadowmapTransparent，即都是和渲染相关的命令；
      */
     RC: {
         [E_renderPassName.compute]: commmandType[],
         [E_renderPassName.texture]: commmandType[],
         [E_renderPassName.material]: commmandType[],
         [E_renderPassName.renderTarget]: commmandType[],
-        [E_renderPassName.shadowmapOpacity]: I_renderDrawCommand,
+        [E_renderPassName.shadowmapOpaque]: I_renderDrawCommand,
         [E_renderPassName.shadowmapTransparent]: I_renderDrawOfDistancesLine,
         // [E_renderPassName.depth]: I_renderDrawCommand,
         /**
@@ -287,7 +287,7 @@ export class RenderManager {
             [E_renderPassName.texture]: [],
             [E_renderPassName.material]: [],
             [E_renderPassName.renderTarget]: [],
-            [E_renderPassName.shadowmapOpacity]: {},
+            [E_renderPassName.shadowmapOpaque]: {},
             [E_renderPassName.shadowmapTransparent]: {},
             [E_renderPassName.MSAA]: {},
             [E_renderPassName.forward]: {},
@@ -362,12 +362,12 @@ export class RenderManager {
         // }
     }
     /**
-     * 初始化光源的shadow map 渲染通道,初始化包括：shadowmapOpacity,shadowmapTransparent
+     * 初始化光源的shadow map 渲染通道,初始化包括：shadowmapOpaque,shadowmapTransparent
      * @param UUID 光源的UUID
      */
     initRenderCommandForLight(UUID: string) {
-        if (!this.RC[E_renderPassName.shadowmapOpacity][UUID]) {
-            this.RC[E_renderPassName.shadowmapOpacity][UUID] = new Map();
+        if (!this.RC[E_renderPassName.shadowmapOpaque][UUID]) {
+            this.RC[E_renderPassName.shadowmapOpaque][UUID] = new Map();
         }
         if (!this.RC[E_renderPassName.shadowmapTransparent][UUID]) {
             this.RC[E_renderPassName.shadowmapTransparent][UUID] = [];
@@ -384,8 +384,8 @@ export class RenderManager {
         this.RC[E_renderPassName.material] = [];
         this.RC[E_renderPassName.renderTarget] = [];
 
-        for (let UUID in this.RC[E_renderPassName.shadowmapOpacity]) {
-            this.RC[E_renderPassName.shadowmapOpacity][UUID as E_renderPassName].clear();
+        for (let UUID in this.RC[E_renderPassName.shadowmapOpaque]) {
+            this.RC[E_renderPassName.shadowmapOpaque][UUID as E_renderPassName].clear();
             this.RC[E_renderPassName.shadowmapTransparent][UUID as E_renderPassName] = [];
         }
         for (let UUID in this.RC[E_renderPassName.forward]) {
@@ -425,7 +425,7 @@ export class RenderManager {
             ) {
                 throw new Error(`渲染通道为${option.kind}时，必须有camera ID`);
             }
-            else if (option.kind == E_renderPassName.shadowmapOpacity || option.kind == E_renderPassName.shadowmapTransparent) {
+            else if (option.kind == E_renderPassName.shadowmapOpaque || option.kind == E_renderPassName.shadowmapTransparent) {
                 throw new Error(`渲染通道为${option.kind}时，必须有light mergeID`);
             }
             else if (option.kind == E_renderPassName.toneMapping //|| option.kind == E_renderPassName.postprocess
@@ -444,7 +444,7 @@ export class RenderManager {
             ) {
                 throw new Error(`渲染通道为${option.kind}时，必须有pipeline和drawData`);
             }
-            else if (option.kind == E_renderPassName.shadowmapOpacity || option.kind == E_renderPassName.shadowmapTransparent) {
+            else if (option.kind == E_renderPassName.shadowmapOpaque || option.kind == E_renderPassName.shadowmapTransparent) {
                 throw new Error(`渲染通道为${option.kind}时，必须有pipeline和drawData`);
             }
         }
@@ -463,7 +463,7 @@ export class RenderManager {
                 });
                 break;
 
-            case E_renderPassName.shadowmapOpacity:
+            case E_renderPassName.shadowmapOpaque:
             case E_renderPassName.forward:
             case E_renderPassName.MSAA:
             case E_renderPassName.sprite:
@@ -519,7 +519,7 @@ export class RenderManager {
         // }
 
         //不透明shadowmap
-        this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpacity], E_renderPassName.shadowmapOpacity);
+        this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpaque], E_renderPassName.shadowmapOpaque);
 
         //透明shadowmap
         // this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
@@ -555,7 +555,7 @@ export class RenderManager {
     }
 
     /**
-     * 前向渲染:forward，TO，MSAA info，shadowmapOpacity
+     * 前向渲染:forward，TO，MSAA info，shadowmapOpaque
      * 1、不使用异步模式；
      * 2、每个camera的在第一个绘制增加一个透明像素绘制，防止场景清空后，没有submit命令，GBuffer的texture保持上一帧的问题；     
      * @param commands 
@@ -585,7 +585,7 @@ export class RenderManager {
             //1 获取RPD
             let rpd: GPURenderPassDescriptor;
             let uuid: string = mergeID;
-            if (uuid.indexOf("__") != -1 && renderPassName == E_renderPassName.shadowmapOpacity) {
+            if (uuid.indexOf("__") != -1 && renderPassName == E_renderPassName.shadowmapOpaque) {
                 rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.light);
             }
             else {

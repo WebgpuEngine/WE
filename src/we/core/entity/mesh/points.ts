@@ -260,7 +260,7 @@ export class Points extends EntityBundleMaterial {
             }
         }
         let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
-        this.renderPassArray[E_renderPassName.shadowmapOpacity].push(dc);
+        this.renderPassArray[E_renderPassName.shadowmapOpaque].push(dc);
     }
     createShadowMapTransparentDC(): void {
         throw new Error("Method not implemented.");

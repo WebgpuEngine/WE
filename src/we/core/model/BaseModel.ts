@@ -78,7 +78,7 @@ export abstract class BaseModel extends NodeObject {
     //     [name: string]: {
     //         // depth: DrawCommand[],
     //         // transparent: DrawCommand[],
-    //         [E_renderPassName.shadowmapOpacity]: DrawCommand[],
+    //         [E_renderPassName.shadowmapOpaque]: DrawCommand[],
     //         [E_renderPassName.shadowmapTransparent]: DrawCommand[],
     //     }
     // } = {}
