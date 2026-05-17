@@ -19,7 +19,7 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     }
 //MSAA end 
 
-    output.color =  u_color_material_uniform.color;
+    output.color =  u_common_base.color;
     if(output.color.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
     {
         discard;

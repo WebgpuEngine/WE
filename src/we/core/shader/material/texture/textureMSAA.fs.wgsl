@@ -30,9 +30,9 @@
     }
 //MSAA end 
     //如果有alpha，按照input规则输出，按照图像原始数据处理，这里的透明也写深度）
-    if(u_uniform_texture.has_alphaTest==1)
+    if(u_common_base.transparent.transparent_mode==1)
     {
-        if( materialColor.a < u_uniform_texture.alphaTest )
+        if( materialColor.a < u_common_base.transparent.alpha_transparent.alpha_cut_off )
         {
             discard;
         }
@@ -40,9 +40,9 @@
     else {
         materialColor.a = 1.0;      //默认不透明
     }
-    if( u_uniform_texture.has_opacity_percent == 1  )
+    if( u_common_base.transparent.transparent_mode == 2  )
     {
-        discard;//有透明度，则由TT渲染        // materialColor.a = u_uniform_texture.opacity;
+        discard;//有透明度，则由TT渲染        // materialColor.a = u_common_base.opacity;
     }
     output.color= materialColor;
     return output;

@@ -26,8 +26,6 @@ import {
     SHT_materialTextureFS,
     SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo
 } from "../../shadermanagemnet/material/textureMaterial";
-import { I_pointerCreateParams } from "../../bufferBlock/pointer";
-import { E_BOLBufferType } from "../../bufferBlock/base";
 import { BaseStandardMaterial } from "./baseStandard";
 
 
@@ -47,6 +45,7 @@ export interface IV_TextureMaterial extends IV_BaseStandardMaterial {
 }
 
 export class TextureMaterial extends BaseStandardMaterial {
+
     unifromCPUBuffer: ArrayBuffer = new ArrayBuffer(4 * 4);
 
     declare inputValues: IV_TextureMaterial;
@@ -87,7 +86,7 @@ export class TextureMaterial extends BaseStandardMaterial {
     }
 
     async readyForGPU(): Promise<any> {
-        this.writeUniformBuffer();
+        this.writeUniformCommon();
         this.defaultSampler = this.checkSampler(this.inputValues);
         let texture = this.inputValues.texture;
         if (texture instanceof Texture) {
@@ -100,31 +99,33 @@ export class TextureMaterial extends BaseStandardMaterial {
         }
         this._state = E_lifeState.finished;
     }
+    _writeUniformCommon(): void {
 
-    writeUniformBuffer(update: boolean = false) {
-        if (this.uniformPointer == undefined) {
-            let pointerParams: I_pointerCreateParams = {
-                name: `uniform ${this.kind} material: ${this.UUID}`,
-                byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
-                type: E_BOLBufferType.uniform,
-                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
-            };
-            this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
-        }
-        let offset = this.uniformPointer.offset;
-        let unifromCPUBuffer = this.uniformPointer.cpuBuffer;
-        const uniform_texture_materialViews = {
-            has_opacity_percent: new Float32Array(unifromCPUBuffer, offset + 0, 1),
-            opacity: new Float32Array(unifromCPUBuffer, offset + 4, 1),
-            has_alphaTest: new Int32Array(unifromCPUBuffer, offset + 8, 1),
-            alphaTest: new Float32Array(unifromCPUBuffer, offset + 12, 1),
-        };
-        uniform_texture_materialViews.has_opacity_percent[0] = this.HasOpacity;
-        uniform_texture_materialViews.opacity[0] = this.Opacity;
-        uniform_texture_materialViews.has_alphaTest[0] = this.getHasAlphaTest();
-        uniform_texture_materialViews.alphaTest[0] = this.AlphaTest;
-        this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
     }
+    // writeUniformBuffer(update: boolean = false) {
+    //     if (this.uniformPointer == undefined) {
+    //         let pointerParams: I_pointerCreateParams = {
+    //             name: `uniform ${this.kind} material: ${this.UUID}`,
+    //             byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
+    //             type: E_BOLBufferType.uniform,
+    //             viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+    //         };
+    //         this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
+    //     }
+    //     let offset = this.uniformPointer.offset;
+    //     let unifromCPUBuffer = this.uniformPointer.cpuBuffer;
+    //     const uniform_texture_materialViews = {
+    //         has_opacity_percent: new Float32Array(unifromCPUBuffer, offset + 0, 1),
+    //         opacity: new Float32Array(unifromCPUBuffer, offset + 4, 1),
+    //         has_alphaTest: new Int32Array(unifromCPUBuffer, offset + 8, 1),
+    //         alphaTest: new Float32Array(unifromCPUBuffer, offset + 12, 1),
+    //     };
+    //     uniform_texture_materialViews.has_opacity_percent[0] = this.HasOpacity;
+    //     uniform_texture_materialViews.opacity[0] = this.Opacity;
+    //     uniform_texture_materialViews.has_alphaTest[0] = this.getHasAlphaTest();
+    //     uniform_texture_materialViews.alphaTest[0] = this.AlphaTest;
+    //     this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
+    // }
     /**是否有alphaTest */
     getHasAlphaTest() {
         if (this._transparentMode.mode == "alphaTest") {
@@ -142,7 +143,7 @@ export class TextureMaterial extends BaseStandardMaterial {
         this._transparentMode.alphaParams = {
             alphaCutOff: value,
         }
-        this.writeUniformBuffer(true);
+        this.writeUniformCommon();
     }
     get Opacity() {
         let opacity = 1.0;
@@ -157,7 +158,7 @@ export class TextureMaterial extends BaseStandardMaterial {
                 opacity: value,
             }
         }
-        this.writeUniformBuffer(true);
+        this.writeUniformCommon();
     }
     get HasOpacity() {
         let hasOpacity = 0;
@@ -205,7 +206,7 @@ export class TextureMaterial extends BaseStandardMaterial {
         let uniformEntries: T_uniformEntries[] = [
             {
                 binding: binding++,
-                resource: this.uniformPointer.gpuBufferView,
+                resource: this.uniformPointerCommon.gpuBufferView,
                 // resource: {
                 //     buffer: this.uniformPointer.gpuBuffer,
                 //     offset: this.uniformPointer.offset,
@@ -236,7 +237,7 @@ export class TextureMaterial extends BaseStandardMaterial {
     getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
         let binding: number = 0;
         let groupAndBindingString: string = `
-            @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_uniform_texture: uniform_texture_material;
+            @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform>  u_common_base: st_material_base_info;
             @group(${this.bindGroupNumber}) @binding(${binding++}) var u_colorTexture: texture_2d<f32>;
             @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
             `;

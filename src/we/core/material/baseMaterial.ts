@@ -12,15 +12,23 @@ import {
     T_transparentMode
 } from "./base";
 import { commmandType, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries } from "../command/base";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
+import {
+    E_shaderTemplateReplaceType,
+    I_ShaderTemplate,
+    I_ShaderTemplate_Final,
+    I_shaderTemplateAdd,
+    I_shaderTemplateReplace,
+    I_singleShaderTemplate
+} from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { I_mipmap } from "../texture/base";
 import { Clock } from "../scene/clock";
 import { getSampler } from "../sampler/baseFunction";
 import { Texture } from "../texture/texture";
 import { CubeTexture } from "../texture/cubeTexxture";
-import { I_pointerStruct } from "../bufferBlock/pointer";
+import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_renderPassName } from "../scene/renderManager";
+import { E_BOLBufferType } from "../bufferBlock/base";
 
 
 
@@ -29,14 +37,143 @@ export abstract class BaseMaterial extends RootGPU {
     ///////////////////////////////////////////////////////////////////
     declare inputValues: IV_BaseMaterial;
     kind!: E_MaterialType;
-    /** 材质的uniform  Buffer 的指针，用于快速访问 
-     * 20260419：
-     * 1、这个名称不够直观，需要调整一下，调整为与VS相同的名称
-    */
-    uniformPointer!: I_pointerStruct;
+
     _doubleSided: boolean = false;
     get DoubleSided(): boolean { return this._doubleSided; }
     set DoubleSided(value: boolean) { this._doubleSided = value; }
+    //////////////////////////////////////////////////////////////////
+    /** 材质的uniform  Buffer 的指针，用于快速访问   
+     * 1、PBR、phone需要使用
+      */
+    uniformPointer!: I_pointerStruct;
+    /**common的uniform  Buffer 的指针，用于快速访问     */
+    uniformPointerCommon!: I_pointerStruct;
+    uniformPointerCommonSize = 256;
+    uniformPointerCommonView!: {
+        transparent: {
+            transparent_mode: Int32Array,
+            alpha_transparent: {
+                alpha_cut_off: Float32Array,
+                opacity: Float32Array,
+                blend_mode: Uint32Array,
+            },
+        },
+        depth_bias: {
+            depth_bias: Float32Array,
+            slope_scale: Float32Array,
+        },
+        accept_light: Int32Array,
+        accept_shadow: Int32Array,
+        shadow_bias: Float32Array,
+        barycentric_coordinates: {
+            triangle: Int32Array,
+            wireframe: Int32Array,
+            thickness: Float32Array,
+            opacity: Float32Array,
+        },
+        color: Float32Array,
+        uv: {
+            activate: Int32Array,
+            uv_index: Int32Array,
+            offset: Float32Array,
+            scale: Float32Array,
+            rotate: Float32Array,
+        },
+        clip: {
+            activate: Int32Array,
+            inverse_side: Int32Array,
+            plane_x: Float32Array,
+            plane_y: Float32Array,
+            plane_z: Float32Array,
+            inverse_x: Int32Array,
+            inverse_y: Int32Array,
+            inverse_z: Int32Array,
+            plane1: Float32Array,
+            sdf: {
+                kind: Uint32Array,
+                round: Int32Array,
+                round_radius: Float32Array,
+                parameter: Float32Array,
+                invert_model_matrix: Float32Array,
+            }
+        }
+    };
+    /** 创建uniformcommonPointer */
+    createUniformCommonPointer() {
+        if (this.uniformPointerCommon == undefined) {
+            let pointerParams: I_pointerCreateParams = {
+                name: `uniform ${this.kind} material: ${this.UUID}`,
+                byteSize: this.getPointerByteSize(this.uniformPointerCommonSize),
+                type: E_BOLBufferType.uniform,
+                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+            };
+            this.uniformPointerCommon = this.scene.pointers.createPointer(pointerParams);
+            let offset = this.uniformPointerCommon.offset;
+            let uniformPointerCommonCPUBuffer = this.uniformPointerCommon.cpuBuffer;
+            this.uniformPointerCommonView = {
+                transparent: {
+                    transparent_mode: new Int32Array(uniformPointerCommonCPUBuffer, offset + 0, 1),
+                    alpha_transparent: {
+                        alpha_cut_off: new Float32Array(uniformPointerCommonCPUBuffer, offset + 4, 1),
+                        opacity: new Float32Array(uniformPointerCommonCPUBuffer, offset + 8, 1),
+                        blend_mode: new Uint32Array(uniformPointerCommonCPUBuffer, offset + 12, 1),
+                    },
+                },
+                depth_bias: {
+                    depth_bias: new Float32Array(uniformPointerCommonCPUBuffer, offset + 16, 1),
+                    slope_scale: new Float32Array(uniformPointerCommonCPUBuffer, offset + 20, 1),
+                },
+                accept_light: new Int32Array(uniformPointerCommonCPUBuffer, offset + 24, 1),
+                accept_shadow: new Int32Array(uniformPointerCommonCPUBuffer, offset + 28, 1),
+                shadow_bias: new Float32Array(uniformPointerCommonCPUBuffer, offset + 32, 1),
+                barycentric_coordinates: {
+                    triangle: new Int32Array(uniformPointerCommonCPUBuffer, offset + 36, 1),
+                    wireframe: new Int32Array(uniformPointerCommonCPUBuffer, offset + 40, 1),
+                    thickness: new Float32Array(uniformPointerCommonCPUBuffer, offset + 44, 1),
+                    opacity: new Float32Array(uniformPointerCommonCPUBuffer, offset + 48, 1),
+                },
+                color: new Float32Array(uniformPointerCommonCPUBuffer, offset + 64, 4),
+                uv: {
+                    activate: new Int32Array(uniformPointerCommonCPUBuffer, offset + 80, 1),
+                    uv_index: new Int32Array(uniformPointerCommonCPUBuffer, offset + 84, 1),
+                    offset: new Float32Array(uniformPointerCommonCPUBuffer, offset + 88, 2),
+                    scale: new Float32Array(uniformPointerCommonCPUBuffer, offset + 96, 2),
+                    rotate: new Float32Array(uniformPointerCommonCPUBuffer, offset + 104, 1),
+                },
+                clip: {
+                    activate: new Int32Array(uniformPointerCommonCPUBuffer, offset + 112, 1),
+                    inverse_side: new Int32Array(uniformPointerCommonCPUBuffer, offset + 116, 1),
+                    plane_x: new Float32Array(uniformPointerCommonCPUBuffer, offset + 120, 1),
+                    plane_y: new Float32Array(uniformPointerCommonCPUBuffer, offset + 124, 1),
+                    plane_z: new Float32Array(uniformPointerCommonCPUBuffer, offset + 128, 1),
+                    inverse_x: new Int32Array(uniformPointerCommonCPUBuffer, offset + 132, 1),
+                    inverse_y: new Int32Array(uniformPointerCommonCPUBuffer, offset + 136, 1),
+                    inverse_z: new Int32Array(uniformPointerCommonCPUBuffer, offset + 140, 1),
+                    plane1: new Float32Array(uniformPointerCommonCPUBuffer, offset + 144, 4),
+                    sdf: {
+                        kind: new Uint32Array(uniformPointerCommonCPUBuffer, offset + 160, 1),
+                        round: new Int32Array(uniformPointerCommonCPUBuffer, offset + 164, 1),
+                        round_radius: new Float32Array(uniformPointerCommonCPUBuffer, offset + 168, 1),
+                        parameter: new Float32Array(uniformPointerCommonCPUBuffer, offset + 176, 4),
+                        invert_model_matrix: new Float32Array(uniformPointerCommonCPUBuffer, offset + 192, 16),
+                    },
+                },
+            };
+            // this.scene.pointers.updatePointerWriteTime(this.uniformPointerCommon);
+        }
+    }
+    /** 派生类材质写入uniformcommon */
+    abstract _writeUniformCommon(): void;
+    /** 写入uniformBuffer */
+    writeUniformCommon() {
+        this._writeUniformCommon();
+        this.uniformPointerCommonView.transparent.transparent_mode[0] = this.getTransparentMode();
+        this.uniformPointerCommonView.transparent.alpha_transparent.alpha_cut_off[0] = this._transparentMode.alphaParams.alphaCutOff || 0;
+        this.uniformPointerCommonView.transparent.alpha_transparent.opacity[0] = this._transparentMode.alphaParams.blendParams?.opacity || -1;
+        this.uniformPointerCommonView.transparent.alpha_transparent.blend_mode[0] = this.getBlendMode();
+        //todo  local clipping 
+        this.scene.pointers.updatePointerWriteTime(this.uniformPointerCommon);
+    }
 
     ///////////////////////////////////////////////////////////////////
     //材质相关
@@ -76,6 +213,12 @@ export abstract class BaseMaterial extends RootGPU {
         super(input);
         this.type = "material";
         this.DoubleSided = input?.doubleSided || false;
+        if (input) {
+            this.inputValues = input;
+            this.checkTransparent(input);
+        }
+        else
+            this.inputValues = {};
         this._state = E_lifeState.unstart;
     }
     _destroy(): void {
@@ -103,14 +246,33 @@ export abstract class BaseMaterial extends RootGPU {
         return this._state;
     }
 
+    /**
+     * 初始化材质
+     * 一、两种初始化模式
+     * 1、程序化控制模式：
+     *      A、初始化时可以不传递scene对象，只关注材质参数。
+     *      B、scene传递和与其相关的参数在entity的init中，通过调用_material.init() 来初始化。
+     * 2、加载场景模式（编辑器，加载）：
+     *      A、初始化时需要传递scene对象。
+     *      B、然后使用 await xxx.init(scene) 来初始化,有异步的操作。
+     * 二、通过判断this._state，来判断是否已经初始化完成。
+     * 三、异步操作说明
+     *  1、派生类的redadyForGPU()会有异步操作；
+     *  2、texture的加载，url等 
+     * @param scene 场景对象
+     * @returns 
+     */
     async init(scene: Scene): Promise<any> {
-        // this._shadow = (parent as BaseEntity)._shadow;
+        //如果已经初始化，直接返回
+        if (this._state == E_lifeState.finished) return;
         this.scene = scene;
         // this.entity = entity;
         this.defaultTexture2D = this.scene.resourcesGPU.weTextureOfString.get("default") as Texture;
         this.defaultTexture3D = this.scene.resourcesGPU.weTextureOfString.get("defaultCube") as CubeTexture;
         this.defaultSampler = this.checkSampler(this.inputValues);
         this.resourcesGPU = this.scene.resourcesGPU;
+        this.createUniformCommonPointer();
+
         await super.init(scene);
         this.scene.materialManager.add(this);
     }
@@ -666,9 +828,39 @@ export abstract class BaseMaterial extends RootGPU {
             // opaqueOfTransparent: false,
             alphaOfTransparent: false,
             alphaParams: {
-                alphaCutOff: 0.5,//默认值，不一定使用，根据模式而定
+                alphaCutOff: 0.,//默认值，不一定使用，根据模式而定
             },
         }
+    /** 获取透明材质的渲染模式：writeUniformCommon()中调用
+    * @returns number  透明材质的渲染模式
+    */
+    getTransparentMode(): number {
+        if (this._transparentMode.mode == "opaque") {
+            return 0;
+        }
+        else if (this._transparentMode.mode == "alphaTest") {
+            return 1;
+        }
+        else if (this._transparentMode.mode == "blend") {
+            return 2;
+        }
+        else if (this._transparentMode.mode == "testAndBlend") {
+            return 3;
+        }
+        else {
+            throw new Error("材质的渲染模式未知：" + this._transparentMode.mode);
+        }
+    }
+    /** 获取混合模式： writeUniformCommon()中调用
+    * @returns number  混合模式
+    * 0、预乘标准混合
+    * todo：20260517
+    *   1、 为A-Buffer设计，目前默认0=预乘标准混合。
+    *   2、其他混合模式，目前未设计与实现
+    */
+    getBlendMode(): number {
+        return 0;
+    }
     /**
      * 是否为透明材质
      * @returns boolean  true：是透明材质，false：不是透明材质
@@ -689,6 +881,57 @@ export abstract class BaseMaterial extends RootGPU {
         else {
             throw new Error("透明材质的blend状态不能为空");
             return [];
+        }
+    }
+    /**
+ * 检查透明状态,如果是透明的，就设置为透明.（color 透明的除外，需要在color material中验证）
+ * 默认：alpha透明，没有设置alphaTest，图像本身alpha=0.0的将透明（diacard） ）
+ * @param input IV_BaseMaterial  基础材质的初始化参数
+ */
+    checkTransparent(input: IV_BaseMaterial) {
+        if (input.transparentMode) {
+            this._transparentMode.mode = input.transparentMode;
+            if (input.transparentMode == "alphaTest") {
+                this._transparentMode.alphaOfTransparent = false;
+                this._transparentMode.alphaParams = {
+                    alphaCutOff: input.alphaTransparent?.alphaCutOff || 0.,
+                }
+            }
+            else if (input.transparentMode == "blend" || input.transparentMode == "testAndBlend") {
+                this._transparentMode.alphaOfTransparent = true;
+                let blend: GPUBlendState = {
+                    color: {
+                        operation: "add",//操作
+                        // srcFactor: "src-alpha",//源
+                        srcFactor: "one",//源
+                        dstFactor: "one-minus-src-alpha",//目标
+                    },
+                    alpha: {
+                        operation: "add",//操作  
+                        srcFactor: "one",//源
+                        dstFactor: "one-minus-src-alpha",//目标
+                    }
+                };
+                let blendParams = {
+                    blend,
+                    alphaCutOff: input.alphaTransparent?.alphaCutOff || 0.5,
+                }
+                if (input.alphaTransparent) {
+                    this._transparentMode.alphaParams = input.alphaTransparent;
+                    if (input.alphaTransparent.blendParams == undefined) {//有没有混合参数
+                        this._transparentMode.alphaParams.blendParams = blendParams;
+                    }
+                    else if (input.alphaTransparent.blendParams.blend == undefined) {//有没有混合方程参数
+                        input.alphaTransparent.blendParams.blend = blend;
+                    }
+                }
+                else {
+                    this._transparentMode.alphaParams.blendParams = blendParams;
+                }
+            }
+        }
+        else {
+
         }
     }
 }

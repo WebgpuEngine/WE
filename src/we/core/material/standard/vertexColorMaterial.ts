@@ -17,6 +17,9 @@ export interface IV_VertexColorMaterial extends IV_BaseStandardMaterial {
 }
 
 export class VertexColorMaterial extends BaseStandardMaterial {
+    _writeUniformCommon(): void {
+        // throw new Error("Method not implemented.");
+    }
     declare inputValues: IV_BaseMaterial;
     constructor() {
         super({});

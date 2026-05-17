@@ -25,7 +25,7 @@ import {
 import { BaseMaterial } from "../baseMaterial";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
-import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA } from "../../shadermanagemnet/material/pbrMaterial";
+import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA, SHT_materialPBRFS_TT } from "../../shadermanagemnet/material/pbrMaterial";
 import { E_lifeState, weVec4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
@@ -67,6 +67,9 @@ export interface IV_PBRMaterial extends IV_BaseMaterial {
 type vialidPBRTextureType = keyof IV_PBRMaterial["textures"];
 
 export class PBRMaterial extends BaseMaterial {
+    _writeUniformCommon(): void {
+        // throw new Error("Method not implemented.");
+    }
 
     declare inputValues: IV_PBRMaterial;
     declare textures: {
@@ -391,6 +394,11 @@ export class PBRMaterial extends BaseMaterial {
             value: [0, 0, 0, 0],
             textureName: E_TextureType.envMap,
             textureChannel: E_TextureChannel.User,
+            /**
+             * extra=[data1:i32,data2:f32,]
+             * data1:透明渲染模式:0=opaque,1=alphaTest,2=blend,3=testAndBlend
+             * data2:透明阈值:用于alphaTest模式和testAndBlend模式，阈值为0-1之间
+             */
             extra: [0, 0],
         },
 
@@ -406,12 +414,14 @@ export class PBRMaterial extends BaseMaterial {
             opacityDefer: SHT_materialPBRFS_defer,
             opacityMSAA: SHT_materialPBRFS_MSAA,
             opacityMSAAInfo: SHT_materialPBRFS_MSAA_info,
-            TT: undefined,
+            TT: SHT_materialPBRFS_TT,
         };
     }
 
     async readyForGPU(): Promise<any> {
         this.createUniformPointer();
+        // if (this.inputValues.name == "alpha") debugger;
+
         //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
             if (key == E_TextureType.emissiveFactor) {
@@ -576,10 +586,10 @@ export class PBRMaterial extends BaseMaterial {
                         this.insideUniformBundle[index].samplerBindingType = this.defaultSamplerBindingType;
                         this.insideUniformBundle[index].texture = this.defaultTexture2D;
                     }
-                    //如果有扩展数据
-                    if (this.insideUniformBundle[index].extra) {
-                        this.insideUniformBundle[index].extra = [...extra];
-                    }
+                }
+                //如果有扩展数据
+                if (extra) {
+                    this.insideUniformBundle[index].extra = [...extra];
                 }
             }
 
@@ -725,6 +735,13 @@ export class PBRMaterial extends BaseMaterial {
         let layoutEntries: GPUBindGroupLayoutEntry[] = [
             {
                 binding: binding++,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: {
+                    type: "uniform",
+                },
+            },
+            {
+                binding: binding++,
                 visibility: GPUShaderStage.FRAGMENT,
                 buffer: {
                     type: "uniform",
@@ -761,7 +778,7 @@ export class PBRMaterial extends BaseMaterial {
             }
         }
 
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -771,6 +788,10 @@ export class PBRMaterial extends BaseMaterial {
     getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
         let binding: number = 0;
         let uniformEntries: T_uniformEntries[] = [
+            {
+                binding: binding++,
+                resource: this.uniformPointerCommon.gpuBufferView,
+            },
             {
                 binding: binding++,
                 resource: this.uniformPointer.gpuBufferView,
@@ -799,7 +820,7 @@ export class PBRMaterial extends BaseMaterial {
                 binding++;
             }
         }
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -813,17 +834,18 @@ export class PBRMaterial extends BaseMaterial {
     getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
         let binding: number = 0;
         let groupAndBindingString: string = `
-                @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_pbr_uniform : PBRUniformInput; 
-                `;
+ @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_common_base: st_material_base_info;
+ @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_pbr_uniform : PBRUniformInput; 
+`;
         for (let perTexture of this.insideUniformBundle) {
             let uniformName = perTexture.textureName;
             if (uniformName == E_TextureType.envMap) { continue; }
             //texture
-            groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
+            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_texture_${uniformName} : texture_2d<f32>; \n `;
             //sampler
-            groupAndBindingString += `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_sampler_${uniformName} : sampler; \n `;
+            groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_sampler_${uniformName} : sampler; \n `;
         }
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;

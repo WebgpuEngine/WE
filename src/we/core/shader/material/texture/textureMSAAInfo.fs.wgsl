@@ -23,14 +23,14 @@
     //output.color= pow(textureSample(u_colorTexture, u_Sampler, uv ), vec4f(1.0 / 2.2)) ;//gamma编码，这里不使用，最后统一进行tone mapping
     materialColor=textureSample(u_colorTexture, u_Sampler, uv );
     //如果有alpha，按照input规则输出，按照图像原始数据处理，这里的透明也写深度）
-    if(u_uniform_texture.has_alphaTest==1)
+    if(u_common_base.transparent.transparent_mode==1)
     {
-        if( materialColor.a < u_uniform_texture.alphaTest )
+        if( materialColor.a < u_common_base.transparent.alpha_transparent.alpha_cut_off )
         {
             discard;
         }
     }
-    if( u_uniform_texture.has_opacity_percent == 1  )
+    if( u_common_base.transparent.transparent_mode == 2  )
     {
         discard;//有透明度，则由TT渲染  
     }

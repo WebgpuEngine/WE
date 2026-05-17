@@ -1,4 +1,4 @@
-import { I_Update } from "../base/coreDefine";
+import { I_Update, weVec4 } from "../base/coreDefine";
 import { T_uniformEntries, T_uniformOneGroup } from "../command/base";
 import { I_EntityBundleOutput } from "../entity/base";
 import { E_GBufferNames } from "../gbuffers/base";
@@ -66,10 +66,8 @@ export enum E_TransparentType {
 }
 
 
-/**基础材质的初始化参数
- * 
+/**基础材质的初始化参数（全局材质通用）
  * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
- * 
  * 2、加载场景模式，原则上是通过加载器带入parent参数。todo
  */
 export interface IV_BaseMaterial extends I_Update {
@@ -87,6 +85,46 @@ export interface IV_BaseMaterial extends I_Update {
     alphaTransparent?: I_AlphaTransparentOfMaterial,//T_TransparentOfMaterial,
     /** 透明模式 ,默认opaque */
     transparentMode?: T_transparentMode;
+
+    ///////////////////////////////////////////////////////
+    //todo 
+    /** 是否接受光照，默认true */
+    acceptLight?: boolean;
+    /** 是否接受阴影，默认true */
+    acceptShadow?: boolean;
+    /** 阴影贴图偏移量，默认：安装系统默认值(0.08)
+     * todo:20260517 未设计与实现。目前在fn_pcss.wgsl中是固定的0.08。
+    */
+    shadowMapBias?: number;
+    /** 材质深度偏移量，默认：不使用*/
+    depthBias?: {
+        bias?: number;
+        scale?: number;
+    };
+    /** uv偏移量,材质的全局参数。
+     *  若具体PBR的参数有单独uv参数，优先使用单独的uv参数。
+     */
+    uv?: {
+        uv_index?: number;
+        offset?: number[];
+        scale?: number[];
+        rotate?: number;
+    }
+    clip?: {
+        kind: "planeX" | "planeY" | "planeZ" | "planyXY" | "planeYZ" | "planeXZ" | "planeXYZ" | "planeOne" | "SDF";
+        disanceOfplaneX?: number;
+        disanceOfplaneY?: number;
+        disanceOfplaneZ?: number;
+        /** xyz=平面One的法线向量,w=距离 */
+        planeOneFN?: weVec4;
+        SDF?: {
+            kind?: number;
+            round?: boolean;
+            roundRadius?: number;
+            parameter?: weVec4
+            invertModelMatrix?: number[];
+        };
+    }
 }
 /**自定义shader材质的初始化参数 */
 export interface IV_shaderMaterial extends IV_BaseMaterial {

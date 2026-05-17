@@ -10,7 +10,7 @@
     var output: ST_GBuffer;
     $fsOutput
 
-    output.color = u_color_material_uniform.color;
+    output.color = u_common_base.color;
     if(output.color.a>=1.0)
     {
         discard;

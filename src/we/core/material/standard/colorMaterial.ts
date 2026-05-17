@@ -34,7 +34,10 @@ export class ColorMaterial extends BaseStandardMaterial {
     }
     set Color(value: weColor4) {
         this._color = value;
-        this.writeUniformBuffer(true);
+        this.writeUniformCommon();
+    }
+    _writeUniformCommon() {
+        this.uniformPointerCommonView.color.set(this._color);
     }
 
     constructor(input: I_ColorMaterial) {
@@ -99,36 +102,36 @@ export class ColorMaterial extends BaseStandardMaterial {
         };
     }
     async readyForGPU(): Promise<any> {
-        this.writeUniformBuffer();
+        this.writeUniformCommon();
         this._state = E_lifeState.finished;
         // console.log(this._state);
     }
-    writeUniformBuffer(update: boolean = false) {
-        if (this.uniformPointer == undefined) {
-            let pointerParams: I_pointerCreateParams = {
-                name: `uniform ${this.kind} material: ${this.UUID}`,
-                byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
-                type: E_BOLBufferType.uniform,
-                viewType: "f32",//由于data是ArrayBuffer,按照u8处理
-                data: {
-                    sourceData: {
-                        data: this._color,
-                    },
-                }
-            };
-            this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
-        }
-        else {
-            this.scene.pointers.updatePointerData(
-                this.uniformPointer,
-                {
-                    sourceData: {
-                        data: this._color,
-                    },
-                }
-            );
-        }
-    }
+    // writeUniformBuffer(update: boolean = false) {
+    //     if (this.uniformPointer == undefined) {
+    //         let pointerParams: I_pointerCreateParams = {
+    //             name: `uniform ${this.kind} material: ${this.UUID}`,
+    //             byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
+    //             type: E_BOLBufferType.uniform,
+    //             viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+    //             data: {
+    //                 sourceData: {
+    //                     data: this._color,
+    //                 },
+    //             }
+    //         };
+    //         this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
+    //     }
+    //     else {
+    //         this.scene.pointers.updatePointerData(
+    //             this.uniformPointer,
+    //             {
+    //                 sourceData: {
+    //                     data: this._color,
+    //                 },
+    //             }
+    //         );
+    //     }
+    // }
 
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
@@ -153,7 +156,8 @@ export class ColorMaterial extends BaseStandardMaterial {
         let uniformEntries: T_uniformEntries[] = [];
         let uniformBuffer: GPUBindGroupEntry = {
             binding: binding++,
-            resource: this.uniformPointer.gpuBufferView,
+            resource: this.uniformPointerCommon.gpuBufferView,
+            // resource: this.uniformPointer.gpuBufferView,
             // resource: {
             //     buffer: this.uniformPointer.gpuBuffer,
             //     offset: this.uniformPointer.offset,
@@ -175,10 +179,7 @@ export class ColorMaterial extends BaseStandardMaterial {
     getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
         let binding: number = 0;
         let groupAndBindingString: string = `
-        struct color_material_uniform  {
-            color: vec4f,
-        }
-        @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_color_material_uniform: color_material_uniform;
+        @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_common_base: st_material_base_info;
         `;
         if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);

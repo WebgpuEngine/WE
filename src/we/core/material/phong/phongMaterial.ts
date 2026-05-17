@@ -39,6 +39,9 @@ export interface IV_PhongMaterial extends IV_BaseStandardMaterial {
 }
 
 export class PhongMaterial extends BaseStandardMaterial {
+  _writeUniformCommon(): void {
+    // throw new Error("Method not implemented.");
+  }
   override inputValues: IV_PhongMaterial;
   override textures: {
     [name: string]: Texture
@@ -232,6 +235,13 @@ export class PhongMaterial extends BaseStandardMaterial {
       {
         binding: binding++,
         visibility: GPUShaderStage.FRAGMENT,
+        buffer: {
+          type: "uniform",
+        },
+      },
+      {
+        binding: binding++,
+        visibility: GPUShaderStage.FRAGMENT,
         sampler: {
           type: this.defaultSamplerBindingType,
         },
@@ -245,7 +255,7 @@ export class PhongMaterial extends BaseStandardMaterial {
       };
       layoutEntries.push(uniformTextureLayout);
     }
-    if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
       let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
       layoutEntries.push(...layoutMSAA.layout);
       binding = layoutMSAA.binding;
@@ -255,6 +265,10 @@ export class PhongMaterial extends BaseStandardMaterial {
   getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
     let binding: number = 0;
     let uniformEntries: T_uniformEntries[] = [
+      {
+        binding: binding++,
+        resource: this.uniformPointerCommon.gpuBufferView,
+      },
       {
         binding: binding++,
         resource: this.uniformPointer.gpuBufferView,
@@ -271,7 +285,7 @@ export class PhongMaterial extends BaseStandardMaterial {
       };
       uniformEntries.push(uniformTexture!);
     }
-    if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
       if (uuid) {
         let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
         uniformEntries.push(...groupMSAA.group);
@@ -285,13 +299,14 @@ export class PhongMaterial extends BaseStandardMaterial {
   getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
     let binding: number = 0;
     let groupAndBindingString: string = `
+              @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_common_base: st_material_base_info;
               @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_bulinphong : st_bulin_phong;
               @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler;
               `;
     for (let i in this.textures) {
       groupAndBindingString += `@group(${this.bindGroupNumber})  @binding(${binding++}) var u_${i}Texture: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
     }
-    if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+    if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
       let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
       groupAndBindingString += codeAddOfMSAA.code;
       binding = codeAddOfMSAA.binding;

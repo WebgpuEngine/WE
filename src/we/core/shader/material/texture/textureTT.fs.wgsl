@@ -22,16 +22,16 @@
     //如果有alpha，按照input规则输出，按照图像原始数据处理，否则 discard（这里的透明也写深度）
 
 
-    if(u_uniform_texture.has_alphaTest==1)
+    if(u_common_base.transparent.transparent_mode==3)
     {
-        if( materialColor.a < u_uniform_texture.alphaTest )
+        if( materialColor.a < u_common_base.transparent.alpha_transparent.alpha_cut_off )
         {
             discard;
         }
     }
-    if( u_uniform_texture.has_opacity_percent == 1  )
+    if( u_common_base.transparent.transparent_mode == 2  &&  u_common_base.transparent.alpha_transparent.opacity >0.0 )
     {
-         materialColor.a = u_uniform_texture.opacity;
+         materialColor.a = u_common_base.transparent.alpha_transparent.opacity;
     }
     output.color= materialColor;
     return output;

@@ -18,7 +18,7 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     // let offsetWorld = max(scaleOffset,pow(scaleOffset,distance(fsInput.worldPosition.xyz, u_mvp.cameraPosition) * offsetOfWireframeVale));
     $MSAA
 
-    output.color =  u_color_material_uniform.color;
+    output.color =  u_common_base.color;
  
     return output;
 }

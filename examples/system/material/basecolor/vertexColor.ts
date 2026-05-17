@@ -67,7 +67,7 @@ let inputMesh: IV_MeshEntity = {
   },
   material: colorMaterial,
   wireFrame: {
-    color: [0, 0, 0, 1],
+    color: [1, 1, 1, 1],
     enable: true,
     // wireFrameOnly: true,
   }

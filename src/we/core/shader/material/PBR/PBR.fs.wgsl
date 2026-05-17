@@ -11,7 +11,7 @@ struct  pbr_material{
 
 /**PBR的统一参数化单项，用于判断PBR相关参数是否使用，及来源：是来自于数值，还是纹理 */
 struct PBRUniformTexture{
-    kind: i32, //uniform 种类,-1=notUse,0=texture,1=value,2=vs
+    kind: i32, //uniform 种类,-1=notUse,0=value,1=texture,2=vs
     texture_channel: i32,//E_TextureChannel 纹理通道:-1=user define,0=R,1=G,2=B,3=A,4=RG,5=RB,6=RA,7=GB,8=BA,9=RGB,10=RGBA
     // uv:i32,//uv channel,0=uv,1=uv1
     data1:i32,//自定义:模式判别使用，各自不同，按需处理
@@ -51,14 +51,14 @@ struct PBRUniformInput{
 
     // alpha discard ,before early Z of hardware
     if(u_pbr_uniform.alpha.kind == -1){//直接使用纹理（albedo或color）的alpha通道值
-        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data1  ==0){//有单独的color 纹理  data2应该=0，目前TS没有设置数据
+        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data1  ==1){//有单独的color 纹理  ;alpha.data1=0(alphaTest ,MASK)
             // alphamap = color_uniform.a; 
             if(color_uniform.a <=  u_pbr_uniform.alpha.data2){
                 discard;
             }
         }
         // else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data2  ==1){//有单独的albedo 纹理
-        else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data1  ==0){//有单独的albedo 纹理  data2应该=1，目前TS没有设置数据
+        else if(u_pbr_uniform.albedo.kind == 1 &&  u_pbr_uniform.alpha.data1  ==1){//有单独的albedo 纹理  ;alpha.data1=0(alphaTest ,MASK)
             // alphamap = albedo_uniform.a; 
             if(albedo_uniform.a <=  u_pbr_uniform.alpha.data2){
                 discard;
@@ -175,7 +175,7 @@ struct PBRUniformInput{
     if(u_pbr_uniform.depthmap.kind !=-1){
         depthmap = get_one_channel_value(depthmap_uniform,u_pbr_uniform.depthmap.texture_channel);
     }
-
+emissiveIntensity =0.1;
 
     //envmap,todo
     if( u_pbr_uniform.envmap.kind == 1){
@@ -199,6 +199,17 @@ struct PBRUniformInput{
     $mainColorCode
     $encodeLightAndShadow
     RMAO=vec3f(roughness,metallic,ao);
+    if( u_pbr_uniform.alpha.data1  ==2  ){
+        if( u_pbr_uniform.albedo.kind == 1 ){
+            materialColor.a=albedo_uniform.a;
+        }
+        else if( u_pbr_uniform.color.kind == 1 ){
+            materialColor.a=color_uniform.a;
+        }
+        else if (u_pbr_uniform.albedo.kind == 0){
+            materialColor.a=albedo_uniform.a;
+        }
+    }
     var output : ST_GBuffer;
     $fsOutput                         //fs 输出
     

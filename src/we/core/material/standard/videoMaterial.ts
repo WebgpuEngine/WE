@@ -31,6 +31,9 @@ export interface IV_VideoMaterial extends IV_BaseStandardMaterial {
 }
 
 export class VideoMaterial extends BaseStandardMaterial {
+    _writeUniformCommon(): void {
+        // throw new Error("Method not implemented.");
+    }
     declare inputValues: IV_VideoMaterial;
     // /**是否上下翻转Y轴 */
     // _upsideDownY: boolean;
@@ -96,6 +99,15 @@ export class VideoMaterial extends BaseStandardMaterial {
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;
         let layoutEntries: GPUBindGroupLayoutEntry[] = [];
+        let uniformBufferLayout: GPUBindGroupLayoutEntry = {
+            binding: binding++,
+            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            buffer: {
+                type: "uniform",
+            },
+        };
+        layoutEntries.push(uniformBufferLayout);
+
         if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
             layoutEntries.push({
                 binding: binding++,
@@ -123,7 +135,7 @@ export class VideoMaterial extends BaseStandardMaterial {
                 type: this.defaultSamplerBindingType,
             },
         });
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;
@@ -133,6 +145,11 @@ export class VideoMaterial extends BaseStandardMaterial {
     getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
         let binding: number = 0;
         let uniformEntries: T_uniformEntries[] = [];
+        let uniformBuffer: GPUBindGroupEntry = {
+            binding: binding++,
+            resource: this.uniformPointerCommon.gpuBufferView,
+        };
+        uniformEntries.push(uniformBuffer);
         if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
             uniformEntries.push({
                 binding: binding++,
@@ -154,7 +171,7 @@ export class VideoMaterial extends BaseStandardMaterial {
             binding: binding++,
             resource: this.defaultSampler,
         });
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             if (uuid) {
                 let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
                 uniformEntries.push(...groupMSAA.group);
@@ -167,7 +184,9 @@ export class VideoMaterial extends BaseStandardMaterial {
     }
     getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
         let binding: number = 0;
-        let groupAndBindingString: string = "";
+        let groupAndBindingString: string = `
+        @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_common_base: st_material_base_info;
+        `;
         if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
             groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
         }
@@ -177,7 +196,7 @@ export class VideoMaterial extends BaseStandardMaterial {
             groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding++}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
         }
         groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding++}) var u_Sampler : sampler; \n `;
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
             groupAndBindingString += codeAddOfMSAA.code;
             binding = codeAddOfMSAA.binding;

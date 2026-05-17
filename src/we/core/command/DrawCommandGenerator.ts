@@ -489,9 +489,9 @@ export class DrawCommandGenerator {
                         //替换目标是字符串数组
                         else if (typeof perReplace.check == "object" && Array.isArray(perReplace.check) && (perReplace.check as string[]).length > 0) {
                             let isReplace = false;
-                            for (let check of perReplace.check as string[]) {
+                            for (let check of perReplace.check as string[]) {//检查替换目标是否都在refName中
                                 if (refName.indexOf(check) == -1) {
-                                    isReplace = false;
+                                    // isReplace = false;
                                     break;
                                 }
                                 else

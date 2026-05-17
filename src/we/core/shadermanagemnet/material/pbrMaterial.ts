@@ -215,3 +215,34 @@ export var SHT_materialPBRFS_defer: I_ShaderTemplate = {
     }
 }
 
+
+export var SHT_materialPBRFS_TT: I_ShaderTemplate = {
+    scene: SHT_ScenOfCamera_FS,
+    material: {
+        owner: "PBRMaterial forward",
+        add: [
+            SHT_vsStructOutput,
+            {
+                name: "fsOnput",
+                code: WGSL_st_Guffer,
+            },
+            {
+                name: "fs",
+                code: PBRFS,
+            },
+            SHT_add_PBR_function,
+            SHT_addMathBase,
+            SHT_addMathTBN,
+            SHT_addMathRandom,
+            SHT_addPCSS,
+        ],
+        replace: [
+            SHT_replaceMsaaInForward,                                              //替换$MSAA为空
+            SHT_replace_PBR_mainColorCode,                                         //替换PBR $mainColorCode 为计算公式
+            SHT_replaceGBufferFSOutput,                                            // 替换GBuffer输出
+            SHT_replaceGBufferCommonValue,                                         //替换初始化GBuffer的通用值($gbufferCommonValues)
+            SHT_replace_PBR_LightAndShadow_encode,                                 //替换PBR forward的光影参数编码单项
+            //缺少alpha 透明处理，todo
+        ],
+    }
+}

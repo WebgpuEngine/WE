@@ -824,10 +824,10 @@ export class GLTFModel extends BaseModel {
                     if (alphaMode == "OPAQUE") {
                         alphaForPbr.data1 = 0;
                     } else if (alphaMode == "MASK") {
-                        alphaForPbr.data1 = alphaMode;
+                        alphaForPbr.data1 = 1;
                     }
                     else if (alphaMode == "BLEND") {
-                        alphaForPbr.data1 = 1;
+                        alphaForPbr.data1 = 2;
                     }
                     else {
                         alphaForPbr.data1 = 0;
@@ -836,6 +836,7 @@ export class GLTFModel extends BaseModel {
                     if (alphaMode == "MASK") {
                         alphaForPbr!.data2 = alphaCutoff;
                     }
+                    console.log(perMaterialData.name, alphaForPbr)
                 }
 
                 /**
@@ -891,7 +892,7 @@ export class GLTFModel extends BaseModel {
                     else {
                         occlusionForPbr.data2 = 1;
                     }
-                    console.log("occlusionForPbr", occlusionForPbr);
+                    // console.log("occlusionForPbr", occlusionForPbr);
                 }
 
                 let doubleSided = perMaterialData.doubleSided || false;
@@ -941,6 +942,7 @@ export class GLTFModel extends BaseModel {
                         roughness: roughnessForPbr,
                     },
                     doubleSided: doubleSided,
+                    name: perMaterialData.name || i,
                 };
                 if (alphaForPbr != undefined) {
                     inputPBRMaterial.textures.alpha = alphaForPbr;
@@ -957,6 +959,24 @@ export class GLTFModel extends BaseModel {
                 if (occlusionForPbr != undefined) {
                     inputPBRMaterial.textures.ao = occlusionForPbr;
                 }
+                if (alphaMode) {
+                    switch (alphaMode) {
+                        case "OPAQUE":
+                            inputPBRMaterial.transparentMode = "opaque"
+                            break;
+                        case "MASK":
+                            inputPBRMaterial.transparentMode = "alphaTest"
+                            break;
+                        case "BLEND":
+                            inputPBRMaterial.transparentMode = "blend"
+                            break;
+                        default:
+                            inputPBRMaterial.transparentMode = "opaque"
+                            break;
+                    }
+                }
+
+                // if (perMaterialData.name == "alpha") debugger;
 
                 // let perMaterial;
                 // if (pbrMetallicRoughness!.baseColorTexture != undefined) {

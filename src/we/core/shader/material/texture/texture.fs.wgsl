@@ -1,17 +1,5 @@
 //start : texture.fs.wgsl
 
-struct st_alpha_transparent{
-    //alphaTest 值
-    alpha_cut_off: f32,
-    //透明度值
-    opacity: f32,
-    blend_mode: u32,
-} 
-struct st_transparent{
-    transparent_mode: i32,                          //0:不同透明，1：alphaTest（不透明）,2：blend（透明）,3：alphaTest+blend（透明）。//同步TS
-    alpha_transparent: st_alpha_transparent,        //alpha相关参数
-}
-
 // struct uniform_texture_material{
 //     has_opacity_percent: f32,   //1:透明，0：不透明,
 //     //is_transparent为1时有效;可以同时具有alphatest，
@@ -22,7 +10,7 @@ struct st_transparent{
 //     alphaTest: f32,
 // }
 
-// @group(2) @binding(0) var<uniform> u_uniform_texture: uniform_texture_material;
+// @group(2) @binding(0) var<uniform> u_common_base: uniform_texture_material;
 
 @fragment fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
     $gbufferCommonValues //初始化GBuffer的通用值
@@ -38,9 +26,9 @@ struct st_transparent{
     $MSAA
 
     //如果有alpha，按照input规则输出，按照图像原始数据处理，这里的透明也写深度）
-    if(u_uniform_texture.has_alphaTest==1)
+    if(u_common_base.transparent.transparent_mode==1)
     {
-        if( materialColor.a < u_uniform_texture.alphaTest )
+        if( materialColor.a < u_common_base.transparent.alpha_transparent.alpha_cut_off )
         {
             discard;
         }
@@ -48,9 +36,9 @@ struct st_transparent{
     else {
         materialColor.a = 1.0;      //默认不透明
     }
-    if( u_uniform_texture.has_opacity_percent == 1  )
+    if( u_common_base.transparent.transparent_mode == 2  )
     {
-        discard;//有透明度，则由TT渲染        // materialColor.a = u_uniform_texture.opacity;
+        discard;//有透明度，则由TT渲染        // materialColor.a = u_common_base.opacity;
     }
     output.color= materialColor;
     return output;

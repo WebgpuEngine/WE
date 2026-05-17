@@ -11,7 +11,7 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     var output: ST_GBuffer;
     $fsOutput
 
-    if(u_color_material_uniform.color.a<1.0)
+    if(u_common_base.color.a<1.0)
     {
         discard;
     }
