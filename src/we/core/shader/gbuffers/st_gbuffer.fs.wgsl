@@ -7,6 +7,7 @@ struct ST_GBuffer{
     @location(3) RMAO : vec4f,
     @location(4) worldPosition : vec4f,
     @location(5) albedo : vec4f,
+    @location(6) emissiveIntensity : vec4f,
     // @location(4) X : f32,
     // @location(5) Y : f32,
     // @location(6) Z : f32,

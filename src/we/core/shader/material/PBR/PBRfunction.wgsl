@@ -46,7 +46,7 @@ fn calcLightAndShadowOfPBR(
     ao : f32,
     color : vec4f,
     emissiveColor : vec3f,
-    emissiveIntensity : f32) -> vec4f
+    emissiveIntensity : vec3f) -> vec4f
 {
     let F0 = vec3(0.04);
 

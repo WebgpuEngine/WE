@@ -55,7 +55,7 @@ export interface IV_PBRMaterial extends IV_BaseMaterial {
         [E_TextureType.normal]?: I_TextureForPBR,
         [E_TextureType.color]?: I_TextureForPBR,
         [E_TextureType.emissive]?: I_TextureForPBR,
-        [E_TextureType.emissiveFactor]?: I_TextureForPBR,
+        [E_TextureType.emissiveIntensity]?: I_TextureForPBR,
         [E_TextureType.depthMap]?: I_TextureForPBR,
         [E_TextureType.alpha]?: I_TextureForPBR,
         /** 是否使用环境贴图 */
@@ -76,7 +76,7 @@ export class PBRMaterial extends BaseMaterial {
         [name: string]: Texture
     };
     /** 材质的uniform数据，ArrayBuffer 大小 */
-    uniformGPUBufferSize = 320;
+    uniformGPUBufferSize = 352;
     /** 
      * 材质的uniform数据，ArrayBuffer 视图,完整对应WGSL结构体：struct PBRUniformInput
      * 1、每个属性使用相同的结构体布局
@@ -167,19 +167,7 @@ export class PBRMaterial extends BaseMaterial {
             data2: Float32Array,
             value: Float32Array,
         },
-        /**
-         * todo：20260508
-         * 对应glTF 2.0 中的 emissiveFactor，只有数值，没有纹理
-         * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_emissivefactor
-         * 默认值为 [0,0,0]
-         */
-        // emissiveFactor: {
-        //     kind: Int32Array,
-        //     textureChannel: Int32Array,
-        //     data1: Float32Array,
-        //     data2: Uint32Array,
-        //     value: Float32Array,
-        // },
+
         [E_TextureType.depthMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType的值保持一致
             kind: Int32Array,
             textureChannel: Int32Array,
@@ -211,6 +199,19 @@ export class PBRMaterial extends BaseMaterial {
             value: Float32Array,
         },
         [E_TextureType.envMap]: {//这里是小写map,与wgsl代码中保持一致，也同enum E_TextureType.envMap的值保持一致
+            kind: Int32Array,
+            textureChannel: Int32Array,
+            data1: Uint32Array,
+            data2: Float32Array,
+            value: Float32Array,
+        },
+        /**
+         * todo：20260508
+         * 对应glTF 2.0 中的 emissiveFactor，只有数值，没有纹理
+         * https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_emissivefactor
+         * 默认值为 [0,0,0]
+         */
+        emissiveIntensity: {
             kind: Int32Array,
             textureChannel: Int32Array,
             data1: Uint32Array,
@@ -301,6 +302,13 @@ export class PBRMaterial extends BaseMaterial {
                     data1: new Uint32Array(uniformArrayBuffer, offset + 296, 1),
                     data2: new Float32Array(uniformArrayBuffer, offset + 300, 1),
                     value: new Float32Array(uniformArrayBuffer, offset + 304, 4),
+                },
+                emissiveIntensity: {
+                    kind: new Int32Array(uniformArrayBuffer, offset + 320, 1),
+                    textureChannel: new Int32Array(uniformArrayBuffer, offset + 324, 1),
+                    data1: new Uint32Array(uniformArrayBuffer, offset + 328, 1),
+                    data2: new Float32Array(uniformArrayBuffer, offset + 332, 1),
+                    value: new Float32Array(uniformArrayBuffer, offset + 336, 4),
                 },
             }
         }
@@ -401,7 +409,13 @@ export class PBRMaterial extends BaseMaterial {
              */
             extra: [0, 0],
         },
-
+        {
+            kind: E_MaterialUniformKind.notUse,
+            value: [1, 1, 1, 1],//第四位复用，默认强度=1
+            textureName: E_TextureType.emissiveIntensity,
+            textureChannel: E_TextureChannel.RGB,
+            extra: [0, 0],
+        },
     ];
 
     constructor(input: IV_PBRMaterial) {
@@ -424,9 +438,9 @@ export class PBRMaterial extends BaseMaterial {
 
         //按照输入参数进行格式化uniform，没有的就使用默认值
         for (let key in this.inputValues.textures) {
-            if (key == E_TextureType.emissiveFactor) {
-                continue;       //20260509 未实现，gltf中实现了参数化，如果不跳过，会产生顺序错误；
-            }
+            // if (key == E_TextureType.emissiveIntensity) {
+            //     continue;       //20260509 未实现，gltf中实现了参数化，如果不跳过，会产生顺序错误；
+            // }
             let textureSource = this.inputValues.textures[key as vialidPBRTextureType];
             //envMap 单独处理，IBL，使用system envMap
             if (key == E_TextureType.envMap) {
@@ -527,6 +541,14 @@ export class PBRMaterial extends BaseMaterial {
                         perOne = (textureSource as I_TextureForPBR)
                         index = 8;
                         isVec3 = false;
+                        if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
+                            perOne.texture.format = "rgba8unorm";
+                        }
+                        break;
+                    case E_TextureType.emissiveIntensity:
+                        perOne = (textureSource as I_TextureForPBR);
+                        index = 9;
+                        isVec3 = true;
                         if (isI_BaseTexture(perOne.texture) && perOne.texture.format == undefined) {
                             perOne.texture.format = "rgba8unorm";
                         }

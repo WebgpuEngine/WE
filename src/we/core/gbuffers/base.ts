@@ -28,6 +28,7 @@ export enum E_GBufferNames {
     // Z = "Z",
     RMAO = "RMAO",
     albedo = "albedo",
+    emissiveIntensity = "emissiveIntensity",
 }
 /**GBuffer的组成描述的集合（最终的集合） */
 export interface I_GBufferName {
@@ -68,12 +69,12 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.normal]: {
-        "format": "rgba16float",
+        "format": "rgba8unorm",
         "label": "GBuffer normal",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.RMAO]: {
-        "format": "rgba16float",
+        "format": "rgba8unorm",
         "label": "GBuffer RMAO",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
@@ -83,26 +84,53 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.albedo]: {
-        "format": "rgba16float",
+        "format": "rgba8unorm",
         "label": "GBuffer albedo",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
-    // [E_GBufferNames.X]: {
-    //     "format": "r32float",
-    //     "label": "GBuffer X :",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    // },
-    // [E_GBufferNames.Y]: {
-    //     "format": "r32float",
-    //     "label": "GBuffer Y :",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    // },
-    // [E_GBufferNames.Z]: {
-    //     "format": "r32float",
-    //     "label": "GBuffer Z :",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    // },
+   [E_GBufferNames.emissiveIntensity]: {
+        "format": "rgba8unorm",
+        "label": "GBuffer albedo",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
 }
+// export var V_ForwardGBufferNames: I_GBufferName = {
+//     [E_GBufferNames.depth]: {
+//         "format": "depth32float",
+//         "label": "GBuffer depth attachment",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+//     [E_GBufferNames.color]: {
+//         "format": V_weLinearFormat,
+//         "label": "GBuffer color",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+//     [E_GBufferNames.id]: {
+//         "format": "r32uint",
+//         "label": "GBuffer id",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+//     [E_GBufferNames.normal]: {
+//         "format": "rgba16float",
+//         "label": "GBuffer normal",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+//     [E_GBufferNames.RMAO]: {
+//         "format": "rgba16float",
+//         "label": "GBuffer RMAO",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+//     [E_GBufferNames.worldPosition]: {
+//         "format": "rgba32float",
+//         "label": "GBuffer worldPosition",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+//     [E_GBufferNames.albedo]: {
+//         "format": "rgba16float",
+//         "label": "GBuffer albedo",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     },
+// }
 /**
  * 预定义的transparent GBuffer变量
  * 注意：这个顺序需要与shader中的“st_transgparentbuffer.fs.wgsl”的约定顺序一致。（depth 除外）

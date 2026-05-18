@@ -1,13 +1,5 @@
 //PBRColor.fs.wgsl   ,start
 //透明模式
-struct alpha_mode{
-    mode:i32,//0:OPACITY,1:MASK(alaha test),2:BLEND
-    alpha_cut_off:f32,//alphaTest值 值
-}
-
-struct  pbr_material{
-    alpha:alpha_mode,
-}
 
 /**PBR的统一参数化单项，用于判断PBR相关参数是否使用，及来源：是来自于数值，还是纹理 */
 struct PBRUniformTexture{
@@ -33,6 +25,7 @@ struct PBRUniformInput{
     // perfilteredMap:PBRUniformTexture,  //u_perfilteredMap  
     // brdfLUT:PBRUniformTexture,  //u_brdfLUT
     envmap:PBRUniformTexture,  //是否使用环境贴图
+    emissive_intensity:PBRUniformTexture,  //u_texture_emissive, u_sampler_emissive
 }
 // @group(1) @binding(2) var<uniform> u_pbr_uniform : PBRUniformInput ;     //这里可以写成固定，因为就是固定的。考虑到扩展，目前是在PBRMaterial.getUniformEntryBundleOfCommon()中定义的。
 
@@ -86,7 +79,7 @@ struct PBRUniformInput{
     if(u_pbr_uniform.emissive.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
     var emissive_uniform : vec4f = textureSample(u_texture_emissive,u_sampler_emissive,uv_temp);
     
-    var emissive_intensity_uniform : f32 = u_pbr_uniform.emissive.value.a;
+    var emissive_intensity_uniform : vec4f = u_pbr_uniform.emissive_intensity.value;
 
     if(u_pbr_uniform.depthmap.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
     var depthmap_uniform : vec4f = textureSample(u_texture_depthmap,u_sampler_depthmap,uv_temp);
@@ -159,11 +152,12 @@ struct PBRUniformInput{
         emissive_uniform = u_pbr_uniform.emissive.value;
     }
     else if(u_pbr_uniform.emissive.kind == 1){//use texture emissive * (uniform emissive as factor)
-        // emissive_uniform *= u_pbr_uniform.emissive.value;
+        emissive_uniform *= u_pbr_uniform.emissive.value;
     }
     if(u_pbr_uniform.emissive.kind !=-1){
         emissiveRGB = emissive_uniform.rgb;
-        emissiveIntensity = emissive_intensity_uniform;
+        // emissiveRGB.b = 0.0;//20260518 编码错误
+        emissiveIntensity = emissive_intensity_uniform.xyz;
     }
     //depthmap
     if(u_pbr_uniform.depthmap.kind == 0){
@@ -175,7 +169,6 @@ struct PBRUniformInput{
     if(u_pbr_uniform.depthmap.kind !=-1){
         depthmap = get_one_channel_value(depthmap_uniform,u_pbr_uniform.depthmap.texture_channel);
     }
-emissiveIntensity =0.1;
 
     //envmap,todo
     if( u_pbr_uniform.envmap.kind == 1){

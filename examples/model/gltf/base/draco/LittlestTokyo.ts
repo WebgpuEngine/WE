@@ -19,8 +19,8 @@ let input: IV_Scene = {
   backgroudColor: [0.5, 0.5, 0.5, 1.],
   premultipliedAlpha: true,
   reversedZ: true,
-  toneMapping: E_ToneMappingType.linear,
-  renderMode: "deferRender",
+  toneMapping: E_ToneMappingType.ACES,
+  renderMode:"deferRender",
 };
 let scene = await initScene({
   initConfig: input,
@@ -39,7 +39,7 @@ await scene.add(oneDirlight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 1.0
+    intensity: .70
   }
 )
 await scene.add(ambientLight);
@@ -63,6 +63,7 @@ await scene.add(camera);
 
 
 let gltf = await createGLTFModel({
+  name: "LittlestTokyo",
   scene: scene,
   url: "/models/gltf/model/LittlestTokyo/LittlestTokyo.glb"
 },

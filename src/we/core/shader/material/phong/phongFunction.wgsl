@@ -148,7 +148,7 @@ fn calcLightAndShadowOfPhong(
     ao: f32,
     color: vec4f,
     emissiveRGB: vec3f,
-    emissiveIntensity: f32 ,    
+    emissiveIntensity: vec3f ,    
     ) -> vec4f {
     let inSpecularColor = albedo;
     let shininess = ao;

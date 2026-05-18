@@ -740,6 +740,7 @@ export class GLTFModel extends BaseModel {
                 gpuTexture = await this.getRes(T_ModelResKind.GPUTexture, "default") as GPUTexture;
             }
             let perTexture = new Texture({
+                name: this.Name + " texture:" + id.toString(),
                 source: gpuTexture,
                 sampler: sampler,
                 samplerBindingType: this.modelRes.GPUSamplerBindingType.get(Number(perTextureData.sampler)),
@@ -848,7 +849,7 @@ export class GLTFModel extends BaseModel {
                 let emissiveForPbr: I_TextureForPBR | undefined = undefined;
                 if (emissiveTexture != undefined) {
                     emissiveForPbr = {} as I_TextureForPBR;
-                    emissiveForPbr.texture = await this.getRes(T_ModelResKind.texture, emissiveTexture.index) as Texture;
+                    emissiveForPbr.texture = await this.getRes(T_ModelResKind.texture, emissiveTexture.index, { format: "rgba8unorm-srgb" }) as Texture;
                     if (emissiveTexture.texCoord !== undefined) {
                         emissiveForPbr.data1 = emissiveTexture.texCoord;
                     }
@@ -954,7 +955,7 @@ export class GLTFModel extends BaseModel {
                     inputPBRMaterial.textures.emissive = emissiveForPbr;
                 }
                 if (emissiveFactorForPbr != undefined) {
-                    inputPBRMaterial.textures.emissiveFactor = emissiveFactorForPbr;
+                    inputPBRMaterial.textures.emissiveIntensity = emissiveFactorForPbr;
                 }
                 if (occlusionForPbr != undefined) {
                     inputPBRMaterial.textures.ao = occlusionForPbr;
@@ -976,7 +977,7 @@ export class GLTFModel extends BaseModel {
                     }
                 }
 
-                // if (perMaterialData.name == "alpha") debugger;
+                // if (perMaterialData.name == "interiors") debugger;
 
                 // let perMaterial;
                 // if (pbrMetallicRoughness!.baseColorTexture != undefined) {

@@ -14,7 +14,7 @@ var worldPosition=fsInput.worldPosition;
 var albedo:vec3f = vec3f(0);
 //自发光
 var emissiveRGB:vec3f = vec3f(0);
-var emissiveIntensity:f32 = 1;
+var emissiveIntensity:vec3f = vec3f(0);
 //AMRO
 var roughness:f32 = 0;
 var metallic:f32 = 0;

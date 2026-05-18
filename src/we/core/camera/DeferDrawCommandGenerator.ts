@@ -87,6 +87,10 @@ export class DeferDrawCommandGenerator {
                         binding: 4,
                         resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
                     },
+                    {
+                        binding: 5,
+                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.emissiveIntensity).createView(),
+                    },
                 ];//参见deferRender.fs.wgsl
             let uniform1_entryLayout: GPUBindGroupLayoutEntry[] =
                 [
@@ -124,6 +128,14 @@ export class DeferDrawCommandGenerator {
                     },
                     {
                         binding: 4,
+                        texture: {
+                            sampleType: "unfilterable-float",
+                            viewDimension: "2d",
+                        },
+                        visibility: GPUShaderStage.FRAGMENT,
+                    },
+                    {
+                        binding: 5,
                         texture: {
                             sampleType: "unfilterable-float",
                             viewDimension: "2d",

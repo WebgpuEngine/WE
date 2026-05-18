@@ -6,6 +6,7 @@
 @group(1) @binding(2) var u_RMAOTexture: texture_2d<f32>;
 @group(1) @binding(3) var u_worldPositionTexture: texture_2d<f32>;
 @group(1) @binding(4) var u_albedoTexture: texture_2d<f32>;
+@group(1) @binding(5) var u_emissiveIntensityTexture: texture_2d<f32>;
 // @group(1) @binding(6) var u_Sampler : sampler; 
 
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
@@ -20,22 +21,23 @@
     let  roughness = RMAO.r;
     let  metallic = RMAO.g;
     let  ao = RMAO.b;
-    let  emissiveIntensity = albedo.a;
+    let  emissiveIntensity = textureLoad(u_emissiveIntensityTexture,uv,0);
     
     var  emissiveRGB = vec3f(0.0);
-    let  emissiveColorRG = decodeF16ToF32x2(normal.a);
-    emissiveRGB.r = emissiveColorRG.x;
-    emissiveRGB.g = emissiveColorRG.y;
+    emissiveRGB.r = albedo.a;
+    emissiveRGB.g = normal.a;
+    emissiveRGB.b = RMAO.a;
 
-    let  emissiveColorB_LSH = decodeF16ToU8x2(RMAO.a);
-    emissiveRGB.b = U8ToF32(emissiveColorB_LSH.x) ;
-
-    let defer_4xU8InF16 = decodeLightAndShadowFromU8bitToU8x4(emissiveColorB_LSH.y);
+    let defer_u32=bitcast<u32>(worldPosition.a);
+    let defer_4xU8InF16 = decodeLightAndShadowFromU8bitToU8x4(defer_u32);
     let acceptShadow=defer_4xU8InF16.r;
     let shadowKind=defer_4xU8InF16.g;
     let acceptlight=defer_4xU8InF16.b;
     let materialKind=defer_4xU8InF16.a;
-
+    // let acceptShadow=0;//defer_4xU8InF16.r;
+    // let shadowKind=0;//defer_4xU8InF16.g;
+    // let acceptlight=1u;//defer_4xU8InF16.b;
+    // let materialKind=1u;//defer_4xU8InF16.a;
 
     var materialColor = vec4f(.0);
     // materialColor = calcLightAndShadowOfPBR(
@@ -71,7 +73,7 @@
             ao,
             color,//vec3f(1),albedo的颜色已经在color中，不需要再乘以albedo
             emissiveRGB,
-            emissiveIntensity,
+            emissiveIntensity.rgb,
             materialKind
             );
 
@@ -108,7 +110,7 @@ fn calcLightAndShadow(
     ao : f32,
     color : vec4f,
     emissiveColor : vec3f,
-    emissiveIntensity : f32,
+    emissiveIntensity : vec3f,
     materialKind : u32
     ) -> vec4f
 {

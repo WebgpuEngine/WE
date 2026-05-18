@@ -56,7 +56,7 @@ export abstract class BaseTexture extends RootGPU {
     commands: commmandType[] = [];
 
     constructor(inputValues: I_BaseTexture, device: GPUDevice, scene?: Scene) {
-        super()
+        super(inputValues)
         this.device = device;
         this.inputValues = inputValues;
 

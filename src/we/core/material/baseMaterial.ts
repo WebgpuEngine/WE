@@ -909,6 +909,7 @@ export abstract class BaseMaterial extends RootGPU {
                     alpha: {
                         operation: "add",//操作  
                         srcFactor: "one",//源
+                        // srcFactor: "src-alpha",//源
                         dstFactor: "one-minus-src-alpha",//目标
                     }
                 };
