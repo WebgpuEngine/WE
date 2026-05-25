@@ -55,25 +55,25 @@ export class GBuffers {
     // 不透明GBuffer
     /////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * TTPF 使用的RPD
-     * @param UUID 
-     * @returns 不透明GBuffer的color RenderPassDescriptor
-     */
-    getGBufferColorRPD_TTPF(UUID: string): GPURenderPassDescriptor {
-        if (!this.GBuffer[UUID].forward.RPD_TTPF) {
-            this.GBuffer[UUID].forward.RPD_TTPF = {
-                colorAttachments: [
-                    {
-                        view: this.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
-                        loadOp: 'load',
-                        storeOp: 'store',
-                    },
-                ]
-            }
-        }
-        return this.GBuffer[UUID].forward.RPD_TTPF;
-    }
+    // /**
+    //  * TTPF 使用的RPD
+    //  * @param UUID 
+    //  * @returns 不透明GBuffer的color RenderPassDescriptor
+    //  */
+    // getGBufferColorRPD_TTPF(UUID: string): GPURenderPassDescriptor {
+    //     if (!this.GBuffer[UUID].forward.RPD_TTPF) {
+    //         this.GBuffer[UUID].forward.RPD_TTPF = {
+    //             colorAttachments: [
+    //                 {
+    //                     view: this.GBuffer[UUID].forward.GBuffer[E_GBufferNames.color].createView(),
+    //                     loadOp: 'load',
+    //                     storeOp: 'store',
+    //                 },
+    //             ]
+    //         }
+    //     }
+    //     return this.GBuffer[UUID].forward.RPD_TTPF;
+    // }
     /**
      * TTPF 使用的GPUColorTargetState
      * @param UUID 
@@ -199,6 +199,22 @@ export class GBuffers {
                     depthStoreOp: 'store',
                 },
             };
+            let RPD_transparent: GPURenderPassDescriptor={
+                colorAttachments: [
+                    {
+                        view: gbuffers["color"].createView({ label: id + " color" }),
+                        loadOp: 'load',
+                        storeOp: 'store',
+                    }
+                ],
+                depthStencilAttachment: {
+                    view: gbuffers["depth"].createView({ label: id + " depth" }),
+                    depthClearValue: depthClearValue,
+                    depthLoadOp: 'clear',// depthLoadOp: 'load',
+                    depthStoreOp: 'store',
+                },
+            };
+
             // //20260308 新增deferColor,临时使用，后续优化
             // let textureDeferColor = device.createTexture({
             //     label: name + " deferColor",
@@ -211,6 +227,7 @@ export class GBuffers {
             this.GBuffer[id] = {
                 forward: {
                     RPD: RPD_forward,
+                    blendRPD: RPD_transparent,
                     colorAttachmentTargets: getColorAttachmentTargetsOfForward(),
                     GBuffer: gbuffers,
                 },

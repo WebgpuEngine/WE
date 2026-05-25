@@ -1114,6 +1114,13 @@ export class Scene {
                 throw new Error("获取RPD失败");
         }
     }
+    getRenderPassDescriptorOfTransparent(UUID: string, kind: E_renderForDC): GPURenderPassDescriptor {
+        let rdp = this.cameraManager.getRpdOfTransparentByUUID(UUID);
+        if (rdp)
+            return rdp;
+        else
+            throw new Error("获取RPD失败");
+    }
     // /**
     //  * 获取颜色附件目标，DCG使用
     //  * @param UUID 

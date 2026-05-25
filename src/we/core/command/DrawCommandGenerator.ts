@@ -11,7 +11,6 @@ import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCom
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
 import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
-import { E_TransparentType, I_TransparentOptionOfMaterial } from "../material/base";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseDrawCommand, I_IndexBufferEntry, I_VertexBufferEntry } from "./BaseDrawCommand";
@@ -19,7 +18,7 @@ import { I_pointerCreateParams, I_pointerStruct, Pointers, T_pointerDataType } f
 import { E_BOLBufferType } from "../bufferBlock/base";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
-import { getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA, getColorAttachmentTargetsOfMSAAinfo } from "../gbuffers/base";
+import { getColorAttachmentTargetsOfBlend, getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA, getColorAttachmentTargetsOfMSAAinfo } from "../gbuffers/base";
 import { MD5 } from "../../reExport/md5";
 
 export interface IV_DrawCommandGenerator {
@@ -1664,8 +1663,14 @@ export class DrawCommandGenerator {
                     else
                         throw new Error("MSAA渲染,需要在system中指定MSAA信息");
                 }
-                else
-                    targets = getColorAttachmentTargetsOfForward();
+                else {
+                    if (values.transparent) {
+                       targets =  getColorAttachmentTargetsOfBlend();
+                    }
+                    else {
+                        targets = getColorAttachmentTargetsOfForward();
+                    }
+                }
             }
             else {
                 throw new Error("fragment targets 为空或未设置DCG生成参数种的获取途径。");

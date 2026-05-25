@@ -357,6 +357,10 @@ export class CameraManager extends ECSManager<BaseCamera> {
         // let camera = this.getCameraByUUID(UUID);
         return this.GBufferManager.GBuffer[UUID].forward.RPD;
     }
+    getRpdOfTransparentByUUID(UUID: string): GPURenderPassDescriptor {
+        return this.GBufferManager.GBuffer[UUID].forward.blendRPD;
+    }
+
     //////////////////////////////////get texture  部分
     /**
      * 获取MSAA的GBuffer纹理

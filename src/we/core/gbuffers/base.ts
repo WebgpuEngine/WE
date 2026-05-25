@@ -88,7 +88,7 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         "label": "GBuffer albedo",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
-   [E_GBufferNames.emissiveIntensity]: {
+    [E_GBufferNames.emissiveIntensity]: {
         "format": "rgba8unorm",
         "label": "GBuffer albedo",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
@@ -200,7 +200,8 @@ export interface I_GBufferGroup {
             /** 每个camera最终的GBuffer的渲染描述 */
             RPD: GPURenderPassDescriptor,
             /**entity  创建TTPF DC时私用 */
-            RPD_TTPF?: GPURenderPassDescriptor,
+            // RPD_TTPF?: GPURenderPassDescriptor,
+            blendRPD: GPURenderPassDescriptor,
             /**
             * 每个camera最终的GBuffer的颜色附件描述
             */
@@ -268,6 +269,12 @@ export interface I_TransparentGBufferGroup {
 
 export function getColorAttachmentTargetsOfToneMapping(): GPUColorTargetState[] {
     return [{ format: V_ForwardGBufferNames[E_GBufferNames.color].format }];
+}
+export function getColorAttachmentTargetsOfBlend(): GPUColorTargetState[] {
+    let colorAttachmentTargets: GPUColorTargetState[] = [];
+    let perOneBuffer = V_ForwardGBufferNames[E_GBufferNames.color];
+    colorAttachmentTargets.push({ format: perOneBuffer.format });
+    return colorAttachmentTargets;
 }
 export function getColorAttachmentTargetsOfForward(): GPUColorTargetState[] {
     let colorAttachmentTargets: GPUColorTargetState[] = [];

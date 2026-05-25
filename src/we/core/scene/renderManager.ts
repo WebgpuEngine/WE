@@ -669,7 +669,7 @@ export class RenderManager {
                 this.autoChangeRPDloadOP(rpd, mergeID);
             }
             else {
-                rpd = this.scene.getRenderPassDescriptor(mergeID, E_renderForDC.camera);
+                rpd = this.scene.getRenderPassDescriptorOfTransparent(mergeID, E_renderForDC.camera);
                 this.autoChangeRPDloadOP(rpd, mergeID + "_" + E_renderPassName.forward);
             }
             //2 生成 passEncoder

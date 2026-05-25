@@ -19,7 +19,7 @@
   //VS output
   var vsOutput : st_vertex_output;  
   //   $vsOutput  
-  #replace "vs/vsOutput/a/b/c"
+  #replace "vs/vsOutput/a/a1/b/b1"
   #include "vs/vsOutput"
   
   return vsOutput;

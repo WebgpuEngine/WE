@@ -245,24 +245,24 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 处理shader代码
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * 获取st_output的代码，根据当前entity的locationInterpolate进行替换
-     * @returns string
-     */
-    getSHT_st_output(): string {
-        let st_output = WGSL_st_output.toString();
-        if (this.locationInterpolate != undefined) {
-            for (let i in this.locationInterpolate) {
-                if (st_output.indexOf(i) == -1) {
-                    continue;
-                }
-                let location = this.locationInterpolate[i];
-                let replaceString = ` @interpolate(${location.type},${location.sampling}) ${i} `;
-                st_output = st_output.replace(i, replaceString);
-            }
-        }
-        return st_output;
-    }
+    // /**
+    //  * 获取st_output的代码，根据当前entity的locationInterpolate进行替换
+    //  * @returns string
+    //  */
+    // getSHT_st_output(): string {
+    //     let st_output = WGSL_st_output.toString();
+    //     if (this.locationInterpolate != undefined) {
+    //         for (let i in this.locationInterpolate) {
+    //             if (st_output.indexOf(i) == -1) {
+    //                 continue;
+    //             }
+    //             let location = this.locationInterpolate[i];
+    //             let replaceString = ` @interpolate(${location.type},${location.sampling}) ${i} `;
+    //             st_output = st_output.replace(i, replaceString);
+    //         }
+    //     }
+    //     return st_output;
+    // }
     /**
      * 格式化shader代码
      * @param template 

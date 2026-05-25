@@ -1,0 +1,1 @@
+@group(2) @binding(0) var<uniform> u_common_base: st_material_base_info;
