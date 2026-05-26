@@ -1,21 +1,21 @@
 
 //start : sprite/mainSprite.vs.wgsl
-#include "entity/bindgroup_entiy_base.wgsl"
+#includeFile "entity/bindgroup_entiy_base.wgsl"
 
 override boundingBoxMaxSize : f32 = 1.0;
 
-#include "system/structOfCamera.wgsl" 
-#incluce "system/system.wgsl"
-#include "entity/structEntity.wgsl"
-#include "vs/st_vertex_output.wgsl"
+#includeFile "system/structOfCamera.wgsl" 
+#includeFile "system/system.wgsl"
+#includeFile "entity/structEntity.wgsl"
+#includeFile "entity/st_vertex_output.wgsl"
 
 
 @vertex fn vs(attributes: st_location) -> st_vertex_output {
   init_system_vs();
-  #reflection attributes
+#reflection attributes
   var vsOutput : st_vertex_output;  
 
-  #include "entity/entity_output.vs.wgsl"
+  #includeFile "entity/code_entity_output.vs.wgsl"
   
   let sprite_up_define=vec3f(0,1,0);
   let sprit_worldPosition=vec4f(world_matrix[attributes.instanceIndex][3][0],world_matrix[attributes.instanceIndex][3][1],world_matrix[attributes.instanceIndex][3][2],1);

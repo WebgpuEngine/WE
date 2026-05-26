@@ -1,3 +1,4 @@
+
 import toneMappingWGSL from "../shaders/colorSpace/toneMapping.wgsl?raw";
 import DeferRenderFS_WGSL from "../shaders/defer/deferRender.fs.wgsl?raw";
 
@@ -9,15 +10,15 @@ import include_bindgroup_add_skins_wgsl from "../shaders/entity/skins/bindgroup_
 
 // VS  :entity
 import include_structEntity_wgsl from "../shaders/entity/structEntity.wgsl?raw"
-import include_st_vertex_output_wgsl from "../shader/entity/st_vertex_output.wgsl?raw"
+import include_st_vertex_output_wgsl from "../shaders/entity/st_vertex_output.wgsl?raw"
 import include_code_entity_output_wgsl from "../shaders/entity/code_entity_output.vs.wgsl?raw"
 import meshMain_wgsl from "../shaders/entity/mesh/main.vs.wgsl?raw"
 // import lineMain_wgsl from "../shaders/entity/mesh/main.vs.wgsl?raw";
 // import pointsMain_wgsl from "../shaders/entity/point/main.vs.wgsl?raw"
-import shadowmapMain_wgsl from "../shaders/entity/shadowmap/main.vs.wgsl?raw";
-import pointEmuSprite_wgsl from "../shaders/entity/sprite/mainSprite.vs.wgsl?raw"
+import shadowmapMain_wgsl from  "../shaders/entity/shadowmap/main.vs.wgsl?raw";
+import sprite_wgsl from "../shaders/entity/sprite/main.vs.wgsl?raw"
 // import wireFrame_wgsl from "../shaders/entity/mesh/wireframe.vs.wgsl?raw"
-import oneCubeColor_wgsl from "../shaders/entity/mesh/oneColorCube.vs.wgsl?raw"
+import oneCubeColor_wgsl from "../shaders/entity/oneColorCube/oneColorCube.vs.wgsl?raw"
 
 import meshMorphTargetMain_wgsl from "../shaders/entity/morphTarget/morphTarget.vs.wgsl?raw"
 import meshSkinsMain_wgsl from "../shaders/entity/skins/skins.vs.wgsl?raw"
@@ -26,32 +27,35 @@ import quadVS_wgsl from "../shaders/quad/quad.vs.wgsl?raw";
 //////////////////////////////////////////////////////////////////////////////////
 //GBuffer
 //struct 定义
-import include_gbuffer_commonValues_wgsl from "../shader/gbuffers/commonGBufferValue.wgsl?raw";
+import include_gbuffer_commonValues_wgsl from "../shaders/gbuffers/commonGBufferValue.wgsl?raw";
 
-import replace_st_GBuffer_wgsl from "../shader/gbuffers/st_gbuffer.fs.wgsl?raw";
-import replace_st_MSAA_GBuffer_wgsl from "../shader/gbuffers/st_MSAA_gbuffer.fs.wgsl?raw";
-import replace_st_MSAAinfo_GBuffer_wgsl from "../shader/gbuffers/st_MSAAinfo_gbuffer.fs.wgsl?raw";
-// import include_st_transgparent_GBuffer_wgsl from "../shader/gbuffers/st_transgparentbuffer.fs.wgsl?raw";
-import replace_gbuffer_outputWGSL from "../shader/gbuffers/replace_gbuffer_output.fs.wgsl?raw";
-import replace_MSAA_gbuffer_outputWGSL from "../shader/gbuffers/replace_MSAA_gbuffer_output.fs.wgsl?raw";
-import replace_MSAAinfo_gbuffer_outputWGSL from "../shader/gbuffers/replace_MSAAinfo_gbuffer_output.fs.wgsl?raw";
+import tag_st_GBuffer_wgsl from "../shaders/gbuffers/st_gbuffer.fs.wgsl?raw";
+import tag_st_MSAA_GBuffer_wgsl from "../shaders/gbuffers/st_MSAA_gbuffer.fs.wgsl?raw";
+import tag_st_MSAAinfo_GBuffer_wgsl from "../shaders/gbuffers/st_MSAAinfo_gbuffer.fs.wgsl?raw";
+import tag_st_blend_GBuffer_wgsl from "../shaders/gbuffers/st_blend_gbuffer.fs.wgsl?raw";
+
+// import include_st_transgparent_GBuffer_wgsl from "../shaders/gbuffers/st_transgparentbuffer.fs.wgsl?raw";
+import tag_gbuffer_output_wgsl from "../shaders/gbuffers/replace_gbuffer_output.fs.wgsl?raw";
+import tag_MSAA_gbuffer_output_wgsl from "../shaders/gbuffers/replace_MSAA_gbuffer_output.fs.wgsl?raw";
+import tag_MSAAinfo_gbuffer_output_wgsl from "../shaders/gbuffers/replace_MSAAinfo_gbuffer_output.fs.wgsl?raw";
+import tag_blend_gbuffer_output_wgsl from "../shaders/gbuffers/replace_blend_gbuffer_output.fs.wgsl?raw";
 
 //////////////////////////////////////////////////////////////////////////////////
 //math
 
-import include_mathConst_wgsl from "../shader/math/baseconst.wgsl?raw"
-import include_mathTBN_wgsl from "../shader/math/TBN.wgsl?raw"
-import include_mathRandom_wgsl from "../shader/math/random.wgsl?raw"
+import include_mathConst_wgsl from "../shaders/math/baseconst.wgsl?raw"
+import include_mathTBN_wgsl from "../shaders/math/TBN.wgsl?raw"
+import include_mathRandom_wgsl from "../shaders/math/random.wgsl?raw"
 
 //////////////////////////////////////////////////////////////////////////////////
 //material 
-import include_encodeDecodeFunction_wgsl from "../shader/function/encodeAndDecode.wgsl?raw";
-import include_bindgroup_material_base_wgsl from "../shader/material/bindgroup_material_base.wgsl?raw";
+import include_encodeDecodeFunction_wgsl from "../shaders/function/encodeAndDecode.wgsl?raw";
+import include_bindgroup_material_base_wgsl from "../shaders/material/bindgroup_material_base.wgsl?raw";
 
-import replace_MsaaString_wgsl from "../shaders/material/MSAA/msaa.wgsl?raw";
+import include_MsaaString_wgsl from "../shaders/material/MSAA/msaa.wgsl?raw";
 import colorFS_wgsl from "../shaders/material/color/color.fs.wgsl?raw";
-import colorTTFSWGSL from "../../shader/material/color/colorTT.fs.wgsl?raw";
-import colorMSAAInfoFSWGSL from "../shaders/material/color/colorMSAAInfo.fs.wgsl?raw";
+// import colorTTFSWGSL from "../../shaders/material/color/colorTT.fs.wgsl?raw";
+// import colorMSAAInfoFSWGSL from "../shaders/material/color/colorMSAAInfo.fs.wgsl?raw";
 
 import cubeSKyTextureFSWGSL from "../shaders/material/texture/cubeSkyTexture.fs.wgsl?raw";
 import cubePositionTextureFSWGSL from "../shaders/material/texture/cubeLocalTexture.fs.wgsl?raw";
@@ -82,12 +86,15 @@ import PP_struct_WGSL from "../shaders/PostProcess/PPstruct.wgsl?raw";
 
 //////////////////////////////////////////////////////////////////////////////////
 //shadow map MVP
-import systemOfLight_wgsl from "../shader/system/systemForLight.wgsl?raw"
-import shadowmapPCSS_wgsl from "../shader/shadowmap/fn_pcss.wgsl?raw"
-import systemOfCamera_wgsl from "../shader/system/system.wgsl?raw"
-import structOfCamera_wgsl from "../shader/entity/system/structOfCamera.wgsl?raw"
+import systemOfLight_wgsl from "../shaders/system/systemForLight.wgsl?raw"
+import shadowmapPCSS_wgsl from "../shaders/shadowmap/fn_pcss.wgsl?raw"
+import systemOfCamera_wgsl from "../shaders/system/system.wgsl?raw"
+import structOfCamera_wgsl from "../shaders/system/structOfCamera.wgsl?raw"
 
+/**渲染模式 */
+export type T_SHR_RenderMode = "forward" | "defer" | "Msaa" | "MsaaInfo" | "blend"
 
+/**include代码 */
 export var WGSL_Include: Record<string, string> = {
     "colorSpace/toneMapping.wgsl": toneMappingWGSL,
     "defer/deferRender.fs.wgsl": DeferRenderFS_WGSL,
@@ -97,15 +104,17 @@ export var WGSL_Include: Record<string, string> = {
     "entity/skins/bindgroup_add_skins.wgsl": include_bindgroup_add_skins_wgsl,
 
     "entity/structEntity.wgsl": include_structEntity_wgsl,
-    "entity/st_vertex_output.vs.wgsl": include_st_vertex_output_wgsl,
+    "entity/st_vertex_output.wgsl": include_st_vertex_output_wgsl,
     "entity/code_entity_output.vs.wgsl": include_code_entity_output_wgsl,
 
 
     "gbuffers/commonGBufferValue.wgsl": include_gbuffer_commonValues_wgsl,
 
+    "material/MSAA/msaa.wgsl": include_MsaaString_wgsl,
+
     // "gbuffers/st_transgparentbuffer.fs.wgsl": include_st_transgparent_GBuffer_wgsl,
     "material/bindgroup_material_base.wgsl": include_bindgroup_material_base_wgsl,
-    
+
     "material/PBR/PBRfunction.wgsl": PBR_function_WGSL,
     "material/phong/phongfunction.wgsl": add_Phong_function_WGSL,
 
@@ -122,20 +131,27 @@ export var WGSL_Include: Record<string, string> = {
     "system/system.wgsl": systemOfCamera_wgsl,
     "function/encodeAndDecode.wgsl": include_encodeDecodeFunction_wgsl,
 }
-
-export var WGSL_Replace: Record<string, string> = {
-    "gbuffers/st_gbuffer.fs.wgsl": replace_st_GBuffer_wgsl,
-    "gbuffers/st_MSAA_gbuffer.fs.wgsl": replace_st_MSAA_GBuffer_wgsl,
-    "gbuffers/st_MSAAinfo_gbuffer.fs.wgsl": replace_st_MSAAinfo_GBuffer_wgsl,
-
-    "gbuffers/replace_gbuffer_output.fs.wgsl": replace_gbuffer_outputWGSL,
-    "gbuffers/replace_MSAA_gbuffer_output.fs.wgsl": replace_MSAA_gbuffer_outputWGSL,
-    "gbuffers/replace_MSAAinfo_gbuffer_output.fs.wgsl": replace_MSAAinfo_gbuffer_outputWGSL,
-
-    "material/MSAA/msaa.wgsl": replace_MsaaString_wgsl,
-
+/**指定GBuffer struct */
+export var WGSL_V_Gbuffers_struct: Record<T_SHR_RenderMode, string> = {
+    "forward": tag_st_GBuffer_wgsl,
+    "defer": tag_st_GBuffer_wgsl,
+    "Msaa": tag_st_MSAA_GBuffer_wgsl,
+    "MsaaInfo": tag_st_MSAAinfo_GBuffer_wgsl,
+    "blend": tag_st_blend_GBuffer_wgsl,
 }
-
+/**指定GBuffer output */
+export var WGSL_V_Gbuffers_output: Record<T_SHR_RenderMode, string> = {
+    "forward": tag_gbuffer_output_wgsl,
+    "defer": tag_gbuffer_output_wgsl,
+    "Msaa": tag_MSAA_gbuffer_output_wgsl,
+    "MsaaInfo": tag_MSAAinfo_gbuffer_output_wgsl,
+    "blend": tag_blend_gbuffer_output_wgsl,
+}
+/**replace代码 */
+export var WGSL_Replace: Record<string, string> = {
+    "test1": " ",
+}
+/**shader代码 */
 export var WGSL_ShaderCode: Record<string, string> = {
     "entity/mesh/main.vs.wgsl": meshMain_wgsl,
     "entity/shadowmap/main.vs.wgsl": shadowmapMain_wgsl,
@@ -144,7 +160,7 @@ export var WGSL_ShaderCode: Record<string, string> = {
     "entity/mesh/oneColorCube.vs.wgsl": oneCubeColor_wgsl,
     // "entity/point/main.vs.wgsl": pointsMain_wgsl,
     "entity/quad/quad.vs.wgsl": quadVS_wgsl,
-    "entity/point/mainSprite.vs.wgsl": pointEmuSprite_wgsl,
+    "entity/sprite/main.vs.wgsl": sprite_wgsl,
     "entity/skins/skins.vs.wgsl": meshSkinsMain_wgsl,
     // "entity/mesh/wireframe.vs.wgsl": wireFrame_wgsl,
 
@@ -172,13 +188,16 @@ export var WGSL_ShaderCode: Record<string, string> = {
     "PostProcess/AA/FXAA.fs.wgsl": PP_FXAA_FS_WGSL,
     "PostProcess/test/redToOne.fs.wgsl": PP_RedToOne_FS_WGSL,
 }
-
+/**alias shader代码 */
 export interface I_aliasShaderCode {
     type: "vs" | "fs" | "quadVs" | "quadFs",
     code: string,
-    renderMode?: Record<"forword" | "defer" | "Msaa" | "MsaaInfo" | "blend", boolean>
+    renderMode?: Record<T_SHR_RenderMode, boolean>
     // renderMode?: Record<string, boolean>
 }
+/**alias shader名称
+ * 对外输出的shader名称
+*/
 export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
     "entity.mesh": {//mesh file
         type: "vs",
@@ -202,7 +221,7 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
     },
     "entity.sprite": {
         type: "vs",
-        code: WGSL_ShaderCode["entity/sprite/mainSprite.vs.wgsl"],
+        code: WGSL_ShaderCode["entity/sprite/main.vs.wgsl"],
     },
     "entity.oneColorCube": {//mesh file
         type: "vs",
@@ -226,100 +245,123 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         type: "fs",
         code: WGSL_ShaderCode["material/color/color.fs.wgsl"],
         renderMode: {
-            forword: true,
+            forward: true,
             defer: true,
             Msaa: true,
             MsaaInfo: true,
             blend: true,
         }
     },
-    "material.texture": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/texture/texture.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: true,
-        }
-    },
-    "material.wireframe": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/wirframe/wireFrame.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: false,
-        }
-    },
-    "material.video": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/texture/video.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: false,
-        }
-    },
-    "material.cube": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/texture/cubeLocalTexture.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: false,
-        }
-    },
-    "material.cubeSky": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/texture/cubeSkyTexture.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: false,
-        }
-    },
-    "material.phong": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/phong/phongcolor.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: false,
-        }
-    },
-    "material.pbr": {
-        type: "fs",
-        code: WGSL_ShaderCode["material/PBR/PBR.fs.wgsl"],
-        renderMode: {
-            forword: true,
-            defer: true,
-            Msaa: true,
-            MsaaInfo: true,
-            blend: false,
-        }
-    },
-    "postProcess.blur3x3": {
-        type: "fs",
-        code: PP_Blur3x3_FS_WGSL,
-    },
-    "postProcess.FXAA": {
-        type: "fs",
-        code: PP_FXAA_FS_WGSL,
-    },
-    "postProcess.redToOne": {
-        type: "fs",
-        code: PP_RedToOne_FS_WGSL,
-    },
+    // "material.texture": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/texture/texture.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: true,
+    //     }
+    // },
+    // "material.wireframe": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/wirframe/wireFrame.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: false,
+    //     }
+    // },
+    // "material.video": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/texture/video.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: false,
+    //     }
+    // },
+    // "material.cube": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/texture/cubeLocalTexture.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: false,
+    //     }
+    // },
+    // "material.cubeSky": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/texture/cubeSkyTexture.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: false,
+    //     }
+    // },
+    // "material.phong": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/phong/phongcolor.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: false,
+    //     }
+    // },
+    // "material.pbr": {
+    //     type: "fs",
+    //     code: WGSL_ShaderCode["material/PBR/PBR.fs.wgsl"],
+    //     renderMode: {
+    //         forward: true,
+    //         defer: true,
+    //         Msaa: true,
+    //         MsaaInfo: true,
+    //         blend: false,
+    //     }
+    // },
+    // "postProcess.blur3x3": {
+    //     type: "fs",
+    //     code: PP_Blur3x3_FS_WGSL,
+    // },
+    // "postProcess.FXAA": {
+    //     type: "fs",
+    //     code: PP_FXAA_FS_WGSL,
+    // },
+    // "postProcess.redToOne": {
+    //     type: "fs",
+    //     code: PP_RedToOne_FS_WGSL,
+    // },
+}
+/** 反射attribute属性预定义 */
+export var WGSL_reflection_attributes: Record<string, string[]> = {
+    "position": [
+        " let position= vec3f(0.0,0.0,0.0); \n ",
+        " let position = attributes.position; \n ",
+    ],
+    "normal": [
+        " let normal= vec3f(0.0,0.0,0.0); \n ",
+        " let normal = attributes.normal; \n ",
+    ],
+    "color": [
+        " let color= vec3f(1.0,1.0,1.0); \n ",
+        " let color = attributes.color; \n ",
+    ],
+    "uv": [
+        " var uv= vec4f(0.0,0.0,0.0,0.0); \n ",
+        " var uv =vec4f(attributes.uv,0.0,0.0); \n ",
+    ],
+    "uv1": [
+        "",
+        " uv[2]= attributes.uv1[0]; \n uv[3]= attributes.uv1[1]; \n ",
+    ],
 }

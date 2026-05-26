@@ -1,22 +1,22 @@
 
 //start : skins.vs.wgsl
-#include "entity/bindgroup_entiy_base.wgsl"
-#include "entity/skins/bindgroup_add_skins.wgsl"
+#includeFile "entity/bindgroup_entiy_base.wgsl"
+#includeFile "entity/skins/bindgroup_add_skins.wgsl"
 
 override boundingBoxMaxSize : f32 = 1.0;
 
-#include "system/structOfCamera.wgsl" 
+#includeFile "system/structOfCamera.wgsl" 
 #incluce "system/system.wgsl"
 
-#include "entity/structEntity.wgsl"
-#include "vs/st_vertex_output.wgsl"
+#includeFile "entity/structEntity.wgsl"
+#includeFile "entity/st_vertex_output.wgsl"
 
 @vertex fn vs(attributes: st_location) -> st_vertex_output {
   init_system_vs();
   #reflection attributes
   var vsOutput : st_vertex_output;  
 
-  #include "entity/entity_output.vs.wgsl"
+  #includeFile "entity/code_entity_output.vs.wgsl"
 
   // 骨骼动画shader部分，目前有DCG注入（由于有动态绑定）。若动画模式改为全GPU的storage和插值，再重新启用（需要适配）
   if(u_entity_base.animation_kind == 4||u_entity_base.animation_kind == 5||u_entity_base.animation_kind == 6) {

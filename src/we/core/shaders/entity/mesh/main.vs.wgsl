@@ -1,22 +1,22 @@
 
 //start : entity/mesh/main.vs.wgsl
-#include "entity/bindgroup_entiy_base.wgsl"
+#includeFile "entity/bindgroup_entiy_base.wgsl"
 
 override boundingBoxMaxSize : f32 = 1.0;
 
-#include "system/structOfCamera.wgsl" 
-#incluce "system/system.wgsl"
+#includeFile "system/structOfCamera.wgsl" 
+#includeFile "system/system.wgsl"
 
-#include "entity/structEntity.wgsl"
-#include "vs/st_vertex_output.wgsl"
+#includeFile "entity/structEntity.wgsl"
+#includeFile "entity/st_vertex_output.wgsl"
 
 
 @vertex fn vs(attributes: st_location) -> st_vertex_output {
   init_system_vs();
-  #reflection attributes
+#reflection attributes
   var vsOutput : st_vertex_output;  
 
-  #include "entity/entity_output.vs.wgsl"
+#includeFile "entity/code_entity_output.vs.wgsl"
   
   return vsOutput;
 }
