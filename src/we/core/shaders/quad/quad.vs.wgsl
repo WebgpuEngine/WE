@@ -1,9 +1,8 @@
 
-struct st_quad_output {
-    @builtin(position) position: vec4f,
-    @location(0) uv: vec2f
-};
+
 //"triangle-strip"
+#includeFile "quad/st_quad_output.wgsl"
+
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) ->st_quad_output {
     let pos = array(
             vec2f( -1.0,  -1.0),  // bottom left

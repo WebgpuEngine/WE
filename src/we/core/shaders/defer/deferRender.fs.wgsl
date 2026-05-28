@@ -1,4 +1,4 @@
-//deferPBR.fs.wgsl   ,start
+//deferRender.fs.wgsl   ,start
 
 @group(1) @binding(0) var u_colorTexture: texture_2d<f32>;
 // @group(1) @binding(1) var u_idTexture: texture_2d<f32>;
@@ -8,6 +8,17 @@
 @group(1) @binding(4) var u_albedoTexture: texture_2d<f32>;
 @group(1) @binding(5) var u_emissiveIntensityTexture: texture_2d<f32>;
 // @group(1) @binding(6) var u_Sampler : sampler; 
+
+#includeFile "system/structOfCamera.wgsl" 
+#includeFile "system/system.wgsl"
+#includeFile "function/encodeAndDecode.wgsl"
+#includeFile "material/PBR/PBRfunction.wgsl"
+#includeFile "material/phong/phongfunction.wgsl"
+#includeFile "math/baseconst.wgsl"
+// #includeFile "math/TBN.wgsl"
+#includeFile "math/random.wgsl"
+#includeFile "shadowmap/fn_pcss.wgsl"
+
 
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
     init_system_fs();   
@@ -214,4 +225,4 @@ fn calcLightAndShadow(
     }
     return finialColor;
 }
-//deferPBR.fs.wgsl   ,end
+//deferRender.fs.wgsl   ,end

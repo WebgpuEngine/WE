@@ -49,13 +49,13 @@ export class ShaderRegister {
                     let shaderCode = "";
                     if (perAlias.renderMode[renderMode as T_SHR_RenderMode] === true) {
                         shaderCode = this.formatShaderOfRenderMode(perAlias.code, renderMode as T_SHR_RenderMode);
-                        this.addAliasShaderCode(key + "." + renderMode, shaderCode);
+                        this.addAliasShaderName(key + "." + renderMode, shaderCode);
                     }
                 }
             }
             else {
                 let shaderCode = this.formatShaderOfRenderMode(perAlias.code, undefined);
-                this.addAliasShaderCode(key, shaderCode);
+                this.addAliasShaderName(key, shaderCode);
             }
         }
     }
@@ -193,11 +193,11 @@ export class ShaderRegister {
         return this._shaderCode.get(registerName);
     }
     /**添加alias shader code */
-    addAliasShaderCode(registerName: string, code: string) {
+    addAliasShaderName(registerName: string, code: string) {
         this._aliasShaderCode.set(registerName, code);
     }
     /**根据registerName获取shader code */
-    getAliasShaderCode(registerName: string) {
+    getAliasShaderName(registerName: string) {
         return this._aliasShaderCode.get(registerName);
     }
     split(code: string, spriteString: string) {

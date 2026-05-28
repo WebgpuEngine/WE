@@ -26,7 +26,7 @@ var SHT_replace_Phong_mainColorCode: I_shaderTemplateReplace =
         shininess,
         materialColor,
         vec3f(0.0, 0.0, 0.0),
-        1.0
+        vec3f(1.0)
     );
     `
 }

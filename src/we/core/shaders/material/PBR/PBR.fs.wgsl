@@ -1,5 +1,17 @@
 //PBRColor.fs.wgsl   ,start
-//透明模式
+#includeFile "system/structOfCamera.wgsl" 
+#includeFile "system/system.wgsl"
+#tag gbuffers
+#includeFile "function/encodeAndDecode.wgsl"
+#includeFile "entity/st_vertex_output.wgsl"
+
+
+#includeFile "math/baseconst.wgsl"
+#includeFile "math/TBN.wgsl"
+#includeFile "math/random.wgsl"
+#includeFile "shadowmap/fn_pcss.wgsl"
+#includeFile "material/PBR/PBRfunction.wgsl"
+
 
 /**PBR的统一参数化单项，用于判断PBR相关参数是否使用，及来源：是来自于数值，还是纹理 */
 struct PBRUniformTexture{
@@ -32,7 +44,7 @@ struct PBRUniformInput{
 
 
 @fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
-    $gbufferCommonValues //初始化GBuffer的通用值
+#includeFile "gbuffers/commonGBufferValue.wgsl"  //初始化GBuffer的通用值
     init_system_fs();   
     //占位符,统一工作流在这里处理
     // $PBR_Uniform
@@ -174,7 +186,10 @@ struct PBRUniformInput{
     if( u_pbr_uniform.envmap.kind == 1){
         envmap_enable = true;
     }
-    $MSAA
+#weStart
+    #renderMode  Msaa
+     #includeFile "material/MSAA/msaa.wgsl"
+#weEnd
 
     // $PBR_albedo
     // $PBR_metallic
@@ -189,8 +204,13 @@ struct PBRUniformInput{
     // ao=1.0;
     // materialColor=vec4f(1);
 
-    $mainColorCode
-    $encodeLightAndShadow
+    acceptShadow = 1;
+    shadowKind = 0;
+    acceptlight = 1;
+    materialKind = 1;
+    //延迟渲染的GBuffer输出,8位. 每个位分别表示;接受阴影、阴影、其他、材质类型
+    defer_4xU8InF16=encodeLightAndShadowFromU8x4ToU8bit(acceptShadow,shadowKind,acceptlight,materialKind);
+ 
     RMAO=vec3f(roughness,metallic,ao);
     if( u_pbr_uniform.alpha.data1  ==2  ){
         if( u_pbr_uniform.albedo.kind == 1 ){
@@ -203,9 +223,26 @@ struct PBRUniformInput{
             materialColor.a=albedo_uniform.a;
         }
     }
-    var output : ST_GBuffer;
-    $fsOutput                         //fs 输出
-    
+
+
+#weStart 
+  #renderMode  MsaaInfo  
+    //无color输出
+  #renderMode  defer     
+    //color使用上面代码中的materialColor即可，无需处理
+  #renderMode forward  Msaa   blend
+    materialColor = calcLightAndShadowOfPBR(
+        worldPosition,
+        normal,
+        albedo,
+        metallic,
+        roughness,
+        ao,
+        materialColor,
+        emissiveRGB,
+        emissiveIntensity
+        );
+#weEnd
 
     // else if(u_pbr_uniform.alpha.data2  ==2){//alpha mode =BLend
     //     //两种方式
@@ -217,6 +254,8 @@ struct PBRUniformInput{
     // output.color = vec4f(colorOfPBR, 1);    //
     //    let depthTest=textureLoad(u_shadowmap_depth_texture, vec2i(i32(fsInput.position.x),i32(fsInput.position.y)),0,0) *1.;
     // output.color = vec4f( depthTest,depthTest,depthTest,1);
+    var output : ST_GBuffer;
+#tag gbuffers_output 
     return output;
 }
 //按通道值，获取分量值

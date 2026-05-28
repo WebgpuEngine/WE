@@ -1,6 +1,7 @@
 
-import toneMappingWGSL from "../shaders/colorSpace/toneMapping.wgsl?raw";
+import include_toneMappingWGSL from "../shaders/colorSpace/toneMapping.wgsl?raw";
 import DeferRenderFS_WGSL from "../shaders/defer/deferRender.fs.wgsl?raw";
+import toneMappingWGSL from "../shaders/toneMapping/toneMapping.wgsl?raw";
 
 //////////////////////////////////////////////////////////////////////////////////
 // entity bindgroup
@@ -15,7 +16,7 @@ import include_code_entity_output_wgsl from "../shaders/entity/code_entity_outpu
 import meshMain_wgsl from "../shaders/entity/mesh/main.vs.wgsl?raw"
 // import lineMain_wgsl from "../shaders/entity/mesh/main.vs.wgsl?raw";
 // import pointsMain_wgsl from "../shaders/entity/point/main.vs.wgsl?raw"
-import shadowmapMain_wgsl from  "../shaders/entity/shadowmap/main.vs.wgsl?raw";
+import shadowmapMain_wgsl from "../shaders/entity/shadowmap/main.vs.wgsl?raw";
 import sprite_wgsl from "../shaders/entity/sprite/main.vs.wgsl?raw"
 // import wireFrame_wgsl from "../shaders/entity/mesh/wireframe.vs.wgsl?raw"
 import oneCubeColor_wgsl from "../shaders/entity/oneColorCube/oneColorCube.vs.wgsl?raw"
@@ -24,6 +25,7 @@ import meshMorphTargetMain_wgsl from "../shaders/entity/morphTarget/morphTarget.
 import meshSkinsMain_wgsl from "../shaders/entity/skins/skins.vs.wgsl?raw"
 
 import quadVS_wgsl from "../shaders/quad/quad.vs.wgsl?raw";
+import include_st_quad_output_wgsl from "../shaders/quad/st_quad_output.wgsl?raw";
 //////////////////////////////////////////////////////////////////////////////////
 //GBuffer
 //struct 定义
@@ -50,39 +52,29 @@ import include_mathRandom_wgsl from "../shaders/math/random.wgsl?raw"
 //////////////////////////////////////////////////////////////////////////////////
 //material 
 import include_encodeDecodeFunction_wgsl from "../shaders/function/encodeAndDecode.wgsl?raw";
-import include_bindgroup_material_base_wgsl from "../shaders/material/bindgroup_material_base.wgsl?raw";
+// import include_bindgroup_material_base_wgsl from "../shaders/material/bindgroup_material_base.wgsl?raw";
+// import include_bindgroup_material_base_MSAA_wgsl from "../shaders/material/MSAA/bindgroup_Msaa.wgsl?raw";
 
 import include_MsaaString_wgsl from "../shaders/material/MSAA/msaa.wgsl?raw";
 import colorFS_wgsl from "../shaders/material/color/color.fs.wgsl?raw";
-// import colorTTFSWGSL from "../../shaders/material/color/colorTT.fs.wgsl?raw";
-// import colorMSAAInfoFSWGSL from "../shaders/material/color/colorMSAAInfo.fs.wgsl?raw";
-
+import vertexColorFS_wgsl from "../shaders/material/vertexColor/color.fs.wgsl?raw";
+import textureFSWGSL from "../shaders/material/texture/texture.fs.wgsl?raw";
+import videoTextureFSWGSL from "../shaders/material/texture/video.fs.wgsl?raw";
+import wireFrameFSWGSL from "../shaders/material/wirframe/wireFrame.fs.wgsl?raw";
 import cubeSKyTextureFSWGSL from "../shaders/material/texture/cubeSkyTexture.fs.wgsl?raw";
 import cubePositionTextureFSWGSL from "../shaders/material/texture/cubeLocalTexture.fs.wgsl?raw";
 
-import PBR_function_WGSL from "../shaders/material/PBR/PBRfunction.wgsl?raw"
-import PBRMaterialWGSL from "../shaders/material/PBR/PBR.fs.wgsl?raw"
-import add_Phong_function_WGSL from "../shaders/material/phong/phongfunction.wgsl?raw"
+import include_Phong_function_WGSL from "../shaders/material/phong/phongfunction.wgsl?raw"
 import phongMaterialWGSL from "../shaders/material/phong/phongcolor.fs.wgsl?raw"
-import phongMaterial_MSAAinfo_WGSL from "../shaders/material/phong/phongMSAAinfo.fs.wgsl?raw"
-// import textureUniformFSWGSL from "../shaders/material/texture/textureUniform.fs.wgsl?raw";
-import textureFSWGSL from "../shaders/material/texture/texture.fs.wgsl?raw";
-import textureMSAAInfoFSWGSL from "../shaders/material/texture/textureMSAAInfo.fs.wgsl?raw";
-import textureTT_FSWGSL from "../shaders/material/texture/textureTT.fs.wgsl?raw";
-// import colorFSWGSL from "../shaders/material/vertexColor/color.fs.wgsl?raw";
-// import colorMSAAInfoFSWGSL from "../shaders/material/vertexColor/colorMSAAInfo.fs.wgsl?raw";
-import videoTextureFSWGSL from "../shaders/material/texture/video.fs.wgsl?raw";
-import wireFrameFSWGSL from "../shaders/material/wirframe/wireFrame.fs.wgsl?raw";
-import wireFrameMSAAInfoFSWGSL from "../shaders/material/wirframe/wireFrameMSAAInfo.fs.wgsl?raw";
-import wireFrameMSAASWGSL from "../shaders/material/wirframe/wireFrameMSAA.fs.wgsl?raw";
 
-
+import include_PBR_function_WGSL from "../shaders/material/PBR/PBRfunction.wgsl?raw"
+import PBRMaterialWGSL from "../shaders/material/PBR/PBR.fs.wgsl?raw"
 //////////////////////////////////////////////////////////////////////////////////
 //pp
 import PP_Blur3x3_FS_WGSL from "../shaders/PostProcess/blur/blur3x3.fs.wgsl?raw";
 import PP_FXAA_FS_WGSL from "../shaders/PostProcess/AA/FXAA.fs.wgsl?raw";
 import PP_RedToOne_FS_WGSL from "../shaders/PostProcess/test/redToOne.wgsl?raw"
-import PP_struct_WGSL from "../shaders/PostProcess/PPstruct.wgsl?raw";
+import include_PP_struct_WGSL from "../shaders/PostProcess/PPstruct.wgsl?raw";
 
 //////////////////////////////////////////////////////////////////////////////////
 //shadow map MVP
@@ -96,8 +88,7 @@ export type T_SHR_RenderMode = "forward" | "defer" | "Msaa" | "MsaaInfo" | "blen
 
 /**include代码 */
 export var WGSL_Include: Record<string, string> = {
-    "colorSpace/toneMapping.wgsl": toneMappingWGSL,
-    "defer/deferRender.fs.wgsl": DeferRenderFS_WGSL,
+    "colorSpace/toneMapping.wgsl": include_toneMappingWGSL,
 
     "entity/bindgroup_entiy_base.wgsl": include_bindgroup_entiy_base_wgsl,
     "entity/morphTarget/bindgroup_add_morphTarget.wgsl": include_bindgroup_add_morphTarget_wgsl,
@@ -107,22 +98,21 @@ export var WGSL_Include: Record<string, string> = {
     "entity/st_vertex_output.wgsl": include_st_vertex_output_wgsl,
     "entity/code_entity_output.vs.wgsl": include_code_entity_output_wgsl,
 
-
+    "quad/st_quad_output.wgsl": include_st_quad_output_wgsl,
     "gbuffers/commonGBufferValue.wgsl": include_gbuffer_commonValues_wgsl,
 
     "material/MSAA/msaa.wgsl": include_MsaaString_wgsl,
 
-    // "gbuffers/st_transgparentbuffer.fs.wgsl": include_st_transgparent_GBuffer_wgsl,
-    "material/bindgroup_material_base.wgsl": include_bindgroup_material_base_wgsl,
+    // "material/bindgroup_material_base.wgsl": include_bindgroup_material_base_wgsl,
 
-    "material/PBR/PBRfunction.wgsl": PBR_function_WGSL,
-    "material/phong/phongfunction.wgsl": add_Phong_function_WGSL,
+    "material/PBR/PBRfunction.wgsl": include_PBR_function_WGSL,
+    "material/phong/phongfunction.wgsl": include_Phong_function_WGSL,
 
     "math/baseconst.wgsl": include_mathConst_wgsl,
     "math/TBN.wgsl": include_mathTBN_wgsl,
     "math/random.wgsl": include_mathRandom_wgsl,
 
-    "PostProcess/PPstruct.wgsl": PP_struct_WGSL,
+    "PostProcess/PPstruct.wgsl": include_PP_struct_WGSL,
 
     "shadowmap/fn_pcss.wgsl": shadowmapPCSS_wgsl,
 
@@ -165,32 +155,26 @@ export var WGSL_ShaderCode: Record<string, string> = {
     // "entity/mesh/wireframe.vs.wgsl": wireFrame_wgsl,
 
     "material/color/color.fs.wgsl": colorFS_wgsl,
-    // "material/color/colorTT.fs.wgsl": colorTTFSWGSL,
-    // "material/color/colorMSAAInfo.fs.wgsl": colorMSAAInfoFSWGSL,
-    "material/texture/cubeSkyTexture.fs.wgsl": cubeSKyTextureFSWGSL,
-    "material/texture/cubeLocalTexture.fs.wgsl": cubePositionTextureFSWGSL,
-
-    "material/PBR/PBR.fs.wgsl": PBRMaterialWGSL,
-
-    "material/phong/phongcolor.fs.wgsl": phongMaterialWGSL,
-    "material/phong/phongMSAAinfo.fs.wgsl": phongMaterial_MSAAinfo_WGSL,
-
+    "material/vertexColor/color.fs.wgsl": vertexColorFS_wgsl,
     "material/texture/texture.fs.wgsl": textureFSWGSL,
-    "material/texture/textureMSAAInfo.fs.wgsl": textureMSAAInfoFSWGSL,
-    "material/texture/textureTT.fs.wgsl": textureTT_FSWGSL,
-
     "material/texture/video.fs.wgsl": videoTextureFSWGSL,
     "material/wirframe/wireFrame.fs.wgsl": wireFrameFSWGSL,
-    // "material/wirframe/wireFrameMSAAInfo.fs.wgsl": wireFrameMSAAInfoFSWGSL,
-    // "material/wirframe/wireFrameMSAA.fs.wgsl": wireFrameMSAASWGSL,
+    "material/texture/cubeSkyTexture.fs.wgsl": cubeSKyTextureFSWGSL,
+    "material/texture/cubeLocalTexture.fs.wgsl": cubePositionTextureFSWGSL,
+    "material/phong/phongcolor.fs.wgsl": phongMaterialWGSL,
+    "material/PBR/PBR.fs.wgsl": PBRMaterialWGSL,
+
 
     "PostProcess/blur/blur3x3.fs.wgsl": PP_Blur3x3_FS_WGSL,
     "PostProcess/AA/FXAA.fs.wgsl": PP_FXAA_FS_WGSL,
     "PostProcess/test/redToOne.fs.wgsl": PP_RedToOne_FS_WGSL,
+
+    "defer/deferRender.fs.wgsl": DeferRenderFS_WGSL,
+    "toneMapping/toneMapping.fs.wgsl": toneMappingWGSL,
 }
 /**alias shader代码 */
 export interface I_aliasShaderCode {
-    type: "vs" | "fs" | "quadVs" | "quadFs",
+    type: "vs" | "fs" | "quadVs" | "quadFs" | "vs+fs",
     code: string,
     renderMode?: Record<T_SHR_RenderMode, boolean>
     // renderMode?: Record<string, boolean>
@@ -199,6 +183,16 @@ export interface I_aliasShaderCode {
  * 对外输出的shader名称
 */
 export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
+    "toneMapping": {
+        type: "vs+fs",
+        code: WGSL_ShaderCode["toneMapping/toneMapping.fs.wgsl"],
+    },
+
+    "defer": {
+        type: "fs",
+        code: WGSL_ShaderCode["defer/deferRender.fs.wgsl"],
+    },
+
     "entity.mesh": {//mesh file
         type: "vs",
         code: WGSL_ShaderCode["entity/mesh/main.vs.wgsl"],
@@ -240,10 +234,97 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         code: WGSL_ShaderCode["entity/quad/quad.vs.wgsl"],
     },
 
-
     "makterl.color": {
         type: "fs",
         code: WGSL_ShaderCode["material/color/color.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: true,
+        }
+    },
+    "makterl.vertexColor": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/vertexColor/color.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: true,
+        }
+    },
+    "material.texture": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/texture/texture.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: true,
+        }
+    },
+    "material.wireframe": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/wirframe/wireFrame.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
+    "material.video": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/texture/video.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
+    "material.cube": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/texture/cubeLocalTexture.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
+    "material.cubeSky": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/texture/cubeSkyTexture.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
+    "material.phong": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/phong/phongcolor.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: true,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
+    "material.pbr": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/PBR/PBR.fs.wgsl"],
         renderMode: {
             forward: true,
             defer: true,
@@ -252,95 +333,19 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
             blend: true,
         }
     },
-    // "material.texture": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/texture/texture.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: true,
-    //     }
-    // },
-    // "material.wireframe": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/wirframe/wireFrame.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: false,
-    //     }
-    // },
-    // "material.video": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/texture/video.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: false,
-    //     }
-    // },
-    // "material.cube": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/texture/cubeLocalTexture.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: false,
-    //     }
-    // },
-    // "material.cubeSky": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/texture/cubeSkyTexture.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: false,
-    //     }
-    // },
-    // "material.phong": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/phong/phongcolor.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: false,
-    //     }
-    // },
-    // "material.pbr": {
-    //     type: "fs",
-    //     code: WGSL_ShaderCode["material/PBR/PBR.fs.wgsl"],
-    //     renderMode: {
-    //         forward: true,
-    //         defer: true,
-    //         Msaa: true,
-    //         MsaaInfo: true,
-    //         blend: false,
-    //     }
-    // },
-    // "postProcess.blur3x3": {
-    //     type: "fs",
-    //     code: PP_Blur3x3_FS_WGSL,
-    // },
-    // "postProcess.FXAA": {
-    //     type: "fs",
-    //     code: PP_FXAA_FS_WGSL,
-    // },
-    // "postProcess.redToOne": {
-    //     type: "fs",
-    //     code: PP_RedToOne_FS_WGSL,
-    // },
+    "postProcess.blur3x3": {
+        type: "fs",
+        code: WGSL_ShaderCode["PostProcess/blur/blur3x3.fs.wgsl"],
+    },
+    "postProcess.FXAA": {
+        type: "fs",
+        code: WGSL_ShaderCode["PostProcess/AA/FXAA.fs.wgsl"],
+    },
+    "postProcess.redToOne": {
+        type: "fs",
+        code: WGSL_ShaderCode["PostProcess/test/redToOne.fs.wgsl"],
+    },
+
 }
 /** 反射attribute属性预定义 */
 export var WGSL_reflection_attributes: Record<string, string[]> = {
