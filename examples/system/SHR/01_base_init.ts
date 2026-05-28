@@ -17,11 +17,10 @@ await scene._init();
 
 window.scene = scene;
 
-let shaderRegister = new ShaderRegister();
-window.shaderRegister = shaderRegister;
-console.log(shaderRegister);
+// let shaderRegister = new ShaderRegister();
+// window.shaderRegister = shaderRegister;
 // debugger;
-window.reflection =
+ let reflection =
   [
     "@location(0) position : vec3f ,",
     "@location(1) normal : vec3f ,",
@@ -29,4 +28,8 @@ window.reflection =
     "@location(3) uv : vec2f ,"
   ];
 
-window.refName = ["position", "normal", "color", "uv"];
+let refName = ["position", "normal", "color", "uv"];
+
+console.log(scene.shaderRegister.reflection(scene.shaderRegister.getAliasShaderName("entity.mesh"),refName,reflection));
+// debugger;  
+console.log(scene.shaderRegister);

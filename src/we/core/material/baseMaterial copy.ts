@@ -12,14 +12,14 @@ import {
     T_transparentMode
 } from "./base";
 import { commmandType, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries } from "../command/base";
-// import {
-//     E_shaderTemplateReplaceType,
-//     I_ShaderTemplate,
-//     I_ShaderTemplate_Final,
-//     I_shaderTemplateAdd,
-//     I_shaderTemplateReplace,
-//     I_singleShaderTemplate
-// } from "../shadermanagemnet/base";
+import {
+    E_shaderTemplateReplaceType,
+    I_ShaderTemplate,
+    I_ShaderTemplate_Final,
+    I_shaderTemplateAdd,
+    I_shaderTemplateReplace,
+    I_singleShaderTemplate
+} from "../shadermanagemnet/base";
 import { Scene } from "../scene/scene";
 import { I_mipmap } from "../texture/base";
 import { Clock } from "../scene/clock";
@@ -29,7 +29,6 @@ import { CubeTexture } from "../texture/cubeTexxture";
 import { I_pointerCreateParams, I_pointerStruct } from "../bufferBlock/pointer";
 import { E_renderPassName } from "../scene/renderManager";
 import { E_BOLBufferType } from "../bufferBlock/base";
-import { E_shaderRegisterAlianName } from "../SHR/include";
 
 
 
@@ -315,7 +314,7 @@ export abstract class BaseMaterial extends RootGPU {
     bindGroupNumber: number = 2;
     /** 材质的SHT模板，key:材质类型，value:SHT模板。 */
     shtOfMaterialType!: {
-        [key in E_materialTypeForBindGroup]: E_shaderRegisterAlianName | undefined;
+        [key in E_materialTypeForBindGroup]: I_ShaderTemplate | undefined;
     };
     /** VS bind group 
      * 1、 key :string 采样E_materialTypeForBindGroup的值
@@ -580,29 +579,15 @@ export abstract class BaseMaterial extends RootGPU {
             throw new Error(`不支持的材质类型：${materialType}`);
         }
     }
-    /**
-     * 组合shader模板输出
-     * @param aliasName 
-     * @param _startBinding 
-     * @param materialType 
-     * @returns 
-     * */
-    composeShaderBundle(aliasName: string, materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward): I_materialBundleOutput {
-        let groupAndBindingString: string = this.getGroupAndBindingString(materialType);
-        let code: string = groupAndBindingString + this.scene.shaderRegister.getAliasShaderName(aliasName);
-        let output: I_materialBundleOutput = {
-            materialType,
-            code,
-            aliasName,
-        };
+
+
+
+    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
+    generateBundleOutput(template: I_ShaderTemplate, _startBinding: number, materialType: E_materialTypeForBindGroup): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(template, replaceList, _startBinding, materialType);
         return output;
     }
-    /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-    // generateBundleOutput(template: I_ShaderTemplate, _startBinding: number, materialType: E_materialTypeForBindGroup): I_materialBundleOutput {
-    //     let replaceList = new Map<string, string | (() => string)>();
-    //     let output = this.formatSHT(template, replaceList, _startBinding, materialType);
-    //     return output;
-    // }
     /**
      * 获取uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
      * 涉及三个部分：
@@ -612,8 +597,10 @@ export abstract class BaseMaterial extends RootGPU {
      * @param startBinding 
      * @returns I_materialBundleOutput
      */
-    getOpacity_Forward(): I_materialBundleOutput {
-        return this.composeShaderBundle(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityForward]!);
+    getOpacity_Forward(startBinding?: number): I_materialBundleOutput {
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityForward]!, replaceList, startBinding || 0);
+        return output;
     }
     /**
      * MSAA 材质输出shader模板
@@ -622,9 +609,14 @@ export abstract class BaseMaterial extends RootGPU {
      *  1、MSAA：只输出color和depth
      *  2、inforForward:输出其他GBuffer信息
      */
-    getOpacity_MSAA(): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.composeShaderBundle(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAA]!, E_materialTypeForBindGroup.opacityMSAA);
-        let inforForward: I_materialBundleOutput = this.composeShaderBundle(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAAInfo]!, E_materialTypeForBindGroup.opacityMSAAInfo);
+    getOpacity_MSAA(startBinding?: number): I_BundleOfMaterialForMSAA {
+        let MSAA: I_materialBundleOutput = this.generateBundleOutput(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAA]!, startBinding || 0, E_materialTypeForBindGroup.opacityMSAA);
+        // // let bundleOfMsaa = this.getUniformEntryBundleOfMSAA(undefined, MSAA.bindingNumber);
+        // MSAA.shaderTemplateFinal.material.groupAndBindingString += `
+        //  @group(2) @binding(${MSAA.bindingNumber++}) var u_texture_id: texture_2d<u32>;
+        //  @group(2) @binding(${MSAA.bindingNumber++}) var u_texture_normal: texture_2d<f32>; 
+        // `;
+        let inforForward: I_materialBundleOutput = this.generateBundleOutput(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityMSAAInfo]!, startBinding || 0, E_materialTypeForBindGroup.opacityMSAAInfo);
         return { MSAA, inforForward };
     }
     /**
@@ -633,7 +625,9 @@ export abstract class BaseMaterial extends RootGPU {
      * @returns I_materialBundleOutput  不包含光影的GBuffer，但GBuffer的输出中需要按照延迟渲染的约定进行。
      */
     getOpacity_DeferColor(startBinding?: number): I_materialBundleOutput {
-        return this.composeShaderBundle(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityDefer]!, E_materialTypeForBindGroup.opacityDefer);
+        let replaceList = new Map<string, string | (() => string)>();
+        let output = this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.opacityDefer]!, replaceList, startBinding || 0, E_materialTypeForBindGroup.opacityDefer);
+        return output;
     }
 
 
@@ -650,7 +644,7 @@ export abstract class BaseMaterial extends RootGPU {
         if (this.shtOfMaterialType[E_materialTypeForBindGroup.TT] == undefined) {
             throw new Error(`Material ${this.kind} not support TT.`);
         }
-        return this.composeShaderBundle(this.shtOfMaterialType[E_materialTypeForBindGroup.TT]!, E_materialTypeForBindGroup.TT);
+        return this.formatSHT(this.shtOfMaterialType[E_materialTypeForBindGroup.TT]!, new Map(), _startBinding || 0, E_materialTypeForBindGroup.TT);
     }
 
 
@@ -703,7 +697,108 @@ export abstract class BaseMaterial extends RootGPU {
         return sampler;
     }
 
-
+    /**
+     * 将SHT对象中add部分转为字符串
+     * @param addPart 
+     * @returns 
+     */
+    convertAddPartOfSHT(addPart: I_shaderTemplateAdd[]): string {
+        let code: string = "";
+        for (let perOne of addPart) {
+            code += perOne.code;
+        }
+        return code;
+    }
+    /**
+     * 格式化SHT模板
+     * @param template I_ShaderTemplate SHT模板
+     * @param replaceList Map<string, string | ((scope?: any) => string)> 替换列表
+     * @param startBinding number 开始的binding
+     * @returns I_materialBundleOutput 材质的bundle输出
+     */
+    formatSHT(
+        template: I_ShaderTemplate,
+        replaceList: Map<string, string | ((scope?: any) => string)>,
+        startBinding: number = 0,
+        materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward,
+        // isTTPF: boolean = false,
+        // renderObject?: BaseCamera
+    ): I_materialBundleOutput {
+        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+        //获取材质的groupAndBindingString
+        let groupAndBindingString: string = this.getGroupAndBindingString(materialType);
+        for (let i in template) {
+            let perPartSHT = template[i] as I_singleShaderTemplate;
+            if (i == "scene") {
+                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(perPartSHT);
+                shaderTemplateFinal[i] = shader.scene;
+            }
+            else if (i == "material") {
+                let code: string = "";
+                code += this.convertAddPartOfSHT(perPartSHT.add as I_shaderTemplateAdd[]);
+                for (let perOne of perPartSHT.replace as I_shaderTemplateReplace[]) {
+                    if (code.indexOf(perOne.replace) != -1) {
+                        //replaceCode
+                        if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+                            code = code.replace(perOne.replace, perOne.replaceCode as string);
+                        }
+                        //replaceValue
+                        /**
+                         * 替换值
+                         * 1、类型是： E_shaderTemplateReplaceType.value
+                         * 2、perOne.replace 作为key，去replaceList中查找对应的值
+                         */
+                        else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+                            let replaceValue: string = "";
+                            if (replaceList.has(perOne.replace)) {
+                                let getReplaceValue = replaceList.get(perOne.replace) as string;
+                                if (!getReplaceValue) {
+                                    throw new Error("replaceValue is undefined");
+                                }
+                                if (typeof getReplaceValue == "function") {
+                                    replaceValue = (getReplaceValue as (() => string))();
+                                }
+                                else {
+                                    replaceValue = getReplaceValue;
+                                }
+                            }
+                            else {
+                                replaceValue = "";
+                            }
+                            code = code.replace(perOne.replace, replaceValue);
+                        }
+                        //替换选择代码
+                        /**
+                         * 20260310
+                         * 1、E_shaderTemplateReplaceType.selectCode早期设计,在统一参数的material中，不能使用selectCode
+                         * 2、DCG的动态注入中还是有selectCode，影响VS的动画部分（morphtarget，skins）；
+                         */
+                        else if (perOne.replaceType == E_shaderTemplateReplaceType.selectCode) {
+                            if (typeof perOne.check == "string") {
+                                if (code.indexOf(perOne.check!) != -1) {
+                                    code = code.replace(perOne.replace, perOne.selectCode![1]);
+                                }
+                                else {
+                                    code = code.replace(perOne.replace, perOne.selectCode![0]);
+                                }
+                            }
+                        }
+                    }
+                }
+                shaderTemplateFinal[i] = {
+                    templateString: code,
+                    groupAndBindingString: groupAndBindingString,
+                    owner: perPartSHT.owner,
+                }
+            }
+        }
+        return {
+            // uniformGroup: uniformBundle.entry,
+            shaderTemplateFinal,
+            bindingNumber: 0,
+            materialType
+        };
+    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // 透明相关信息部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -789,10 +884,10 @@ export abstract class BaseMaterial extends RootGPU {
         }
     }
     /**
-    * 检查透明状态,如果是透明的，就设置为透明.（color 透明的除外，需要在color material中验证）
-    * 默认：alpha透明，没有设置alphaTest，图像本身alpha=0.0的将透明（diacard） ）
-    * @param input IV_BaseMaterial  基础材质的初始化参数
-    */
+ * 检查透明状态,如果是透明的，就设置为透明.（color 透明的除外，需要在color material中验证）
+ * 默认：alpha透明，没有设置alphaTest，图像本身alpha=0.0的将透明（diacard） ）
+ * @param input IV_BaseMaterial  基础材质的初始化参数
+ */
     checkTransparent(input: IV_BaseMaterial) {
         if (input.transparentMode) {
             this._transparentMode.mode = input.transparentMode;

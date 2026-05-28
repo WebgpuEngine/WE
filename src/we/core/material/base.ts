@@ -1,8 +1,8 @@
 import { I_Update, weVec4 } from "../base/coreDefine";
 import { T_uniformEntries, T_uniformOneGroup } from "../command/base";
-import { I_EntityBundleOutput } from "../entity/base";
+// import { I_EntityBundleOutput } from "../entity/base";
 import { E_GBufferNames } from "../gbuffers/base";
-import { Scene } from "../scene/scene";
+// import { Scene } from "../scene/scene";
 import { E_TextureChannel } from "../texture/base";
 import { BaseTexture } from "../texture/baseTexture";
 import { BaseMaterial } from "./baseMaterial";
@@ -205,14 +205,11 @@ export enum E_materialTypeForBindGroup {
     opacityDefer = "opacityDefer",
     opacityMSAA = "opacityMSAA",
     opacityMSAAInfo = "opacityMSAAInfo",
-
     // TO_Forward = "TO_Forward",
     // TO_Defer = "TO_Defer",
     // TO_MSAA = "TO_MSAA",
     // TO_MsaaInfo = "TO_MsaaInfo",
-
     TT = "TT",
-
     // TTP = "TTP",
     // TTPF = "TTPF",
 }
@@ -221,8 +218,11 @@ export enum E_materialTypeForBindGroup {
  * 材质的输出Bundle
  * I_singleShaderTemplate_Final中包括dynamic 参数
  */
-export interface I_materialBundleOutput extends I_EntityBundleOutput {
+export interface I_materialBundleOutput {
     materialType: E_materialTypeForBindGroup,
+    code: string,
+    entryPoint?: string,
+    aliasName: string,
 }
 export interface I_BundleOfMaterialForMSAA {
     MSAA: I_materialBundleOutput,

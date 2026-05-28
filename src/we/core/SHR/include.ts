@@ -197,7 +197,7 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         type: "vs",
         code: WGSL_ShaderCode["entity/mesh/main.vs.wgsl"],
     },
-    "entity.line": {//mesh file
+    "entity.lines": {//mesh file
         type: "vs",
         code: WGSL_ShaderCode["entity/mesh/main.vs.wgsl"],
     },
@@ -234,7 +234,7 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         code: WGSL_ShaderCode["entity/quad/quad.vs.wgsl"],
     },
 
-    "makterl.color": {
+    "material.color": {
         type: "fs",
         code: WGSL_ShaderCode["material/color/color.fs.wgsl"],
         renderMode: {
@@ -245,7 +245,7 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
             blend: true,
         }
     },
-    "makterl.vertexColor": {
+    "material.vertexColor": {
         type: "fs",
         code: WGSL_ShaderCode["material/vertexColor/color.fs.wgsl"],
         renderMode: {
@@ -345,7 +345,66 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         type: "fs",
         code: WGSL_ShaderCode["PostProcess/test/redToOne.fs.wgsl"],
     },
+}
+export enum E_shaderRegisterAlianName {
+    "toneMapping" = "toneMapping",
+    "defer" = "defer",
+    "entity.mesh" = "entity.mesh",
+    "entity.lines" = "entity.lines",
+    "entity.points" = "entity.points",
+    "entity.wireframe" = "entity.wireframe",
+    "entity.shadowmap" = "entity.shadowmap",
+    "entity.sprite" = "entity.sprite",
+    "entity.oneColorCube" = "entity.oneColorCube",
+    "entity.morphTarget" = "entity.morphTarget",
+    "entity.skins" = "entity.skins",
+    "entity.quad" = "entity.quad",
 
+    "material.color.forward" = "material.color.forward",
+    "material.color.Msaa" = "material.color.Msaa",
+    "material.color.MsaaInfo" = "material.color.MsaaInfo",
+    "material.color.blend" = "material.color.blend",
+
+    "material.vertexColor.forward" = "material.vertexColor.forward",
+    "material.vertexColor.Msaa" = "material.vertexColor.Msaa",
+    "material.vertexColor.MsaaInfo" = "material.vertexColor.MsaaInfo",
+    "material.vertexColor.blend" = "material.vertexColor.blend",
+
+    "material.texture.forward" = "material.texture.forward",
+    "material.texture.Msaa" = "material.texture.Msaa",
+    "material.texture.MsaaInfo" = "material.texture.MsaaInfo",
+    "material.texture.blend" = "material.texture.blend",
+
+    "material.wireframe.forward" = "material.wireframe.forward",
+    "material.wireframe.Msaa" = "material.wireframe.Msaa",
+    "material.wireframe.MsaaInfo" = "material.wireframe.MsaaInfo",
+
+    "material.video.forward" = "material.video.forward",
+    "material.video.Msaa" = "material.video.Msaa",
+    "material.video.MsaaInfo" = "material.video.MsaaInfo",
+
+    "material.cube.forward" = "material.cube.forward",
+    "material.cube.Msaa" = "material.cube.Msaa",
+    "material.cube.MsaaInfo" = "material.cube.MsaaInfo",
+
+    "material.cubeSky.forward" = "material.cubeSky.forward",
+    "material.cubeSky.Msaa" = "material.cubeSky.Msaa",
+    "material.cubeSky.MsaaInfo" = "material.cubeSky.MsaaInfo",
+
+    "material.phong.forward" = "material.phong.forward",
+    "material.phong.defer" = "material.phong.defer",
+    "material.phong.Msaa" = "material.phong.Msaa",
+    "material.phong.MsaaInfo" = "material.phong.MsaaInfo",
+
+    "material.pbr.forward" = "material.pbr.forward",
+    "material.pbr.defer" = "material.pbr.defer",
+    "material.pbr.Msaa" = "material.pbr.Msaa",
+    "material.pbr.MsaaInfo" = "material.pbr.MsaaInfo",
+    "material.pbr.blend" = "material.pbr.blend",
+    
+    "postProcess.blur3x3" = "postProcess.blur3x3",
+    "postProcess.FXAA" = "postProcess.FXAA",
+    "postProcess.redToOne" = "postProcess.redToOne",
 }
 /** 反射attribute属性预定义 */
 export var WGSL_reflection_attributes: Record<string, string[]> = {

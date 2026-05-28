@@ -197,8 +197,14 @@ export class ShaderRegister {
         this._aliasShaderCode.set(registerName, code);
     }
     /**根据registerName获取shader code */
-    getAliasShaderName(registerName: string) {
-        return this._aliasShaderCode.get(registerName);
+    getAliasShaderName(registerName: string): string {
+        let code = this._aliasShaderCode.get(registerName);
+        if (code) {
+            return code;
+        }
+        else {
+            throw new Error(registerName + " not found");
+        }
     }
     split(code: string, spriteString: string) {
         return code.split(spriteString);

@@ -285,7 +285,7 @@ export abstract class BaseEntity extends NodeSpace {
      * @param startBinding 
      * @returns  uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
      */
-    abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput;
+    // abstract getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number): I_EntityBundleOutput;
     /**判断在camera或light的可见性 ，并获取实例化的drawMode数组*/
     abstract getDrawModeArrayOfInstances(
         UUID: string,

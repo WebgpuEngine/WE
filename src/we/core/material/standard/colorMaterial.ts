@@ -10,6 +10,7 @@ import {
     SHT_materialColorFS_MSAA,
     SHT_materialColorFS_MSAA_info
 } from "../../shadermanagemnet/material/colorMaterial";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 import {
     E_MaterialType,
     E_materialTypeForBindGroup,
@@ -92,13 +93,11 @@ export class ColorMaterial extends BaseStandardMaterial {
             throw new Error("ColorMaterial color is undefined or not Color4");
         }
         this.shtOfMaterialType = {
-            opacityForward: SHT_materialColorFS,
-            opacityDefer: SHT_materialColorFS,
-            opacityMSAA: SHT_materialColorFS_MSAA,
-            opacityMSAAInfo: SHT_materialColorFS_MSAA_info,
-            TT: SHT_materialColor_TT_FS,
-            // TTP: SHT_materialColor_TTP_FS,
-            // TTPF: SHT_materialColor_TTPF_FS,
+            opacityForward: E_shaderRegisterAlianName["material.color.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.color.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.color.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.color.MsaaInfo"],
+            TT: E_shaderRegisterAlianName["material.color.blend"],
         };
     }
     async readyForGPU(): Promise<any> {
@@ -144,7 +143,7 @@ export class ColorMaterial extends BaseStandardMaterial {
             },
         };
         layoutEntries.push(uniformBufferLayout);
-        if (materialType == E_materialTypeForBindGroup.opacityMSAA ) {
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
             layoutEntries.push(...layoutMSAA.layout);
             binding = layoutMSAA.binding;

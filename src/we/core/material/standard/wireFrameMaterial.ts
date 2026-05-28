@@ -1,4 +1,5 @@
 import { SHT_WireFrameFS, SHT_WireFrameFS_MSAA, SHT_WireFrameFS_MSAAinfo } from "../../shadermanagemnet/material/wireFrameMaterial";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { E_MaterialType } from "../base";
 import { ColorMaterial, I_ColorMaterial } from "./colorMaterial";
 
@@ -15,10 +16,10 @@ export class WireFrameMaterial extends ColorMaterial {
             this._color[3] = 1.0;
         }
         this.shtOfMaterialType = {
-            opacityForward: SHT_WireFrameFS,
-            opacityDefer: SHT_WireFrameFS,
-            opacityMSAA: SHT_WireFrameFS_MSAA,
-            opacityMSAAInfo: SHT_WireFrameFS_MSAAinfo,
+            opacityForward: E_shaderRegisterAlianName["material.wireframe.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.wireframe.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.wireframe.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.wireframe.MsaaInfo"],
             TT: undefined,
         };
     }

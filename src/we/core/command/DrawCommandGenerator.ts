@@ -10,10 +10,10 @@ import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup } from "./baseF
 import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
+// import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseDrawCommand, I_IndexBufferEntry, I_VertexBufferEntry } from "./BaseDrawCommand";
+import { BaseDrawCommand, I_VertexBufferEntry } from "./BaseDrawCommand";
 import { I_pointerCreateParams, I_pointerStruct, Pointers, T_pointerDataType } from "../bufferBlock/pointer";
 import { E_BOLBufferType } from "../bufferBlock/base";
 import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
@@ -203,7 +203,7 @@ export interface IV_DC {
         vertex: {
             /**shader模板 */
             // shaderTemplate?: shaderTemplate,
-            code: string | I_ShaderTemplate_Final,
+            code: string,//| I_ShaderTemplate_Final,
             /**默认："vs" */
             entryPoint: string,
             constants?: Record<string, number>,
@@ -213,7 +213,9 @@ export interface IV_DC {
          */
         fragment?: {
             /**未定义，则FS和VS代码共用 */
-            code?: string | I_ShaderTemplate_Final,
+            code?: string,//| I_ShaderTemplate_Final,
+            /**alias name of fragment shader */
+            aliasName: string,
             /**默认："fs" */
             entryPoint: string,
             constants?: Record<string, number>,
@@ -404,154 +406,114 @@ export class DrawCommandGenerator {
     }
 
     // /**
-    //  * 获取camera从scene中根据UUID
-    //  * @param values 
-    //  * @returns BaseCamera | false
+    //  * VS反射attribute属性到WGSL的结构体中，并按照SHT格式化vs shader代码.
+    //  * @param templateFinal  shader模板
+    //  * @param refName 反射的变量名
+    //  * @param locations 反射的变量location
+    //  * @returns 
     //  */
-    // getCamera(values: IV_DC): BaseCamera | false {
-    //     if (values.system?.type == E_renderForDC.camera) {
-    //         let UUID = this.checkUUID(values);
-    //         if (UUID) {
-    //             let camera = this.scene.cameraManager.getCameraByUUID(UUID);
-    //             if (camera)
-    //                 return camera;
+    // refVSShaderCode(templateFinal: I_ShaderTemplate_Final, refName: string[], locations: string[]): string {
+    //     let groupAndBindingString: string = "";
+    //     let shaderCode: string = "";
+    //     //合并bindingGroupString 和shaderCode
+    //     // for (let i in templateFinal) {
+    //     //     let perPart = templateFinal[i];
+    //     //     for (let i_single in perPart) {
+    //     //         if (i_single == "groupAndBindingString") {
+    //     //             groupAndBindingString += perPart[i_single as keyof typeof perPart];
+    //     //         }
+    //     //         else if (i_single == "templateString") {
+    //     //             shaderCode += perPart[i_single as keyof typeof perPart];
+    //     //         }
+    //     //     }
+    //     // }
+    //     shaderCode = this.convertSHT2ShaderCode(templateFinal);
+    //     //反射attribute
+    //     for (let i in SHT_refDCG) {
+    //         if (i == "replace") {
+    //             for (let perReplace of SHT_refDCG.replace!) {
+    //                 //替换代码
+    //                 if (perReplace.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+    //                     shaderCode = shaderCode.replace(perReplace.replace!, perReplace.replaceCode!);
+    //                 }
+    //                 //替换选择代码
+    //                 else if (perReplace.replaceType == E_shaderTemplateReplaceType.selectCode) {
+    //                     //替换目标是单个字符串
+    //                     if (typeof perReplace.check == "string") {
+    //                         if (refName.indexOf(perReplace.check!) != -1) {
+    //                             shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
+    //                         }
+    //                         else {
+    //                             shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
+    //                         }
+    //                     }
+    //                     //替换目标是字符串数组
+    //                     else if (typeof perReplace.check == "object" && Array.isArray(perReplace.check) && (perReplace.check as string[]).length > 0) {
+    //                         let isReplace = false;
+    //                         for (let check of perReplace.check as string[]) {//检查替换目标是否都在refName中
+    //                             if (refName.indexOf(check) == -1) {
+    //                                 // isReplace = false;
+    //                                 break;
+    //                             }
+    //                             else
+    //                                 isReplace = true;
+    //                         }
+    //                         if (isReplace) {
+    //                             //如果是morphTarget，需要特殊处理position数组，WGSL是静态语言，不能在运行时动态计算morphTarget的position数量
+    //                             if (perReplace.replace == "$morphTarget") {
+    //                                 // 目标生成字符串：var positions :array<vec3f,N>=array(attribute.position1,attribute.position2,attribute.position3,...) 
+    //                                 let positions: string[] = [];
+    //                                 /**
+    //                                  * 遍历refName，将所有position_*属性添加到positions数组中
+    //                                  * 虽然是对象，但position_*属性的后续字符是数组，是顺序排列的，所以可以直接添加到positions数组中
+    //                                  */
+    //                                 for (let i = 0; i < refName.length; i++) {
+    //                                     if (refName[i].indexOf("position_") != -1) {
+    //                                         positions.push("attributes." + refName[i]);
+    //                                     }
+    //                                 }
+    //                                 let positionsString: string = positions.join(",");
+    //                                 let preCode: string = `\n var positions :array<vec3f,${positions.length}>=array(${positionsString}); \n`;
+    //                                 shaderCode = shaderCode.replace(perReplace.replace, preCode + perReplace.selectCode![1]);
+    //                             }
+    //                             else {
+    //                                 shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
+    //                             }
+    //                         }
+    //                         else {
+    //                             shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
+    //                         }
+    //                     }
+    //                 }
+    //                 //替换值值
+    //                 else if (perReplace.replaceType == E_shaderTemplateReplaceType.value) {
+    //                     if (perReplace.name == "refName") {
+    //                         let locationString: string = locations.join("\n");
+    //                         shaderCode = shaderCode.replace(perReplace.replace!, locationString);
+    //                     }
+    //                 }
+    //             }
     //         }
     //     }
-    //     return false;
+    //     return groupAndBindingString + "\n" + shaderCode;
     // }
-
-    // errorUUID() {
-    //     throw new Error("获取UUID失败");
-    // }
-    // /**
-    //  * 检查UUID,如果没有UUID，根据system.type，返回默认相机的UUID。
-    //  * @param values IV_DC
-    //  * @returns  string | false
-    //  */
-    // checkUUID(values: IV_DC): string | false {
-    //     if (values.system) {
-    //         let UUID = values.system.UUID;
-    //         if (values.system.type === E_renderForDC.camera && values.system.UUID == undefined) {//相机没有UUID，默认使用默认相机
-    //             if (this.scene.cameraManager.DefaultCamera)
-    //                 UUID = this.scene.cameraManager.DefaultCamera.UUID;
+    // convertSHT2ShaderCode(templateFinal: I_ShaderTemplate_Final): string {
+    //     let groupAndBindingString: string = "";
+    //     let shaderCode: string = "";
+    //     //合并bindingGroupString 和shaderCode
+    //     for (let i in templateFinal) {
+    //         let perPart = templateFinal[i];
+    //         for (let i_single in perPart) {
+    //             if (i_single == "groupAndBindingString") {
+    //                 groupAndBindingString += perPart[i_single as keyof typeof perPart];
+    //             }
+    //             else if (i_single == "templateString") {
+    //                 shaderCode += perPart[i_single as keyof typeof perPart];
+    //             }
     //         }
-    //         if (UUID != undefined)
-    //             return UUID;
-    //         else
-    //             // throw new Error("获取UUID失败,DCG未收到camera UUID,get default camera UUID fail");
-    //             return false;
     //     }
-    //     return false
+    //     return groupAndBindingString + "\n" + shaderCode;
     // }
-    /**
-     * VS反射attribute属性到WGSL的结构体中，并按照SHT格式化vs shader代码.
-     * @param templateFinal  shader模板
-     * @param refName 反射的变量名
-     * @param locations 反射的变量location
-     * @returns 
-     */
-    refVSShaderCode(templateFinal: I_ShaderTemplate_Final, refName: string[], locations: string[]): string {
-        let groupAndBindingString: string = "";
-        let shaderCode: string = "";
-        //合并bindingGroupString 和shaderCode
-        // for (let i in templateFinal) {
-        //     let perPart = templateFinal[i];
-        //     for (let i_single in perPart) {
-        //         if (i_single == "groupAndBindingString") {
-        //             groupAndBindingString += perPart[i_single as keyof typeof perPart];
-        //         }
-        //         else if (i_single == "templateString") {
-        //             shaderCode += perPart[i_single as keyof typeof perPart];
-        //         }
-        //     }
-        // }
-        shaderCode = this.convertSHT2ShaderCode(templateFinal);
-        //反射attribute
-        for (let i in SHT_refDCG) {
-            if (i == "replace") {
-                for (let perReplace of SHT_refDCG.replace!) {
-                    //替换代码
-                    if (perReplace.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                        shaderCode = shaderCode.replace(perReplace.replace!, perReplace.replaceCode!);
-                    }
-                    //替换选择代码
-                    else if (perReplace.replaceType == E_shaderTemplateReplaceType.selectCode) {
-                        //替换目标是单个字符串
-                        if (typeof perReplace.check == "string") {
-                            if (refName.indexOf(perReplace.check!) != -1) {
-                                shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
-                            }
-                            else {
-                                shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
-                            }
-                        }
-                        //替换目标是字符串数组
-                        else if (typeof perReplace.check == "object" && Array.isArray(perReplace.check) && (perReplace.check as string[]).length > 0) {
-                            let isReplace = false;
-                            for (let check of perReplace.check as string[]) {//检查替换目标是否都在refName中
-                                if (refName.indexOf(check) == -1) {
-                                    // isReplace = false;
-                                    break;
-                                }
-                                else
-                                    isReplace = true;
-                            }
-                            if (isReplace) {
-                                //如果是morphTarget，需要特殊处理position数组，WGSL是静态语言，不能在运行时动态计算morphTarget的position数量
-                                if (perReplace.replace == "$morphTarget") {
-                                    // 目标生成字符串：var positions :array<vec3f,N>=array(attribute.position1,attribute.position2,attribute.position3,...) 
-                                    let positions: string[] = [];
-                                    /**
-                                     * 遍历refName，将所有position_*属性添加到positions数组中
-                                     * 虽然是对象，但position_*属性的后续字符是数组，是顺序排列的，所以可以直接添加到positions数组中
-                                     */
-                                    for (let i = 0; i < refName.length; i++) {
-                                        if (refName[i].indexOf("position_") != -1) {
-                                            positions.push("attributes." + refName[i]);
-                                        }
-                                    }
-                                    let positionsString: string = positions.join(",");
-                                    let preCode: string = `\n var positions :array<vec3f,${positions.length}>=array(${positionsString}); \n`;
-                                    shaderCode = shaderCode.replace(perReplace.replace, preCode + perReplace.selectCode![1]);
-                                }
-                                else {
-                                    shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![1]);
-                                }
-                            }
-                            else {
-                                shaderCode = shaderCode.replace(perReplace.replace, perReplace.selectCode![0]);
-                            }
-                        }
-                    }
-                    //替换值值
-                    else if (perReplace.replaceType == E_shaderTemplateReplaceType.value) {
-                        if (perReplace.name == "refName") {
-                            let locationString: string = locations.join("\n");
-                            shaderCode = shaderCode.replace(perReplace.replace!, locationString);
-                        }
-                    }
-                }
-            }
-        }
-        return groupAndBindingString + "\n" + shaderCode;
-    }
-    convertSHT2ShaderCode(templateFinal: I_ShaderTemplate_Final): string {
-        let groupAndBindingString: string = "";
-        let shaderCode: string = "";
-        //合并bindingGroupString 和shaderCode
-        for (let i in templateFinal) {
-            let perPart = templateFinal[i];
-            for (let i_single in perPart) {
-                if (i_single == "groupAndBindingString") {
-                    groupAndBindingString += perPart[i_single as keyof typeof perPart];
-                }
-                else if (i_single == "templateString") {
-                    shaderCode += perPart[i_single as keyof typeof perPart];
-                }
-            }
-        }
-        return groupAndBindingString + "\n" + shaderCode;
-    }
     /**
      * 获取attribute的属性格式转换为wgsl的变量格式
      * @param format string
@@ -1562,37 +1524,23 @@ export class DrawCommandGenerator {
         // 3.1 反射顶点名称到shader code的顶点属性的占位符中
         //vertex shader
         let moduleVS: GPUShaderModule
-        let shadercode: string;
-        let vsCacheShaderModuleName = values.label;
+        // let vsCacheShaderModuleName = values.label;
 
-
-        if (typeof values.render.vertex.code === "string") {
-            let md5OfVScode = MD5(values.render.vertex.code);
-            vsCacheShaderModuleName = values.render.vertex.code as string + locationInterpolateString + md5OfVScode;
-            shadercode = values.render.vertex.code;
-        }
-        else {
-            let md5OfVScode = MD5(values.render.vertex.code.entity.templateString);
-            vsCacheShaderModuleName = values.render.vertex.code.entity.owner + ":" + DC_vertexNames.toString() + locationInterpolateString + md5OfVScode;
-            shadercode = this.refVSShaderCode(values.render.vertex.code, DC_vertexNames, DC_localtions);
-        }
-
-        // 测试输出
-        // if (values.transparent)
-        //     console.log(shadercode);
+        let shadercode: string = this.scene.shaderRegister.reflection(values.render.vertex.code, DC_vertexNames, DC_localtions);
+        let md5OfVScode = MD5(shadercode);
 
         //3.2、VS shaderModule 编译
-        if (this.resources.shaderModuleOfString.has(vsCacheShaderModuleName)) {
-            moduleVS = this.resources.shaderModuleOfString.get(vsCacheShaderModuleName)!;
+        if (this.resources.shaderModuleOfString.has(md5OfVScode)) {
+            moduleVS = this.resources.shaderModuleOfString.get(md5OfVScode)!;
         }
         else//可以缓存透明材质的VS shader model
         {
             moduleVS = this.device.createShaderModule({
                 // label: `vs ${this.parent?.Name || values.IDS?.ID}`, //@${this.clock.now} 
-                label: vsCacheShaderModuleName,
+                label: values.label,
                 code: shadercode,
             });
-            this.resources.shaderModuleOfString.set(vsCacheShaderModuleName, moduleVS);
+            this.resources.shaderModuleOfString.set(md5OfVScode, moduleVS);
         }
 
         //3.3 GPURenderPipelineDescriptor.vertex部分
@@ -1607,43 +1555,28 @@ export class DrawCommandGenerator {
         //3.4 GPURenderPipelineDescriptor.fragment部分
         let moduleFS: GPUShaderModule;
         let fragment: GPUFragmentState | undefined;
-        let nameOfMaterial = "";
+        let md5OfFScode = "";
         if (values.render.fragment) {
             // 3.4.1 判断是否是混合shader
             if (values.render.fragment.code == undefined) {
                 moduleFS = moduleVS;
             }
             else {
-                let codeFS: string;
-                let flagFS = "fsCode";
-                //如果是字符串,则直接赋值,并创建ShaderModule
-                if (typeof values.render.fragment.code === "string") {
-                    nameOfMaterial = values.render.fragment.code as string;
-                    codeFS = values.render.fragment.code;
-                    moduleFS = this.device.createShaderModule({
-                        label: `${flagFS} ${values.label}`,
-                        code: codeFS,
-                    })
-                }
-                //不进行缓存，每次都需要创建ShaderModule。比如自定义shader 材质
-                else if (values.render.fragment.code?.material?.cache === false) {
-                    moduleFS = this.createShaderModule(values);
-                }
-                //如果是I_ShaderTemplate_Final,则需要根据material 生成代码
-                else {
-                    let md5OfFScode = MD5(values.render.fragment.code.material.templateString);
-                    nameOfMaterial = values.render.fragment.code.material.owner + " " + locationInterpolateString + md5OfFScode;
-                    (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner = nameOfMaterial;
-                    //todo:20260310，目前完成uniform统一化，可以进行cache的材质有：PBR和colorMaterial。其他的单次使用没有问题，如果有多个变种，todo适配
-                    if (this.resources.shaderModuleOfString.has(nameOfMaterial)) {
-                        moduleFS = this.resources.shaderModuleOfString.get(nameOfMaterial)!;
-                    }
-                    else {
-                        moduleFS = this.createShaderModule(values);
-                        this.resources.shaderModuleOfString.set(nameOfMaterial, moduleFS);
-                    }
-                }
+                let codeFS: string = values.render.fragment.code;
+                md5OfFScode = MD5(codeFS);
 
+                if (this.resources.shaderModuleOfString.has(md5OfFScode)) {
+                    moduleFS = this.resources.shaderModuleOfString.get(md5OfFScode)!;
+                }
+                else//可以缓存透明材质的FS shader model
+                {
+                    moduleFS = this.device.createShaderModule({
+                        // label: `fs ${this.parent?.Name || values.IDS?.ID}`, //@${this.clock.now} 
+                        label: values.render.fragment.aliasName,
+                        code: codeFS,
+                    });
+                    this.resources.shaderModuleOfString.set(md5OfFScode, moduleFS);
+                }
             }
             //3.4.2 配置targets
             let targets: GPUColorTargetState[] = [];
@@ -1665,7 +1598,7 @@ export class DrawCommandGenerator {
                 }
                 else {
                     if (values.transparent) {
-                       targets =  getColorAttachmentTargetsOfBlend();
+                        targets = getColorAttachmentTargetsOfBlend();
                     }
                     else {
                         targets = getColorAttachmentTargetsOfForward();
@@ -1708,24 +1641,7 @@ export class DrawCommandGenerator {
         else {
             let abc = 1;
         }
-        return { vertex, fragment, vertexName: vsCacheShaderModuleName, fragmentName: nameOfMaterial };
-    }
-    createShaderModule(values: IV_DC): GPUShaderModule {
-        let nameOfMaterial = (values.render.fragment!.code! as I_ShaderTemplate_Final).material.owner;
-        let codeFS: string;
-        let FS_SHT = (values.render.fragment!.code as I_ShaderTemplate_Final);
-        if (FS_SHT) {
-            codeFS = this.convertSHT2ShaderCode(FS_SHT);
-        }
-        else {
-            throw new Error("fragment code SHT模板中material不能为空");
-        }
-        let flagFS = "fs"
-        let moduleFS = this.device.createShaderModule({
-            label: `${flagFS} ${nameOfMaterial}`,//@${this.clock.now}
-            code: codeFS,
-        })
-        return moduleFS;
+        return { vertex, fragment, vertexName: md5OfVScode, fragmentName: md5OfFScode };
     }
     initPipeLine(values: IV_DC, vertex: { vs: GPUVertexState, name: string }, fragment: { fs: GPUFragmentState | undefined, name: string }, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
 

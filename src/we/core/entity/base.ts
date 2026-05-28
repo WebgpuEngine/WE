@@ -1,12 +1,10 @@
 import { T_indexAttribute, T_vsAttribute } from "../command/DrawCommandGenerator";
-import { I_drawMode, I_drawModeIndexed, T_uniformOneGroup } from "../command/base";
-import { I_ShaderTemplate_Final } from "../shadermanagemnet/base";
-import { BaseLight } from "../light/baseLight";
+import { I_drawMode, I_drawModeIndexed } from "../command/base";
+
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseGeometry } from "../geometry/baseGeometry";
 import { IV_NodeSpace } from "../organization/nodeSpace";
-import { I_materialBundleOutput } from "../material/base";
-import { E_renderPassName } from "../scene/renderManager";
+
 
 export enum E_entityType {
     mesh = "mesh",
@@ -208,29 +206,29 @@ export interface I_EntityAttributes {
     indices?: T_indexAttribute,//number[],
 }
 
-/**
- * 实体的uniform和shaderTemplateFinal的绑定
- * createForwardDC()等获取VS部分的uniformGroups和shaderTemplateFinal
- */
-export interface I_EntityBundleOutput {
-    bindingNumber: number,
-    // uniformGroup: T_uniformOneGroup,//20260422 取消（entity底层不再使用传递方式）
-    shaderTemplateFinal: I_ShaderTemplate_Final
-}
+// /**
+//  * 实体的uniform和shaderTemplateFinal的绑定
+//  * createForwardDC()等获取VS部分的uniformGroups和shaderTemplateFinal
+//  */
+// export interface I_EntityBundleOutput {
+//     bindingNumber: number,
+//     // uniformGroup: T_uniformOneGroup,//20260422 取消（entity底层不再使用传递方式）
+//     shaderTemplateFinal: I_ShaderTemplate_Final
+// }
 
-/**
- * 实体创建shadowmap DC的参数
- */
-export interface I_ShadowMapValueOfDC {
-    light: BaseLight,
-    UUID: string,//camera id or light id 
-    matrixIndex: number,//matrix of light MVP[]
-}
+// /**
+//  * 实体创建shadowmap DC的参数
+//  */
+// export interface I_ShadowMapValueOfDC {
+//     light: BaseLight,
+//     UUID: string,//camera id or light id
+//     matrixIndex: number,//matrix of light MVP[]
+// }
 
-/**
- * entity派生类处理DCG生成参数使用的 vs 和 fs 绑定
- */
-export interface I_vsfsBundle {
-    vsBundle: I_EntityBundleOutput,
-    fsBundle?: I_materialBundleOutput
-}
+// /**
+//  * entity派生类处理DCG生成参数使用的 vs 和 fs 绑定
+//  */
+// export interface I_vsfsBundle {
+//     vsBundle: I_EntityBundleOutput,
+//     fsBundle?: I_materialBundleOutput
+// }

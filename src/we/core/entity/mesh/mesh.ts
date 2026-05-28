@@ -1,15 +1,15 @@
 import { E_renderForDC, weColor4 } from "../../base/coreDefine";
-import { BaseCamera } from "../../camera/baseCamera";
 import { I_drawModeIndexed, T_uniformGroups } from "../../command/base";
 import { DrawCommand } from "../../command/DrawCommand";
 import { IV_DC } from "../../command/DrawCommandGenerator";
+import { I_materialBundleOutput } from "../../material/base";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { WireFrameMaterial } from "../../material/standard/wireFrameMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { SHT_MeshVS } from "../../shadermanagemnet/mesh/meshVS";
 import { SHT_MeshWireframeVS } from "../../shadermanagemnet/mesh/wireFrameVS";
-import { E_entityType, IV_BaseEntity, I_vsfsBundle } from "../base";
+import { E_entityType, IV_BaseEntity } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -212,7 +212,24 @@ export class Mesh extends EntityBundleMaterial {
      * @param bundle 实体的uniform和shader模板
      * @returns IV_DrawCommand
      */
-    generateWireFrameInputValueOfDC(type: E_renderForDC, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Mesh): IV_DC {
+    generateWireFrameInputValueOfDC(
+        type: E_renderForDC,
+        bundle: {
+            vs: {
+                code: string,
+                entryPoint?: string,
+            }
+            fs?: I_materialBundleOutput,
+            // fs?: {
+            //     materialType: E_materialTypeForBindGroup,
+            //     code: string,
+            //     entryPoint?: string,
+            //     aliasName: string,
+            // }
+        },
+        vsOnly: boolean = false,
+        scope?: Mesh
+    ): IV_DC {
         if (scope == undefined) scope = this;
         let drawMode: I_drawModeIndexed = {
             indexCount: 0,
@@ -228,11 +245,15 @@ export class Mesh extends EntityBundleMaterial {
         else {
             throw new Error("Mesh constructor: wireFrame must have geometry or attribute data");
         }
-        let uniforms: T_uniformGroups[] = [];
-        // let uniforms = [bundle.vsBundle.uniformGroup];
-        // if (bundle.fsBundle) {
-        //     uniforms.push(bundle.fsBundle.uniformGroup);
-        // }
+        let fragment = undefined;
+
+        if (bundle.fs) {
+            fragment = {
+                code: bundle.fs.code,
+                entryPoint: bundle.fs.entryPoint || "fs",
+                aliasName: bundle.fs.aliasName,
+            };
+        }
         let valueDC: IV_DC = {
             // label: `wireframe  ${scope.Name} for ${type}: ${UUID}`,
             label: `wireframe ${scope.Name}`,
@@ -244,17 +265,11 @@ export class Mesh extends EntityBundleMaterial {
             },
             render: {
                 vertex: {
-                    code: bundle.vsBundle.shaderTemplateFinal,
+                    code: bundle.vs.code,
                     entryPoint: "vs",
 
                 },
-                fragment: {
-                    code: bundle.fsBundle!.shaderTemplateFinal,
-                    entryPoint: "fs",
-                    constants: {
-                        offsetOfWireframeVale: scope._wireframe.offset,
-                    }
-                },
+                fragment,
                 // drawMode,
                 // drawMode: (UUID: string, kind: E_renderForDC) => { return scope.getDrawModeArrayOfInstances(UUID, kind, drawMode) },//wireframe 的drawMode 与mesh的数量不同
 
@@ -274,10 +289,10 @@ export class Mesh extends EntityBundleMaterial {
                 renderID: scope.ID,
             }
         }
-        if (bundle.fsBundle) {
+        if (bundle.fs) {
             valueDC.system!.material = {
                 owner: scope._materialWireframe,
-                type: bundle.fsBundle.materialType,
+                type: bundle.fs.materialType,
             }
         }
         return valueDC;
@@ -287,16 +302,23 @@ export class Mesh extends EntityBundleMaterial {
      * 为每个camera创建前向渲染的DrawCommand
      * @param camera 
      */
-    override createForwardDC(sht: I_ShaderTemplate = SHT_MeshVS): void {
+    override createForwardDC(sht: string = "entity.mesh"): void {
 
         if (this._wireframe.wireFrameOnly !== true) {
             super.createForwardDC(sht);
         }
+        this.createWireFrameDC();
+    }
+    /**    wireframe 前向渲染,暂时不考虑wireframe 透明渲染     */
+    createWireFrameDC(sht: string = "entity.mesh"): void {
         //wireframe 前向渲染
         if (this._wireframe.enable) {
             // let UUID = camera.UUID;
-            let dc = this.generateOpacityDC(SHT_MeshWireframeVS, undefined, this._materialWireframe, this.generateWireFrameInputValueOfDC);
-            this.renderPassArray[E_renderPassName.forward].push(dc);
+            let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
+            let fs = this._materialWireframe.getOpacity_Forward();
+            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs });
+            let dcOfWireFrame = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
+            this.renderPassArray[E_renderPassName.forward].push(dcOfWireFrame);
         }
     }
 
@@ -304,19 +326,7 @@ export class Mesh extends EntityBundleMaterial {
         if (this._wireframe.wireFrameOnly === false) {//非wireframe 才创建前向渲染的DrawCommand
             super.createTransparent();
         }
-        //wireframe 前向渲染,暂时不考虑wireframe 透明渲染
-        if (this._wireframe.enable) {
-            // let UUID = camera.UUID;
-            let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshWireframeVS);
-            let uniformsMaterial = this._materialWireframe.getOpacity_Forward(bundle.bindingNumber);
-            // if (uniformsMaterial) {
-            //     bundle.uniformGroups[0].push(...uniformsMaterial.uniformGroup);
-            //     bundle.shaderTemplateFinal.material = uniformsMaterial.singleShaderTemplateFinal;
-            // }
-            let valueDC = this.generateWireFrameInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial });
-            let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
-            this.renderPassArray[E_renderPassName.forward].push(dc);
-        }
+        this.createWireFrameDC();
     }
 
     /**

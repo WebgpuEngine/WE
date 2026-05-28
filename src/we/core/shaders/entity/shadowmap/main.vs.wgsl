@@ -1,5 +1,6 @@
 //start : mesh/main.vs.wgsl
 override boundingBoxMaxSize : f32 = 1.0;
+#includeFile "entity/bindgroup_entiy_base.wgsl"
 
 #includeFile "system/systemForLight.wgsl" 
 

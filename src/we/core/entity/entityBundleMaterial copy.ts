@@ -18,21 +18,21 @@ import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/b
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
-// import {
-//     E_shaderTemplateReplaceType,
-//     I_ShaderTemplate,
-//     I_ShaderTemplate_Final,
-//     I_shaderTemplateAdd,
-//     I_shaderTemplateReplace,
-//     I_singleShaderTemplate, WGSL_st_output
-// } from "../shadermanagemnet/base";
-import { I_EntityAttributes, IV_BaseEntity, E_entityType } from "./base";
+import {
+    E_shaderTemplateReplaceType,
+    I_ShaderTemplate,
+    I_ShaderTemplate_Final,
+    I_shaderTemplateAdd,
+    I_shaderTemplateReplace,
+    I_singleShaderTemplate, WGSL_st_output
+} from "../shadermanagemnet/base";
+import { I_EntityAttributes, IV_BaseEntity, I_EntityBundleOutput, I_vsfsBundle, E_entityType } from "./base";
 import { BaseEntity } from "./baseEntity";
 import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
-// import { SHT_MeshVS } from "../shadermanagemnet/mesh/meshVS";
-// import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
-// import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
-// import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
+import { SHT_MeshVS } from "../shadermanagemnet/mesh/meshVS";
+import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
+import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
+import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
 import {
     computeNormalsArrayFromPositionsAndIndices,
     computeNormalsArrayFromPositionsNoIndex,
@@ -263,81 +263,81 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     //     }
     //     return st_output;
     // }
-    // /**
-    //  * 格式化shader代码
-    //  * @param template 
-    //  * @returns string
-    //  */
-    // formatShaderCode(template: I_singleShaderTemplate, wireFrame: boolean = false): string {
-    //     let code: string = "";
-    //     /**
-    //      * 1 处理st_output: 与 BaseEntity.getStringOfLocationInterpolate() 中的特征码具有同步关系
-    //      */
-    //     for (let perOne of template.add as I_shaderTemplateAdd[]) {
-    //         // //处理st_location
-    //         // if (perOne.name == "st_output") {
-    //         //     if (this.locationInterpolate != undefined) {
-    //         //         code += this.getSHT_st_output();
-    //         //         continue;
-    //         //     }
-    //         // }
-    //         code += perOne.code;
-    //     }
-    //     for (let perOne of template.replace as I_shaderTemplateReplace[]) {
-    //         if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-    //             if (perOne.name == "userCodeVS") {
-    //                 if (wireFrame === false) {  //wireframe 不使用用户自定义代码,此时是wireFrame =false
-    //                     let userCodeVS = this.getUserCodeVS();
-    //                     code = code.replace(perOne.replace, userCodeVS);
-    //                 }
-    //                 else {
-    //                     code = code.replace(perOne.replace, "");
-    //                 }
-    //             }
-    //             else {
-    //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
-    //             }
-    //         }
-    //         else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-    //             code = code.replace(perOne.replace, this.instance.numInstances.toString());
-    //         }
-    //     }
-    //     return code;
-    // }
-    // /**
-    //  * 获取VS 部分uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
-    //  * @param startBinding 
-    //  * @returns uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
-    //  */
-    // getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
-    //     /**
-    //      * 1、VS与FS分离后，startBinding已经时VS自己的，没有变化；
-    //      * 2、startBinding在entity细分之后，bindingNumber每种shader会不同，而且时固定的；不用后续的进行绑定
-    //      * 3、继续绑定的情况，有userCodeVS，需要在userCodeVS中使用bindingNumber，todo：20260322
-    //      */
-    //     let bindingNumber = startBinding;
-    //     //scene 和 entity 的shader模板部分
-    //     let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-    //     for (let i in SHT_VS) {
-    //         if (i == "scene") {
-    //             let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
-    //             shaderTemplateFinal.scene = shader.scene;
-    //         }
-    //         else if (i == "entity") {
-    //             shaderTemplateFinal.entity = {
-    //                 templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
-    //                 groupAndBindingString: '',//@group(1) @binding(x)  在shader code 中
-    //                 // owner: this.type,
-    //                 owner: SHT_VS[i].owner,
-    //             };
-    //         }
-    //     }
-    //     return {
-    //         bindingNumber: bindingNumber,
-    //         // uniformGroup: this.bindGroup, 
-    //         shaderTemplateFinal
-    //     };
-    // }
+    /**
+     * 格式化shader代码
+     * @param template 
+     * @returns string
+     */
+    formatShaderCode(template: I_singleShaderTemplate, wireFrame: boolean = false): string {
+        let code: string = "";
+        /**
+         * 1 处理st_output: 与 BaseEntity.getStringOfLocationInterpolate() 中的特征码具有同步关系
+         */
+        for (let perOne of template.add as I_shaderTemplateAdd[]) {
+            // //处理st_location
+            // if (perOne.name == "st_output") {
+            //     if (this.locationInterpolate != undefined) {
+            //         code += this.getSHT_st_output();
+            //         continue;
+            //     }
+            // }
+            code += perOne.code;
+        }
+        for (let perOne of template.replace as I_shaderTemplateReplace[]) {
+            if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+                if (perOne.name == "userCodeVS") {
+                    if (wireFrame === false) {  //wireframe 不使用用户自定义代码,此时是wireFrame =false
+                        let userCodeVS = this.getUserCodeVS();
+                        code = code.replace(perOne.replace, userCodeVS);
+                    }
+                    else {
+                        code = code.replace(perOne.replace, "");
+                    }
+                }
+                else {
+                    code = code.replace(perOne.replace, perOne.replaceCode as string);
+                }
+            }
+            else if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+                code = code.replace(perOne.replace, this.instance.numInstances.toString());
+            }
+        }
+        return code;
+    }
+    /**
+     * 获取VS 部分uniform 和shader模板输出，其中包括了uniform 对应的layout到resourceGPU的map
+     * @param startBinding 
+     * @returns uniformGroups: T_uniformGroups[], shaderTemplateFinal: I_ShaderTemplate_Final 
+     */
+    getVSUniformAndShaderTemplateFinal(SHT_VS: I_ShaderTemplate, startBinding: number = 0, wireFrame: boolean = false): I_EntityBundleOutput {
+        /**
+         * 1、VS与FS分离后，startBinding已经时VS自己的，没有变化；
+         * 2、startBinding在entity细分之后，bindingNumber每种shader会不同，而且时固定的；不用后续的进行绑定
+         * 3、继续绑定的情况，有userCodeVS，需要在userCodeVS中使用bindingNumber，todo：20260322
+         */
+        let bindingNumber = startBinding;
+        //scene 和 entity 的shader模板部分
+        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+        for (let i in SHT_VS) {
+            if (i == "scene") {
+                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
+                shaderTemplateFinal.scene = shader.scene;
+            }
+            else if (i == "entity") {
+                shaderTemplateFinal.entity = {
+                    templateString: this.formatShaderCode(SHT_VS[i], wireFrame),
+                    groupAndBindingString: '',//@group(1) @binding(x)  在shader code 中
+                    // owner: this.type,
+                    owner: SHT_VS[i].owner,
+                };
+            }
+        }
+        return {
+            bindingNumber: bindingNumber,
+            // uniformGroup: this.bindGroup, 
+            shaderTemplateFinal
+        };
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 处理drawMode 模板
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -646,19 +646,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
     generateInputValueOfDC(
         renderType: E_renderForDC,
         // UUID: string,
-        bundle: {
-            vs: {
-                code: string,
-                entryPoint?: string,
-            }
-            fs?: I_materialBundleOutput,
-            // fs?: {
-            //     materialType: E_materialTypeForBindGroup,
-            //     code: string,
-            //     entryPoint?: string,
-            //     aliasName: string,
-            // }
-        },
+        bundle: I_vsfsBundle,
         vsOnly: boolean = false,
         scope?: EntityBundleMaterial
     ): IV_DC {
@@ -669,13 +657,13 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         if (boundingBoxMaxSize === 0) boundingBoxMaxSize = 1;
 
         let fragment = undefined;
-        if (bundle.fs) {
+        if (bundle.fsBundle) {
             fragment = {
-                code: bundle.fs.code,
-                entryPoint: bundle.fs.entryPoint || "fs",
-                aliasName: bundle.fs.aliasName,
+                code: bundle.fsBundle.shaderTemplateFinal,
+                entryPoint: "fs",
             };
         }
+        let uniforms = [];
         let valueDC: IV_DC = {
             label: `${scope.kind} ${scope.Name || scope.ID}`,
             data: {
@@ -686,8 +674,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             },
             render: {
                 vertex: {
-                    code: bundle.vs.code,
-                    entryPoint: bundle.vs.entryPoint || "vs",
+                    code: bundle.vsBundle.shaderTemplateFinal,
+                    entryPoint: "vs",
                     constants: {
                         "boundingBoxMaxSize": boundingBoxMaxSize,
                     },
@@ -707,10 +695,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 renderID: scope.ID,
             }
         }
-        if (bundle.fs) {
+        if (bundle.fsBundle) {
             valueDC.system!.material = {
                 owner: scope._material,
-                type: bundle.fs.materialType,
+                type: bundle.fsBundle.materialType,
             }
         }
         if (scope._dynamicAttribute) {
@@ -758,17 +746,28 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param specialMaterial 指定的材质，比如：线框（WireFrameMaterial），用于生成线框的MSAA
      */
     generateOpacityDC(
-        vsAliasName: string,
-        _material?: BaseMaterial
+        // UUID: string,
+        SHT_VS: I_ShaderTemplate,
+        TO?: I_materialBundleOutput,
+        specialMaterial?: BaseMaterial,
+        specialInitValueOfDC?: (renderType: E_renderForDC,
+            //  UUID: string,
+            bundle: I_vsfsBundle, vsOnly: boolean) => IV_DC
     ): DrawCommand {
-        let vsCode = this.scene.shaderRegister.getAliasShaderName(vsAliasName);
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_VS);
+
         let material = this._material;
-        if (_material) material = _material;
+        if (specialMaterial != undefined)
+            material = specialMaterial;
+        let getIV_DC = this.generateInputValueOfDC;//(E_renderForDC.camera, UUID, bundle);
+        if (specialInitValueOfDC != undefined)
+            getIV_DC = specialInitValueOfDC;
+
         let dc: DrawCommand;
         if (this.MSAA === true) {   //输出两个DC（MSAA 和 info forward）
             let uniformsMaterialMSAA: I_BundleOfMaterialForMSAA = material.getOpacity_MSAA();
             {//MSAA 部分,输出MSAA DC队列
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterialMSAA.MSAA }, false, this);
+                let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.MSAA }, false, this);
                 valueDC.system!.MSAA = "MSAA";
                 valueDC.label = "MSAA:" + valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
@@ -776,7 +775,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
                 this.renderPassArray[E_renderPassName.MSAA].push(dc);
             }
             {//info forward 部分,输出info forward DC队列
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterialMSAA.inforForward }, false, this);
+                let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialMSAA.inforForward }, false, this);
                 valueDC.system!.MSAA = "MSAAinfo";
                 valueDC.label = "MsaaInfo:" + valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
@@ -791,9 +790,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             else {
                 uniformsMaterial = material.getOpacity_Forward();
             }
-            //材质的shader 模板输出，
+            // //材质的shader 模板输出，
             {
-                let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterial }, false, this);
+                let valueDC = getIV_DC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterial }, false, this);
+                let drawFor = " forward ";
                 if (this.deferColor)
                     valueDC.label = "Defer:" + valueDC.label;
                 else
@@ -809,16 +809,17 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * @param sht VS shader 模板
      */
     // createForwardDC(camera: BaseCamera): void {
-    createForwardDC(sht: string = "entity.mesh"): void {
+    createForwardDC(sht: I_ShaderTemplate = SHT_MeshVS): void {
 
         // let UUID = camera.UUID;
+        let SHT_VS = sht;
         if (this.kind === E_entityType.lines) {
-            sht = "entity.lines";
+            SHT_VS = SHT_LineVS;
         }
         else if (this.kind === E_entityType.points) {
-            sht = "entity.points";
+            SHT_VS = SHT_PointVS;
         }
-        let dc = this.generateOpacityDC(sht) as DrawCommand;
+        let dc = this.generateOpacityDC(SHT_VS) as DrawCommand;
         // this.cameraDC[UUID][E_renderPassName.forward].push(dc);
         this.renderPassArray[E_renderPassName.forward]!.push(dc);
     }
@@ -828,14 +829,17 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      *      1、目前VS的SHT，只使用了一个通用的SHT_MeshShadowMapVS
      * @param sht VS shader 模板
      */
-    createShadowMapDC(sht: string = "entity.shadowmap"): void {
+    createShadowMapDC(sht: I_ShaderTemplate = SHT_MeshShadowMapVS): void {
         if (this.inputValues.shadow?.generate === false) {
             return;
         }
+        // let UUID = mergeLightUUID(input.UUID, input.matrixIndex);
         //mesh VS 模板输出
-        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
-        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vs: { code: vsCode } }, true);
+        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
+
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vsBundle: bundle }, true);
         valueDC.label = "shadowmap:" + valueDC.label;
+        // valueDC.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
         let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
         this.renderPassArray[E_renderPassName.shadowmapOpaque]!.push(dc);
     }
@@ -847,15 +851,14 @@ export abstract class EntityBundleMaterial extends BaseEntity {
      * lines和points 需要override该方法。
      * @param camera 
      */
-    createTransparent(sht: string = "entity.mesh"): void {
+    createTransparent(sht: I_ShaderTemplate = SHT_MeshVS): void {
         if (this.transparent === false)
             return;
         //材质的shader 模板输出，
-        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
+        let bundle = this.getVSUniformAndShaderTemplateFinal(sht);
         //获取TTTT，然后分别判断并执行
         let uniformsMaterialTT = this._material.getFS_TT();
-        let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterialTT });
-
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vsBundle: bundle, fsBundle: uniformsMaterialTT });
         //设置为透明
         valueDC.transparent = this.getBlend();//材质的透明混合参数
         valueDC.label = "TT mesh:" + this.Name || this.ID.toString();

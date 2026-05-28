@@ -32,7 +32,7 @@ import { Pointers } from "../bufferBlock/pointer";
 import { BlockPointerCoordinator } from "../bufferBlock/BPC";
 import { I_BolRebulidPercent, I_BolSize, I_BolStrideSizeOfUpdate } from "../bufferBlock/base";
 // import type { PBRMaterial } from "../material/PBR/PBRMaterial";
-
+import { ShaderRegister } from "../SHR/shaderRegister";
 
 
 export class Scene {
@@ -227,6 +227,7 @@ export class Scene {
     aspect!: number;
     ////////////////////////////////////////////////////////////////////////////////
     //资源与管理
+    shaderRegister: ShaderRegister;
     /**场景的根节点 */
     root!: RootManager;
     /**GPU资源管理器 */
@@ -355,6 +356,7 @@ export class Scene {
         if (value.realTimeRender !== undefined) {
             this.flags.realTimeRender = value.realTimeRender;
         }
+        this.shaderRegister = new ShaderRegister();
     }
     getURL(url: string) {
         return new URL(url, import.meta.url).href;

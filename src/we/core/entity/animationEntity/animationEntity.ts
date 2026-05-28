@@ -1,6 +1,5 @@
 import { E_AnimationType } from "../../animation/base";
 import { Clock } from "../../scene/clock";
-import { Scene } from "../../scene/scene";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 export abstract class AnimationEntity extends EntityBundleMaterial {

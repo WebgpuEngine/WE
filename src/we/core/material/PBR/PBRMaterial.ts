@@ -29,7 +29,7 @@ import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info
 import { E_lifeState, weVec4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
+// import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
 import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
