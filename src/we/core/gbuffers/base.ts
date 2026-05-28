@@ -69,7 +69,7 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.normal]: {
-        "format": "rgba8unorm",
+        "format": "rgba16float",
         "label": "GBuffer normal",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
