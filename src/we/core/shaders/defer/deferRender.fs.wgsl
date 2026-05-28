@@ -1,5 +1,21 @@
 //deferRender.fs.wgsl   ,start
 
+#includeFile "quad/st_quad_output.wgsl"
+
+@vertex fn vs(@builtin(vertex_index) vertexIndex: u32) ->st_quad_output {
+    let pos = array(
+            vec2f( -1.0,  -1.0),  // bottom left
+            vec2f( 1.0,  -1.0),  // top left
+            vec2f( -1.0,  1.0),  // top right
+            vec2f( 1.0,  1.0),  // bottom right
+            );
+    return st_quad_output(
+        vec4f(pos[vertexIndex], 0.0, 1.0),
+        vec2f(pos[vertexIndex].x * 0.5 + 0.5, pos[vertexIndex].y * -0.5 + 0.5)
+    );
+}
+
+
 @group(1) @binding(0) var u_colorTexture: texture_2d<f32>;
 // @group(1) @binding(1) var u_idTexture: texture_2d<f32>;
 @group(1) @binding(1) var u_normalTexture: texture_2d<f32>;
@@ -12,12 +28,13 @@
 #includeFile "system/structOfCamera.wgsl" 
 #includeFile "system/system.wgsl"
 #includeFile "function/encodeAndDecode.wgsl"
+#includeFile "shadowmap/fn_pcss.wgsl"
 #includeFile "material/PBR/PBRfunction.wgsl"
 #includeFile "material/phong/phongfunction.wgsl"
 #includeFile "math/baseconst.wgsl"
 // #includeFile "math/TBN.wgsl"
 #includeFile "math/random.wgsl"
-#includeFile "shadowmap/fn_pcss.wgsl"
+
 
 
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
@@ -60,7 +77,7 @@
     //         ao,
     //         color,//vec3f(1),albedo的颜色已经在color中，不需要再乘以albedo
     //         emissiveRGB,
-    //         emissiveIntensity);
+    //         emissiveIntensity.rgb);
 
 
     // materialColor = calcLightAndShadowOfPhong(

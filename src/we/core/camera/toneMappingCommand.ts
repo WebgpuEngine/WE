@@ -5,7 +5,8 @@ import { DrawCommand } from "../command/DrawCommand";
 import { E_GBufferNames } from "../gbuffers/base";
 import { E_ToneMappingType } from "../scene/base";
 import { Scene } from "../scene/scene";
-import { WGSL_colorSpaceFunction, WGSL_toneMappingFunction } from "../shadermanagemnet/colorSpace/colorSpace";
+import { E_shaderRegisterAlianName } from "../SHR/include";
+// import { WGSL_colorSpaceFunction, WGSL_toneMappingFunction } from "../shadermanagemnet/colorSpace/colorSpace";
 import { CameraManager } from "./cameraManager";
 
 export class ToneMappingCommandGenerator {
@@ -222,28 +223,31 @@ export class ToneMappingCommandGenerator {
         else {
             returnColor += "return vec4f(linearToSRGB(color_tonemapping), color.a);\n";
         }
+        let toneMappingShaderCode = this.scene.shaderRegister.getAliasShaderName(E_shaderRegisterAlianName.toneMapping);
+        toneMappingShaderCode = toneMappingShaderCode.replace("$returnColor", returnColor);
+
         //WGSL_colorSpaceFunction  WGSL_toneMappingFunction
-        let shader = `   
-            ${WGSL_toneMappingFunction}            
-            @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;
-            @group(0) @binding(1) var<uniform> u_Exposure : f32;
-            @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position)  vec4f {
-                let pos = array(
-                        vec2f( -1.0,  -1.0),  // bottom left
-                        vec2f( 1.0,  -1.0),  // top left
-                        vec2f( -1.0,  1.0),  // top right
-                        vec2f( 1.0,  1.0),  // bottom right
-                        );
-                return vec4f(pos[vertexIndex], 0.0, 1.0);
-            }
-            @fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f{
-                 toneMappingExposure = u_Exposure;
-                let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
-                ${returnColor}
-            }`;
+        // let shader = `   
+        //     ${WGSL_toneMappingFunction}            
+        //     @group(0) @binding(0) var u_ColorTexture : texture_2d<f32>;
+        //     @group(0) @binding(1) var<uniform> u_Exposure : f32;
+        //     @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position)  vec4f {
+        //         let pos = array(
+        //                 vec2f( -1.0,  -1.0),  // bottom left
+        //                 vec2f( 1.0,  -1.0),  // top left
+        //                 vec2f( -1.0,  1.0),  // top right
+        //                 vec2f( 1.0,  1.0),  // bottom right
+        //                 );
+        //         return vec4f(pos[vertexIndex], 0.0, 1.0);
+        //     }
+        //     @fragment fn fs(@builtin(position) pos: vec4f ) -> @location(0) vec4f{
+        //          toneMappingExposure = u_Exposure;
+        //         let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
+        //         ${returnColor}
+        //     }`;
         let moduleVS = this.device.createShaderModule({
             label: "ToneMapping",
-            code: shader,
+            code: toneMappingShaderCode,
         });
         return moduleVS;
     }

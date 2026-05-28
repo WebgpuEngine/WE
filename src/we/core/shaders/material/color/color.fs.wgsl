@@ -22,11 +22,11 @@
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
-    output.color =  u_common_base.color;
 
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   
+    output.color =  u_common_base.color;
     if(output.color.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
     {
         discard;

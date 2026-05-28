@@ -21,12 +21,13 @@ import {
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import {
-    SHT_materialTexture_TT_FS,
-    SHT_materialTextureFS,
-    SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo
-} from "../../shadermanagemnet/material/textureMaterial";
+// import {
+//     SHT_materialTexture_TT_FS,
+//     SHT_materialTextureFS,
+//     SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo
+// } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseStandardMaterial } from "./baseStandard";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 
 
 
@@ -64,11 +65,11 @@ export class TextureMaterial extends BaseStandardMaterial {
         }
         this._state = E_lifeState.unstart;
         this.shtOfMaterialType = {
-            opacityForward: SHT_materialTextureFS,
-            opacityDefer: SHT_materialTextureFS,
-            opacityMSAA: SHT_materialTextureFS_MSAA,
-            opacityMSAAInfo: SHT_materialTextureFS_MSAAinfo,
-            TT: SHT_materialTexture_TT_FS,
+            opacityForward: E_shaderRegisterAlianName["material.texture.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.texture.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.texture.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.texture.MsaaInfo"],
+            TT: E_shaderRegisterAlianName["material.texture.blend"],
             // TO_Forward: SHT_materialTextureFS,
             // TO_Defer: SHT_materialTextureFS,
             // TO_MSAA: SHT_materialTextureFS_MSAA,

@@ -3,9 +3,8 @@ import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
-import { SHT_materialPhongFS_defer, SHT_materialPhongFS, SHT_materialPhongFS_MSAA_info, SHT_materialPhongFS_MSAA } from "../../shadermanagemnet/material/phongMaterial";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { I_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import {
@@ -185,10 +184,10 @@ export class PhongMaterial extends BaseStandardMaterial {
     this.textures = {};
     this.inputValues = options;
     this.shtOfMaterialType = {
-      opacityForward: SHT_materialPhongFS,
-      opacityDefer: SHT_materialPhongFS_defer,
-      opacityMSAA: SHT_materialPhongFS_MSAA,
-      opacityMSAAInfo: SHT_materialPhongFS_MSAA_info,
+      opacityForward: E_shaderRegisterAlianName["material.phong.forward"],
+      opacityDefer: E_shaderRegisterAlianName["material.phong.defer"],
+      opacityMSAA: E_shaderRegisterAlianName["material.phong.Msaa"],
+      opacityMSAAInfo: E_shaderRegisterAlianName["material.phong.MsaaInfo"],
       TT: undefined,
     };
   }

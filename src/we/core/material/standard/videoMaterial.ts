@@ -7,12 +7,9 @@ import {
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { IV_OptionVideoTexture, T_modelOfVideo, T_VIdeoSourceType, VideoTexture } from "../../texture/videoTexture";
-import { SHT_materialVideoTextureFS, SHT_materialVideoTextureFS_MSAA_info, SHT_materialVideoTextureFS_MSAA } from "../../shadermanagemnet/material/videoMaterial";
-import { BaseCamera } from "../../camera/baseCamera";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { BaseStandardMaterial } from "./baseStandard";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 /**
  * 视频材质的初始化参数 * 
  */
@@ -46,6 +43,9 @@ export class VideoMaterial extends BaseStandardMaterial {
     /**自增，纹理加载计算器 */
     countOfTexturesOfFineshed!: number;
 
+    shtOfVideoExternal: {
+        [key in E_materialTypeForBindGroup]: E_shaderRegisterAlianName | undefined;
+    };
 
     constructor(input: IV_VideoMaterial) {
         super(input);
@@ -58,10 +58,17 @@ export class VideoMaterial extends BaseStandardMaterial {
         }
         this.countOfTextures = Object.keys(input.textures).length;
         this.shtOfMaterialType = {
-            opacityForward: SHT_materialVideoTextureFS,
-            opacityDefer: SHT_materialVideoTextureFS,
-            opacityMSAA: SHT_materialVideoTextureFS_MSAA,
-            opacityMSAAInfo: SHT_materialVideoTextureFS_MSAA_info,
+            opacityForward: E_shaderRegisterAlianName["material.video.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.video.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.video.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.video.MsaaInfo"],
+            TT: undefined,
+        };
+        this.shtOfVideoExternal = {
+            opacityForward: E_shaderRegisterAlianName["material.videoExternal.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.videoExternal.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.videoExternal.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.videoExternal.MsaaInfo"],
             TT: undefined,
         };
         this._state = E_lifeState.unstart;
@@ -203,158 +210,31 @@ export class VideoMaterial extends BaseStandardMaterial {
         }
         return groupAndBindingString;
     }
-    // getUniformEntryBundleOfCommon(startBinding: number): { entriesBundle: I_UniformBundleOfMaterial, layoutEntries: GPUBindGroupLayoutEntry[] } {
-    //     let groupAndBindingString: string = "";
-    //     let binding: number = startBinding;
-
-    //     let uniformEntries: T_uniformOneGroup = [];
-    //     let layoutEntries: GPUBindGroupLayoutEntry[] = [];
-
-    //     let code: string = "";
-    //     ///////////group binding
-    //     ////group binding  texture 字符串
-    //     //uniform texture
-    //     let uniformTexture: T_uniformEntries;
-    //     //uniform texture layout
-    //     let uniformTextureLayout: GPUBindGroupLayoutEntry
-    //     if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
-    //         groupAndBindingString = ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_2d<f32>;\n `;//这里的名称是固定的
-    //         uniformTexture = {
-    //             binding: binding,
-    //             resource: this.textures[E_TextureType.video].texture.createView(),
-    //         };
-    //         uniformTextureLayout = {
-    //             binding: binding,
-    //             visibility: GPUShaderStage.FRAGMENT,
-    //             texture: {
-    //                 sampleType: "float",
-    //                 viewDimension: "2d",
-    //                 multisampled: false,
-    //             },
-    //         };
-
-    //     }
-    //     else // if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture) 
-    //     {
-    //         this.Dynamic = true;
-    //         groupAndBindingString = `@group(${this.bindGroupNumber}) @binding(${binding}) var u_videoTexture: texture_external;\n `;//这里的名称是固定的
-    //         uniformTexture = ({
-    //             binding: binding,
-    //             // resource: this.textures[E_TextureType.video].getExternalTexture(this.textures[E_TextureType.video])
-    //             label: "videoTexture External模式",
-    //             scope: this.textures[E_TextureType.video],
-    //             getResource: this.textures[E_TextureType.video].getExternalTexture,
-    //         });
-
-    //         uniformTextureLayout = {
-    //             binding: binding,
-    //             visibility: GPUShaderStage.FRAGMENT,
-    //             externalTexture: {},
-    //         };
-    //         // dynamic = true;
-    //     }
-    //     layoutEntries.push(uniformTextureLayout);
-    //     uniformEntries.push(uniformTexture);
-    //     //+1
-    //     binding++;
-
-    //     ////group bindgin sampler 字符串
-    //     groupAndBindingString += ` @group(${this.bindGroupNumber}) @binding(${binding}) var u_Sampler : sampler; \n `;
-    //     //uniform sampler
-    //     let uniformSampler: GPUBindGroupEntry = {
-    //         binding: binding,
-    //         resource: this.defaultSampler,
-    //     };
-    //     //uniform sampler layout
-    //     let uniformSamplerLayout: GPUBindGroupLayoutEntry = {
-    //         binding: binding,
-    //         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-    //         sampler: {
-    //             type: this.defaultSamplerBindingType,
-    //         },
-    //     };
-    //     layoutEntries.push(uniformSamplerLayout);
-    //     uniformEntries.push(uniformSampler);
-    //     //+1
-    //     binding++;
-    //     let entriesBundle = {
-    //         bindingNumber: 1,//shader中使用的绑定号，用于绑定uniform参数
-    //         groupAndBindingString,
-    //         entry: uniformEntries
-    //     };
-    //     return {
-    //         entriesBundle,
-    //         layoutEntries,
-    //     };
-    // }
-
-    override generateBundleOutput(template: I_ShaderTemplate, startBinding: number = 0, materialType: E_materialTypeForBindGroup): I_materialBundleOutput {
-        let dynamic: boolean = false;
-        if (this.textures[E_TextureType.video].texture instanceof GPUExternalTexture)
-            dynamic = true;
-
-        let replaceList = new Map<string, string | (() => string)>();
-        let replaceValueFN = () => {
-            let replaceString = "";
-            if (this.textures[E_TextureType.video].model == "copy") {
-                //texture 默认是 'rgba8unorm-srgb'，已经完成解gamma
-                replaceString = `materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); `;
-            }
-            else {
-                //外部texture 是 'rgba8unorm'，需要解gamma到线性空间
-                replaceString = `
-                                materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) ); 
-                                materialColor =vec4f( pow(materialColor.rgb,vec3f(2.2)),materialColor.a);
-                                 `;
-            }
-            return replaceString;
-        };
-        replaceList.set("$materialColor", replaceValueFN);
-        let output = this.formatSHT(template, replaceList, startBinding, materialType);
-        // 如果是动态材质，需要在DrawCommand中添加dynamic属性,并每帧重新生成bind group
-        if (dynamic) {
-            output.shaderTemplateFinal.material.dynamic = dynamic;
-        }
-        return output;
-
-    }
     /////////////////////////////////////三个不透明的模板输出/////////////////////////////////////
-    override getOpacity_Forward(startBinding: number = 0): I_materialBundleOutput {
-        let template = SHT_materialVideoTextureFS;
-        return this.generateBundleOutput(template, startBinding, E_materialTypeForBindGroup.opacityForward);
+    override getOpacity_Forward(): I_materialBundleOutput {
+        if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
+            return super.getOpacity_Forward();
+        }
+        else {
+            return this.composeShaderBundle(this.shtOfVideoExternal[E_materialTypeForBindGroup.opacityForward]!);
+        }
     }
-    override getOpacity_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-        let MSAA: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA, startBinding, E_materialTypeForBindGroup.opacityMSAA);
-        let inforForward: I_materialBundleOutput = this.generateBundleOutput(SHT_materialVideoTextureFS_MSAA_info, startBinding, E_materialTypeForBindGroup.opacityMSAAInfo);
-        return { MSAA, inforForward };
+    override getOpacity_MSAA(): I_BundleOfMaterialForMSAA {
+        if (this.textures[E_TextureType.video].texture instanceof GPUTexture) {
+            return super.getOpacity_MSAA();
+        }
+        else {
+            let MSAA: I_materialBundleOutput = this.composeShaderBundle(this.shtOfVideoExternal[E_materialTypeForBindGroup.opacityMSAA]!, E_materialTypeForBindGroup.opacityMSAA);
+            let inforForward: I_materialBundleOutput = this.composeShaderBundle(this.shtOfVideoExternal[E_materialTypeForBindGroup.opacityMSAAInfo]!, E_materialTypeForBindGroup.opacityMSAAInfo);
+            return { MSAA, inforForward };
+        }
     }
 
-    override getOpacity_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-        return this.getOpacity_Forward(startBinding);
+    override getOpacity_DeferColor(): I_materialBundleOutput {
+        return this.getOpacity_Forward();
     }
-    /////////////////////////////////////三个TO的模板输出/////////////////////////////////////
 
 
-    // getFS_TO(_startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    // getFS_TO_MSAA(startBinding: number = 0): I_BundleOfMaterialForMSAA {
-    //     throw new Error("Method not implemented.");
-    // }
-    // getFS_TO_DeferColor(startBinding: number = 0): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    /////////////////////////////////////三个透明TT、TTP、TTPF的模板输出/////////////////////////////////////
-
-    // getFS_TT(renderObject: BaseCamera | I_ShadowMapValueOfDC, _startBinding: number): I_materialBundleOutput {
-    //     throw new Error("Method not implemented.");
-    // }
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
 
     updateSelf(clock: Clock): void {
         // this.textures[E_TextureType.video].updateSelf();

@@ -2,11 +2,11 @@ import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
 import { commmandType, T_uniformEntries } from "../command/base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
-import { I_EntityBundleOutput } from "../entity/base";
 import { E_GBufferNames } from "../gbuffers/base";
 import { Scene } from "../scene/scene";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
+// import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
+import { E_shaderRegisterAlianName } from "../SHR/include";
 import { CameraManager } from "./cameraManager";
 
 export class DeferDrawCommandGenerator {
@@ -223,9 +223,10 @@ export class DeferDrawCommandGenerator {
 
     createShaderModule() {
         if (this.shaderModule == undefined) {//必须判断，每次光源有变化，需要重新获取system 部分shader
-            let template: I_ShaderTemplate = SHT_DeferRender;
-            let bundle = this.getCodeOfSHT(template);
-            let shaderCode = this.outPutShaderCode(bundle.shaderTemplateFinal);
+            // let template: I_ShaderTemplate = SHT_DeferRender;
+            // let bundle = this.getCodeOfSHT(template);
+            // let shaderCode = this.outPutShaderCode(bundle.shaderTemplateFinal);
+            let shaderCode = this.scene.shaderRegister.getAliasShaderName(E_shaderRegisterAlianName.defer);
             this.shaderModule = this.device.createShaderModule({
                 label: "DeferRender",
                 code: shaderCode,

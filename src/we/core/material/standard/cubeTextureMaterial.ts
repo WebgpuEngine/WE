@@ -19,15 +19,16 @@ import {
     E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
     materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
 } from "../base";
-import {
-    SHT_materialCubePositionTextureFS,
-    SHT_materialCubePositionTextureFS_MSAA,
-    SHT_materialCubePositionTextureFS_MSAAinfo,
-    SHT_materialCubeSkyTextureFS,
-    SHT_materialCubeSkyTextureFS_MSAA,
-    SHT_materialCubeSkyTextureFS_MSAAinfo
-} from "../../shadermanagemnet/material/cubeTextureMaterial";
+// import {
+//     SHT_materialCubePositionTextureFS,
+//     SHT_materialCubePositionTextureFS_MSAA,
+//     SHT_materialCubePositionTextureFS_MSAAinfo,
+//     SHT_materialCubeSkyTextureFS,
+//     SHT_materialCubeSkyTextureFS_MSAA,
+//     SHT_materialCubeSkyTextureFS_MSAAinfo
+// } from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { Texture } from "../../texture/texture";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
     cubeType?: "sky" | "cube"
@@ -46,19 +47,19 @@ export class CubeTextureMaterial extends TextureMaterial {
         }
         if (this.cubeType == "sky") {
             this.shtOfMaterialType = {
-                opacityForward: SHT_materialCubeSkyTextureFS,
-                opacityDefer: SHT_materialCubeSkyTextureFS,
-                opacityMSAA: SHT_materialCubeSkyTextureFS_MSAA,
-                opacityMSAAInfo: SHT_materialCubeSkyTextureFS_MSAAinfo,
+                opacityForward: E_shaderRegisterAlianName["material.cubeSky.forward"],
+                opacityDefer: E_shaderRegisterAlianName["material.cubeSky.forward"],
+                opacityMSAA: E_shaderRegisterAlianName["material.cubeSky.Msaa"],
+                opacityMSAAInfo: E_shaderRegisterAlianName["material.cubeSky.MsaaInfo"],
                 TT: undefined,
             };
         }
         else {
             this.shtOfMaterialType = {
-                opacityForward: SHT_materialCubePositionTextureFS,
-                opacityDefer: SHT_materialCubePositionTextureFS,
-                opacityMSAA: SHT_materialCubePositionTextureFS_MSAA,
-                opacityMSAAInfo: SHT_materialCubePositionTextureFS_MSAAinfo,
+                opacityForward: E_shaderRegisterAlianName["material.cube.forward"],
+                opacityDefer: E_shaderRegisterAlianName["material.cube.forward"],
+                opacityMSAA: E_shaderRegisterAlianName["material.cube.Msaa"],
+                opacityMSAAInfo: E_shaderRegisterAlianName["material.cube.MsaaInfo"],
                 TT: undefined,
             };
         }

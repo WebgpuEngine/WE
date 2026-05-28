@@ -1,3 +1,4 @@
+//structOfCamera.wgsl
 struct st_alpha_transparent{
     //alphaTest 值
     alpha_cut_off: f32,

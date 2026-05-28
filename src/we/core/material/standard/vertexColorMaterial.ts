@@ -1,10 +1,8 @@
 import { E_lifeState } from "../../base/coreDefine";
-import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
-import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { Clock } from "../../scene/clock";
 import { I_ShaderTemplate } from "../../shadermanagemnet/base";
-import { SHT_materialVertexColorFS, SHT_materialVertexColorFS_MSAA, SHT_materialVertexColorFS_MSAA_info } from "../../shadermanagemnet/material/vertexColorMaterial";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 import {
     E_MaterialType, E_materialTypeForBindGroup, I_materialBundleOutput,
     IV_BaseMaterial, IV_BaseStandardMaterial, materialAddBindGroupLayoutOfMSAA,
@@ -25,10 +23,10 @@ export class VertexColorMaterial extends BaseStandardMaterial {
         super({});
         this.kind = E_MaterialType.vertex;
         this.shtOfMaterialType = {
-            opacityForward: SHT_materialVertexColorFS,
-            opacityDefer: SHT_materialVertexColorFS,
-            opacityMSAA: SHT_materialVertexColorFS_MSAA,
-            opacityMSAAInfo: SHT_materialVertexColorFS_MSAA_info,
+            opacityForward: E_shaderRegisterAlianName["material.vertexColor.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.vertexColor.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.vertexColor.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.vertexColor.MsaaInfo"],
             TT: undefined,
         };
 
@@ -40,12 +38,6 @@ export class VertexColorMaterial extends BaseStandardMaterial {
         this._state = E_lifeState.finished;
     }
 
-    generateBundleOutput(template: I_ShaderTemplate, startBinding: number): I_materialBundleOutput {
-        let replaceList = new Map<string, string | (() => string)>();
-        // let color: string = ` output.color = vec4f(fsInput.color,1); \n`;
-        // replaceList.set("$fsOutputColor", color);
-        return this.formatSHT(template, replaceList, startBinding);
-    }
 
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
         let binding: number = 0;

@@ -25,15 +25,14 @@ import {
 import { BaseMaterial } from "../baseMaterial";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
-import { SHT_materialPBRFS_defer, SHT_materialPBRFS, SHT_materialPBRFS_MSAA_info, SHT_materialPBRFS_MSAA, SHT_materialPBRFS_TT } from "../../shadermanagemnet/material/pbrMaterial";
 import { E_lifeState, weVec4 } from "../../base/coreDefine";
 import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
-// import { I_ShadowMapValueOfDC } from "../../entity/base";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
 import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 
 export interface I_TextureForPBR {
     data1?: number,//i32,data2.texCoord,alphaMod...
@@ -424,11 +423,11 @@ export class PBRMaterial extends BaseMaterial {
         this.kind = E_MaterialType.PBR;
         this.textures = {};
         this.shtOfMaterialType = {
-            opacityForward: SHT_materialPBRFS,
-            opacityDefer: SHT_materialPBRFS_defer,
-            opacityMSAA: SHT_materialPBRFS_MSAA,
-            opacityMSAAInfo: SHT_materialPBRFS_MSAA_info,
-            TT: SHT_materialPBRFS_TT,
+            opacityForward: E_shaderRegisterAlianName["material.pbr.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.pbr.defer"],
+            opacityMSAA: E_shaderRegisterAlianName["material.pbr.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.pbr.MsaaInfo"],
+            TT: E_shaderRegisterAlianName["material.pbr.blend"],
         };
     }
 

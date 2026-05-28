@@ -60,6 +60,7 @@ import colorFS_wgsl from "../shaders/material/color/color.fs.wgsl?raw";
 import vertexColorFS_wgsl from "../shaders/material/vertexColor/color.fs.wgsl?raw";
 import textureFSWGSL from "../shaders/material/texture/texture.fs.wgsl?raw";
 import videoTextureFSWGSL from "../shaders/material/texture/video.fs.wgsl?raw";
+import videoExternalTextureFSWGSL from "../shaders/material/texture/videoExternal.fs.wgsl?raw";
 import wireFrameFSWGSL from "../shaders/material/wirframe/wireFrame.fs.wgsl?raw";
 import cubeSKyTextureFSWGSL from "../shaders/material/texture/cubeSkyTexture.fs.wgsl?raw";
 import cubePositionTextureFSWGSL from "../shaders/material/texture/cubeLocalTexture.fs.wgsl?raw";
@@ -158,6 +159,7 @@ export var WGSL_ShaderCode: Record<string, string> = {
     "material/vertexColor/color.fs.wgsl": vertexColorFS_wgsl,
     "material/texture/texture.fs.wgsl": textureFSWGSL,
     "material/texture/video.fs.wgsl": videoTextureFSWGSL,
+    "material/texture/videoExternal.fs.wgsl": videoExternalTextureFSWGSL,
     "material/wirframe/wireFrame.fs.wgsl": wireFrameFSWGSL,
     "material/texture/cubeSkyTexture.fs.wgsl": cubeSKyTextureFSWGSL,
     "material/texture/cubeLocalTexture.fs.wgsl": cubePositionTextureFSWGSL,
@@ -183,6 +185,7 @@ export interface I_aliasShaderCode {
  * 对外输出的shader名称
 */
 export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
+    
     "toneMapping": {
         type: "vs+fs",
         code: WGSL_ShaderCode["toneMapping/toneMapping.fs.wgsl"],
@@ -289,6 +292,17 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
             blend: false,
         }
     },
+    "material.videoExternal": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/texture/videoExternal.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
     "material.cube": {
         type: "fs",
         code: WGSL_ShaderCode["material/texture/cubeLocalTexture.fs.wgsl"],
@@ -379,6 +393,10 @@ export enum E_shaderRegisterAlianName {
     "material.wireframe.Msaa" = "material.wireframe.Msaa",
     "material.wireframe.MsaaInfo" = "material.wireframe.MsaaInfo",
 
+    "material.videoExternal.forward" = "material.videoExternal.forward",
+    "material.videoExternal.Msaa" = "material.videoExternal.Msaa",
+    "material.videoExternal.MsaaInfo" = "material.videoExternal.MsaaInfo",
+
     "material.video.forward" = "material.video.forward",
     "material.video.Msaa" = "material.video.Msaa",
     "material.video.MsaaInfo" = "material.video.MsaaInfo",
@@ -401,7 +419,7 @@ export enum E_shaderRegisterAlianName {
     "material.pbr.Msaa" = "material.pbr.Msaa",
     "material.pbr.MsaaInfo" = "material.pbr.MsaaInfo",
     "material.pbr.blend" = "material.pbr.blend",
-    
+
     "postProcess.blur3x3" = "postProcess.blur3x3",
     "postProcess.FXAA" = "postProcess.FXAA",
     "postProcess.redToOne" = "postProcess.redToOne",

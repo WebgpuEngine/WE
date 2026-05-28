@@ -18,7 +18,9 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   
-    materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); 
+    //外部texture 是 'rgba8unorm'，需要解gamma到线性空间
+    materialColor = textureSampleBaseClampToEdge(u_videoTexture, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) ); 
+    materialColor =vec4f( pow(materialColor.rgb,vec3f(2.2)),materialColor.a);
 #weEnd
 
     var output: ST_GBuffer;

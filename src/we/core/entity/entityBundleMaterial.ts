@@ -770,7 +770,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             {//MSAA 部分,输出MSAA DC队列
                 let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterialMSAA.MSAA }, false, this);
                 valueDC.system!.MSAA = "MSAA";
-                valueDC.label = "MSAA:" + valueDC.label;
+                valueDC.label = valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
                 // this.cameraDC[UUID][E_renderPassName.MSAA].push(dc);
                 this.renderPassArray[E_renderPassName.MSAA].push(dc);
@@ -778,7 +778,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             {//info forward 部分,输出info forward DC队列
                 let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterialMSAA.inforForward }, false, this);
                 valueDC.system!.MSAA = "MSAAinfo";
-                valueDC.label = "MsaaInfo:" + valueDC.label;
+                valueDC.label = valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             }
         }
@@ -795,9 +795,9 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             {
                 let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterial }, false, this);
                 if (this.deferColor)
-                    valueDC.label = "Defer:" + valueDC.label;
+                    valueDC.label = valueDC.label;
                 else
-                    valueDC.label = "Forward:" + valueDC.label;
+                    valueDC.label = valueDC.label;
                 dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
             }
         }

@@ -17,4 +17,4 @@
     let color=textureLoad(u_ColorTexture, vec2i(floor(pos.xy) ) ,0);
     //tone mapping 返回颜色代码部分（在程序中替换，有运行时判断，但具有全局一次性）
     $returnColor
-}`
+}
