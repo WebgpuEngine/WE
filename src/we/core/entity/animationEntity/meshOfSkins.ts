@@ -1,6 +1,7 @@
 import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
+// import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
 import { E_entityType, IV_BaseEntity } from "../base";
 import { SkinsEntity } from "./skinsEntity";
 
@@ -27,7 +28,7 @@ export class MeshSkins extends SkinsEntity {
         throw new Error("Method not implemented.");
     }
     override createForwardDC(): void {
-        let dc = this.generateOpacityDC( SHT_MeshSkinsVS) as DrawCommand;
+        let dc = this.generateOpacityDC(E_shaderRegisterAlianName["entity.skins"]) as DrawCommand;
         this.renderPassArray[E_renderPassName.forward].push(dc);
     }
 

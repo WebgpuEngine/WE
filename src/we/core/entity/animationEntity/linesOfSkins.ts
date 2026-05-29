@@ -1,7 +1,8 @@
-import { BaseCamera } from "../../camera/baseCamera";
+// import { BaseCamera } from "../../camera/baseCamera";
 import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
+// import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { E_entityType } from "../base";
 import { IV_LinesEntity } from "../mesh/lines";
 import { SkinsEntity } from "./skinsEntity";
@@ -44,7 +45,7 @@ export class LinesSkins extends SkinsEntity {
         throw new Error("Method not implemented.");
     }
     override createForwardDC( ): void {
-        let dc = this.generateOpacityDC( SHT_MeshSkinsVS) as DrawCommand;
+        let dc = this.generateOpacityDC( E_shaderRegisterAlianName["entity.skins"]) as DrawCommand;
         this.renderPassArray[E_renderPassName.forward].push(dc);
     }
     override createTransparent(): void {

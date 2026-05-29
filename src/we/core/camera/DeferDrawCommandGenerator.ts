@@ -5,7 +5,7 @@ import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { E_GBufferNames } from "../gbuffers/base";
 import { Scene } from "../scene/scene";
 // import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
+// import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
 import { E_shaderRegisterAlianName } from "../SHR/include";
 import { CameraManager } from "./cameraManager";
 
@@ -233,60 +233,60 @@ export class DeferDrawCommandGenerator {
             });
         }
     }
-    getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
-        //uniform 部分
-        let bindingNumber = startBinding;
-        //scene 和 entity 的shader模板部分
-        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        for (let i in SHT_VS) {
-            if (i == "scene") {
-                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
-                shaderTemplateFinal.scene = shader.scene;
-            }
-            else {
-                shaderTemplateFinal[i] = {
-                    templateString: this.formatShaderCode(SHT_VS[i]),
-                    groupAndBindingString: "",
-                    owner: "DeferRender",
-                    binding: 4//@group(1) @binding(x)的bindingNumber（固定数量的,这里没有作用）,参见deferRender.fs.wgsl
-                };
-            }
-        }
-        let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
-        return {
-            bindingNumber,
-            // uniformGroup, 
-            shaderTemplateFinal
-        };
-    }
-    formatShaderCode(template: I_singleShaderTemplate): string {
-        let code: string = "";
-        for (let perOne of template.add as I_shaderTemplateAdd[]) {
-            code += perOne.code;
-        }
-        if (template.replace) {
-            for (let perOne of template.replace as I_shaderTemplateReplace[]) {
-                if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                    code = code.replace(perOne.replace, perOne.replaceCode as string);
-                }
-            }
-        }
-        return code;
-    }
-    outPutShaderCode(templateFinal: I_ShaderTemplate_Final): string {
-        let groupAndBindingString: string = "";
-        let shaderCode: string = "";
-        for (let i in templateFinal) {
-            let perPart = templateFinal[i];
-            for (let i_single in perPart) {
-                if (i_single == "groupAndBindingString") {
-                    groupAndBindingString += perPart[i_single as keyof typeof perPart];
-                }
-                else if (i_single == "templateString") {
-                    shaderCode += perPart[i_single as keyof typeof perPart];
-                }
-            }
-        }
-        return shaderCode;
-    }
+    // getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
+    //     //uniform 部分
+    //     let bindingNumber = startBinding;
+    //     //scene 和 entity 的shader模板部分
+    //     let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+    //     for (let i in SHT_VS) {
+    //         if (i == "scene") {
+    //             let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
+    //             shaderTemplateFinal.scene = shader.scene;
+    //         }
+    //         else {
+    //             shaderTemplateFinal[i] = {
+    //                 templateString: this.formatShaderCode(SHT_VS[i]),
+    //                 groupAndBindingString: "",
+    //                 owner: "DeferRender",
+    //                 binding: 4//@group(1) @binding(x)的bindingNumber（固定数量的,这里没有作用）,参见deferRender.fs.wgsl
+    //             };
+    //         }
+    //     }
+    //     let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
+    //     return {
+    //         bindingNumber,
+    //         // uniformGroup, 
+    //         shaderTemplateFinal
+    //     };
+    // }
+    // formatShaderCode(template: I_singleShaderTemplate): string {
+    //     let code: string = "";
+    //     for (let perOne of template.add as I_shaderTemplateAdd[]) {
+    //         code += perOne.code;
+    //     }
+    //     if (template.replace) {
+    //         for (let perOne of template.replace as I_shaderTemplateReplace[]) {
+    //             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+    //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
+    //             }
+    //         }
+    //     }
+    //     return code;
+    // }
+    // outPutShaderCode(templateFinal: I_ShaderTemplate_Final): string {
+    //     let groupAndBindingString: string = "";
+    //     let shaderCode: string = "";
+    //     for (let i in templateFinal) {
+    //         let perPart = templateFinal[i];
+    //         for (let i_single in perPart) {
+    //             if (i_single == "groupAndBindingString") {
+    //                 groupAndBindingString += perPart[i_single as keyof typeof perPart];
+    //             }
+    //             else if (i_single == "templateString") {
+    //                 shaderCode += perPart[i_single as keyof typeof perPart];
+    //             }
+    //         }
+    //     }
+    //     return shaderCode;
+    // }
 }

@@ -1,8 +1,9 @@
-import { I_EntityBundleOutput } from "../entity/base";
+// import { I_EntityBundleOutput } from "../entity/base";
 import { Scene } from "../scene/scene";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, isUniformBufferPart, T_uniformEntries, T_uniformGroups } from "./base";
-import { BaseDrawCommand, I_VertexBufferEntry, IV_BaseDrawCommand } from "./BaseDrawCommand";
+// import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
+import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, isUniformBufferPart } from "./base";
+import { BaseCommand } from "./BaseCommand";
+import { I_VertexBufferEntry } from "./BaseDrawCommand";
 import { createUniformBuffer, createVerticesBuffer } from "./baseFunction";
 
 
@@ -31,9 +32,9 @@ export interface IV_SimpleDrawCommand {
      * 3、必须由RPD
      */
     shaderCode: {
-        code?: string,
-        SHT?: I_ShaderTemplate,
-        SHT_Final?: I_ShaderTemplate_Final,
+        code: string,
+        // SHT?: I_ShaderTemplate,
+        // SHT_Final?: I_ShaderTemplate_Final,
     },
     renderPassDescriptor?: GPURenderPassDescriptor | (() => GPURenderPassDescriptor),
     ColorTargetStat: GPUColorTargetState[],
@@ -58,7 +59,7 @@ export interface IV_SimpleDrawCommand {
 
 }
 
-export class SimpleDrawCommand {
+export class SimpleDrawCommand extends BaseCommand {
     scene: Scene;
     label: string;
     // rawUniform!: boolean;
@@ -81,6 +82,7 @@ export class SimpleDrawCommand {
     renderPassDescriptor: GPURenderPassDescriptor | (() => GPURenderPassDescriptor) | undefined;
 
     constructor(input: IV_SimpleDrawCommand) {
+        super();
         this.scene = input.scene;
         this.label = input.label;
         this.device = input.scene.device;
@@ -191,87 +193,87 @@ export class SimpleDrawCommand {
         this.pipeline = this.device.createRenderPipeline(descriptor);
     }
     createShaderModule(shaderCode: {
-        code?: string,
-        SHT?: I_ShaderTemplate,
-        SHT_Final?: I_ShaderTemplate_Final,
+        code: string,
+        // SHT?: I_ShaderTemplate,
+        // SHT_Final?: I_ShaderTemplate_Final,
     }) {
-        let code: string = "";
-        if (shaderCode.SHT != undefined) {
-            let bundle = this.getCodeOfSHT(shaderCode.SHT);
-            code = this.outPutShaderCode(bundle.shaderTemplateFinal);
-        }
-        else if (shaderCode.SHT_Final != undefined) {
-            code = this.outPutShaderCode(shaderCode.SHT_Final);
-        }
-        else if (shaderCode.code != undefined) {
-            code = shaderCode.code;
-        }
-        else {
-            throw new Error("SimpleDrawCommand: shaderCode must have code or SHT or SHT_Final");
-        }
+        // let code: string = "";
+        // if (shaderCode.SHT != undefined) {
+        //     let bundle = this.getCodeOfSHT(shaderCode.SHT);
+        //     code = this.outPutShaderCode(bundle.shaderTemplateFinal);
+        // }
+        // else if (shaderCode.SHT_Final != undefined) {
+        //     code = this.outPutShaderCode(shaderCode.SHT_Final);
+        // }
+        // else if (shaderCode.code != undefined) {
+        //     code = shaderCode.code;
+        // }
+        // else {
+        //     throw new Error("SimpleDrawCommand: shaderCode must have code or SHT or SHT_Final");
+        // }
 
         this.shaderModule = this.device.createShaderModule({
             label: this.label,
-            code: code,
+            code: shaderCode.code,
         });
     }
-    getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
-        //uniform 部分
-        let bindingNumber = startBinding;
-        //scene 和 entity 的shader模板部分
-        let shaderTemplateFinal: I_ShaderTemplate_Final = {};
-        for (let i in SHT_VS) {
-            if (i == "scene") {
-                let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
-                shaderTemplateFinal.scene = shader.scene;
-            }
-            else {
-                shaderTemplateFinal[i] = {
-                    templateString: this.formatShaderCode(SHT_VS[i]),
-                    groupAndBindingString: "",
-                    owner: this.label,
-                    binding: 4//@group(1) @binding(x)的bindingNumber（固定数量的,这里没有作用）,参见deferRender.fs.wgsl
-                };
-            }
-        }
-        let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
-        return { bindingNumber, uniformGroup, shaderTemplateFinal };
-    }
-    /**
-     * replace模板只处理 replaceCode类型
-     * @param template 单个shader模板
-     * @returns 格式化后的shader代码
-     */
-    formatShaderCode(template: I_singleShaderTemplate): string {
-        let code: string = "";
-        for (let perOne of template.add as I_shaderTemplateAdd[]) {
-            code += perOne.code;
-        }
-        if (template.replace) {
-            for (let perOne of template.replace as I_shaderTemplateReplace[]) {
-                if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
-                    code = code.replace(perOne.replace, perOne.replaceCode as string);
-                }
-            }
-        }
-        return code;
-    }
-    outPutShaderCode(templateFinal: I_ShaderTemplate_Final): string {
-        let groupAndBindingString: string = "";
-        let shaderCode: string = "";
-        for (let i in templateFinal) {
-            let perPart = templateFinal[i];
-            for (let i_single in perPart) {
-                if (i_single == "groupAndBindingString") {
-                    groupAndBindingString += perPart[i_single as keyof typeof perPart];
-                }
-                else if (i_single == "templateString") {
-                    shaderCode += perPart[i_single as keyof typeof perPart];
-                }
-            }
-        }
-        return shaderCode;
-    }
+    // getCodeOfSHT(SHT_VS: I_ShaderTemplate, startBinding: number = 0): I_EntityBundleOutput {
+    //     //uniform 部分
+    //     let bindingNumber = startBinding;
+    //     //scene 和 entity 的shader模板部分
+    //     let shaderTemplateFinal: I_ShaderTemplate_Final = {};
+    //     for (let i in SHT_VS) {
+    //         if (i == "scene") {
+    //             let shader = this.scene.getShaderCodeOfSHT_SceneOfCamera(SHT_VS[i]);
+    //             shaderTemplateFinal.scene = shader.scene;
+    //         }
+    //         else {
+    //             shaderTemplateFinal[i] = {
+    //                 templateString: this.formatShaderCode(SHT_VS[i]),
+    //                 groupAndBindingString: "",
+    //                 owner: this.label,
+    //                 binding: 4//@group(1) @binding(x)的bindingNumber（固定数量的,这里没有作用）,参见deferRender.fs.wgsl
+    //             };
+    //         }
+    //     }
+    //     let uniformGroup: T_uniformEntries[] = [];//参见deferRender.fs.wgsl
+    //     return { bindingNumber, uniformGroup, shaderTemplateFinal };
+    // }
+    // /**
+    //  * replace模板只处理 replaceCode类型
+    //  * @param template 单个shader模板
+    //  * @returns 格式化后的shader代码
+    //  */
+    // formatShaderCode(template: I_singleShaderTemplate): string {
+    //     let code: string = "";
+    //     for (let perOne of template.add as I_shaderTemplateAdd[]) {
+    //         code += perOne.code;
+    //     }
+    //     if (template.replace) {
+    //         for (let perOne of template.replace as I_shaderTemplateReplace[]) {
+    //             if (perOne.replaceType == E_shaderTemplateReplaceType.replaceCode) {
+    //                 code = code.replace(perOne.replace, perOne.replaceCode as string);
+    //             }
+    //         }
+    //     }
+    //     return code;
+    // }
+    // outPutShaderCode(templateFinal: I_ShaderTemplate_Final): string {
+    //     let groupAndBindingString: string = "";
+    //     let shaderCode: string = "";
+    //     for (let i in templateFinal) {
+    //         let perPart = templateFinal[i];
+    //         for (let i_single in perPart) {
+    //             if (i_single == "groupAndBindingString") {
+    //                 groupAndBindingString += perPart[i_single as keyof typeof perPart];
+    //             }
+    //             else if (i_single == "templateString") {
+    //                 shaderCode += perPart[i_single as keyof typeof perPart];
+    //             }
+    //         }
+    //     }
+    //     return shaderCode;
+    // }
     generateBindGroup() {
         let values = this.inputValues;
         let uniformGroup = this.inputValues.uniforms;
@@ -342,7 +344,7 @@ export class SimpleDrawCommand {
             return commandBuffer;
         }
         else {
-            console.warn("BaseDrawCommand.update: renderPassDescriptor is undefined");
+            throw new Error("BaseDrawCommand.update: renderPassDescriptor is undefined");
         }
     }
 

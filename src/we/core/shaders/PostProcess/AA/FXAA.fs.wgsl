@@ -33,7 +33,9 @@
 //     输出抗锯齿后的颜色
 //     支持调试模式：边缘变红
 // ==============================================
-#includeFile "quad/st_quad_output.wgsl"
+#includeFile "entity/quad/quad.vs.wgsl"
+#includeFile "PostProcess/PPstruct.wgsl" 
+
 
 // FXAA 配置参数（CPU 传入 GPU）
 struct st_FXAA_values {

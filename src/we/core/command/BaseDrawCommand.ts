@@ -2,6 +2,7 @@
 import { I_pointerStruct, isI_pointerStruct } from "../bufferBlock/pointer";
 import { E_renderPassName } from "../scene/renderManager";
 import { I_drawMode, I_drawModeIndexed, I_viewport, T_drawMode } from "./base";
+import { BaseCommand } from "./BaseCommand";
 
 /**绘制调用选项
  * 1、passEncoder：渲染pass编码器 
@@ -83,7 +84,7 @@ export interface I_VertexBufferEntry {
 }
 export type I_IndexBufferEntry = I_VertexBufferEntry;
 
-export class BaseDrawCommand {
+export class BaseDrawCommand extends BaseCommand {
     // scene: Scene;
     label: string;
     // rawUniform!: boolean;
@@ -107,6 +108,7 @@ export class BaseDrawCommand {
     inputValues!: IV_BaseDrawCommand;
 
     constructor(input: IV_BaseDrawCommand) {
+        super();
         // this.scene = input.scene;
         this.label = input.label;
         this.device = input.device;
@@ -156,7 +158,7 @@ export class BaseDrawCommand {
             return commandBuffer;
         }
         else {
-            console.warn("BaseDrawCommand.update: renderPassDescriptor is undefined");
+             throw new Error("BaseDrawCommand.update: renderPassDescriptor is undefined");
         }
     }
 

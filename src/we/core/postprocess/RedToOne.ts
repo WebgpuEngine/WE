@@ -1,8 +1,9 @@
 import { V_weLinearFormat } from "../base/coreDefine";
-import { I_uniformArrayBufferEntry } from "../command/base";
+// import { I_uniformArrayBufferEntry } from "../command/base";
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { Clock } from "../scene/clock";
-import { SHT_PP_RedToOne } from "../shadermanagemnet/postProcess/RedToOne";
+import { E_shaderRegisterAlianName } from "../SHR/include";
+// import { SHT_PP_RedToOne } from "../shadermanagemnet/postProcess/RedToOne";
 import { BasePostProcess, IV_PostProcess } from "./basePostProcess";
 
 export class PP_RedToOne extends BasePostProcess {
@@ -39,7 +40,8 @@ export class PP_RedToOne extends BasePostProcess {
         let uniforms = [[
             texture1,
         ]]
-        let SHT = SHT_PP_RedToOne;
+        // let SHT = SHT_PP_RedToOne;
+        let code = this.scene.shaderRegister.getAliasShaderName(E_shaderRegisterAlianName["postProcess.redToOne"]);
         let inputSDC: IV_SimpleDrawCommand = {
             scene: this.scene,
             drawMode: {
@@ -50,12 +52,12 @@ export class PP_RedToOne extends BasePostProcess {
                 topology: "triangle-strip",
             },
             shaderCode: {
-                SHT
+                code: code,
             },
             uniforms,
             ColorTargetStat: [{ format: V_weLinearFormat }],
             renderPassDescriptor: rpd,
-            device: this.scene.device,
+            // device: this.scene.device,
             label: "PP_RedToOne"
         };
         let SDC1 = new SimpleDrawCommand(inputSDC);

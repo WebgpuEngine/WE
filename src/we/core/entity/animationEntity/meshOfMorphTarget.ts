@@ -1,6 +1,7 @@
 import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_MeshMorphTargetVS } from "../../shadermanagemnet/mesh/morphTargetVS";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
+// import { SHT_MeshMorphTargetVS } from "../../shadermanagemnet/mesh/morphTargetVS";
 import { E_entityType, IV_BaseEntity } from "../base";
 import { MorphTargetEntity } from "./morphTargetEntity";
 
@@ -27,7 +28,7 @@ export class MeshMorphTarget extends MorphTargetEntity {
         throw new Error("Method not implemented.");
     }
     override createForwardDC(): void {
-        let dc = this.generateOpacityDC( SHT_MeshMorphTargetVS) as DrawCommand;
+        let dc = this.generateOpacityDC( E_shaderRegisterAlianName["entity.morphTarget"]) as DrawCommand;
         this.renderPassArray[E_renderPassName.forward].push(dc);
     }
 

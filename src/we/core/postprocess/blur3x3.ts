@@ -2,7 +2,8 @@ import { V_weLinearFormat } from "../base/coreDefine";
 import { I_uniformArrayBufferEntry } from "../command/base";
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { Clock } from "../scene/clock";
-import { SHT_PP_Blur3x3 } from "../shadermanagemnet/postProcess/blur3x3";
+import { E_shaderRegisterAlianName } from "../SHR/include";
+// import { SHT_PP_Blur3x3 } from "../shadermanagemnet/postProcess/blur3x3";
 import { BasePostProcess, IV_PostProcess } from "./basePostProcess";
 
 export class Blur3x3 extends BasePostProcess {
@@ -30,7 +31,7 @@ export class Blur3x3 extends BasePostProcess {
         };
         let screenSize = new ArrayBuffer(4 * 2);
         new Float32Array(screenSize).set([this.scene.surface.size.width, this.scene.surface.size.height]);
-        
+
         let ST_PP_ScreenSize: I_uniformArrayBufferEntry = {
             binding: 0,
             size: 4 * 2,
@@ -45,7 +46,8 @@ export class Blur3x3 extends BasePostProcess {
             ST_PP_ScreenSize,
             texture1,
         ]]
-        let SHT = SHT_PP_Blur3x3;
+        // let SHT = SHT_PP_Blur3x3;
+        let code = this.scene.shaderRegister.getAliasShaderName(E_shaderRegisterAlianName["postProcess.blur3x3"]);
         let inputSDC: IV_SimpleDrawCommand = {
             scene: this.scene,
             drawMode: {
@@ -56,12 +58,12 @@ export class Blur3x3 extends BasePostProcess {
                 topology: "triangle-strip",
             },
             shaderCode: {
-                SHT
+                code: code,
             },
             uniforms,
             ColorTargetStat: [{ format: V_weLinearFormat }],
             renderPassDescriptor: rpd,
-            device: this.scene.device,
+            // device: this.scene.device,
             label: "PP Blur 3x3"
         };
         let SDC1 = new SimpleDrawCommand(inputSDC);

@@ -99,7 +99,9 @@ export var WGSL_Include: Record<string, string> = {
     "entity/st_vertex_output.wgsl": include_st_vertex_output_wgsl,
     "entity/code_entity_output.vs.wgsl": include_code_entity_output_wgsl,
 
-    "quad/st_quad_output.wgsl": include_st_quad_output_wgsl,
+    // "quad/st_quad_output.wgsl": include_st_quad_output_wgsl,
+    "entity/quad/quad.vs.wgsl": quadVS_wgsl,
+
     "gbuffers/commonGBufferValue.wgsl": include_gbuffer_commonValues_wgsl,
 
     "material/MSAA/msaa.wgsl": include_MsaaString_wgsl,

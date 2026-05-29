@@ -1,8 +1,8 @@
 
 @group(0) @binding(0) var u_screen_texture : texture_2d<f32>;   
      
-#includeFile "quad/st_quad_output.wgsl"
-#includeFile "PostProcess/PPstruct.wgsl"
+// #includeFile "quad/st_quad_output.wgsl"
+// #includeFile "PostProcess/PPstruct.wgsl"
 
 
 @fragment

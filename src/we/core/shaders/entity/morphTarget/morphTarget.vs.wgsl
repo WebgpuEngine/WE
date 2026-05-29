@@ -6,7 +6,7 @@
 override boundingBoxMaxSize : f32 = 1.0;
 
 #includeFile "system/structOfCamera.wgsl" 
-#incluce "system/system.wgsl"
+#includeFile "system/system.wgsl"
 
 #includeFile "entity/structEntity.wgsl"
 #includeFile "entity/st_vertex_output.wgsl"

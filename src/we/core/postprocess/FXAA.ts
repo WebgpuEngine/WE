@@ -2,7 +2,8 @@ import { V_weLinearFormat } from "../base/coreDefine";
 import { createUniformBuffer, updataOneUniformBuffer } from "../command/baseFunction";
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { Clock } from "../scene/clock";
-import { SHT_PP_FXAA } from "../shadermanagemnet/postProcess/FXAA";
+import { E_shaderRegisterAlianName } from "../SHR/include";
+// import { SHT_PP_FXAA } from "../shadermanagemnet/postProcess/FXAA";
 import { BasePostProcess, IV_PostProcess } from "./basePostProcess";
 
 export interface I_FXAAValues {
@@ -81,7 +82,8 @@ export class FXAA extends BasePostProcess {
             texture1,
             sampler,
         ]]
-        let SHT = SHT_PP_FXAA;
+        // let SHT = SHT_PP_FXAA;
+        let code = this.scene.shaderRegister.getAliasShaderName(E_shaderRegisterAlianName["postProcess.FXAA"]);
         let inputSDC: IV_SimpleDrawCommand = {
             scene: this.scene,
             drawMode: {
@@ -92,7 +94,7 @@ export class FXAA extends BasePostProcess {
                 topology: "triangle-strip",
             },
             shaderCode: {
-                SHT
+                code: code,
             },
             uniforms,
             ColorTargetStat: [{ format: V_weLinearFormat }],
