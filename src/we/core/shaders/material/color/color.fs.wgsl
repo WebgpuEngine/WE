@@ -32,6 +32,7 @@
         discard;
     }
   #renderMode blend    
+    output.color =  u_common_base.color;
     if(output.color.a>=1.0)
     {
         discard;
