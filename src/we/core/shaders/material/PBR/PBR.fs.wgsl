@@ -212,17 +212,7 @@ struct PBRUniformInput{
     defer_4xU8InF16=encodeLightAndShadowFromU8x4ToU8bit(acceptShadow,shadowKind,acceptlight,materialKind);
  
     RMAO=vec3f(roughness,metallic,ao);
-    if( u_pbr_uniform.alpha.data1  ==2  ){
-        if( u_pbr_uniform.albedo.kind == 1 ){
-            materialColor.a=albedo_uniform.a;
-        }
-        else if( u_pbr_uniform.color.kind == 1 ){
-            materialColor.a=color_uniform.a;
-        }
-        else if (u_pbr_uniform.albedo.kind == 0){
-            materialColor.a=albedo_uniform.a;
-        }
-    }
+
 
 
 #weStart 
@@ -243,7 +233,17 @@ struct PBRUniformInput{
         emissiveIntensity
         );
 #weEnd
-
+    if( u_pbr_uniform.alpha.data1  ==2  ){
+        if( u_pbr_uniform.albedo.kind == 1 ){
+            materialColor.a=albedo_uniform.a;
+        }
+        else if( u_pbr_uniform.color.kind == 1 ){
+            materialColor.a=color_uniform.a;
+        }
+        else if (u_pbr_uniform.albedo.kind == 0){
+            materialColor.a=albedo_uniform.a;
+        }
+    }
     // else if(u_pbr_uniform.alpha.data2  ==2){//alpha mode =BLend
     //     //两种方式
     //     //1、非成组模式，由pipeline渲染
