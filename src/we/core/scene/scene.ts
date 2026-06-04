@@ -378,24 +378,111 @@ export class Scene {
     async _init() {
         if (!("gpu" in navigator)) throw new Error("WebGPU not supported.");
 
+
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) throw new Error("Couldn't request WebGPU adapter.");
         this.adapter = adapter;
         let device: GPUDevice;
+        ///////////////////////////////////////////////////////////////////////////
+        //扩展与限制 
+
+        // 所有想要使用的压缩特性
+        const compressionGroups: { feature: GPUFeatureName, name: string, testFormats: GPUTextureFormat[] }[] = [
+            {
+                feature: "texture-compression-bc",
+                name: "BC 系列(BC1~BC7/BC6H)",
+                testFormats: [
+                    "bc6h-rgb-ufloat",
+                    "bc6h-rgb-float",
+                    "bc7-rgba-unorm"
+                ]
+            },
+            {
+                feature: "texture-compression-etc2",
+                name: "ETC2/EAC 系列",
+                testFormats: [
+                    "etc2-rgb8unorm",
+                    "etc2-rgba8unorm",
+                    "eac-r11snorm"
+                ]
+            },
+            {
+                feature: "texture-compression-astc",
+                name: "ASTC 系列",
+                testFormats: [
+                    "astc-4x4-unorm",
+                    "astc-8x8-unorm",
+                    "astc-12x12-unorm"
+                ]
+            }
+        ];
+        // 1、过滤：只保留当前适配器支持的特性
+        const supportedFeatures: GPUFeatureName[] = compressionGroups
+            .filter(g => adapter.features.has(g.feature))
+            .map(g => g.feature);
+
+        console.log("当前支持的压缩特性：", supportedFeatures);
+
+        //2、申请
         if (adapter.limits.maxColorAttachmentBytesPerSample < limitsOfWE.maxColorAttachmentBytesPerSample) {
             // When the desired limit isn’t supported, take action to either fall back to a code
             // path that does not require the higher limit or notify the user that their device
             // does not meet minimum requirements.    
-            device = await adapter.requestDevice();
+            device = await adapter.requestDevice(
+                {
+                    requiredFeatures: supportedFeatures
+                }
+            );
             console.warn("WebGPU device not meet minimum requirements. maxColorAttachmentBytesPerSample=", adapter.limits.maxColorAttachmentBytesPerSample);
         }
         else {
             // Request higher limit of max color attachments bytes per sample.
             device = await adapter.requestDevice({
                 requiredLimits: { maxColorAttachmentBytesPerSample: limitsOfWE.maxColorAttachmentBytesPerSample },
+                requiredFeatures: supportedFeatures
             });
         }
+        // 3、 二次校验
+        const featMap: GPUFeatureName[] = [];
+        for (const f of supportedFeatures) {
+            let enabled = device.features.has(f);
+            console.log(`${f}:`, enabled ? "✅ 已启用" : "❌ 不支持");
+            if (enabled) {
+                featMap.push(f);
 
+            }
+        }
+
+        // 4. 逐组、逐个格式创建纹理验证。正确，没有必要，保留代码
+        // for (const group of compressionGroups) {
+        //     const { feature, name, testFormats } = group;
+        //     const isEnabled = device.features.has(feature);
+
+        //     console.log(`【${name}】特性状态：${isEnabled ? "✅ 已启用" : "❌ 不支持"}`);
+
+        //     if (!isEnabled) {
+        //         // console.log("  → 跳过格式测试\n");
+        //         continue;
+        //     }
+
+        //     // 测试该组下所有格式
+        //     for (const fmt of testFormats) {
+        //         try {
+        //             let texture = device.createTexture({
+        //                 size: [16, 16, 1],
+        //                 format: fmt,
+        //                 usage: GPUTextureUsage.TEXTURE_BINDING
+        //             });
+        //             console.log(`  ${fmt} : ✅ 可用`);
+        //             texture.destroy();
+        //         } catch (err) {
+        //             console.log(`  ${fmt} : ❌ 不可用 | ${err.message.slice(0, 80)}...`);
+        //         }
+        //     }
+        //     console.log("");
+        // }
+        //end
+        ///////////////////////////////////////////////////////////////////////////
 
         if (!device) throw new Error("Couldn't request WebGPU device.");
         this.device = device;
@@ -1159,46 +1246,46 @@ export class Scene {
     //     }
     // }
 
-    /**
-     * scene的system的shader模板格式化
-     * 1、只有camera会调用；
-     * 2、light在shader模板中就没有scene的内容，因为没有需要格式化的；
-     * @param template 单Shader模板
-     * @returns I_ShaderTemplate_Final
-     */
-    getShaderCodeOfSHT_SceneOfCamera(template: I_singleShaderTemplate): I_ShaderTemplate_Final {
-        let code: string = "";
-        for (let perOne of template.add as I_shaderTemplateAdd[]) {
-            code += perOne.code;
-        }
-        for (let perOne of template.replace as I_shaderTemplateReplace[]) {
-            if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
-                if (perOne.name == "lightNumber") {
-                    let lightNumber = this.lightsManager.getLightNumber();
-                    // if(lightNumber ===0) lightNumber=1;
-                    code = code.replace(perOne.replace, lightNumber.toString());
-                }
-                else if (perOne.name == "shadowMapNumber") {
-                    let shadowMapNumber = this.lightsManager.getShadowMapNumber();
-                    if (shadowMapNumber === 0) shadowMapNumber = 1;
-                    code = code.replace(perOne.replace, shadowMapNumber.toString());
-                }
-                else if (perOne.name == "shadowDepthTextureSize") {
-                    let shadowMapNumber = this.lightsManager.getShadowMapNumber();
-                    if (shadowMapNumber === 0) shadowMapNumber = 1;
-                    code = code.replace(perOne.replace, `override shadowDepthTextureSize : f32 = ${V_shadowMapSize};`);
-                }
-            }
-        }
-        let outputFormat: I_ShaderTemplate_Final = {
-            scene: {
-                templateString: code,
-                groupAndBindingString: "",
-                owner: "scene",
-            },
-        }
-        return outputFormat;
-    }
+    // /**
+    //  * scene的system的shader模板格式化
+    //  * 1、只有camera会调用；
+    //  * 2、light在shader模板中就没有scene的内容，因为没有需要格式化的；
+    //  * @param template 单Shader模板
+    //  * @returns I_ShaderTemplate_Final
+    //  */
+    // getShaderCodeOfSHT_SceneOfCamera(template: I_singleShaderTemplate): I_ShaderTemplate_Final {
+    //     let code: string = "";
+    //     for (let perOne of template.add as I_shaderTemplateAdd[]) {
+    //         code += perOne.code;
+    //     }
+    //     for (let perOne of template.replace as I_shaderTemplateReplace[]) {
+    //         if (perOne.replaceType == E_shaderTemplateReplaceType.value) {
+    //             if (perOne.name == "lightNumber") {
+    //                 let lightNumber = this.lightsManager.getLightNumber();
+    //                 // if(lightNumber ===0) lightNumber=1;
+    //                 code = code.replace(perOne.replace, lightNumber.toString());
+    //             }
+    //             else if (perOne.name == "shadowMapNumber") {
+    //                 let shadowMapNumber = this.lightsManager.getShadowMapNumber();
+    //                 if (shadowMapNumber === 0) shadowMapNumber = 1;
+    //                 code = code.replace(perOne.replace, shadowMapNumber.toString());
+    //             }
+    //             else if (perOne.name == "shadowDepthTextureSize") {
+    //                 let shadowMapNumber = this.lightsManager.getShadowMapNumber();
+    //                 if (shadowMapNumber === 0) shadowMapNumber = 1;
+    //                 code = code.replace(perOne.replace, `override shadowDepthTextureSize : f32 = ${V_shadowMapSize};`);
+    //             }
+    //         }
+    //     }
+    //     let outputFormat: I_ShaderTemplate_Final = {
+    //         scene: {
+    //             templateString: code,
+    //             groupAndBindingString: "",
+    //             owner: "scene",
+    //         },
+    //     }
+    //     return outputFormat;
+    // }
     /**
      * rpd for NDC
      * @returns 

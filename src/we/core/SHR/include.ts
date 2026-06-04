@@ -85,7 +85,7 @@ import systemOfCamera_wgsl from "../shaders/system/system.wgsl?raw"
 import structOfCamera_wgsl from "../shaders/system/structOfCamera.wgsl?raw"
 
 /**渲染模式 */
-export type T_SHR_RenderMode = "forward" | "defer" | "Msaa" | "MsaaInfo" | "blend"
+export type T_SHR_RenderMode = "forward" | "defer" | "Msaa" | "MsaaInfo" | "blend";
 
 /**include代码 */
 export var WGSL_Include: Record<string, string> = {
@@ -178,6 +178,7 @@ export var WGSL_ShaderCode: Record<string, string> = {
 }
 /**alias shader代码 */
 export interface I_aliasShaderCode {
+    /**shader类型 ,用途注释*/
     type: "vs" | "fs" | "quadVs" | "quadFs" | "vs+fs",
     code: string,
     renderMode?: Record<T_SHR_RenderMode, boolean>

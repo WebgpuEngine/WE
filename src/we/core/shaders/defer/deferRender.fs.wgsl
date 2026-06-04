@@ -41,7 +41,7 @@
     
     var  emissiveRGB = vec3f(0.0);
     emissiveRGB.r = albedo.a;
-    emissiveRGB.g = normal.a;
+    emissiveRGB.g = emissiveIntensity.a;
     emissiveRGB.b = RMAO.a;
 
     let defer_u32=bitcast<u32>(worldPosition.a);
