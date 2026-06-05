@@ -446,6 +446,8 @@ export abstract class BaseEntity extends NodeSpace {
      * @param values
      */
     override async init(scene: Scene): Promise<any> {
+        //如果已经初始化，直接返回
+        if (this._state == E_lifeState.finished) return;
         this._state = E_lifeState.initializing;
         this.MSAA = scene.MSAA;
         this.deferColor = scene.renderMode == "deferRender" ? true : false;

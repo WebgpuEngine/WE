@@ -201,23 +201,28 @@ export class ResourceManagerOfGPU {
         });
         this.samplerOfString.set("cube", cube);
     }
-    getSampler(key: string): GPUSampler | undefined {
+    getSampler(key: string): GPUSampler {
+        let sampler: GPUSampler | undefined;
         if (this.samplerOfString.has(key)) {
-            return this.samplerOfString.get(key);
+            sampler = this.samplerOfString.get(key);
         }
         else {
             if (key == "linear") {
-                return this.samplerOfString.get(key);
+                sampler = this.samplerOfString.get(key);
             }
             else if (key == "nearest") {
-                return this.samplerOfString.get(key);
+                sampler = this.samplerOfString.get(key);
             }
             else if (key == "cube") {
-                return this.samplerOfString.get(key);
+                sampler = this.samplerOfString.get(key);
             }
-            else {
-                return undefined;
-            }
+
+        }
+        if (sampler) {
+            return sampler;
+        }
+        else {
+            throw new Error(`sampler ${key} not found`);
         }
     }
     /////////////////////////////////////////////////////////////////////////////////////////

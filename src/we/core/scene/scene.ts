@@ -16,7 +16,6 @@ import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { pickupManager } from "../pickup/pickupManager";
 import { PostProcessManager } from "../postprocess/postProcessManager";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
-import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
 import { Clock } from "./clock";
 import { RenderManager } from "./renderManager";
@@ -33,6 +32,7 @@ import { BlockPointerCoordinator } from "../bufferBlock/BPC";
 import { I_BolRebulidPercent, I_BolSize, I_BolStrideSizeOfUpdate } from "../bufferBlock/base";
 // import type { PBRMaterial } from "../material/PBR/PBRMaterial";
 import { ShaderRegister } from "../SHR/shaderRegister";
+import { IBL } from "../ibl/ibl";
 
 
 export class Scene {
@@ -267,6 +267,8 @@ export class Scene {
     pointers!: Pointers;
     /**BPC */
     BPC!: BlockPointerCoordinator;
+
+    IBL!: IBL;
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];

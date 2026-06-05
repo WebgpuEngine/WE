@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////
 
-import { BaseModel } from "../model/BaseModel";
+import { Scene } from "../scene/scene";
 
 //about  GPU  setting 
 export var limitsOfWE = {
@@ -25,8 +25,7 @@ export interface I_Update {
     /**在最后执行调用 */
     updateAtEnd?: (scope: any) => any,
     name?: string,
-    // /**是否为模型的子节点 */
-    // belongModel?: BaseModel,
+    // scene?: Scene,
 }
 
 /** 渲染类型，用于shadow map 或者camera */

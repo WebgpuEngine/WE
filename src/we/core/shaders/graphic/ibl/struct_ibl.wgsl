@@ -4,8 +4,8 @@ struct st_ibl {
  use_ibl:i32, 
  
  //prefiltered cube map的AABB数量，即AABB是prefiltered cube map的AABB；
- //0=全局IBL（全户外或全室内，所有材质都使用），
- //1+=IBL有AABB范围（有多个IBL作用范围，只有在AABB范围内pixcel材质才使用IBL）
+ //1=全局IBL（全户外或全室内，所有材质都使用），
+ //2+=IBL有AABB范围（有多个IBL作用范围，只有在AABB范围内pixcel材质才使用IBL）
  //目前只涉及简单的情况，不考虑负责情况（阳光房等类似的场景）；
  //一般都是全局IBL，所以AABB数量为0。比如：gltf viewer等
  //非全局的情况下，需要些循环判断当前像素是否在AABB范围内，
@@ -18,7 +18,7 @@ struct st_ibl {
  //插值数量，目前预估最多4个，需要写for循环计算：数量（可能小于4），权重；这部分计算在GPU的FS中
  irradiance_probe_count:u32,
  
- //每组数据包括：aabb(6*f32)*count + SH(sh:9个f32+irr探针pos:3个f32)*count)
+ //每组数据包括：aabb(6*f32)*count + sh:9*f32*probeCount + irr探针pos:3*f32*probeCount
  array_aabb_irr_pref:array<f32>,//storage array
 }
 

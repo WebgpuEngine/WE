@@ -110,6 +110,9 @@ export abstract class RootGPU implements I_UUID {
      * @returns 
      */
     async init(scene: Scene, option?: any): Promise<any> {
+        //如果已经初始化，直接返回
+        if (this._state == E_lifeState.finished) return;
+        this.scene = scene;
         await this.setRootENV(scene);
         await this.readyForGPU();
     }

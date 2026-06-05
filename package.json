@@ -39,6 +39,8 @@
     "@loaders.gl/textures": "4.3.4",
     "@loaders.gl/video": "4.3.4",
     "@loaders.gl/zip": "4.3.4",
+    "dds-ktx-parser": "^1.0.1",
+    "hdrify": "^0.12.1",
     "js-md5": "^0.8.3",
     "webgpu-utils": "^1.11.0",
     "wgpu-matrix": "^3.4.0"

@@ -60,11 +60,9 @@ export abstract class BaseTexture extends RootGPU {
         this.device = device;
         this.inputValues = inputValues;
 
-        if (inputValues.format == undefined) {
-            // this.inputValues.format = "rgba8unorm";
-            this.inputValues.format = 'rgba8unorm-srgb';
+        if (inputValues.format != undefined) {
+            this.textureFormat = inputValues.format;
         }
-        this.textureFormat = this.inputValues.format!;
 
         if (inputValues.upsideDownY != undefined) {
             this._upsideDownY = inputValues.upsideDownY;
@@ -113,9 +111,19 @@ export abstract class BaseTexture extends RootGPU {
     }
 
     async init(scene?: Scene,): Promise<number> {
-        if (this.scene instanceof Scene) { }
-        else if (scene) await this.setRootENV(scene);
-        await this.readyForGPU();
+        //如果已经初始化，直接返回
+        if (this._state == E_lifeState.finished) return this._state;
+        if (scene === undefined && this.scene == undefined) {
+            throw new Error("scene is undefined and this.scene is undefined");
+        }
+        if (scene === undefined) {
+            scene = this.scene;
+        }
+        else {
+            this.scene = scene;
+        }
+        await super.init(scene);
+        this._state = E_lifeState.finished;
         this.registerToManager();
         return this._state;
     }

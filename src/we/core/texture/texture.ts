@@ -114,7 +114,7 @@ export class Texture extends BaseTexture {
         this.texture = this.device.createTexture({
             label: this.Name,
             size: [width, height, 1],
-            format: this.inputValues.format!,
+            format:  this.textureFormat,
             mipLevelCount: mipmap ? numMipLevels([width, height]) : mipLevels,
             // sampleCount: 1,
             // dimension: '2d',
