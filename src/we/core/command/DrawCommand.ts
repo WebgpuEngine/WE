@@ -166,9 +166,12 @@ export class DrawCommand extends BaseDrawCommand {
                     }
                 }
                 else if (i == '3') {
-                    if (this.bindGroups[i] !== undefined)
-                        passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
+                    if (this.bindGroups[i] !== undefined) {
+                        let iblBindGroup = this.scene.IBL.bindGroup();
+                        passEncoder.setBindGroup(parseInt(i), iblBindGroup);
+                    }
                 }
+
             }
         }
         else {

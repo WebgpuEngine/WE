@@ -1,10 +1,13 @@
 //PBRColor.fs.wgsl   ,start
+#includeFile "graphic/bindgroup3/bindgroup.wgsl"
+// #includeFile "graphic/ibl/struct_ibl.wgsl"
+#includeFile "graphic/ibl/ibl_fn.wgsl"
+
 #includeFile "system/structOfCamera.wgsl" 
 #includeFile "system/system.wgsl"
 #tag gbuffers
 #includeFile "function/encodeAndDecode.wgsl"
 #includeFile "entity/st_vertex_output.wgsl"
-
 
 #includeFile "math/baseconst.wgsl"
 #includeFile "math/TBN.wgsl"

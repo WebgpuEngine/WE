@@ -12,15 +12,10 @@ import { Scene } from "../scene/scene";
 export interface IV_IBL {
     scene: Scene;
     enable: boolean;
-    iblCount: number;
+    // iblCount: number;
     dfgLutUrl?: string;
-    /**
-     * 1、全局IBL（唯一一个），全部设置为0即可
-     * 2、多个，按需设置AABB
-     */
-    iblAABB: [number, number, number, number, number, number][];
-    prefilteredCubeMap: string[];
-    probeInfo: {
+    use_ibl?: number;
+    ibl: {
         sh: [
             number, number, number,
             number, number, number,
@@ -33,9 +28,11 @@ export interface IV_IBL {
             number, number, number,
             number, number, number,
             number, number, number,
-        ];
-        position: weVec3;
-    }[];
+        ],
+        prefilteredCubeMap: string,
+        cubeMapFormat: "hdr" | "ktx1",
+    }[],
+    shAlreadyPreMultiplyConst: boolean;
 }
 export class IBL {
     scene: Scene;
@@ -45,18 +42,18 @@ export class IBL {
     // iblArray!: iblItem[];
     dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_256.hdr";
 
-    use_ibl: boolean = false;
+    enable_ibl: boolean = false;
+    use_ibl: number = 0;
     iblCount: number = 1;
-    irradianceProbeCount: number = 1;
-
+    /** 是否已经乘以常量 ,filament_sh*/
+    shAlreadyPreMultiplyConst: boolean = true;
     buffer!: ArrayBuffer;
     bufferView!: {
+        enable_ibl: Int32Array;
+        count: Uint32Array;
         use_ibl: Int32Array;
-        prefiltered_aabb_count: Uint32Array;
-        irradiance_probe_count: Uint32Array;
-        array_aabb: Float32Array;
+        filament_sh: Int32Array;
         array_sh: Float32Array;
-        array_position: Float32Array;
     };
 
     bufferGPU!: GPUBuffer;
@@ -75,27 +72,27 @@ export class IBL {
         this.init(input);
         this.scene.IBL = this;
     }
-    init(input: IV_IBL) {
-        if (input.iblCount != input.prefilteredCubeMap.length ||
-            input.iblAABB?.length != input.iblCount ||
-            input.iblCount > input.probeInfo.length) {
-            throw new Error(" ibl 数量必须等于预过滤体贴图数量，且ibl的AABB数量必须等于ibl数量，且探针数量必须大于等于ibl数量");
-        }
-        this.iblCount = input.iblCount;
+    init(input?: IV_IBL) {
+        if (input) {
+            if (input.ibl.length == 0) {
+                throw new Error(" ibl 数量必须大于0");
+            }
+            this.iblCount = input.ibl.length;
 
-        if (input.enable == true) {
-            this.use_ibl = true;
-        }
-        if (input.iblCount == 0) {
-            this.use_ibl = false;
-            this.iblCount = 1;
-            this.irradianceProbeCount = 1;
+            if (input.enable == true) {
+                this.enable_ibl = true;
+            }
+            if (input.use_ibl !== undefined) {
+                this.use_ibl = input.use_ibl;
+            }
+            if (input.dfgLutUrl) {
+                this.dfgLutUrl = input.dfgLutUrl;
+            }
+            if (input.shAlreadyPreMultiplyConst !== undefined) {
+                this.shAlreadyPreMultiplyConst = input.shAlreadyPreMultiplyConst;
+            }
         }
 
-        this.irradianceProbeCount = input.probeInfo.length;
-        if (input.dfgLutUrl) {
-            this.dfgLutUrl = input.dfgLutUrl;
-        }
         this.initStorageBuffer();
         this.initTexutre();
         this.initBindGroup();
@@ -108,29 +105,25 @@ export class IBL {
         this.init(input);
     }
     initStorageBuffer() {
-        let sizeSH = 27;
-        let sizeAABB = 6;
-        let sizePosition = 3;
-        let sizeOfBuffer = 3 * 4 + sizeAABB * 4 * this.iblCount + (sizeSH + sizePosition) * 4 * this.irradianceProbeCount;
+
+        let sizeOfBuffer = 4 * 4 + 4 * 3 * 9 * this.iblCount;
         this.buffer = new ArrayBuffer(sizeOfBuffer);
         this.bufferView = {
-            use_ibl: new Int32Array(this.buffer, 0, 1),
-            prefiltered_aabb_count: new Uint32Array(this.buffer, 4, 1),
-            irradiance_probe_count: new Uint32Array(this.buffer, 8, 1),
-            array_aabb: new Float32Array(this.buffer, 12, this.iblCount * sizeAABB),
-            array_sh: new Float32Array(this.buffer, 12 + this.iblCount * sizeAABB * 4, this.irradianceProbeCount * sizeSH),
-            array_position: new Float32Array(this.buffer, 12 + (this.iblCount * sizeAABB * 4 + this.irradianceProbeCount * sizeSH * 4), this.irradianceProbeCount * sizePosition),
+            enable_ibl: new Int32Array(this.buffer, 0, 1),
+            count: new Uint32Array(this.buffer, 4, 1),
+            use_ibl: new Int32Array(this.buffer, 8, 0),
+            filament_sh: new Int32Array(this.buffer, 12, 0),
+            array_sh: new Float32Array(this.buffer, 16, this.iblCount * 9 * 3),
         };
         this.bufferView.use_ibl[0] = this.use_ibl ? 1 : 0;
-        this.bufferView.prefiltered_aabb_count[0] = this.iblCount;
-        this.bufferView.irradiance_probe_count[0] = this.irradianceProbeCount;
-        this.bufferView.array_aabb.set(this.input.iblAABB.flat());
-        this.bufferView.array_sh.set(this.input.probeInfo.map((item) => item.sh).flat());
-        this.bufferView.array_position.set(this.input.probeInfo.map((item) => item.position).flat());
+        this.bufferView.count[0] = this.iblCount;
+        this.bufferView.filament_sh[0] = this.shAlreadyPreMultiplyConst ? 1 : 0;
+        this.bufferView.use_ibl[0] = this.use_ibl;
+        this.bufferView.array_sh.set(this.input.ibl.map((item) => item.sh).flat());
 
         this.bufferGPU = this.device.createBuffer({
             size: this.buffer.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         });
         this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
     }
@@ -155,12 +148,14 @@ export class IBL {
     }
     initBindGroup() {
         this._bindGroupLayout = this.device.createBindGroupLayout({
+            label: "IBL",
             entries: [
                 {
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: {
-                        type: "storage",
+                        type: "uniform",
+                        // type: "storage",
                     },
                 },
                 {
@@ -199,6 +194,7 @@ export class IBL {
             ],
         });
         this._bindGroup = this.device.createBindGroup({
+            label: "IBL",
             layout: this.bindGroupLayout(),
             entries: [
                 {
@@ -232,33 +228,5 @@ export class IBL {
     bindGroup(): GPUBindGroup {
         return this._bindGroup;
     }
-    updateSH(
-        SH: {
-            sh: [number, number, number, number, number, number, number, number, number];
-            position: weVec3;
-        },
-        index: number
-    ) {
-        if (index >= this.irradianceProbeCount) {
-            console.warn("index out of range");
-            return;
-        };
-        for (let i = 0; i < 9; i++) {
-            this.bufferView.array_sh[index * 9 + i] = SH.sh[i];
-        }
-        for (let i = 0; i < 3; i++) {
-            this.bufferView.array_position[index * 3 + i] = SH.position[i];
-        }
-        this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
-    }
-    updateIblAABB(aabb: [number, number, number, number, number, number], index: number) {
-        if (index >= this.iblCount) {
-            console.warn("index out of range");
-            return;
-        };
-        for (let i = 0; i < 6; i++) {
-            this.bufferView.array_aabb[index * 6 + i] = aabb[i];
-        }
-        this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
-    }
+
 }

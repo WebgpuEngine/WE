@@ -83,7 +83,13 @@ import systemOfLight_wgsl from "../shaders/system/systemForLight.wgsl?raw"
 import shadowmapPCSS_wgsl from "../shaders/shadowmap/fn_pcss.wgsl?raw"
 import systemOfCamera_wgsl from "../shaders/system/system.wgsl?raw"
 import structOfCamera_wgsl from "../shaders/system/structOfCamera.wgsl?raw"
+//////////////////////////////////////////////////////////////////////////////////
+//IBL
+import  include_bindgroup3_wgsl from "../shaders/graphic/bindgroup3/bindgroup.wgsl?raw"
+// import  include_struct_ibl_wgsl from "../shaders/graphic/ibl/struct_ibl.wgsl?raw"
+import  include_ibl_fn_wgsl from "../shaders/graphic/ibl/ibl_fn.wgsl?raw"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /**渲染模式 */
 export type T_SHR_RenderMode = "forward" | "defer" | "Msaa" | "MsaaInfo" | "blend";
 
@@ -123,6 +129,10 @@ export var WGSL_Include: Record<string, string> = {
     "system/structOfCamera.wgsl": structOfCamera_wgsl,
     "system/system.wgsl": systemOfCamera_wgsl,
     "function/encodeAndDecode.wgsl": include_encodeDecodeFunction_wgsl,
+
+    "graphic/bindgroup3/bindgroup.wgsl": include_bindgroup3_wgsl,
+    // "graphic/ibl/struct_ibl.wgsl": include_struct_ibl_wgsl,
+    "graphic/ibl/ibl_fn.wgsl": include_ibl_fn_wgsl,
 }
 /**指定GBuffer struct */
 export var WGSL_V_Gbuffers_struct: Record<T_SHR_RenderMode, string> = {
@@ -188,7 +198,7 @@ export interface I_aliasShaderCode {
  * 对外输出的shader名称
 */
 export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
-    
+
     "toneMapping": {
         type: "vs+fs",
         code: WGSL_ShaderCode["toneMapping/toneMapping.fs.wgsl"],

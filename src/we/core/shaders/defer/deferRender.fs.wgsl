@@ -1,7 +1,9 @@
 //deferRender.fs.wgsl   ,start
 
 #includeFile "entity/quad/quad.vs.wgsl"
-
+#includeFile "graphic/bindgroup3/bindgroup.wgsl"
+// #includeFile "graphic/ibl/struct_ibl.wgsl"
+#includeFile "graphic/ibl/ibl_fn.wgsl"
 
 
 @group(1) @binding(0) var u_colorTexture: texture_2d<f32>;

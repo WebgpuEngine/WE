@@ -18,6 +18,7 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
+  renderMode:"forwardRender"
   // reversedZ:true,
 };
 let scene = await initScene({
@@ -27,10 +28,8 @@ window.scene = scene;
 let ibl = new IBL({
   scene: scene,
   enable: true,
-  iblCount: 1,
-  iblAABB: [[0, 0, 0, 0, 0, 0]],
-  prefilteredCubeMap: ["IBL/IBL_1/IBL_1.png"],
-  probeInfo: [
+  // use_ibl: 1,
+  ibl: [
     {
       sh: [
         1.91613, 1.71772, 1.07797,
@@ -40,14 +39,16 @@ let ibl = new IBL({
         0.439589, -0.431271, -0.0800766,
         -0.0306302, 0.0319348, 0.00328068,
         0.0758103, 0.0710374, 0.0591078,
-        
+
         0.311676, 0.269456, 0.309399,
         -4.15644e-05, 6.26793e-05, 3.12488e-05,
         -0.541544, -0.468526, -0.536088,
       ],
-      position: [0, 0, 0],
+      prefilteredCubeMap: "IBL/IBL_1/IBL_1.png",
+      cubeMapFormat: "hdr",
     },
   ],
+  shAlreadyPreMultiplyConst: false
 });
 let radius = 2;
 let Y = 0;
@@ -74,7 +75,7 @@ await scene.add(onelight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.0006
+    intensity: 0.06
   }
 )
 await scene.add(ambientLight);

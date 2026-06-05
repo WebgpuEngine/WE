@@ -405,7 +405,7 @@ export class DrawCommandGenerator {
         }
     }
 
-  
+
     /**
      * 获取attribute的属性格式转换为wgsl的变量格式
      * @param format string
@@ -1157,14 +1157,17 @@ export class DrawCommandGenerator {
             else {
                 throw new Error("system type not support");
             }
+            // layoutNumber = 0
             DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
-            layoutNumber++;
+            // layoutNumber = 1
+            layoutNumber = 1;
 
             if (values.system?.parent) {
                 let { bindGroup, bindGroupLayout } = values.system?.parent.getBindGroupAndBindGroupLayout();
                 DC_bindGroups[layoutNumber] = undefined;
                 DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
-                layoutNumber++;
+
+                layoutNumber = 2;
                 if (values.system?.type == E_renderForDC.camera) {
                     if (values.system.material?.type == undefined) {
                         throw new Error("material type do not define");
@@ -1174,7 +1177,7 @@ export class DrawCommandGenerator {
                             let bindGroupLayout = (values.system?.parent as Mesh)._materialWireframe.getBindGroupLayout(values.system.material.type);
                             DC_bindGroups[layoutNumber] = undefined;
                             DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
-                            layoutNumber++;
+                            // layoutNumber++;
                         }
                     }
                     else {
@@ -1182,11 +1185,17 @@ export class DrawCommandGenerator {
                             let bindGroupLayout = (values.system?.parent as EntityBundleMaterial)._material.getBindGroupLayout(values.system.material.type);
                             DC_bindGroups[layoutNumber] = undefined;
                             DC_bindGroupLayouts[layoutNumber] = bindGroupLayout;
-                            layoutNumber++;
+                            // layoutNumber++;
                         }
                     }
                 }
             }
+            layoutNumber = 3;
+            {
+                DC_bindGroupLayouts[layoutNumber] = this.scene.IBL.bindGroupLayout();
+                DC_bindGroups[layoutNumber] = this.scene.IBL.bindGroup();
+            }
+
         }
 
         /**
@@ -1535,7 +1544,11 @@ export class DrawCommandGenerator {
         }
         return { vertex, fragment, vertexName: md5OfVScode, fragmentName: md5OfFScode };
     }
-    initPipeLine(values: IV_DC, vertex: { vs: GPUVertexState, name: string }, fragment: { fs: GPUFragmentState | undefined, name: string }, DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
+    initPipeLine(
+        values: IV_DC,
+        vertex: { vs: GPUVertexState, name: string },
+        fragment: { fs: GPUFragmentState | undefined, name: string },
+        DC_bindGroupLayouts: GPUBindGroupLayout[]): GPURenderPipeline {
 
         //0、创建cacheFlag
         let multisampleFlag = "";

@@ -98,7 +98,8 @@ fn calcLightAndShadowOfPBR(
             //Lo=vec3f(metallic);          
         }
     }
-    let ambient = get_ambient_color(albedo, ao);
+    // let ambient = get_ambient_color(albedo, ao);
+    let ambient = get_diffuse_from_ibl_filament(normal, albedo, ao, u_ibl_base_info.sh);
     let emissive = emissiveColor * emissiveIntensity;
     return vec4f(  color.rgb*(ambient + Lo) + emissive,1);
     // return vec4f(  color.rgb*ambient_light.color * ambient_light.intensity,1);
