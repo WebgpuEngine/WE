@@ -73,20 +73,13 @@ fn calc_sh_diffuse_filament(N:vec3f, shParam: array<vec3f,9>) -> vec3f {
 
     return max(res, vec3f(0.0));
 }
-// fn f32_to_vec3f(sh: array<f32,27>) -> array<vec3f,9>
-// {
-//    var shvec3f: array<vec3f,9> ;
-//    for (var i : u32 = 0; i < 9; i += 1u)
-//    {
-//        shvec3f[i] = vec3(sh[i*3], sh[i*3+1u], sh[i*3+2u]);
-//    }
-//    return shvec3f;
-// }
+
 fn f32_to_vec3f(sh: ptr<storage,array<f32>,read>,index:u32) -> array<vec3f,9> {
     var res: array<vec3f,9>;
-    for(var i:i32=0;i<9;i++){
-        let idx = i*3;
-        res[i] = vec3f(sh[idx], sh[idx+1], sh[idx+2]);
+    for(var i:u32=0;i<9;i++){
+        let idx = i*3 + index*27;
+        res[i] = vec3f((*sh)[idx], (*sh)[idx+1], (*sh)[idx+2]);//ok
+        //res[i] = vec3f(sh[idx], sh[idx+1], sh[idx+2]);//ok
     }
     return res;
 }
