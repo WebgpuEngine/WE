@@ -268,7 +268,7 @@ export class Scene {
     /**BPC */
     BPC!: BlockPointerCoordinator;
 
-    IBL!: IBL;
+    IBL: IBL | undefined ;
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -530,6 +530,7 @@ export class Scene {
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
         this.DCG = new DrawCommandGenerator({ scene: this, parent: this });
+        this.IBL = new IBL( this);
     }
     getResourceDefaultPBR() {
         let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");

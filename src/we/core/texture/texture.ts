@@ -15,6 +15,8 @@ import { BaseTexture } from "./baseTexture";
 export class Texture extends BaseTexture {
     _destroy(): void {
         // throw new Error("Method not implemented.");
+        this.texture.destroy();
+        this._state = E_lifeState.destroyed;
     }
 
     saveJSON() {

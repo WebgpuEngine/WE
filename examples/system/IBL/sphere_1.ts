@@ -18,15 +18,14 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0., 0., 0.],
-  renderMode:"forwardRender"
+  renderMode: "forwardRender"
   // reversedZ:true,
 };
 let scene = await initScene({
   initConfig: input,
 });
 window.scene = scene;
-let ibl = new IBL({
-  scene: scene,
+let ibl = new IBL(scene,{
   enable: true,
   // use_ibl: 1,
   ibl: [
@@ -93,7 +92,7 @@ let geometry = new SphereGeometry({
 // });
 let PBROption: IV_PBRMaterial = {
   textures: {
-    albedo: { value: [0.5,0.5,0.5, 1.0] },
+    albedo: { value: [0.5, 0.5, 0.5, 1.0] },
     metallic: { value: 0.4 },
     roughness: { value: 0.6 },
   }

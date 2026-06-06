@@ -28,6 +28,7 @@ import { Clock } from "../../scene/clock";
 // } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseStandardMaterial } from "./baseStandard";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
+import { BaseTexture } from "../../texture/baseTexture";
 
 
 
@@ -42,7 +43,7 @@ export interface IV_TextureMaterial extends IV_BaseStandardMaterial {
     // textures: {
     //     [name in E_TextureType]?: T_textureSourceType | Texture
     // },
-    texture: T_textureSourceType | Texture
+    texture: T_textureSourceType | BaseTexture
 }
 
 export class TextureMaterial extends BaseStandardMaterial {

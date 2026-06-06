@@ -6,6 +6,7 @@ import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
 import { TextureMaterial } from "../../../src/we/core/material/standard/textureMaterial";
+import { HDRTexture } from "../../../src/we/core/texture/HDRTexture";
 
 declare global {
   interface Window {
@@ -42,7 +43,13 @@ await scene.add(camera);
 
 let boxGeometry = new BoxGeometry();
 
-
+let colorMaterial = new ColorMaterial({
+  color: [0, 0.1, 0.2, 1]
+});
+let hdrTexture = new HDRTexture({
+  source: "/IBL/brdfLut/dfg_lut_256.hdr",
+  format: "rg16float",
+}, scene.device, scene);
 
 let textureMaterial = new TextureMaterial({
   texture: "/resource/images/img/we3D.png",

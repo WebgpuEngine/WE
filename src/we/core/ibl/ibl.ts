@@ -10,7 +10,7 @@ import { Scene } from "../scene/scene";
 //     prefilteredCubeMap: GPUTexture;
 // }
 export interface IV_IBL {
-    scene: Scene;
+
     enable: boolean;
     // iblCount: number;
     dfgLutUrl?: string;
@@ -37,7 +37,7 @@ export interface IV_IBL {
 export class IBL {
     scene: Scene;
     device: GPUDevice;
-    input: IV_IBL;
+    input: IV_IBL | undefined;
 
     // iblArray!: iblItem[];
     dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_256.hdr";
@@ -57,6 +57,8 @@ export class IBL {
     };
 
     bufferGPU!: GPUBuffer;
+
+    //临时使用，后期替换为对应Texture
     dfgLUT!: GPUTexture;
     dfgLutSampler!: GPUSampler;
     prefilteredCubeMap!: GPUTexture;
@@ -65,12 +67,20 @@ export class IBL {
     _bindGroupLayout!: GPUBindGroupLayout;
     _bindGroup!: GPUBindGroup;
 
-    constructor(input: IV_IBL) {
+    constructor(scene: Scene, input?: IV_IBL) {
         this.input = input;
-        this.device = input.scene.device;
-        this.scene = input.scene;
+        this.device = scene.device;
+        this.scene = scene;
         this.init(input);
+        if (this.scene.IBL)
+            this.scene.IBL.destroy();
         this.scene.IBL = this;
+    }
+    destroy() {
+        if (this.bufferGPU) this.bufferGPU.destroy();
+        //这个两个需要后期替换为对应Texture
+        if (this.dfgLUT) this.dfgLUT.destroy();
+        if (this.prefilteredCubeMap) this.prefilteredCubeMap.destroy();
     }
     init(input?: IV_IBL) {
         if (input) {
@@ -108,6 +118,12 @@ export class IBL {
 
         let sizeOfBuffer = 4 * 4 + 4 * 3 * 9 * this.iblCount;
         this.buffer = new ArrayBuffer(sizeOfBuffer);
+        this.bufferGPU = this.device.createBuffer({
+            size: this.buffer.byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+        });
+        if (!this.input) return;
+
         this.bufferView = {
             enable_ibl: new Int32Array(this.buffer, 0, 1),
             count: new Uint32Array(this.buffer, 4, 1),
@@ -121,30 +137,30 @@ export class IBL {
         this.bufferView.use_ibl[0] = this.use_ibl;
         this.bufferView.array_sh.set(this.input.ibl.map((item) => item.sh).flat());
 
-        this.bufferGPU = this.device.createBuffer({
-            size: this.buffer.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-        });
+
         this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
     }
     initTexutre() {
-        this.dfgLUT = this.device.createTexture({
-            // format: "rg11b10ufloat",
-            format: "rg16float",
-            size: [256, 256],
-            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-            dimension: "2d",
-        });
-        this.dfgLutSampler = this.scene.resourcesGPU.getSampler("linear");
+        // if (!this.input) 
+        {
+            this.dfgLUT = this.device.createTexture({
+                // format: "rg11b10ufloat",
+                format: "rg16float",
+                size: [1, 1],
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+                dimension: "2d",
+            });
+            this.dfgLutSampler = this.scene.resourcesGPU.getSampler("linear");
 
-        this.prefilteredCubeMap = this.device.createTexture({
-            format: "rgba8unorm",
-            size: [256, 256, 6 * this.iblCount],
-            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-            dimension: "2d",
-            // mipLevelCount: 5,
-        });
-        this.prefilteredCubeMapSampler = this.scene.resourcesGPU.getSampler("cube");
+            this.prefilteredCubeMap = this.device.createTexture({
+                format: "rgba8unorm",
+                size: [1, 1, 6 * this.iblCount],
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+                dimension: "2d",
+                // mipLevelCount: 5,
+            });
+            this.prefilteredCubeMapSampler = this.scene.resourcesGPU.getSampler("cube");
+        }
     }
     initBindGroup() {
         this._bindGroupLayout = this.device.createBindGroupLayout({

@@ -177,7 +177,7 @@ export class VideoTexture extends BaseTexture {
             this.texture = this.device.createTexture({
                 label: this.Name,
                 size: [width, height, 1],
-                format: this.inputValues.format!,
+                format: this.textureFormat,
                 // format: 'rgba8unorm',//bgra8unorm
                 mipLevelCount: mipmap ? numMipLevels([width, height]) : mipLevels,
                 // sampleCount: 1,

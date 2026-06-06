@@ -81,9 +81,7 @@ export interface I_BaseTexture extends I_Update {  /**纹理名称 */
     format?: GPUTextureFormat,
     /**
      * 纹理的使用方式：使用GPUTextureUsage
-     * COPY_SRC，COPY_DST，TEXTURE_BINDING，STORAGE_BINDING，RENDER_ATTACHMENT
-     * 默认为:GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
-     *
+     * 默认为:GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
      */
     usage?: GPUTextureUsageFlags,
     name?: string,

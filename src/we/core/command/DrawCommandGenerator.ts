@@ -1191,6 +1191,7 @@ export class DrawCommandGenerator {
                 }
             }
             layoutNumber = 3;
+            // if (this.scene.IBL != undefined) 
             {
                 DC_bindGroupLayouts[layoutNumber] = this.scene.IBL.bindGroupLayout();
                 DC_bindGroups[layoutNumber] = this.scene.IBL.bindGroup();
