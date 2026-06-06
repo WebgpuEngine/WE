@@ -123,7 +123,7 @@ export class IBL {
 
         this.bufferGPU = this.device.createBuffer({
             size: this.buffer.byteLength,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         });
         this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
     }
@@ -154,7 +154,7 @@ export class IBL {
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
                     buffer: {
-                        type: "uniform",
+                        type: "read-only-storage",
                         // type: "storage",
                     },
                 },

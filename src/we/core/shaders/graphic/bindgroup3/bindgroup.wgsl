@@ -1,5 +1,5 @@
 
-@group(3) @binding(0) var<uniform>  u_ibl_base_info: st_ibl_one;   
+@group(3) @binding(0) var<storage> u_ibl_base_info: st_ibl_one;   
 // @group(3) @binding(0) var<storage> u_ibl_base_info: st_ibl_one;   
 @group(3) @binding(1) var u_ibl_prefiltered  : texture_cube_array<f32>;   
 @group(3) @binding(2) var u_sampler_ibl_prefiltered : sampler; 

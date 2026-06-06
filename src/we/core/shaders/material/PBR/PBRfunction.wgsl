@@ -99,7 +99,8 @@ fn calcLightAndShadowOfPBR(
         }
     }
     // let ambient = get_ambient_color(albedo, ao);
-    let ambient = get_diffuse_from_ibl_filament(normal, albedo, ao, u_ibl_base_info.sh);
+    let sh=f32_to_vec3f(&u_ibl_base_info.sh,u_ibl_base_info.use_ibl_index);
+    let ambient = get_diffuse_from_ibl_filament(normal, albedo, ao, sh);
     let emissive = emissiveColor * emissiveIntensity;
     return vec4f(  color.rgb*(ambient + Lo) + emissive,1);
     // return vec4f(  color.rgb*ambient_light.color * ambient_light.intensity,1);
