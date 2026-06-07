@@ -27,7 +27,7 @@ export class CubeTexture extends Texture {
         this._upsideDownY = false;
     }
 
-    async readyForGPU(): Promise<any> {
+    override async initTextureAndLayout(input: I_BaseTexture): Promise<any> {
         let scope = this;
         let source = this.inputValues.source;
         if (this.scene.resourcesGPU.has(source, E_resourceKind.textureOfString)) {
@@ -62,7 +62,7 @@ export class CubeTexture extends Texture {
                 // Create a 2d array texture.
                 // Assume each image has the same size.
                 size: [allImages[0].width, allImages[0].height, 6],
-                format: this.inputValues.format!,
+                format: this.textureFormat,
                 usage:
                     GPUTextureUsage.TEXTURE_BINDING |
                     GPUTextureUsage.COPY_DST |

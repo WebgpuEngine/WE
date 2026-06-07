@@ -4,7 +4,7 @@ import { RootGPU } from "../organization/root";
 import { getSampler } from "../sampler/baseFunction";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { I_BaseTexture, T_textureSourceType } from "./base";
+import { I_BaseTexture, isGPUSamplerDescriptor, T_textureSourceType } from "./base";
 
 export abstract class BaseTexture extends RootGPU {
     device: GPUDevice;
@@ -24,7 +24,7 @@ export abstract class BaseTexture extends RootGPU {
     /**
      * 纹理的绑定布局
      * dictionary GPUTextureBindingLayout {
-            GPUTextureSampleType sampleType = "float";
+            GPUTextureSampleType sampleType = "float";//"depth" | "float" | "sint" | "uint" | "unfilterable-float"
             GPUTextureViewDimension viewDimension = "2d";
             boolean multisampled = false;
         };
@@ -37,15 +37,17 @@ export abstract class BaseTexture extends RootGPU {
      * 指定的纹理的采样器，由I_BaseTexture的sampler参数指定。
      * 默认：没有，使用材质的默认采样器。
      */
-    sampler: GPUSampler | undefined;
-    /**
-     * 使用材质的默认采样器。
-     * 1、如果有指定的sampler，就使用指定的sampler。
-     * 2、如果没有指定的sampler，就使用材质的默认采样器。
-     * 材质的sampler是否存在，不存在就创建一个。
-     * 
-    */
-    _samplerBindingType: GPUSamplerBindingType = 'filtering';
+    sampler!: GPUSampler;
+    samplerLayout: GPUSamplerBindingLayout = {
+        type: 'filtering',// "comparison" | "filtering" | "non-filtering";
+    };
+    // /**
+    //  * 使用材质的默认采样器。
+    //  * 1、如果有指定的sampler，就使用指定的sampler。
+    //  * 2、如果没有指定的sampler，就使用材质的默认采样器。
+    //  * 材质的sampler是否存在，不存在就创建一个。
+    // */
+    // _samplerBindingType: GPUSamplerBindingType = 'filtering';
 
     /**纹理是否完成，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
      * constructor中设置为false。 
@@ -76,40 +78,25 @@ export abstract class BaseTexture extends RootGPU {
             this.scene = scene;
             this.setRootENV(scene)
         }
-        if (scene != undefined) {
-            this.checkSampler(inputValues);
-
+    }
+    _destroy(): void {
+        if (this.texture) {
+            this.texture.destroy();
+            this.texture = undefined as any;
         }
+        this.scene.textureManager.remove(this);
     }
     /**
-     * 检查I_BaseTexture的sampler是否存在，不存在，返回使用材质默认的。
-     * @param input I_BaseTexture 纹理的输入参数
+     * 初始化纹理。
+     * 一、两种调用途径：
+     *    1、显示调用（加载模式，或人工显示），在new XXXTexture() 之后,使用 await XXXTexture.init();
+     *    2、隐式调用：经由entity->material->texture。
+     * 二、必须显示调用的情况
+     *    1、非基础纹理（Texutre,CubeTexture,VideoTexutre）的类型，比如HDR，压缩纹理，目前是只能显示调用的。因为material里面没有分析处理url等数据来源的流程。
+     *    2、material加载的是BaseTexture类型的子类，而不是url。
+     * @param scene 场景
+     * @returns 
      */
-    checkSampler(input: I_BaseTexture) {
-        if (input.sampler != undefined) {
-            if (input.sampler instanceof GPUSampler) {
-                this.sampler = input.sampler;
-            }
-            else if (input.sampler.samplerDescriptor == undefined || input.sampler.samplerFilter == undefined) {
-                let { sampler, bindingType } = getSampler(input, this.scene);
-                this.sampler = sampler;
-                this._samplerBindingType = bindingType;
-            }
-        }
-        if (input.samplerBindingType != undefined) {
-            this._samplerBindingType = input.samplerBindingType;
-        }
-    }
-    registerToManager() {
-        if (this.scene == undefined) {
-            throw new Error(" scene of texture is undefined");
-        }
-        if (this.scene.textureManager == undefined) {
-            throw new Error(" scene of texture textureManager is undefined");
-        }
-        this.scene.textureManager.add(this);
-    }
-
     async init(scene?: Scene,): Promise<number> {
         //如果已经初始化，直接返回
         if (this._state == E_lifeState.finished) return this._state;
@@ -123,16 +110,54 @@ export abstract class BaseTexture extends RootGPU {
             this.scene = scene;
         }
         await super.init(scene);
+        // this.initBindingLayoutSetting();
+        // this.initSamplerAndLayout(this.inputValues);
         this._state = E_lifeState.finished;
         this.registerToManager();
         return this._state;
     }
-    destroy() {
-        if (this.texture) {
-            this.texture.destroy();
-            this.texture = undefined as any;
+    async readyForGPU(): Promise<any> {
+        await this.initTextureAndLayout(this.inputValues);
+        await this.initSamplerAndLayout(this.inputValues);
+    }
+    registerToManager() {
+        if (this.scene == undefined) {
+            throw new Error(" scene of texture is undefined");
         }
-        this.scene.textureManager.remove(this);
+        if (this.scene.textureManager == undefined) {
+            throw new Error(" scene of texture textureManager is undefined");
+        }
+        this.scene.textureManager.add(this);
+    }
+    /**
+     * 初始化采样器：20260607
+     * 1、明确纹理的layout：this.textureLayout:GPUTextureBindingLayout
+     * 2、明确采样器： sampler!: GPUSampler;
+     * 3、明确采样器的layout：samplerLayout:GPUSamplerBindingLayout
+     */
+    abstract initTextureAndLayout(input: I_BaseTexture): Promise<any>;
+    /**
+     * 初始化采样器和采样器的layout。
+     * 1、默认的采样器：linear
+     * 2、复杂类型的需要override本函数
+     * @param input I_BaseTexture 纹理的输入参数
+     */
+    async initSamplerAndLayout(input: I_BaseTexture) {
+        this.sampler = this.scene.resourcesGPU.getSampler("linear");
+        if (input.sampler != undefined) {
+            if (input.sampler instanceof GPUSampler) {
+                this.sampler = input.sampler;
+            }
+            else if (typeof input.sampler == "string" && (input.sampler == "linear" || input.sampler == "nearest")) {
+                this.sampler = this.scene.resourcesGPU.getSampler(input.sampler);
+            }
+            else if (isGPUSamplerDescriptor(input.sampler)) {
+                this.sampler = this.device.createSampler(input.sampler);
+            }
+        }
+        if (input.samplerBindingType != undefined) {
+            this.samplerLayout.type = input.samplerBindingType;
+        }
     }
 
     /**
@@ -295,22 +320,26 @@ export abstract class BaseTexture extends RootGPU {
      * 检查textureLayout是否完整
      */
     defaultTextureLayout(): GPUTextureBindingLayout {
-        if (this.textureLayout.viewDimension == undefined) {
-            this.setTextureLayoutDimension('2d');
-        }
-        if (this.textureLayout.sampleType == undefined) {
-            this.checkTextureLayoutSampleType();
-        }
-        if (this.textureLayout.multisampled == undefined) {
-            this.setTextureLayoutmultisampled(false);
-        }
+        // if (this.textureLayout.viewDimension == undefined) {
+        //     this.setTextureLayoutDimension('2d');
+        // }
+        // if (this.textureLayout.sampleType == undefined) {
+        //     this.checkTextureLayoutSampleType();
+        // }
+        // if (this.textureLayout.multisampled == undefined) {
+        //     this.setTextureLayoutmultisampled(false);
+        // }
         return this.textureLayout;
     }
     /**
      * 检查textureLayout的sampleType是否正确
      */
     checkTextureLayoutSampleType() {
-        if (this.textureFormat.indexOf('float') == -1) {
+        if (this.textureFormat.indexOf("32float") != -1) {
+            this.setTextureLayoutsampleType('unfilterable-float');
+            this.samplerLayout.type = 'non-filtering';
+        }
+        else if (this.textureFormat.indexOf('float') == -1) {
             this.setTextureLayoutsampleType('float');
         }
         else if (this.textureFormat.indexOf('unorm') == -1) {

@@ -54,7 +54,7 @@ export class TextureMaterial extends BaseStandardMaterial {
 
     /**纹理收集器 */
     declare textures: {
-        [name: string]: Texture
+        [name: string]: BaseTexture
     };
 
     constructor(input: IV_TextureMaterial) {
@@ -91,7 +91,7 @@ export class TextureMaterial extends BaseStandardMaterial {
         this.writeUniformCommon();
         this.defaultSampler = this.checkSampler(this.inputValues);
         let texture = this.inputValues.texture;
-        if (texture instanceof Texture) {
+        if (texture instanceof BaseTexture) {
             this.textures[E_TextureType.color] = texture;
         }
         else {
@@ -183,17 +183,23 @@ export class TextureMaterial extends BaseStandardMaterial {
             {
                 binding: binding++,
                 visibility: GPUShaderStage.FRAGMENT,
-                texture: {
-                    sampleType: "float",
-                    viewDimension: "2d",
-                },
+                texture:
+                    this.textures[E_TextureType.color].textureLayout,
+                // {
+                //     sampleType: "unfilterable-float",
+                //     // sampleType: "float",
+                //     viewDimension: "2d",
+                // },
             },
             {
                 binding: binding++,
                 visibility: GPUShaderStage.FRAGMENT,
-                sampler: {
-                    type: this.defaultSamplerBindingType,
-                },
+                sampler:
+                    this.textures[E_TextureType.color].samplerLayout,
+                // {
+                //     type: "non-filtering",
+                //     // type: this.defaultSamplerBindingType,
+                // },
             }
         ];
         if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
@@ -221,7 +227,8 @@ export class TextureMaterial extends BaseStandardMaterial {
             },
             {
                 binding: binding++,
-                resource: this.defaultSampler,
+                resource: this.textures[E_TextureType.color].sampler,
+                // resource: this.defaultSampler,
             },
         ];
 

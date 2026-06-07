@@ -47,12 +47,13 @@ let colorMaterial = new ColorMaterial({
   color: [0, 0.1, 0.2, 1]
 });
 let hdrTexture = new HDRTexture({
-  source: "/IBL/brdfLut/dfg_lut_256.hdr",
-  format: "rg16float",
+  source: "/IBL/brdfLut/dfg_lut_512.hdr",
+  // format: "rgba32float",
 }, scene.device, scene);
+await hdrTexture.init();
 
 let textureMaterial = new TextureMaterial({
-  texture: "/resource/images/img/we3D.png",
+  texture: hdrTexture,
 });
 
 let inputMesh: IV_MeshEntity = {

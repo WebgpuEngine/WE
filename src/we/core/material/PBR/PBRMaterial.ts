@@ -576,8 +576,8 @@ export class PBRMaterial extends BaseMaterial {
                         //如果texture有sampler，就使用texture的sampler，否则使用默认sampler
                         if (this.textures[key].sampler) {
                             this.insideUniformBundle[index].sampler = this.textures[key].sampler;
-                            if (this.textures[key]._samplerBindingType)
-                                this.insideUniformBundle[index].samplerBindingType = this.textures[key]._samplerBindingType;
+                            if (this.textures[key].samplerLayout.type)
+                                this.insideUniformBundle[index].samplerBindingType = this.textures[key].samplerLayout.type;
                             else
                                 throw new Error(`texture ${key} must have samplerBindingType`);
                         }

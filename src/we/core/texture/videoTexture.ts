@@ -19,6 +19,12 @@ export interface IV_OptionVideoTexture extends I_BaseTexture {
     // autoplay?: boolean,//默认必须的
     muted?: boolean,
     controls?: boolean,
+    /**
+     * 视频加载等待时间，默认canplaythrough
+     * 1、canplaythrough: 视频加载到可以播放的级别
+     * 2、loadedmetadata: 视频加载到元数据级别
+     * 3、默认：canplaythrough
+     */
     waitFor?: "canplaythrough" | "loadedmetadata",
     model?: T_modelOfVideo,
     /**
@@ -31,6 +37,7 @@ export interface IV_OptionVideoTexture extends I_BaseTexture {
 }
 
 export class VideoTexture extends BaseTexture {
+
     saveJSON() {
         throw new Error("Method not implemented.");
     }
@@ -71,7 +78,7 @@ export class VideoTexture extends BaseTexture {
     }
 
 
-    async readyForGPU(): Promise<any> {
+    async initTextureAndLayout(input: I_BaseTexture): Promise<any> {
         let source = this.inputValues.source;
         this._state = E_lifeState.initializing;
 

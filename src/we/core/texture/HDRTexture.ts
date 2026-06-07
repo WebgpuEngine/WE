@@ -1,14 +1,32 @@
 import { E_lifeState } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
-import { I_BaseTexture } from "./base";
+import { E_TextureChannel, I_BaseTexture, isGPUSamplerDescriptor } from "./base";
 import { BaseTexture } from "./baseTexture";
 import { HdrifyImage, readExr, readHdr, readJpegGainMap } from "hdrify";
 
+/**
+ * 
+ */
 export interface I_HDRTexture extends I_BaseTexture {
     source: string;
-    format: GPUTextureFormat,
+    // /**
+    //  * GPUTextureFormat格式,默认：rgba32float.
+    //  * 目前为了约束简单，要求必须写。
+    //  */
+    // format: GPUTextureFormat,
+    // /**默认RGBA */
+    // targetChannel?: "R" | "RG" | "RGBA",
 }
-
+/**
+ * HDR纹理
+ * 1、采用"hdrify"库加载HDR纹理
+ * 2、支持的HDR格式：
+ *      ✅ 32-bit_rle_rgbe（.hdr）
+        ✅ 32-bit_rgbe（.hdr）
+        ✅ OpenEXR（FP16/FP32，RLE/ZIP/PIZ/PXR24 等）
+        ✅ UltraHDR JPEG、Adobe Gain Map JPEG
+ * 3、默认RGBA格式
+ */
 export class HDRTexture extends BaseTexture {
     bitWidth: number = 16;
 
@@ -25,37 +43,52 @@ export class HDRTexture extends BaseTexture {
         if (typeof input.source !== "string") {
             throw new Error("HDRTexture source must be string(url)");
         }
-        if (input.format == undefined) {
-            throw new Error("HDRTexture format must be GPUTextureFormat");
-        }
-        this.textureFormat = input.format;
-        if (input.format.includes("rgba32")) {
+        // if (input.format == undefined) {
+        //     throw new Error("HDRTexture format must be GPUTextureFormat");
+        // }
+        this.textureFormat = input.format || "rgba32float";
+        this.checkTargetFormat(this.textureFormat);
+    }
+    checkTargetFormat(format: GPUTextureFormat) {
+        if (format.includes("rgba32")) {
             this.bitWidth = 4 * 4;
         }
-        else if (input.format.includes("rg32")) {
+        else if (format.includes("rg32")) {
             this.bitWidth = 4 * 2;
         }
-        else if (input.format.includes("r32")) {
+        else if (format.includes("r32")) {
             this.bitWidth = 4;
         }
-        else if (input.format.includes("rgba16")) {
+        else if (format.includes("rgba16")) {
             this.bitWidth = 2 * 4;
         }
-        else if (input.format.includes("rg16")) {
+        else if (format.includes("rg16")) {
             this.bitWidth = 2 * 2;
         }
-        else if (input.format.includes("r16")) {
+        else if (format.includes("r16")) {
             this.bitWidth = 2;
         }
-        else if (input.format == "rgb9e5ufloat" ||
-            input.format == "rgb10a2uint" ||
-            input.format == "rgb10a2unorm" ||
-            input.format == "rg11b10ufloat"
-        ) {
-            this.bitWidth = 4;
+        // else if (input.format == "rgb9e5ufloat" ||
+        //     input.format == "rgb10a2uint" ||
+        //     input.format == "rgb10a2unorm" ||
+        //     input.format == "rg11b10ufloat"
+        // ) {
+        //     this.bitWidth = 4;
+        // }
+        else {
+            throw new Error("input HDRTexture format not support: " + format);
+        }
+
+        if (format.includes("32float")) {
+            this.textureLayout.sampleType = 'unfilterable-float';
+            this.samplerLayout.type = 'non-filtering';
+        }
+        else if (format.includes("float")) {
+            this.textureLayout.sampleType = 'float';
+            this.samplerLayout.type = 'filtering';
         }
     }
-    async readyForGPU(): Promise<any> {
+    async initTextureAndLayout(): Promise<any> {
         let source = this.inputValues.source;
         if (this.scene.resourcesGPU.textureOfString.has(source)) {
             this.texture = this.scene.resourcesGPU.textureOfString.get(source);
@@ -92,7 +125,7 @@ export class HDRTexture extends BaseTexture {
                 });
                 const imageGPUBuffer = this.device.createBuffer({
                     size: image.data.byteLength,
-                    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE
+                    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
                 });
                 this.device.queue.writeBuffer(imageGPUBuffer, 0, image.data);
                 const encoder = this.device.createCommandEncoder();
@@ -113,5 +146,26 @@ export class HDRTexture extends BaseTexture {
         }
 
         return this._state;
+    }
+    override async initSamplerAndLayout(input: I_BaseTexture) {
+        if (input.sampler != undefined) {
+            if (input.sampler instanceof GPUSampler) {
+                this.sampler = input.sampler;
+            }
+            else if (typeof input.sampler == "string" && (input.sampler == "linear" || input.sampler == "nearest")) {
+                this.sampler = this.scene.resourcesGPU.getSampler(input.sampler);
+            }
+            else if (isGPUSamplerDescriptor(input.sampler)) {
+                this.sampler = this.device.createSampler(input.sampler);
+            }
+        }
+        else {
+            if (this.samplerLayout.type == 'non-filtering') {
+                this.sampler = this.scene.resourcesGPU.getSampler("nearest");
+            }
+            else {
+                this.sampler = this.scene.resourcesGPU.getSampler("linear");
+            }
+        }
     }
 }

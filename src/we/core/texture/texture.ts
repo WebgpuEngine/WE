@@ -32,7 +32,7 @@ export class Texture extends BaseTexture {
         super(input, device, scene);
         this.inputValues = input;
     }
-    async readyForGPU(): Promise<any> {
+    async initTextureAndLayout(input: I_BaseTexture): Promise<any> {
         let source = this.inputValues.source;
         //GPUTexture
         if (source instanceof GPUTexture) {
@@ -116,7 +116,7 @@ export class Texture extends BaseTexture {
         this.texture = this.device.createTexture({
             label: this.Name,
             size: [width, height, 1],
-            format:  this.textureFormat,
+            format: this.textureFormat,
             mipLevelCount: mipmap ? numMipLevels([width, height]) : mipLevels,
             // sampleCount: 1,
             // dimension: '2d',
