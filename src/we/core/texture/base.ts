@@ -1,7 +1,7 @@
 import { I_Update } from "../base/coreDefine";
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
-export type T_textureSourceType = string | GPUTexture | GPUCopyExternalImageSource;
+export type T_textureSourceType = string | string[] | GPUTexture | GPUCopyExternalImageSource;
 
 export interface I_BaseSampler {
     /** 
@@ -126,7 +126,7 @@ export enum E_TextureChannel {
     R, G, B, A,
     RG, RB, RA, GB, BA,
     RGB,
-    RGBA, 
+    RGBA,
     User
 }
 /**

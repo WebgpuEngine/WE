@@ -28,7 +28,8 @@ window.scene = scene;
 let ibl = new IBL(scene,{
   enable: true,
   // use_ibl: 1,
-  ibl: [
+  ibl:
+  //  [
     {
       sh: [
         1.91613, 1.71772, 1.07797,
@@ -44,9 +45,8 @@ let ibl = new IBL(scene,{
         -0.541544, -0.468526, -0.536088,
       ],
       prefilteredCubeMap: "IBL/IBL_1/IBL_1.png",
-      cubeMapFormat: "hdr",
     },
-  ],
+  // ],
   shAlreadyPreMultiplyConst: false
 });
 let radius = 2;

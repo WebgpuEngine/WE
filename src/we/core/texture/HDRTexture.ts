@@ -1,6 +1,6 @@
 import { E_lifeState } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
-import { E_TextureChannel, I_BaseTexture, isGPUSamplerDescriptor } from "./base";
+import { I_BaseTexture, isGPUSamplerDescriptor } from "./base";
 import { BaseTexture } from "./baseTexture";
 import { HdrifyImage, readExr, readHdr, readJpegGainMap } from "hdrify";
 
@@ -100,9 +100,11 @@ export class HDRTexture extends BaseTexture {
                 let urlName = source.split("/");
                 this.Name = urlName[urlName.length - 1];
                 let extFile = this.Name.split(".")[1];
+
                 let response = await fetch(source);
                 const buf = await response.arrayBuffer();
                 const u8buffer = new Uint8Array(buf);
+
                 if (extFile == "hdr") {
                     image = readHdr(u8buffer);
                 }
@@ -123,19 +125,27 @@ export class HDRTexture extends BaseTexture {
                     // dimension: '2d',
                     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
                 });
-                const imageGPUBuffer = this.device.createBuffer({
-                    size: image.data.byteLength,
-                    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-                });
-                this.device.queue.writeBuffer(imageGPUBuffer, 0, image.data);
-                const encoder = this.device.createCommandEncoder();
-                encoder.copyBufferToTexture(
-                    { buffer: imageGPUBuffer, bytesPerRow: image.width * this.bitWidth }, // rgba16float: 8 字节/像素
+                // const imageGPUBuffer = this.device.createBuffer({
+                //     size: image.data.byteLength,
+                //     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+                // });
+                // this.device.queue.writeBuffer(imageGPUBuffer, 0, image.data);
+                // const encoder = this.device.createCommandEncoder();
+                // encoder.copyBufferToTexture(
+                //     { buffer: imageGPUBuffer, bytesPerRow: image.width * this.bitWidth }, // rgba16float: 8 字节/像素
+                //     { texture: this.texture },
+                //     { width: image.width, height: image.height }
+                // );
+                // this.device.queue.submit([encoder.finish()]);
+                // imageGPUBuffer.destroy();
+
+                this.device.queue.writeTexture(
                     { texture: this.texture },
+                    image.data.buffer,
+                    { bytesPerRow: image.width * this.bitWidth },
                     { width: image.width, height: image.height }
-                );
-                this.device.queue.submit([encoder.finish()]);
-                imageGPUBuffer.destroy();
+                )
+
             }
 
             this.scene.resourcesGPU.textureOfString.set(source, this.texture);

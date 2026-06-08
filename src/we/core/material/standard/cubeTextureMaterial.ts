@@ -29,6 +29,7 @@ import {
 // } from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { Texture } from "../../texture/texture";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
+import { PrefilteredCubemap } from "../../texture/prefilteredCubemap";
 
 export interface IV_CubeTextureMaterial extends IV_TextureMaterial {
     cubeType?: "sky" | "cube"
@@ -78,6 +79,9 @@ export class CubeTextureMaterial extends TextureMaterial {
             let textureInstace = new CubeTexture({ source: this.inputValues.texture }, this.device, this.scene);
             await textureInstace.init(this.scene);
             this.textures[E_TextureType.cube] = textureInstace;
+        }
+        else if (this.inputValues.texture instanceof PrefilteredCubemap || this.inputValues.texture instanceof CubeTexture) {
+            this.textures[E_TextureType.cube] = this.inputValues.texture;
         }
         else {
             throw new Error("CubeTextureMaterial cubeTexture 必须为字符串 或 CubeTexture 实例");

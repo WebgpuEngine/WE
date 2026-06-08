@@ -1,7 +1,6 @@
 import { E_lifeState } from "../base/coreDefine";
 import { commmandType } from "../command/base";
 import { RootGPU } from "../organization/root";
-import { getSampler } from "../sampler/baseFunction";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture, isGPUSamplerDescriptor, T_textureSourceType } from "./base";
@@ -29,7 +28,11 @@ export abstract class BaseTexture extends RootGPU {
             boolean multisampled = false;
         };
      */
-    textureLayout: GPUTextureBindingLayout = {};
+    textureLayout: GPUTextureBindingLayout = {
+        sampleType: "float",
+        viewDimension: "2d",
+        multisampled: false,
+    };
 
     textureFormat: GPUTextureFormat = 'rgba8unorm-srgb';
 
@@ -109,6 +112,11 @@ export abstract class BaseTexture extends RootGPU {
         else {
             this.scene = scene;
         }
+        //默认的纹理
+        this.texture = this.scene.resourcesGPU.textureOfString.get("default");
+        //默认的采样器
+        this.sampler = this.scene.resourcesGPU.getSampler("linear");
+        
         await super.init(scene);
         // this.initBindingLayoutSetting();
         // this.initSamplerAndLayout(this.inputValues);

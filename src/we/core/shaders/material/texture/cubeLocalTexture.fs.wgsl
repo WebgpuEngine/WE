@@ -19,7 +19,9 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa       
-    output.color = textureSample(u_cubeTexture, u_Sampler, cubemapVec); 
+    output.color = textureSample(u_cubeTexture, u_Sampler, cubemapVec); //按照sampler
+    // output.color = textureSampleLevel(u_cubeTexture, u_Sampler, cubemapVec,4); //按指定的mipmap
+
 #weEnd
 
 

@@ -14,7 +14,7 @@
     "@rollup/plugin-typescript": "^12.1.4",
     "@types/seedrandom": "^3.0.8",
     "@types/stats.js": "^0.17.4",
-    "@webgpu/types": "^0.1.64",
+    "@webgpu/types": "^0.1.70",
     "hash-wasm": "^4.12.0",
     "lil-gui": "^0.17.0",
     "muigui": "^0.0.22",
@@ -39,9 +39,9 @@
     "@loaders.gl/textures": "4.3.4",
     "@loaders.gl/video": "4.3.4",
     "@loaders.gl/zip": "4.3.4",
-    "dds-ktx-parser": "^1.0.1",
     "hdrify": "^0.12.1",
     "js-md5": "^0.8.3",
+    "ktx-parse": "^1.1.0",
     "webgpu-utils": "^1.11.0",
     "wgpu-matrix": "^3.4.0"
   }

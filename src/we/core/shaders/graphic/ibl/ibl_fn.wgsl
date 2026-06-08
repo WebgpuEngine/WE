@@ -4,6 +4,7 @@ struct st_ibl_one {
     count:u32,//IBL数量
     use_ibl_index:u32,//使用IBL的第IBL索引
     filament_sh:i32,//0=不使用Filament预缩放辐照度SH，1=使用Filament预缩放辐照度SH
+    mip_level:u32,//使用IBL的mipmap层级
     sh:array<f32>,//IBL的SH,总数量：9*count；
 }
 

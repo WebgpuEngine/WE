@@ -1,4 +1,3 @@
-import { weVec3 } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
 
 // interface iblItem {
@@ -30,8 +29,7 @@ export interface IV_IBL {
             number, number, number,
         ],
         prefilteredCubeMap: string,
-        cubeMapFormat: "hdr" | "ktx1",
-    }[],
+    },
     shAlreadyPreMultiplyConst: boolean;
 }
 export class IBL {
@@ -45,6 +43,7 @@ export class IBL {
     enable_ibl: boolean = false;
     use_ibl: number = 0;
     iblCount: number = 1;
+    mip_level: number = 0;
     /** 是否已经乘以常量 ,filament_sh*/
     shAlreadyPreMultiplyConst: boolean = true;
     buffer!: ArrayBuffer;
@@ -53,6 +52,7 @@ export class IBL {
         count: Uint32Array;
         use_ibl: Int32Array;
         filament_sh: Int32Array;
+        mip_level: Uint32Array;
         array_sh: Float32Array;
     };
 
@@ -84,10 +84,10 @@ export class IBL {
     }
     init(input?: IV_IBL) {
         if (input) {
-            if (input.ibl.length == 0) {
-                throw new Error(" ibl 数量必须大于0");
-            }
-            this.iblCount = input.ibl.length;
+            // if (input.ibl.length == 0) {
+            //     throw new Error(" ibl 数量必须大于0");
+            // }
+            // this.iblCount = input.ibl.length;
 
             if (input.enable == true) {
                 this.enable_ibl = true;
@@ -116,7 +116,7 @@ export class IBL {
     }
     initStorageBuffer() {
 
-        let sizeOfBuffer = 4 * 4 + 4 * 3 * 9 * this.iblCount;
+        let sizeOfBuffer = 4 * 5 + 4 * 3 * 9 * this.iblCount;
         this.buffer = new ArrayBuffer(sizeOfBuffer);
         this.bufferGPU = this.device.createBuffer({
             size: this.buffer.byteLength,
@@ -129,13 +129,16 @@ export class IBL {
             count: new Uint32Array(this.buffer, 4, 1),
             use_ibl: new Int32Array(this.buffer, 8, 0),
             filament_sh: new Int32Array(this.buffer, 12, 0),
-            array_sh: new Float32Array(this.buffer, 16, this.iblCount * 9 * 3),
+            mip_level: new Uint32Array(this.buffer, 16, 0),
+            array_sh: new Float32Array(this.buffer, 20, this.iblCount * 9 * 3),
         };
         this.bufferView.use_ibl[0] = this.use_ibl ? 1 : 0;
         this.bufferView.count[0] = this.iblCount;
         this.bufferView.filament_sh[0] = this.shAlreadyPreMultiplyConst ? 1 : 0;
         this.bufferView.use_ibl[0] = this.use_ibl;
-        this.bufferView.array_sh.set(this.input.ibl.map((item) => item.sh).flat());
+        this.bufferView.mip_level[0] = this.mip_level;
+        this.bufferView.array_sh.set(this.input.ibl.sh.flat());
+        // this.bufferView.array_sh.set(this.input.ibl.map((item) => item.sh).flat());//ok,多组的情况
 
 
         this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);

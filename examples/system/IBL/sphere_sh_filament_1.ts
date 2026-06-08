@@ -25,11 +25,11 @@ let scene = await initScene({
   initConfig: input,
 });
 window.scene = scene;
-let ibl = new IBL({
-  scene: scene,
+let ibl = new IBL(scene, {
   enable: true,
   // use_ibl: 1,
-  ibl: [
+  ibl:
+  // [
     {
       sh: [
         0.892405390739441, 0.822372555732727, 0.742882370948792,
@@ -43,10 +43,9 @@ let ibl = new IBL({
         -0.009975957684219, -0.002223560353741, 0.016269488260150,
       ],
       prefilteredCubeMap: "IBL/IBL_1/IBL_1.png",
-      cubeMapFormat: "hdr",
     },
-  ],
-  shAlreadyPreMultiplyConst: false
+  // ],
+  shAlreadyPreMultiplyConst: true
 });
 let radius = 2;
 let Y = 0;
