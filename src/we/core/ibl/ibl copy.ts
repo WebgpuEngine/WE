@@ -63,9 +63,9 @@ export class IBL {
 
     brdfLUT!: HDRTexture;
     prefilteredCubeMap!: PrefilteredCubemap;
-    //临时使用，后期替换为对应Texture
-    _brdfLUT!: GPUTexture;
-    _brdfLutSampler!: GPUSampler;
+    //未IBL时使用，后期替换为对应Texture
+    // _brdfLUT!: GPUTexture;
+    // _brdfLUTSampler!: GPUSampler;
     _prefilteredCubeMap!: GPUTexture;
     _prefilteredCubeMapSampler!: GPUSampler;
 
@@ -76,99 +76,78 @@ export class IBL {
         this.input = input;
         this.device = scene.device;
         this.scene = scene;
-        this._init();
+        this.init(input);
         if (this.scene.IBL)
             this.scene.IBL.destroy();
         this.scene.IBL = this;
     }
     destroy() {
         if (this.bufferGPU) this.bufferGPU.destroy();
-        //这个两个需要后期替换为对应Texture
-        if (this._brdfLUT) this._brdfLUT.destroy();
+        if (this.brdfLUT) this.brdfLUT.destroy();
         if (this.prefilteredCubeMap) this.prefilteredCubeMap.destroy();
+        //这个两个需要后期替换为对应Texture
+        // if (this.dfgLUT) this.dfgLUT.destroy();
+        // if (this.prefilteredCubeMap) this.prefilteredCubeMap.destroy();
     }
-    _init() {
-        this.initStorageBuffer();
-        if (this._brdfLUT == undefined) {
-            this._brdfLUT = this.device.createTexture({
-                // format: "rg11b10ufloat",
-                format: "rgba32float",
-                size: [1, 1],
-                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-                dimension: "2d",
-            });
-            this._brdfLutSampler = this.scene.resourcesGPU.getSampler("nearest");
-        }
-        if (this._prefilteredCubeMap == undefined) {
-            this._prefilteredCubeMap = this.device.createTexture({
-                format: "rg11b10ufloat",
-                size: [1, 1, 6 * this.iblCount],
-                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-                dimension: "2d",
-                // mipLevelCount: 5,
-            });
-            this._prefilteredCubeMapSampler = this.scene.resourcesGPU.getSampler("cube");
-        }
-        this.initBindGroup();
-    }
-    async init() {
-        if (this.input) {
+    async init(input?: IV_IBL) {
+        if (input) {
             // if (input.ibl.length == 0) {
             //     throw new Error(" ibl 数量必须大于0");
             // }
             // this.iblCount = input.ibl.length;
 
-            if (this.input.enable == true) {
+            if (input.enable == true) {
                 this.enable_ibl = true;
             }
-            if (this.input.use_ibl !== undefined) {
-                this.use_ibl = this.input.use_ibl;
+            if (input.use_ibl !== undefined) {
+                this.use_ibl = input.use_ibl;
             }
-            if (this.input.dfgLutUrl) {
-                this.dfgLutUrl = this.input.dfgLutUrl;
+            if (input.dfgLutUrl) {
+                this.dfgLutUrl = input.dfgLutUrl;
             }
-            if (this.input.shAlreadyPreMultiplyConst !== undefined) {
-                this.shAlreadyPreMultiplyConst = this.input.shAlreadyPreMultiplyConst;
+            if (input.shAlreadyPreMultiplyConst !== undefined) {
+                this.shAlreadyPreMultiplyConst = input.shAlreadyPreMultiplyConst;
             }
         }
 
-        await this.initTexutre(this.input);
         this.initStorageBuffer();
-
+        await this.initTexutre(input);
         this.initBindGroup();
     }
     reInit(input: IV_IBL) {
         if (this.bufferGPU) this.bufferGPU.destroy();
+        // if (this.brdfLUT) this.brdfLUT.destroy();
         if (this.prefilteredCubeMap) this.prefilteredCubeMap.destroy();
 
-        this.init();
+        this.init(input);
     }
     initStorageBuffer() {
-        if (this.bufferGPU == undefined && this.buffer == undefined) {
-            let sizeOfBuffer = 4 * 5 + 4 * 3 * 9 * this.iblCount;
-            this.buffer = new ArrayBuffer(sizeOfBuffer);
-            this.bufferGPU = this.device.createBuffer({
-                size: this.buffer.byteLength,
-                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-            });
-        }
+
+        let sizeOfBuffer = 4 * 5 + 4 * 3 * 9 * this.iblCount;
+        this.buffer = new ArrayBuffer(sizeOfBuffer);
+        this.bufferGPU = this.device.createBuffer({
+            size: this.buffer.byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+        });
         if (!this.input) return;
 
         this.bufferView = {
             enable_ibl: new Int32Array(this.buffer, 0, 1),
             count: new Uint32Array(this.buffer, 4, 1),
-            use_ibl: new Int32Array(this.buffer, 8, 1),
-            filament_sh: new Int32Array(this.buffer, 12, 1),
-            mip_level: new Uint32Array(this.buffer, 16, 1),
+            use_ibl: new Int32Array(this.buffer, 8, 0),
+            filament_sh: new Int32Array(this.buffer, 12, 0),
+            mip_level: new Uint32Array(this.buffer, 16, 0),
             array_sh: new Float32Array(this.buffer, 20, this.iblCount * 9 * 3),
         };
         this.bufferView.enable_ibl[0] = this.enable_ibl ? 1 : 0;
         this.bufferView.count[0] = this.iblCount;
         this.bufferView.filament_sh[0] = this.shAlreadyPreMultiplyConst ? 1 : 0;
         this.bufferView.use_ibl[0] = this.use_ibl;
-        this.bufferView.mip_level[0] =5;// this.mip_level;
+        this.bufferView.mip_level[0] = this.mip_level;
         this.bufferView.array_sh.set(this.input.ibl.sh.flat());
         // this.bufferView.array_sh.set(this.input.ibl.map((item) => item.sh).flat());//ok,多组的情况
+
+
         this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
     }
     async initTexutre(input?: IV_IBL) {
@@ -179,15 +158,25 @@ export class IBL {
             }, this.device, this.scene);
             await this.brdfLUT.init();
         }
-
-        if (input && this.prefilteredCubeMap == undefined) {
+        if (this._prefilteredCubeMap == undefined) {
+            this._prefilteredCubeMap = this.device.createTexture({
+                format: "rgba8unorm",
+                size: [1, 1, 6 * this.iblCount],
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+                dimension: "2d",
+                // mipLevelCount: 5,
+            });
+            this._prefilteredCubeMapSampler = this.scene.resourcesGPU.getSampler("cube");
+        }
+        if (input) {
+            if (this.prefilteredCubeMap) {
+                this.prefilteredCubeMap.destroy();
+            }
             this.prefilteredCubeMap = new PrefilteredCubemap({
-                source: input.ibl.prefilteredCubeMap,
+                source: input.ibl.prefilteredCubeMap,//"/IBL/pine_attic_2k/ktx1/output_ibl.ktx",
             }, this.device, this.scene);
             await this.prefilteredCubeMap.init();
         }
-        this.mip_level = this.prefilteredCubeMap.mipmapLevel-1;
-        console.log(this.mip_level);
     }
     initBindGroup() {
         this._bindGroupLayout = this.device.createBindGroupLayout({
@@ -220,8 +209,7 @@ export class IBL {
                 {
                     binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: //this.brdfLUT.textureLayout,
-                    {
+                    texture: {
                         sampleType: "unfilterable-float",
                         viewDimension: "2d",
                         multisampled: false,
@@ -231,7 +219,7 @@ export class IBL {
                     binding: 4,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: {
-                        type: "non-filtering",//this.brdfLUT.samplerLayout.type,
+                        type: "non-filtering",
                     },
                 },
 
@@ -250,67 +238,38 @@ export class IBL {
                     resource: this.getPrefilteredCubeMap().createView({
                         dimension: "cube",
                     }),
-                    // resource: this._prefilteredCubeMap.createView({
-                    //     dimension: "cube",
-                    // }),
                 },
                 {
                     binding: 2,
                     resource: this.getPrefilteredCubeMapSampler(),
-                    // resource: this._prefilteredCubeMapSampler,
                 },
                 {
                     binding: 3,
-                    resource: this.getBrdfLUT(),
+                    resource: this.brdfLUT.texture,
                 },
                 {
                     binding: 4,
-                    resource: this.getBrdfLUTSampler(),
+                    resource: this.brdfLUT.sampler,
                 },
             ],
         });
     }
     getPrefilteredCubeMap(): GPUTexture {
         if (this.prefilteredCubeMap) {
-            console.log("使用prefilteredCubeMap");
             return this.prefilteredCubeMap.texture;
         }
         else {
-            console.log("使用内置prefilteredCubeMap");
             return this._prefilteredCubeMap;
         }
     }
     getPrefilteredCubeMapSampler(): GPUSampler {
         if (this.prefilteredCubeMap) {
-            console.log("使用prefilteredCubeMapSampler");
             return this.prefilteredCubeMap.sampler;
         }
         else {
-            console.log("使用内置prefilteredCubeMapSampler");
             return this._prefilteredCubeMapSampler;
         }
     }
-    getBrdfLUT(): GPUTexture {
-        if (this.brdfLUT) {
-            console.log("使用brdfLUT");
-            return this.brdfLUT.texture;
-        }
-        else {
-            console.log("使用内置brdfLUT");
-            return this._brdfLUT;
-        }
-    }
-    getBrdfLUTSampler(): GPUSampler {
-        if (this.brdfLUT) {
-            console.log("使用brdfLUTSampler");
-            return this.brdfLUT.sampler;
-        }
-        else {
-            console.log("使用内置brdfLUTSampler");
-            return this._brdfLutSampler;
-        }
-    }
-
     bindGroupLayout(): GPUBindGroupLayout {
         return this._bindGroupLayout;
     }

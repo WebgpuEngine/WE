@@ -25,30 +25,9 @@ let scene = await initScene({
   initConfig: input,
 });
 window.scene = scene;
-let ibl = new IBL(scene,{
-  enable: true,
-  // use_ibl: 1,
-  ibl:
-  //  [
-    {
-      sh: [
-        1.91613, 1.71772, 1.07797,
-        -0.0591127, -0.0574315, -0.0346851,
-        -3.8612e-05, -2.09015e-05, -1.35017e-05,
 
-        0.439589, -0.431271, -0.0800766,
-        -0.0306302, 0.0319348, 0.00328068,
-        0.0758103, 0.0710374, 0.0591078,
 
-        0.311676, 0.269456, 0.309399,
-        -4.15644e-05, 6.26793e-05, 3.12488e-05,
-        -0.541544, -0.468526, -0.536088,
-      ],
-      prefilteredCubeMap: "IBL/IBL_1/IBL_1.png",
-    },
-  // ],
-  shAlreadyPreMultiplyConst: false
-});
+
 let radius = 2;
 let Y = 0;
 let camera = new PerspectiveCamera({
@@ -114,3 +93,31 @@ let mesh = new Mesh(inputMesh);
 console.log(mesh);
 await scene.add(mesh);
 
+let ibl = new IBL(scene, {
+  enable: true,
+  // use_ibl: 1,
+  ibl:
+  //  [
+  {
+    sh: [
+      1.91613, 1.71772, 1.07797,
+      -0.0591127, -0.0574315, -0.0346851,
+      -3.8612e-05, -2.09015e-05, -1.35017e-05,
+
+      0.439589, -0.431271, -0.0800766,
+      -0.0306302, 0.0319348, 0.00328068,
+      0.0758103, 0.0710374, 0.0591078,
+
+      0.311676, 0.269456, 0.309399,
+      -4.15644e-05, 6.26793e-05, 3.12488e-05,
+      -0.541544, -0.468526, -0.536088,
+    ],
+    prefilteredCubeMap: "/IBL/pine_attic_2k/ktx1/output_ibl.ktx",
+
+  },
+  // ],
+  shAlreadyPreMultiplyConst: false
+});
+await ibl.init();
+window.ibl = ibl;
+console.log(ibl);

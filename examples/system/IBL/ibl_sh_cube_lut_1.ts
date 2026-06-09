@@ -43,15 +43,10 @@ let ibl = new IBL(scene, {
       -0.009975957684219, -0.002223560353741, 0.016269488260150,
     ],
     prefilteredCubeMap: "/IBL/pine_attic_2k/ktx1/output_ibl.ktx",
-
   },
   // ],
   shAlreadyPreMultiplyConst: true
 });
-await ibl.init();
-window.ibl = ibl;
-console.log(ibl);
-
 let radius = 2;
 let Y = 0;
 let camera = new PerspectiveCamera({
@@ -96,8 +91,8 @@ let geometry = new SphereGeometry({
 let PBROption: IV_PBRMaterial = {
   textures: {
     albedo: { value: [0.5, 0.5, 0.5, 1.0] },
-    metallic: { value: 0.7 },
-    roughness: { value: 0.3 },
+    metallic: { value: 0.4 },
+    roughness: { value: 0.6 },
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
@@ -114,6 +109,6 @@ let inputMesh: IV_MeshEntity = {
   // }
 }
 let mesh = new Mesh(inputMesh);
-// console.log(mesh);
+console.log(mesh);
 await scene.add(mesh);
 

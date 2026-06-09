@@ -917,7 +917,6 @@ export class Scene {
         }
         else {
             // console.error("没有默认相机");
-            throw new Error("没有默认相机");
         }
     }
 

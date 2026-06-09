@@ -3,6 +3,11 @@ fn fresnelSchlick(cosTheta : f32, F0 : vec3f) -> vec3f
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
+//ibl 使用的fresnelSchlickRoughness函数，考虑了粗糙度的影响
+fn fresnelSchlickRoughness( cosTheta:f32, F0:vec3f, roughness:f32) -> vec3f
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+} 
 fn DistributionGGX(normal : vec3f, halfVector : vec3f, roughness : f32) -> f32
 {
     let a = roughness * roughness;
@@ -100,17 +105,32 @@ fn calcLightAndShadowOfPBR(
     }
     let sh=f32_to_vec3f(&u_ibl_base_info.sh,u_ibl_base_info.use_ibl_index);
     var ambient_ibl = vec3(0.0);
-    if(u_ibl_base_info.filament_sh==1){
-        ambient_ibl = get_diffuse_from_ibl_filament(normal, albedo, ao, sh);
-    }
-    else {
-         ambient_ibl = get_diffuse_from_ibl(normal, albedo, ao, sh);
+    var specular_ibl = vec3(0.0);
+    if(u_ibl_base_info.enable_ibl==1){
+        if(u_ibl_base_info.filament_sh==1){
+            ambient_ibl = get_diffuse_from_ibl_filament(normal, albedo, ao, sh);
+        }
+        else {
+            ambient_ibl = get_diffuse_from_ibl(normal, albedo, ao, sh);
+        }
+        let  nDOTv = max(dot(normal, wo), 0.0);
+        let  F = fresnelSchlickRoughness(nDOTv, F0, roughness);
+        let kS = F;
+        var kD = vec3(1.0) - kS;
+        kD *= 1.0 - metallic;
+        let R = reflect(-wo, normal); 
+        // let  prefilteredColor = textureSampleLevel(u_ibl_prefiltered, u_sampler_ibl_prefiltered,R,  roughness * 5.0 ).rgb;   
+        let  prefilteredColor = textureSampleLevel(u_ibl_prefiltered, u_sampler_ibl_prefiltered,R,  roughness *f32( u_ibl_base_info.mip_level)).rgb;   
+        let  envBRDF  = textureSample(u_ibl_dfg_lut,u_sampler_ibl_dfg_lut, vec2f(max(nDOTv, 0.0), roughness)).rg;
+        specular_ibl = prefilteredColor * (F * envBRDF.x + envBRDF.y);
+        ambient_ibl*=kD;
     }
     let ambient = get_ambient_color(albedo, ao)+ambient_ibl;
     // let ambient = get_ambient_color(albedo, ao);
 
     let emissive = emissiveColor * emissiveIntensity;
-    return vec4f(  color.rgb*(ambient + Lo) + emissive,1);
+    // if(u_ibl_base_info.mip_level ==0){ return vec4f(1,0,0,1);}
+    return vec4f(  color.rgb*(ambient + Lo + specular_ibl) + emissive,1);
     // return vec4f(  color.rgb*ambient_light.color * ambient_light.intensity,1);
 }
 
