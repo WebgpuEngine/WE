@@ -105,7 +105,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
     },
     drawMode: {
       indexCount: 3
@@ -121,10 +122,9 @@ let inputDC: IV_DrawCommandGenerator = {
 
 let DCManager = new DrawCommandGenerator(inputDC);
 let dc0 = DCManager.generateDrawCommand(valueDC);
-dc0.submit()
+// dc0.submit()
 
-rpd.colorAttachments[0].loadOp = "load";
-rpd.depthStencilAttachment.depthLoadOp = "load";
+
 
 let valueDC_1: IV_DC = {
   label: "dc1",
@@ -143,7 +143,8 @@ let valueDC_1: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -161,4 +162,11 @@ let valueDC_1: IV_DC = {
 
 
 let dc1 = DCManager.generateDrawCommand(valueDC_1);
+
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
+dc0.submit()
+rpd.colorAttachments[0].loadOp = "load";
+rpd.depthStencilAttachment.depthLoadOp = "load";
 dc1.submit()
+scene.renderToSurface();

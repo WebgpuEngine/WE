@@ -37,12 +37,12 @@ let shader = `
         return vec4f(1,0,0,1);
       }
 `;
-const oneTriangleVertexArray_1 = [
+const oneTriangleVertexArray_left = [
   0.0, 0.5, 0,
   -1, -0.5, 0,
   0., -0.5, 0,
 ];
-const oneTriangleVertexArray_2 = [
+const oneTriangleVertexArray_right = [
   0.0, 0.5, 0,
   0, -0.5, 0,
   1, -0.5, 0,
@@ -60,7 +60,7 @@ let DCManager = new DrawCommandGenerator(inputDC);
 let valueDC_1: IV_DC = {
   label: "dc1",
   data: {
-    vertices: { "position": oneTriangleVertexArray_1 }
+    vertices: { "position": oneTriangleVertexArray_left }
   },
   render: {
     vertex: {
@@ -69,19 +69,20 @@ let valueDC_1: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
     },
     drawMode: {
       vertexCount: 3
     },
   },
 }
-let dc_1 = DCManager.generateDrawCommand(valueDC_1);
+let dc_left = DCManager.generateDrawCommand(valueDC_1);
 ////////////////////////////////////////////////////////
 let valueDC_2: IV_DC = {
   label: "dc2",
   data: {
-    vertices: { "position": oneTriangleVertexArray_2 }
+    vertices: { "position": oneTriangleVertexArray_right }
   },
   render: {
     vertex: {
@@ -90,16 +91,20 @@ let valueDC_2: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
     },
     drawMode: {
       vertexCount: 3
     },
   },
 }
-let dc_2 = DCManager.generateDrawCommand(valueDC_2);
+let dc_right = DCManager.generateDrawCommand(valueDC_2);
 
 scene.BPC.BOLs.all.get(0).updateForce();
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
+
 
 ///分别提交 ，只保留最后一个
 // dc_1.submit()
@@ -113,20 +118,25 @@ const commandEncoder = scene.device.createCommandEncoder({ label: "mergeRender" 
 //2、创建passEncoder
 let passEncoder = commandEncoder.beginRenderPass(scene.getRenderPassDescriptorForNDC());
 //2.1 设置pipeline
-passEncoder.setPipeline(dc_1.pipeline);
+passEncoder.setPipeline(dc_left.pipeline);
 
 
 ////////////////////////////////DC1 数据
 //2.2 设置vertexBuffer
-passEncoder.setVertexBuffer(0, dc_1.vertexBuffers[0].buffer, dc_1.vertexBuffers[0].offset, dc_1.vertexBuffers[0].byteSize);
+passEncoder.setVertexBuffer(0, dc_left.vertexBuffers[0].gpuBufferView.buffer, dc_left.vertexBuffers[0].gpuBufferView.offset, dc_left.vertexBuffers[0].gpuBufferView.byteSize);
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, undefined);
 //2.4  draw
 passEncoder.draw(3, 1, 0, 0,);
 
+
+
+// scene.rpdNDC.colorAttachments[0].loadOp = "load";
+// scene.rpdNDC.depthStencilAttachment.depthLoadOp = "load";
 ////////////////////////////////DC2 数据
 //2.2 设置vertexBuffer
-passEncoder.setVertexBuffer(0, dc_2.vertexBuffers[0].buffer, dc_2.vertexBuffers[0].offset, dc_2.vertexBuffers[0].byteSize);
+
+passEncoder.setVertexBuffer(0, dc_right.vertexBuffers[0].gpuBufferView.buffer, dc_right.vertexBuffers[0].gpuBufferView.offset, dc_right.vertexBuffers[0].gpuBufferView.byteSize);
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, undefined);
 //2.4  draw
@@ -137,3 +147,6 @@ passEncoder.end();
 
 const commandBuffer = commandEncoder.finish();
 scene.device.queue.submit([commandBuffer]);
+
+
+scene.renderToSurface();

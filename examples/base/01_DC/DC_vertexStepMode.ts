@@ -11,7 +11,7 @@ declare global {
     DC: any
   }
 }
-let input: IV_Scene = { canvas: "render", reversedZ: false ,modeNDC:true}
+let input: IV_Scene = { canvas: "render", reversedZ: false, modeNDC: true }
 let scene = new Scene(input);
 await scene._init();
 
@@ -59,7 +59,7 @@ let shader = `
       }
 `;
 const oneTriangleVertexArray = [
-  0.0, 0.5, 0, 1, 0, 0,  0.2,
+  0.0, 0.5, 0, 1, 0, 0, 0.2,
   -0.5, -0.5, 0, 0, 1, 0, 0.1,
   0.5, -0.5, 0, 0, 0, 1, 0.3,
 ];
@@ -73,7 +73,7 @@ let DCManager = new DrawCommandGenerator(inputDC);
 
 
 
-let mergeAttribute :I_vsAttributeMerge = {
+let mergeAttribute: I_vsAttributeMerge = {
   data: oneTriangleVertexArray,
   mergeAttribute: [
     {
@@ -99,9 +99,9 @@ let valueDC: IV_DC = {
   label: "dc1",
   data: {
     vertices: {
-        "mergeAttribute": mergeAttribute,
+      "mergeAttribute": mergeAttribute,
     },
-    vertexStepMode: "instance",
+    vertexStepMode: ["instance"],
   },
   render: {
     vertex: {
@@ -110,7 +110,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -123,3 +124,4 @@ let valueDC: IV_DC = {
 let dc = DCManager.generateDrawCommand(valueDC);
 scene.BPC.BOLs.all.get(0).updateForce();
 dc.submit()
+scene.renderToSurface();

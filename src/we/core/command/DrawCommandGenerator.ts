@@ -968,6 +968,7 @@ export class DrawCommandGenerator {
                     let arrayStride = value.arrayStride;
                     // let data = new Float32Array(value.data);
                     let attributes: GPUVertexAttribute[] = [];
+                    let stepMode = values.data.vertexStepMode?.[location_i] || undefined;//存储合并属性的stepMode，多个使用相同的stepMode
                     for (let i in mergeAttribute) {
                         let item = mergeAttribute[i];
                         attributes.push({
@@ -1007,6 +1008,11 @@ export class DrawCommandGenerator {
                         arrayStride: arrayStride,
                         attributes,
                     }
+                    //合并属性要增加一个location
+                    if (stepMode) {
+                        _GPUVertexBufferLayout.stepMode = stepMode;
+                    }
+
                 }
                 //顶点数据是GPUBuffer数据的
                 // else if ("format" in value && value.buffer instanceof GPUBuffer) {
@@ -1041,7 +1047,7 @@ export class DrawCommandGenerator {
                     throw new Error("顶点属性 key, value 不能匹配数据");
                     continue;
                 }
-                if (values.data.vertexStepMode) {
+                if (values.data.vertexStepMode && !isI_vsAttributeMerge(value)) {//如果有stepMode，且不是合并属性，则一一对应
                     _GPUVertexBufferLayout.stepMode = values.data.vertexStepMode[location_i];
                 }
 
@@ -1193,8 +1199,8 @@ export class DrawCommandGenerator {
             layoutNumber = 3;
             // if (this.scene.IBL != undefined) 
             {
-                DC_bindGroupLayouts[layoutNumber] = this.scene.IBL.bindGroupLayout();
-                DC_bindGroups[layoutNumber] = this.scene.IBL.bindGroup();
+                DC_bindGroupLayouts[layoutNumber] = this.scene.IBL!.bindGroupLayout();
+                DC_bindGroups[layoutNumber] = this.scene.IBL!.bindGroup();
             }
 
         }
@@ -1207,6 +1213,8 @@ export class DrawCommandGenerator {
          */
         //不存在system，按照uniforms 创建BindGroup和BindGroupLayout
         else if (values.data.uniforms) {
+             DC_bindGroups = [];
+            DC_bindGroupLayouts = [];
             for (let i in values.data.uniforms) {
                 //如果bindGroupLayout数量超过4个，就跳出循环
                 if (layoutNumber > 3) {

@@ -89,3 +89,4 @@ let inputSDC: IV_SimpleDrawCommand = {
 let SDC1 = new SimpleDrawCommand(inputSDC);
 
 SDC1.submit();
+scene.renderToSurface();

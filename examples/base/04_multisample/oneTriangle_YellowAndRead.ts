@@ -174,7 +174,8 @@ const observer = new ResizeObserver(entries => {
         },
         fragment: {
           entryPoint: "fs",
-          targets: [{ format: scene.colorFormatOfCanvas }],
+          targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
           constants: {
             aspect: aspect,
           }

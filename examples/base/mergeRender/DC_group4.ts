@@ -181,7 +181,8 @@ let valueDC_1: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -240,7 +241,8 @@ let valueDC_2: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -276,10 +278,10 @@ passEncoder.setPipeline(dc_1.pipeline);
 
 ////////////////////////////////DC1 数据
 //2.2 设置vertexBuffer
-passEncoder.setVertexBuffer(0, dc_1.vertexBuffers[0].buffer, dc_1.vertexBuffers[0].offset, dc_1.vertexBuffers[0].byteSize);
-passEncoder.setVertexBuffer(1, dc_1.vertexBuffers[1].buffer, dc_1.vertexBuffers[1].offset, dc_1.vertexBuffers[1].byteSize);
+passEncoder.setVertexBuffer(0, dc_1.vertexBuffers[0].gpuBufferView.buffer, dc_1.vertexBuffers[0].gpuBuffer.offset, dc_1.vertexBuffers[0].gpuBufferView.byteSize);
+passEncoder.setVertexBuffer(1, dc_1.vertexBuffers[1].gpuBufferView.buffer, dc_1.vertexBuffers[1].gpuBuffer.offset, dc_1.vertexBuffers[1].gpuBufferView.byteSize);
 
-passEncoder.setIndexBuffer(dc_1.indexBuffer!.buffer, dc_1.indexFormat, dc_1.indexBuffer!.offset, dc_1.indexBuffer!.byteSize);// 'uint32');
+passEncoder.setIndexBuffer(dc_1.indexBuffer!.gpuBufferView.buffer, dc_1.indexFormat, dc_1.indexBuffer!.gpuBuffer.offset, dc_1.indexBuffer!.gpuBufferView.byteSize);// 'uint32');
 
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, dc_1.bindGroups[0]);
@@ -291,10 +293,10 @@ passEncoder.drawIndexed(3, 1, 0, 0,);
 
 ////////////////////////////////DC2 数据
 //2.2 设置vertexBuffer
-passEncoder.setVertexBuffer(0, dc_2.vertexBuffers[0].buffer, dc_2.vertexBuffers[0].offset, dc_2.vertexBuffers[0].byteSize);
-passEncoder.setVertexBuffer(1, dc_2.vertexBuffers[1].buffer, dc_2.vertexBuffers[1].offset, dc_2.vertexBuffers[1].byteSize);
+passEncoder.setVertexBuffer(0, dc_2.vertexBuffers[0].gpuBufferView.buffer, dc_2.vertexBuffers[0].gpuBuffer.offset, dc_2.vertexBuffers[0].gpuBufferView.byteSize);
+passEncoder.setVertexBuffer(1, dc_2.vertexBuffers[1].gpuBufferView.buffer, dc_2.vertexBuffers[1].gpuBuffer.offset, dc_2.vertexBuffers[1].gpuBufferView.byteSize);
 
-passEncoder.setIndexBuffer(dc_2.indexBuffer!.buffer, dc_2.indexFormat, dc_2.indexBuffer!.offset, dc_2.indexBuffer!.byteSize);// 'uint32');
+passEncoder.setIndexBuffer(dc_2.indexBuffer!.gpuBufferView.buffer, dc_2.indexFormat, dc_2.indexBuffer!.gpuBufferView.offset, dc_2.indexBuffer!.gpuBufferView.byteSize);// 'uint32');
 
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, dc_2.bindGroups[0]);
@@ -309,3 +311,4 @@ passEncoder.end();
 
 const commandBuffer = commandEncoder.finish();
 scene.device.queue.submit([commandBuffer]);
+scene.renderToSurface();

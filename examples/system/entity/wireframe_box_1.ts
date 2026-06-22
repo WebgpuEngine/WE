@@ -145,7 +145,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      // targets: [{ format: scene.colorFormatOfCanvas }],
+      // targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {

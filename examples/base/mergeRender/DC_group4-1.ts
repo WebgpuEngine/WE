@@ -73,26 +73,26 @@ colorUniform_1U32A[3] = 0;
 // position1F32A[1] = 0.0;
 // position1F32A[2] = 0.0;
 
-let data2 = new ArrayBuffer(4 * 4);
-let data2F32A = new Float32Array(data2);
-data2F32A[0] = 1.0;
-data2F32A[1] = 0.0;
-data2F32A[2] = 0.0;
-data2F32A[3] = 1.0;
+let colorData2 = new ArrayBuffer(4 * 4);
+let colorData2F32A = new Float32Array(colorData2);
+colorData2F32A[0] = 1.0;
+colorData2F32A[1] = 0.0;
+colorData2F32A[2] = 0.0;
+colorData2F32A[3] = 1.0;
 
-let data3 = new ArrayBuffer(4 * 4);
-let data3F32A = new Float32Array(data3);
-data3F32A[0] = 0.0;
-data3F32A[1] = 1.0;
-data3F32A[2] = 0.0;
-data3F32A[3] = 1.0;
+let colorData3 = new ArrayBuffer(4 * 4);
+let colorData3F32A = new Float32Array(colorData3);
+colorData3F32A[0] = 0.0;
+colorData3F32A[1] = 1.0;
+colorData3F32A[2] = 0.0;
+colorData3F32A[3] = 1.0;
 
-let data4 = new ArrayBuffer(4 * 4);
-let data4F32A = new Float32Array(data4);
-data4F32A[0] = 0.0;
-data4F32A[1] = 0.0;
-data4F32A[2] = 1.0;
-data4F32A[3] = 1.0;
+let colorData4 = new ArrayBuffer(4 * 4);
+let colorData4F32A = new Float32Array(colorData4);
+colorData4F32A[0] = 0.0;
+colorData4F32A[1] = 0.0;
+colorData4F32A[2] = 1.0;
+colorData4F32A[3] = 1.0;
 
 let unifrom00: I_uniformArrayBufferEntry = {
   label: "uniform0",
@@ -111,20 +111,22 @@ let unifrom1: I_uniformArrayBufferEntry = {
   label: "uniform1",
   binding: 0,
   size: 4 * 4,
-  data: data2
+  data: colorData2
 }
 let unifrom2: I_uniformArrayBufferEntry = {
   label: "uniform2",
   binding: 0,
   size: 4 * 4,
-  data: data3
+  data: colorData3
 }
+
+
 
 let unifrom3: I_uniformArrayBufferEntry = {
   label: "uniform3",
   binding: 0,
   size: 4 * 4,
-  data: data4
+  data: colorData4
 }
 
 
@@ -181,7 +183,8 @@ let valueDC_1: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -240,7 +243,8 @@ let valueDC_2: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -276,10 +280,10 @@ passEncoder.setPipeline(dc_1.pipeline);
 
 ////////////////////////////////DC1 数据
 //2.2 设置vertexBuffer
-passEncoder.setVertexBuffer(0, dc_1.vertexBuffers[0].buffer, dc_1.vertexBuffers[0].offset, dc_1.vertexBuffers[0].byteSize);
-passEncoder.setVertexBuffer(1, dc_1.vertexBuffers[1].buffer, dc_1.vertexBuffers[1].offset, dc_1.vertexBuffers[1].byteSize);
+passEncoder.setVertexBuffer(0, dc_1.vertexBuffers[0].gpuBufferView.buffer, dc_1.vertexBuffers[0].gpuBufferView.offset, dc_1.vertexBuffers[0].gpuBufferView.byteSize);
+passEncoder.setVertexBuffer(1, dc_1.vertexBuffers[1].gpuBufferView.buffer, dc_1.vertexBuffers[1].gpuBufferView.offset, dc_1.vertexBuffers[1].gpuBufferView.byteSize);
 
-passEncoder.setIndexBuffer(dc_1.indexBuffer!.buffer, dc_1.indexFormat, dc_1.indexBuffer!.offset, dc_1.indexBuffer!.byteSize);// 'uint32');
+passEncoder.setIndexBuffer(dc_1.indexBuffer!.gpuBufferView.buffer, dc_1.indexFormat, dc_1.indexBuffer!.gpuBufferView.offset, dc_1.indexBuffer!.gpuBufferView.byteSize);// 'uint32');
 
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, dc_1.bindGroups[0]);
@@ -291,12 +295,12 @@ passEncoder.drawIndexed(3, 1, 0, 0,);
 
 ////////////////////////////////DC2 数据
 //2.2 设置vertexBuffer
-passEncoder.setVertexBuffer(0, dc_2.vertexBuffers[0].buffer, dc_2.vertexBuffers[0].offset, dc_2.vertexBuffers[0].byteSize);
-passEncoder.setVertexBuffer(1, dc_2.vertexBuffers[1].buffer, dc_2.vertexBuffers[1].offset, dc_2.vertexBuffers[1].byteSize);
+passEncoder.setVertexBuffer(0, dc_2.vertexBuffers[0].gpuBufferView.buffer, dc_2.vertexBuffers[0].gpuBufferView.offset, dc_2.vertexBuffers[0].gpuBufferView.byteSize);
+passEncoder.setVertexBuffer(1, dc_2.vertexBuffers[1].gpuBufferView.buffer, dc_2.vertexBuffers[1].gpuBufferView.offset, dc_2.vertexBuffers[1].gpuBufferView.byteSize);
 passEncoder.setVertexBuffer(2, undefined);
 passEncoder.setVertexBuffer(3, undefined);
 
-passEncoder.setIndexBuffer(dc_2.indexBuffer!.buffer, dc_2.indexFormat, dc_2.indexBuffer!.offset, dc_2.indexBuffer!.byteSize);// 'uint32');
+passEncoder.setIndexBuffer(dc_2.indexBuffer!.gpuBufferView.buffer, dc_2.indexFormat, dc_2.indexBuffer!.gpuBufferView.offset, dc_2.indexBuffer!.gpuBufferView.byteSize);// 'uint32');
 
 //2.3  setBindGroup
 passEncoder.setBindGroup(0, dc_2.bindGroups[0]);
@@ -311,3 +315,4 @@ passEncoder.end();
 
 const commandBuffer = commandEncoder.finish();
 scene.device.queue.submit([commandBuffer]);
+scene.renderToSurface();

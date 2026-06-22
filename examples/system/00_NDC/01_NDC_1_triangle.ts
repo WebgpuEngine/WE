@@ -96,7 +96,7 @@ let valueDC: IV_DC = {
     fragment: {
       entryPoint: "fs",
       targets: [{ format: scene.colorFormatOfLinearSpace }],
-      aliasName: "test triangle",
+      aliasName: "test NDC",
     },
     drawMode: {
       vertexCount: 3
@@ -106,6 +106,7 @@ let valueDC: IV_DC = {
 
 let dc = DCManager.generateDrawCommand(valueDC);
 dc.submit();
+scene.renderToSurface();
 // let renderManager = scene.renderManager;
 // // renderManager.push(dc, E_renderPassName.forward)
 // renderManager.RC[E_renderPassName.forward] = new Map();

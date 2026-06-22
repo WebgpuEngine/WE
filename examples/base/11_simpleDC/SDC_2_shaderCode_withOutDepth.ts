@@ -82,11 +82,12 @@ let inputSDC: IV_SimpleDrawCommand = {
   data: {
     position: oneTriangleVertexArray
   },
-  renderPassDescriptor: rpd,
-  device: scene.device,
+  renderPassDescriptor: rpd,//这里指定的是canvas
   label: ""
 }
 
 let SDC1 = new SimpleDrawCommand(inputSDC);
-
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
 SDC1.submit();
+// scene.renderToSurface();

@@ -147,7 +147,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -169,8 +170,12 @@ let inputDC: IV_DrawCommandGenerator = {
 }
 let DCManager = new DrawCommandGenerator(inputDC);
 let dc = DCManager.generateDrawCommand(valueDC);
-scene.BPC.BOLs.all.get(0).updateForce();
-scene.BPC.BOLs.all.get(1).updateForce();
-scene.BPC.BOLs.all.get(2).updateForce();
-scene.BPC.BOLs.all.get(3).updateForce();
+// scene.BPC.BOLs.all.get(0).updateForce();
+// scene.BPC.BOLs.all.get(1).updateForce();
+// scene.BPC.BOLs.all.get(2).updateForce();
+// scene.BPC.BOLs.all.get(3).updateForce();
+// dc.submit()
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
 dc.submit()
+scene.renderToSurface();

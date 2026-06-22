@@ -86,7 +86,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -98,3 +99,5 @@ let valueDC: IV_DC = {
 let dc = DCManager.generateDrawCommand(valueDC);
 scene.BPC.BOLs.all.get(0).updateForce();
 dc.submit()
+scene.renderToSurface();
+

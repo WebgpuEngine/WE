@@ -1,5 +1,6 @@
 import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
-import type { IV_Scene } from "../../../src/we/core/scene/base";
+import { eventOfScene, userDefineEventCall, IV_Scene } from "../../../src/we/core/scene/base";
+import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
 
 declare global {
@@ -8,7 +9,11 @@ declare global {
     DC: any
   }
 }
-let input: IV_Scene = { canvas: "render", reversedZ: false, modeNDC: true }
+let input: IV_Scene = {
+  canvas: "render",
+  reversedZ: false,
+  modeNDC: true,
+}
 let scene = new Scene(input);
 await scene._init();
 
@@ -42,11 +47,10 @@ const oneTriangleVertexArray = [
   -0.5, -0.5, 0,
   0.5, -0.5, 0,
 ];
-const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
-
 
 let inputDC: IV_DrawCommandGenerator = {
-  scene: scene
+  scene: scene,
+  parent: scene,
 }
 let DCManager = new DrawCommandGenerator(inputDC);
 
@@ -65,24 +69,34 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
-
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test ndc",
     },
     drawMode: {
       vertexCount: 3
     },
-    // depthStencil: false,
-
-    // primitive: undefined,
-    // multisample: undefined,
-    // depthStencil: undefined
   },
-  // system: {
-  //   id: 0,
-  //   type: "camera"
-  // },
 }
 
 let dc = DCManager.generateDrawCommand(valueDC);
-scene.BPC.BOLs.all.get(0).updateForce();
+// scene.BPC.BOLs.all.get(0).updateForce();
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
 dc.submit()
+scene.renderToSurface();
+
+// let oneCall: userDefineEventCall = {
+//   call: (scope: Scene) => {
+//     // scope.renderManager.clean();
+//     scope.renderManager.push({
+//       command: dc,
+//       kind: E_renderPassName.ndc,
+//     })
+//     // dc.submit()
+//   },
+//   name: "",
+//   state: true,
+//   event: eventOfScene.onUpdate
+// }
+// scene.addUserDefineEvent(oneCall);
+// scene.run();

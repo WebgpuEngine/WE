@@ -71,3 +71,4 @@ console.log(mesh);
 window.mesh = mesh;
 window.instanceMash = await scene.add(mesh);
 
+scene.run();

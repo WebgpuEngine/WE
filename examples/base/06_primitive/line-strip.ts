@@ -99,7 +99,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
     },
     drawMode: {
       // vertexCount: 4   //顶点模式
@@ -121,5 +122,8 @@ let inputDC: IV_DrawCommandGenerator = {
 }
 let DCManager = new DrawCommandGenerator(inputDC);
 let dc0 = DCManager.generateDrawCommand(valueDC);
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
 dc0.submit()
+scene.renderToSurface();
 

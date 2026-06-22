@@ -1,4 +1,5 @@
-import { DrawCommandGenerator, type IV_DrawCommandGenerator, type I_uniformArrayBufferEntry, type IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
+import { I_uniformArrayBufferEntry } from "../../../src/we/core/command/base";
+import { DrawCommandGenerator, IV_DrawCommandGenerator, IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
 import type { IV_Scene } from "../../../src/we/core/scene/base";
 import { Scene } from "../../../src/we/core/scene/scene";
 
@@ -8,7 +9,7 @@ declare global {
     DC: any
   }
 }
-let input: IV_Scene = { canvas: "render", reversedZ: false ,modeNDC:true}
+let input: IV_Scene = { canvas: "render", reversedZ: false, modeNDC: true }
 let scene = new Scene(input);
 await scene._init();
 
@@ -49,7 +50,7 @@ dataF32A[3] = 1.0;
 let unifrom1: I_uniformArrayBufferEntry = {
   label: "uniform1",
   binding: 0,
-  size: 4*4,
+  size: 4 * 4,
   data: data
 }
 let uniform1Layout: GPUBindGroupLayoutEntry = {
@@ -69,9 +70,9 @@ const oneTriangleVertexArray = [
   0.5, -0.5, 0,
 ];
 const oneTriangleColorArray = [
-  1, 0, 0, 
-  0, 1, 0, 
-  1, 1, 1, ];
+  1, 0, 0,
+  0, 1, 0,
+  1, 1, 1,];
 const oneTriangleIndexArray = [
   0, 1, 2,
 ];
@@ -93,7 +94,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -114,3 +116,4 @@ scene.BPC.BOLs.all.get(1).updateForce();
 scene.BPC.BOLs.all.get(2).updateForce();
 scene.BPC.BOLs.all.get(3).updateForce();
 dc.submit()
+scene.renderToSurface();

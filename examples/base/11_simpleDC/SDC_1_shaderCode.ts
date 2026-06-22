@@ -75,5 +75,7 @@ let inputSDC:IV_SimpleDrawCommand={
 }
 
 let SDC1= new SimpleDrawCommand(inputSDC);
-
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
 SDC1.submit();
+scene.renderToSurface();

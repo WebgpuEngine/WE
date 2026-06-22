@@ -101,7 +101,7 @@ let valueDC: IV_DC = {
           arrayStride: 7 * 4,
         }
       },
-    vertexStepMode: "instance",
+    vertexStepMode: ["instance"],
   },
   render: {
     vertex: {
@@ -110,7 +110,8 @@ let valueDC: IV_DC = {
     },
     fragment: {
       entryPoint: "fs",
-      targets: [{ format: scene.colorFormatOfCanvas }],
+      targets: [{ format: scene.colorFormatOfLinearSpace }],
+      aliasName: "test NDC",
 
     },
     drawMode: {
@@ -121,4 +122,7 @@ let valueDC: IV_DC = {
 }
 
 let dc = DCManager.generateDrawCommand(valueDC);
+scene.BPC.update(scene.clock);
+scene.memoryBlockManager.update(scene.clock);
 dc.submit()
+scene.renderToSurface();
