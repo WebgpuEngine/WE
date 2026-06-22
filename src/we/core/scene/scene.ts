@@ -268,7 +268,7 @@ export class Scene {
     /**BPC */
     BPC!: BlockPointerCoordinator;
 
-    IBL: IBL | undefined ;
+    IBL: IBL | undefined;
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray: userDefineEventCall[] = [];
@@ -287,8 +287,10 @@ export class Scene {
         //初始化
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //默认值初始化
-        if (value.modeNDC && value.modeNDC === true)
+        if (value.modeNDC && value.modeNDC === true) {
             this.finalTarget.NDC = true;
+            console.warn("NDC 模式,限于测试和自定义shader使用。");
+        }
         this.clock = new Clock();
         this.inputValue = value;
         // if (value.disableCanvasContext) this.disableCanvasContext = value.disableCanvasContext;
@@ -530,7 +532,7 @@ export class Scene {
         this.pickupManager = new pickupManager(this);
         this.postProcessManager = new PostProcessManager(this);
         this.DCG = new DrawCommandGenerator({ scene: this, parent: this });
-        this.IBL = new IBL( this);
+        this.IBL = new IBL(this);
     }
     getResourceDefaultPBR() {
         let one = this.resourcesGPU.weMaterialOfString.get("defaultPBR");
@@ -626,7 +628,7 @@ export class Scene {
      * @param height 高度
      */
     reSize(width: number, height: number) {
-        console.log("Scene reSize()", this.clock.now, width, height);
+        console.log("Scene Size:", width, height);
         if (width != this.surface.size.width || height != this.surface.size.height) {
             this.surface.size.width = width;
             this.surface.size.height = height;
@@ -657,7 +659,7 @@ export class Scene {
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
                 // sampleCount: this.MSAA ? 4 : 1,
             });
-            if (this.finalTarget.NDC === true)
+            if (this.finalTarget.NDC === true) {
                 this.finalTarget.depth = this.device.createTexture({
                     label: "finalTarget.depth",
                     size: [width, height],
@@ -665,6 +667,9 @@ export class Scene {
                     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
                     // sampleCount: this.MSAA ? 4 : 1,
                 });
+                this.rpdNDC = undefined;
+                this.getRenderPassDescriptorForNDC();
+            }
         }
     }
     /**
@@ -916,7 +921,12 @@ export class Scene {
             copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
         }
         else {
-            // console.error("没有默认相机");
+            if (this.finalTarget.NDC == true) {
+                copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
+            }
+            else {
+                throw new Error("没有默认相交,也部署NDC 模式。");
+            }
         }
     }
 
@@ -1288,43 +1298,48 @@ export class Scene {
     //     }
     //     return outputFormat;
     // }
+
+    rpdNDC: GPURenderPassDescriptor | undefined;
     /**
      * rpd for NDC
      * @returns 
      */
     getRenderPassDescriptorForNDC(): GPURenderPassDescriptor {
-        if (this.MSAA) {
-            const renderPassDescriptor: GPURenderPassDescriptor = {
-                colorAttachments: [
-                    {
-                        view: this.finalTarget.color!.createView(),
-                        resolveTarget: (this.context as GPUCanvasContext).getCurrentTexture().createView(),
-                        clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
-                        loadOp: 'clear',
-                        storeOp: "store"
-                    }
-                ],
-                depthStencilAttachment: {
-                    view: this.finalTarget.depth!.createView(),
+        // if (this.MSAA) {
+        //     const renderPassDescriptor: GPURenderPassDescriptor = {
+        //         colorAttachments: [
+        //             {
+        //                 view: this.finalTarget.color!.createView(),
+        //                 resolveTarget: (this.context as GPUCanvasContext).getCurrentTexture().createView(),
+        //                 clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
+        //                 loadOp: 'clear',
+        //                 storeOp: "store"
+        //             }
+        //         ],
+        //         depthStencilAttachment: {
+        //             view: this.finalTarget.depth!.createView(),
 
-                    depthClearValue: this.reversedZ.cleanValue,// 1.0,                
-                    depthLoadOp: 'clear',// depthLoadOp: 'load',
-                    depthStoreOp: 'store',
+        //             depthClearValue: this.reversedZ.cleanValue,// 1.0,                
+        //             depthLoadOp: 'clear',// depthLoadOp: 'load',
+        //             depthStoreOp: 'store',
 
-                },
-            };
-            return renderPassDescriptor;
-        }
+        //         },
+        //     };
+        //     return renderPassDescriptor;
+        // }
+        // else
+        if (this.rpdNDC)
+            return this.rpdNDC;
         else {
             // let colorAttachments: GPURenderPassColorAttachment[] = [];
             const renderPassDescriptor: GPURenderPassDescriptor = {
                 colorAttachments: [
                     {
                         // view: this.finalTarget.createView(),
-                        view: (this.context as GPUCanvasContext).getCurrentTexture().createView(),
+                        view: this.finalTarget.color!.createView(),
+                        // view: (this.context as GPUCanvasContext).getCurrentTexture().createView(),
                         // clearValue: this.backgroudColor,//未预乘alpha
-                        // clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
-                        clearValue: [0., 0., 0., 1],
+                        clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
                         // clearValue: [0.5, 0.5, 0.5, 1],
                         loadOp: 'clear',
                         storeOp: "store"
@@ -1337,6 +1352,7 @@ export class Scene {
                     depthStoreOp: 'store',
                 },
             };
+            this.rpdNDC = renderPassDescriptor;
             return renderPassDescriptor;
         }
     }

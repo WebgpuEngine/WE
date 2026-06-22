@@ -161,6 +161,8 @@ export enum E_renderPassName {
     //  * 3、可视化工作，单独的纹理可视化，layout的可视化等
     //  */
     // output = "output",
+
+    ndc = "ndc",
 }
 /**DrawCommand 通道 
  * 1、pipelineOrder：按照pipeline结构进行分类的命令队列
@@ -282,6 +284,7 @@ export class RenderManager {
         [E_renderPassName.stage1]: commmandType[],
         [E_renderPassName.stage2]: commmandType[],
         [E_renderPassName.ui]: commmandType[],
+        [E_renderPassName.ndc]: commmandType[],
     } = {
             [E_renderPassName.compute]: [],
             [E_renderPassName.texture]: [],
@@ -300,6 +303,7 @@ export class RenderManager {
             [E_renderPassName.stage1]: [],
             [E_renderPassName.stage2]: [],
             [E_renderPassName.ui]: [],
+            [E_renderPassName.ndc]: [],
         };
     /**
      * 前四个连续的渲染通道，为了render时，省些代码
@@ -401,6 +405,7 @@ export class RenderManager {
         this.RC[E_renderPassName.stage1] = [];
         this.RC[E_renderPassName.stage2] = [];
         this.RC[E_renderPassName.ui] = [];
+        this.RC[E_renderPassName.ndc] = [];
     }
 
     /**
@@ -493,6 +498,9 @@ export class RenderManager {
             case E_renderPassName.ui:
                 this.RC[option.kind].push(option.command);
                 break;
+            case E_renderPassName.ndc:
+                this.RC[option.kind].push(option.command);
+                break;
             default:
                 throw new Error(`渲染通道为${option.kind}，不支持推送绘制命令`);
         }
@@ -512,46 +520,55 @@ export class RenderManager {
      * 
      */
     render() {
-        this.commandEncoder = this.device.createCommandEncoder({ label: "RenderManager" });
 
-        // for (let onePass of this.listCommandType) {
-        //     this.doCommand(onePass);
-        // }
+        if (this.scene.finalTarget.NDC === true) {
+            for (let oneDC of this.RC[E_renderPassName.ndc]) {
+                this.autoChangeRPDloadOP(this.scene.getRenderPassDescriptorForNDC(), "ndc");
+                oneDC.submit();
+                // console.log(oneDC);
+            }
+        }
+        else {
+            this.commandEncoder = this.device.createCommandEncoder({ label: "RenderManager" });
 
-        //不透明shadowmap
-        this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpaque], E_renderPassName.shadowmapOpaque);
+            // for (let onePass of this.listCommandType) {
+            //     this.doCommand(onePass);
+            // }
 
-        //透明shadowmap
-        // this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
+            //不透明shadowmap
+            this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpaque], E_renderPassName.shadowmapOpaque);
 
-        //不透明enity
-        this.renderForwaredDC(this.RC[E_renderPassName.forward], E_renderPassName.forward);
+            //透明shadowmap
+            // this.renderTimelineDC(this.RC[E_renderPassName.shadowmapTransparent]);
 
-        //MSAA,未开启MSAA
-        this.renderForwaredDC(this.RC[E_renderPassName.MSAA], E_renderPassName.MSAA);
+            //不透明enity
+            this.renderForwaredDC(this.RC[E_renderPassName.forward], E_renderPassName.forward);
 
-        //defer render
-        this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
+            //MSAA,未开启MSAA
+            this.renderForwaredDC(this.RC[E_renderPassName.MSAA], E_renderPassName.MSAA);
 
-        //透明enity
-        this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
+            //defer render
+            this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
 
-        // //sprite
-        // await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
+            //透明enity
+            this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
 
-        //toneMapping
-        this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
-        //pp
-        this.doCommand(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
+            // //sprite
+            // await this.renderForwaredDC(this.RC[E_renderPassName.sprite]);
 
-        // //stage1
-        // await this.doCommand(this.RC[E_renderPassName.stage1]);
-        // //stage2
-        // await this.doCommand(this.RC[E_renderPassName.stage2]);
-        // //ui
-        // await this.doCommand(this.RC[E_renderPassName.ui]);
-        this.device.queue.submit([this.commandEncoder.finish()]);
+            //toneMapping
+            this.renderComplexQuad(this.RC[E_renderPassName.toneMapping], E_renderPassName.toneMapping);
+            //pp
+            this.doCommand(this.RC[E_renderPassName.postprocess], E_renderPassName.postprocess);
 
+            // //stage1
+            // await this.doCommand(this.RC[E_renderPassName.stage1]);
+            // //stage2
+            // await this.doCommand(this.RC[E_renderPassName.stage2]);
+            // //ui
+            // await this.doCommand(this.RC[E_renderPassName.ui]);
+            this.device.queue.submit([this.commandEncoder.finish()]);
+        }
     }
 
     /**
@@ -682,7 +699,8 @@ export class RenderManager {
 
                 if (Array.isArray(perDrawCommand)) {//如果是数组（BVH相交的透明物体集合），说明是TTP，执行TTP渲染
                     pipeline = undefined;
-                    this.renderTTP(uuid, perDrawCommand);
+                    // this.renderTTP(uuid, perDrawCommand);
+                    console.warn("透明组渲染TTP关闭，A-Buffer待实现");
                 }
                 else {//否则，是单个透明物体，直接渲染
                     if (pipeline == undefined) {
@@ -799,153 +817,153 @@ export class RenderManager {
     // }
 
 
-    /**
-     * TTP+TTPF
-     * 透明渲染DC
-     * @param UUID camera UUID
-     * @param list 透明渲染列表
-     */
-    renderTTP(UUID: string, list: I_transparentDrawCommand[]) {
-        //像素级别多层渲染排序
-        /**
-         *  1、 清空纹理，
-         *  2、 循环list DC的TT,并渲染TTP(TTP,通过resourcesGPU获取)的command，渲染到 通用的GBuffer
-         *    2.1 uniform ：
-         *          A、 相机depth纹理，方案二选一
-         *              没有是有depth test，因为rpd在每个camera是不同的。
-         *              也可以为每个camera创建RPD，用于deptp test，这样性能更好些
-         *          B、 depth RGBAfloat32 纹理
-         *          C、 ID RGBAuint32 纹理。这个是最终的需要的数据。
-         *          D、 color纹理
-         *              如果是alpha，color可以复用在TB
-         *              如果是物理透明，color无用，因为物理透明是计算折射的背景
-         * 
-         *    2.2 渲染到GBuffer
-         * 
-         *  3A、方案A：TTPF(通过resourcesGPU获取)
-         *          A、渲染层数通过uniform传递
-         *          B、RGBA共四层（最多，相交的BVH的包围盒保留的透明度数量） 
-         *          C、渲染次数 4*N个（N是相交的BVH的包围盒数量 ）
-         * 
-         *  3B、方案B：TTPF的层数适用computer shader计算优化，得到实际每层的渲染次数（ID）的集合
-         * 
-         *  4、渲染总数量
-         *          A、TTP：N个
-         *          B、TTPF：4*N个
-         *          C、总计：5*N
-         * 
-        */
-        //1 清空纹理
-        this.scene.cameraManager.cleanValueOfTT(UUID);
-        let listOfTTPF: DrawCommand[] = [];
-        // await this.device.queue.onSubmittedWorkDone();
+    // /**
+    //  * TTP+TTPF
+    //  * 透明渲染DC
+    //  * @param UUID camera UUID
+    //  * @param list 透明渲染列表
+    //  */
+    // renderTTP(UUID: string, list: I_transparentDrawCommand[]) {
+    //     //像素级别多层渲染排序
+    //     /**
+    //      *  1、 清空纹理，
+    //      *  2、 循环list DC的TT,并渲染TTP(TTP,通过resourcesGPU获取)的command，渲染到 通用的GBuffer
+    //      *    2.1 uniform ：
+    //      *          A、 相机depth纹理，方案二选一
+    //      *              没有是有depth test，因为rpd在每个camera是不同的。
+    //      *              也可以为每个camera创建RPD，用于deptp test，这样性能更好些
+    //      *          B、 depth RGBAfloat32 纹理
+    //      *          C、 ID RGBAuint32 纹理。这个是最终的需要的数据。
+    //      *          D、 color纹理
+    //      *              如果是alpha，color可以复用在TB
+    //      *              如果是物理透明，color无用，因为物理透明是计算折射的背景
+    //      * 
+    //      *    2.2 渲染到GBuffer
+    //      * 
+    //      *  3A、方案A：TTPF(通过resourcesGPU获取)
+    //      *          A、渲染层数通过uniform传递
+    //      *          B、RGBA共四层（最多，相交的BVH的包围盒保留的透明度数量） 
+    //      *          C、渲染次数 4*N个（N是相交的BVH的包围盒数量 ）
+    //      * 
+    //      *  3B、方案B：TTPF的层数适用computer shader计算优化，得到实际每层的渲染次数（ID）的集合
+    //      * 
+    //      *  4、渲染总数量
+    //      *          A、TTP：N个
+    //      *          B、TTPF：4*N个
+    //      *          C、总计：5*N
+    //      * 
+    //     */
+    //     //1 清空纹理
+    //     this.scene.cameraManager.cleanValueOfTT(UUID);
+    //     let listOfTTPF: DrawCommand[] = [];
+    //     // await this.device.queue.onSubmittedWorkDone();
 
-        let UUID_TTPF = UUID + new Date().getTime();
+    //     let UUID_TTPF = UUID + new Date().getTime();
 
-        //2 TTP
-        let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-        for (let TT of list) {
-            let TTP = this.scene.resourcesGPU.TT2TTP.get(TT as DrawCommand);
-            let TTPF = this.scene.resourcesGPU.TT2TTPF.get(TT as DrawCommand);
-            if (TTP && TTPF) {
-                listOfTTPF.push(TTPF as DrawCommand);
-                // this.cameraRendered[UUID_TTPF] = this.autoChangeTT_RPD_loadOP(UUID, this.cameraRendered[UUID_TTPF]);
-                // this.cameraRendered[UUID_TTPF]++;//更改 TT loadOP计数器
-                // TTP.submit();
-                //交换colorAttachment 与 uniform 缓冲区
-                // TTP.submit();
-                // this.scene.cameraManager.switchTT();
+    //     //2 TTP
+    //     let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
+    //     for (let TT of list) {
+    //         let TTP = this.scene.resourcesGPU.TT2TTP.get(TT as DrawCommand);
+    //         let TTPF = this.scene.resourcesGPU.TT2TTPF.get(TT as DrawCommand);
+    //         if (TTP && TTPF) {
+    //             listOfTTPF.push(TTPF as DrawCommand);
+    //             // this.cameraRendered[UUID_TTPF] = this.autoChangeTT_RPD_loadOP(UUID, this.cameraRendered[UUID_TTPF]);
+    //             // this.cameraRendered[UUID_TTPF]++;//更改 TT loadOP计数器
+    //             // TTP.submit();
+    //             //交换colorAttachment 与 uniform 缓冲区
+    //             // TTP.submit();
+    //             // this.scene.cameraManager.switchTT();
 
-                // TTP.submit();
-                let commandBuffer = TTP.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
+    //             // TTP.submit();
+    //             let commandBuffer = TTP.update();
+    //             submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
 
-                //copy render GPUBuffer to Uniform GPUBuffer
-                let width = this.scene.surface.size.width;
-                let height = this.scene.surface.size.height;
-                for (let key in V_TransparentGBufferNames) {
-                    let A = this.scene.cameraManager.TT_Render.GBuffer[key];    //todo:属于公共资源，需要迁移到commonResource
-                    let B = this.scene.cameraManager.TT_Uniform.GBuffer[key];
-                    // console.log(A, B);
-                    const commandEncoder = this.device.createCommandEncoder();
-                    commandEncoder.copyTextureToTexture(
-                        {
-                            texture: A
-                        },
-                        {
-                            texture: B,
-                        },
-                        [width, height]
-                    );
-                    const commandBuffer = commandEncoder.finish();
-                    submitCommand.push(commandBuffer);
-                }
-            }
-        }
-        if (submitCommand.length > 0) {
-            this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-        }
+    //             //copy render GPUBuffer to Uniform GPUBuffer
+    //             let width = this.scene.surface.size.width;
+    //             let height = this.scene.surface.size.height;
+    //             for (let key in V_TransparentGBufferNames) {
+    //                 let A = this.scene.cameraManager.TT_Render.GBuffer[key];    //todo:属于公共资源，需要迁移到commonResource
+    //                 let B = this.scene.cameraManager.TT_Uniform.GBuffer[key];
+    //                 // console.log(A, B);
+    //                 const commandEncoder = this.device.createCommandEncoder();
+    //                 commandEncoder.copyTextureToTexture(
+    //                     {
+    //                         texture: A
+    //                     },
+    //                     {
+    //                         texture: B,
+    //                     },
+    //                     [width, height]
+    //                 );
+    //                 const commandBuffer = commandEncoder.finish();
+    //                 submitCommand.push(commandBuffer);
+    //             }
+    //         }
+    //     }
+    //     if (submitCommand.length > 0) {
+    //         this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+    //     }
 
-        // {//最简测试TTPF
-        //     let perTTPF = listOfTTPF[0];
-        //     let perEntity = this.scene.entityManager.getEntityByUUID(perTTPF.IDS.UUID);
-        //     this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
-        //     this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-        //     perEntity.setUniformLayerOfTTPF(3);//设置uniform ：layer ，ID
-        //     perTTPF.submit();            
-        //     this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
-        //     this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-        //     perEntity.setUniformLayerOfTTPF(2);//设置uniform ：layer ，ID
-        //     perTTPF.submit();
-        // }
+    //     // {//最简测试TTPF
+    //     //     let perTTPF = listOfTTPF[0];
+    //     //     let perEntity = this.scene.entityManager.getEntityByUUID(perTTPF.IDS.UUID);
+    //     //     this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //     //     this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+    //     //     perEntity.setUniformLayerOfTTPF(3);//设置uniform ：layer ，ID
+    //     //     perTTPF.submit();            
+    //     //     this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //     //     this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+    //     //     perEntity.setUniformLayerOfTTPF(2);//设置uniform ：layer ，ID
+    //     //     perTTPF.submit();
+    //     // }
 
-        /**
-         * 20260313：
-         * 1、现状：每层批量写入，
-         * 2、问题：但还是存在uniform写入问题。若实现全局render的批量提交，这里需要寻求新的方案。
-         */
-        //TTPF
+    //     /**
+    //      * 20260313：
+    //      * 1、现状：每层批量写入，
+    //      * 2、问题：但还是存在uniform写入问题。若实现全局render的批量提交，这里需要寻求新的方案。
+    //      */
+    //     //TTPF
 
-        for (let i = 0; i < 4; i++) {
-            this.scene.commonResource.seLayerOfTTPF(i);//设置uniform ：layer。每层写一次
-            let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
-            for (let perCommand of listOfTTPF) {
-                this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
-                this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-                // perCommand.submit();
-                let commandBuffer = perCommand.update();
-                submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
-            }
-            if (submitCommand.length > 0) {
-                this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
-            }
-        }
-        // for (let i = 0; i < 4; i++) {
-        //     let j = 0;
-        //     for (let perTTPF of listOfTTPF) {
-        //         let perEntity = this.scene.entityManager.getEntityByUUID(perTTPF.IDS.UUID);
-        //         if (perEntity) {
-        //             if ("_material" in perEntity) {//必须有材质
-        //                 this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
-        //                 this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-        //                 perEntity.setUniformLayerOfTTPF(i);//设置uniform ：layer ，ID
-        //                 // perEntity.setUniformLayerOfTTPF(2);//设置uniform ：layer ，ID
-        //                 // if (j++ == 1) //白色是否透明，影响数字，有白透明是，0，1，2。没有是：0，1
-        //                 {
-        //                     // this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
-        //                     // this.cameraRendered[UUID]++;//更改 TT loadOP计数器
-        //                     perTTPF.submit();
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-    }
+    //     for (let i = 0; i < 4; i++) {
+    //         this.scene.commonResource.seLayerOfTTPF(i);//设置uniform ：layer。每层写一次
+    //         let submitCommand: GPUCommandBuffer[] = [];                                         //commandBuffer数组
+    //         for (let perCommand of listOfTTPF) {
+    //             this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //             this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+    //             // perCommand.submit();
+    //             let commandBuffer = perCommand.update();
+    //             submitCommand.push(commandBuffer);//webGPU的commandBuffer时一次性的
+    //         }
+    //         if (submitCommand.length > 0) {
+    //             this.device.queue.submit(submitCommand);                                                    //submit commandBuffer数组
+    //         }
+    //     }
+    //     // for (let i = 0; i < 4; i++) {
+    //     //     let j = 0;
+    //     //     for (let perTTPF of listOfTTPF) {
+    //     //         let perEntity = this.scene.entityManager.getEntityByUUID(perTTPF.IDS.UUID);
+    //     //         if (perEntity) {
+    //     //             if ("_material" in perEntity) {//必须有材质
+    //     //                 this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //     //                 this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+    //     //                 perEntity.setUniformLayerOfTTPF(i);//设置uniform ：layer ，ID
+    //     //                 // perEntity.setUniformLayerOfTTPF(2);//设置uniform ：layer ，ID
+    //     //                 // if (j++ == 1) //白色是否透明，影响数字，有白透明是，0，1，2。没有是：0，1
+    //     //                 {
+    //     //                     // this.cameraRendered[UUID] = this.autoChangeTTPF_RPD_loadOP(UUID, this.cameraRendered[UUID]);
+    //     //                     // this.cameraRendered[UUID]++;//更改 TT loadOP计数器
+    //     //                     perTTPF.submit();
+    //     //                 }
+    //     //             }
+    //     //         }
+    //     //     }
+    //     // }
+    // }
 
     autoChangeRPDloadOP(rpd: GPURenderPassDescriptor, mergeID: string) {
         let countOfUUID: number = this.checkChangeRPDloadOP(mergeID);
         if (countOfUUID == 0) {
-            countOfUUID = 0;
+            // countOfUUID = 0;
             for (let perColorAttachment of rpd.colorAttachments) {
                 if (perColorAttachment)
                     perColorAttachment.loadOp = "clear";

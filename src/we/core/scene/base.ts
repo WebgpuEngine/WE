@@ -167,7 +167,7 @@ export interface IJ_Scene {
 */
 export interface initSceneConfig {
     initConfig: IV_Scene,
-    loadConfig?: IJ_Scene,
+    // loadConfig?: IJ_Scene,
     runImmediately?: boolean,
 }
 

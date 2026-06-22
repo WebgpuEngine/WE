@@ -272,41 +272,41 @@ export class IBL {
     }
     getPrefilteredCubeMap(): GPUTexture {
         if (this.prefilteredCubeMap) {
-            console.log("使用prefilteredCubeMap");
+            // console.log("使用prefilteredCubeMap");
             return this.prefilteredCubeMap.texture;
         }
         else {
-            console.log("使用内置prefilteredCubeMap");
+            // console.log("使用内置prefilteredCubeMap");
             return this._prefilteredCubeMap;
         }
     }
     getPrefilteredCubeMapSampler(): GPUSampler {
         if (this.prefilteredCubeMap) {
-            console.log("使用prefilteredCubeMapSampler");
+            // console.log("使用prefilteredCubeMapSampler");
             return this.prefilteredCubeMap.sampler;
         }
         else {
-            console.log("使用内置prefilteredCubeMapSampler");
+            // console.log("使用内置prefilteredCubeMapSampler");
             return this._prefilteredCubeMapSampler;
         }
     }
     getBrdfLUT(): GPUTexture {
         if (this.brdfLUT) {
-            console.log("使用brdfLUT");
+            // console.log("使用brdfLUT");
             return this.brdfLUT.texture;
         }
         else {
-            console.log("使用内置brdfLUT");
+            // console.log("使用内置brdfLUT");
             return this._brdfLUT;
         }
     }
     getBrdfLUTSampler(): GPUSampler {
         if (this.brdfLUT) {
-            console.log("使用brdfLUTSampler");
+            // console.log("使用brdfLUTSampler");
             return this.brdfLUT.sampler;
         }
         else {
-            console.log("使用内置brdfLUTSampler");
+            // console.log("使用内置brdfLUTSampler");
             return this._brdfLutSampler;
         }
     }

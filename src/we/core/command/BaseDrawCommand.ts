@@ -154,7 +154,7 @@ export class BaseDrawCommand extends BaseCommand {
             const commandEncoder = device.createCommandEncoder({ label: this.label });
             this.doWithRPD(commandEncoder);
             const commandBuffer = commandEncoder.finish();
-            console.warn("CommandEncoder finish");
+            // console.log("CommandEncoder finish");
             return commandBuffer;
         }
         else {

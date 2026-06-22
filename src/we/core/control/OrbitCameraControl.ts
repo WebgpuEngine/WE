@@ -131,8 +131,8 @@ export class OrbitCameraControl extends ArcballCameraControl {
                         }
                         //2.1.3.2 当前角度+增量，未超出范围（正负90度）
                         else {
-                            console.log("sinCosCameraZ:", sinCosCameraZ,"position:",position);
-                            console.log("upDotCameraZ:", upDotCameraZ);
+                            // console.log("sinCosCameraZ:", sinCosCameraZ,"position:",position);
+                            // console.log("upDotCameraZ:", upDotCameraZ);
 
                             {//(一）、计算旋转x和y轴的角度后的position
                                 let limit = 0.991;
@@ -177,7 +177,6 @@ export class OrbitCameraControl extends ArcballCameraControl {
                                 }
                                 else {
                                     // console.log("position================", position,upDotCameraZ,sinCosCameraZ,radianX,radianY);
-                                    console.log("卡了:", sinCosCameraZ);
                                 }
                             }
                             {//（二）、是否超过有设定top和bottom的角度限制，如果超过，重置到限定角度的position

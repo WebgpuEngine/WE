@@ -1428,7 +1428,12 @@ export class DrawCommandGenerator {
         let moduleVS: GPUShaderModule
         // let vsCacheShaderModuleName = values.label;
 
-        let shadercode: string = this.scene.shaderRegister.reflection(values.render.vertex.code, DC_vertexNames, DC_localtions);
+        let shadercode: string;
+        if (this.scene.finalTarget.NDC === true) {
+            shadercode = values.render.vertex.code;
+        }
+        else
+            shadercode = this.scene.shaderRegister.reflection(values.render.vertex.code, DC_vertexNames, DC_localtions);
         let md5OfVScode = MD5(shadercode);
 
         //3.2、VS shaderModule 编译
