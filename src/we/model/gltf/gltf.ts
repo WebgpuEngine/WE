@@ -837,7 +837,7 @@ export class GLTFModel extends BaseModel {
                     if (alphaMode == "MASK") {
                         alphaForPbr!.data2 = alphaCutoff;
                     }
-                    console.log(perMaterialData.name, alphaForPbr)
+                    // console.log(perMaterialData.name, alphaForPbr)
                 }
 
                 /**
@@ -1028,7 +1028,7 @@ export class GLTFModel extends BaseModel {
                         if (materialDataSource.doubleSided && materialDataSource.doubleSided === true) {
                             cullMode = "none";
                         }
-                        console.log("cullMode ", cullMode, materialDataSource.doubleSided);
+                        // console.log("cullMode ", cullMode, materialDataSource.doubleSided);
                     }
                     // else
                     //     console.log("primitive ", primitive);

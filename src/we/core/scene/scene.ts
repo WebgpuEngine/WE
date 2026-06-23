@@ -925,7 +925,7 @@ export class Scene {
                 copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
             }
             else {
-                throw new Error("没有默认相交,也部署NDC 模式。");
+                console.log("没有默认相机或相机未初始化完成,也未开启NDC 模式。");
             }
         }
     }
