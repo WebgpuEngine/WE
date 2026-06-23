@@ -21,8 +21,6 @@
     materialColor=textureSample(u_colorTexture, u_Sampler, uv );
 #weEnd
 
-#replace user_shader_code
-
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   
@@ -56,6 +54,9 @@
     }
     output.color= materialColor;
 #weEnd
+
+#replace user_shader_code
+
     return output;
 }
 //end : texture.fs.wgsl

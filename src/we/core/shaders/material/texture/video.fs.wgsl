@@ -15,7 +15,6 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
-#replace user_shader_code
 
 #weStart 
   #renderMode  MsaaInfo  
@@ -26,5 +25,6 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     var output: ST_GBuffer;
 #tag gbuffers_output 
 
+#replace user_shader_code
     return output;
 }

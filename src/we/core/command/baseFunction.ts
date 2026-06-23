@@ -8,7 +8,7 @@ import { T_uniformOneGroup } from "./base";
 
 /** 判断是否为ArrayBuffer */
 export function isArrayBuffer(value: any) {
-  return Object.prototype.toString.call(value) === '[object ArrayBuffer]';
+    return Object.prototype.toString.call(value) === '[object ArrayBuffer]';
 }
 
 function isArrayBufferView(v: any): v is ArrayBufferView {
@@ -25,6 +25,9 @@ export function checkGPUBufferSize(size: number): number {
 }
 export function isGPUBindGroup(obj: T_uniformOneGroup): obj is GPUBindGroup {
     return obj instanceof GPUBindGroup;
+}
+export function isGPUBindGroupLayout(obj: any): obj is GPUBindGroupLayout {
+    return obj instanceof GPUBindGroupLayout;
 }
 /**
  * 克隆BufferSource
@@ -80,7 +83,7 @@ export function ensureArrayBufferDivideByFour(src: BufferSource, offset: number,
 }
 /** 创建GPUBuffer ,内容为空*/
 export function createEmptyGPUBuffer(device: GPUDevice, usage: GPUBufferUsageFlags, byteSize: number, label: string,) {
-    let size= checkGPUBufferSize(byteSize);
+    let size = checkGPUBufferSize(byteSize);
     return device.createBuffer({
         label: label,
         size: size,
@@ -173,6 +176,6 @@ export function updataOneUniformBuffer(device: GPUDevice, uniformBuffer: GPUBuff
 
 
 export function getTypedArrayType(arr: any) {
-  if (!ArrayBuffer.isView(arr)) return null; // 不是 TypedArray 直接返回
-  return Object.prototype.toString.call(arr).slice(8, -1);
+    if (!ArrayBuffer.isView(arr)) return null; // 不是 TypedArray 直接返回
+    return Object.prototype.toString.call(arr).slice(8, -1);
 }

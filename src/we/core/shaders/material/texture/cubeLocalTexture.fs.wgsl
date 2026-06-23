@@ -17,8 +17,6 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 #weEnd
     var cubemapVec =  fsInput.cubeVecUV;
 
-#replace user_shader_code
-
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa       
@@ -27,7 +25,7 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 
 #weEnd
 
-
+#replace user_shader_code
     return output;
 }
 //end : cubeLocationtexture.fs.wgsl

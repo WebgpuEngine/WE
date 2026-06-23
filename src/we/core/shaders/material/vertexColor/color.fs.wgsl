@@ -18,15 +18,13 @@
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
-#replace user_shader_code
-
-
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   
     output.color =vec4f(fsInput.color,1);
 #weEnd
 
+#replace user_shader_code
     return output;
 }
 //end : color.fs.wgsl

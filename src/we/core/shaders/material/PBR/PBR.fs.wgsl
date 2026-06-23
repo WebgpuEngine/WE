@@ -194,10 +194,6 @@ struct PBRUniformInput{
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
-
-#replace user_shader_code
-
-
     // $PBR_albedo
     // $PBR_metallic
     // $PBR_roughness
@@ -263,6 +259,9 @@ struct PBRUniformInput{
     // output.color = vec4f( depthTest,depthTest,depthTest,1);
     var output : ST_GBuffer;
 #tag gbuffers_output 
+
+#replace user_shader_code
+
     return output;
 }
 //按通道值，获取分量值

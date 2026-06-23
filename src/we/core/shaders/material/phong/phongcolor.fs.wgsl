@@ -87,8 +87,6 @@ struct st_bulin_phong {
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
-#replace user_shader_code
-
     //光源与阴影代码
     acceptShadow = 1;
     shadowKind = 0;
@@ -141,5 +139,7 @@ struct st_bulin_phong {
     //  var visibility = getVisibilityOflight(u_lights.lights[1],worldPosition.rgb,normal.rgb); 
     //  output.color  =vec4f(visibility,visibility,visibility,1);
     
+#replace user_shader_code
+  
     return output;
 }

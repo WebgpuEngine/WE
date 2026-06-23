@@ -17,7 +17,6 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 #weEnd
     var cubemapVec =  normalize(fsInput.worldPosition - defaultCameraPosition);
 
-#replace user_shader_code
 
 #weStart 
   #renderMode  MsaaInfo  
@@ -25,7 +24,7 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     output.color = textureSample(u_cubeTexture, u_Sampler, cubemapVec); 
 #weEnd
 
-
+#replace user_shader_code
     // output.color=vec4f(1,0,0,1);
     return output;
 }

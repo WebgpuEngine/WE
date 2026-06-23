@@ -9,6 +9,18 @@ export async function weGetImageByUrl(param: string): Promise<ImageBitmap> {
     let imageBitmap = await createImageBitmap(await response.blob());
     return imageBitmap;
 }
+export async function weGetGzipResource(param: string): Promise<ArrayBuffer> {
+    let response = await fetch(param);
+    let decompressionStream = new DecompressionStream('gzip');
+    let decompressedStream = response.body?.pipeThrough(decompressionStream);
+    if (!decompressedStream) {
+        throw new Error("获取压缩流失败");
+    }
+    let decompressedArrayBuffer = await new Response(
+        decompressedStream
+    ).arrayBuffer();
+    return decompressedArrayBuffer;
+}
 
 // export async function weGetImagesByUrl(param: string[]): Promise<ImageBitmap[]> {
 //     let all: any[] = [];

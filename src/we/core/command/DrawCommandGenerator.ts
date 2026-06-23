@@ -6,7 +6,7 @@
 
 import { Scene } from "../scene/scene";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
-import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup } from "./baseFunction";
+import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, isGPUBindGroupLayout } from "./baseFunction";
 import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
@@ -195,8 +195,8 @@ export interface IV_DC {
          * 3、entity的bindGroup占用bindGroup1的位置；
          * 4、如果IV_DC,没有定义system，则uniform不考虑system的BindGroup的问题，即raw模式（NDC）
          */
-        uniforms?: T_uniformGroups[],//vs 部分有会 vertex texture
-        unifromLayout?: T_BindGroupLayout[],
+        uniforms?: T_uniformGroups[] | GPUBindGroup[],//vs 部分有会 vertex texture
+        unifromLayout?: T_BindGroupLayout[] | GPUBindGroupLayout[],
     },
     render: {
         // code: string,//这里需要进行VS 属性的映射替换
@@ -1213,7 +1213,7 @@ export class DrawCommandGenerator {
          */
         //不存在system，按照uniforms 创建BindGroup和BindGroupLayout
         else if (values.data.uniforms) {
-             DC_bindGroups = [];
+            DC_bindGroups = [];
             DC_bindGroupLayouts = [];
             for (let i in values.data.uniforms) {
                 //如果bindGroupLayout数量超过4个，就跳出循环
@@ -1230,11 +1230,13 @@ export class DrawCommandGenerator {
                 }
                 //如果layout存在，进行进一步判断
                 if (values.data.unifromLayout)
-                    //如果有layout，就直接使用
-                    if (values.data.unifromLayout[i] == undefined || values.data.unifromLayout[i].length == 0) {
-                        console.warn("uniforms layoiut 组[", i, "]的layout为空,与uniform组不匹配");
-                        continue;
-                    }
+                    //如果不是 GPUBindGroupLayout
+                    if (!isGPUBindGroupLayout(values.data.unifromLayout[i]))
+                        //如果有layout，就跳过
+                        if (values.data.unifromLayout[i] == undefined || values.data.unifromLayout[i].length == 0) {
+                            console.warn("uniforms layoiut 组[", i, "]的layout为空,与uniform组不匹配");
+                            continue;
+                        }
 
                 //BindGroup，重点1
                 let bindGroup: GPUBindGroup;

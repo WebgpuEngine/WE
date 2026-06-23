@@ -16,9 +16,10 @@ override boundingBoxMaxSize : f32 = 1.0;
 #reflection attributes
   var vsOutput : st_vertex_output;  
 
-#replace user_shader_code
 
 #includeFile "entity/code_entity_output.vs.wgsl"
+
+#replace user_shader_code
   
   return vsOutput;
 }
