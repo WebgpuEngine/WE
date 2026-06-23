@@ -17,6 +17,8 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 #weEnd
     var cubemapVec =  normalize(fsInput.worldPosition - defaultCameraPosition);
 
+#replace user_shader_code
+
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa       

@@ -87,6 +87,8 @@ struct st_bulin_phong {
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
+#replace user_shader_code
+
     //光源与阴影代码
     acceptShadow = 1;
     shadowKind = 0;

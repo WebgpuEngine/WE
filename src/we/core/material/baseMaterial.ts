@@ -226,7 +226,16 @@ export abstract class BaseMaterial extends RootGPU {
         console.log("===material destroy release pointer", this.uniformPointer.pointerID);
         this.scene.pointers.releasePointer(this.uniformPointer.pointerID);
     }
-
+    /**
+     * 获取用户自定义的shader代码
+     * @returns string
+     */
+    getUserCode(): string | undefined {
+        if (this.inputValues.shaderCode) {
+            return this.inputValues.shaderCode;
+        }
+        return undefined;
+    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础功能部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -589,7 +598,7 @@ export abstract class BaseMaterial extends RootGPU {
      * */
     composeShaderBundle(aliasName: string, materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward): I_materialBundleOutput {
         let groupAndBindingString: string = this.getGroupAndBindingString(materialType);
-        let code: string = groupAndBindingString + this.scene.shaderRegister.getAliasShaderName(aliasName);
+        let code: string = groupAndBindingString + this.scene.shaderRegister.getAliasShaderName(aliasName,this.getUserCode());
         let output: I_materialBundleOutput = {
             materialType,
             code,

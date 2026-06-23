@@ -761,7 +761,7 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         vsAliasName: string,
         _material?: BaseMaterial
     ): DrawCommand {
-        let vsCode = this.scene.shaderRegister.getAliasShaderName(vsAliasName);
+        let vsCode = this.scene.shaderRegister.getAliasShaderName(vsAliasName, this.getUserCodeVS());
         let material = this._material;
         if (_material) material = _material;
         let dc: DrawCommand;
@@ -833,7 +833,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             return;
         }
         //mesh VS 模板输出
-        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
+        // let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
+        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht, this.getUserCodeVS());
         let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vs: { code: vsCode } }, true);
         valueDC.label = "shadowmap:" + valueDC.label;
         let dc = this.DCG.generateDrawCommand(valueDC) as DrawCommand;
@@ -851,7 +852,8 @@ export abstract class EntityBundleMaterial extends BaseEntity {
         if (this.transparent === false)
             return;
         //材质的shader 模板输出，
-        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
+        // let vsCode = this.scene.shaderRegister.getAliasShaderName(sht);
+        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht, this.getUserCodeVS());
         //获取TTTT，然后分别判断并执行
         let uniformsMaterialTT = this._material.getFS_TT();
         let valueDC = this.generateInputValueOfDC(E_renderForDC.camera, { vs: { code: vsCode }, fs: uniformsMaterialTT });

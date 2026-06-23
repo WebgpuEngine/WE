@@ -181,6 +181,17 @@ export class ShaderRegister {
     getReplace(replaceName: string) {
         return this._replace.get(replaceName);
     }
+    replaceUserShaderCode(shaderCode: string, useShaderCode: string) {
+        let lines = shaderCode.split("\n");
+        for (let perLine_i in lines) {
+            let perLine = lines[perLine_i];
+            let lineTrimWithOutFirstSpace = perLine.trimStart();//只删开头空格
+            if (lineTrimWithOutFirstSpace.startsWith("#replace") && perLine.includes("user_shader_code")) {
+                lines[perLine_i] = useShaderCode;
+            }
+        }
+        return lines.join("\n");
+    }
     /**添加replace name */
     addReplace(replaceName: string, replaceCode: string) {
         this._replace.set(replaceName, replaceCode);
@@ -197,9 +208,15 @@ export class ShaderRegister {
         this._aliasShaderCode.set(registerName, code);
     }
     /**根据registerName获取shader code */
-    getAliasShaderName(registerName: string): string {
+    getAliasShaderName(registerName: string, useShaderCode: string | undefined = undefined): string {
         let code = this._aliasShaderCode.get(registerName);
         if (code) {
+            if (useShaderCode) {
+                code = this.replaceUserShaderCode(code, useShaderCode);
+            }
+            else {
+                code = this.replaceUserShaderCode(code, "");
+            }
             return code;
         }
         else {
@@ -223,7 +240,7 @@ export class ShaderRegister {
     }
     /** 处理reflection指令，DCG调用 */
     reflection(vsCode: string, refName: string[], locations: string[]): string {
-        let code =this.reflectionLocations(vsCode, refName, locations);
+        let code = this.reflectionLocations(vsCode, refName, locations);
         code = this.reflectionAttributes(code, refName, locations);
         code = this.reflectionMorphTarget(code, refName, locations);
         return code;

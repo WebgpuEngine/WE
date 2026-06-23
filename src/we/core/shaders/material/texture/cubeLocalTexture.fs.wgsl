@@ -16,6 +16,9 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
     var cubemapVec =  fsInput.cubeVecUV;
+
+#replace user_shader_code
+
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa       

@@ -21,6 +21,8 @@
     materialColor=textureSample(u_colorTexture, u_Sampler, uv );
 #weEnd
 
+#replace user_shader_code
+
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   

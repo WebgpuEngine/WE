@@ -22,6 +22,8 @@
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
+#replace user_shader_code
+
 
 #weStart 
   #renderMode  MsaaInfo  

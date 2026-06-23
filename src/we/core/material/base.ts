@@ -124,7 +124,9 @@ export interface IV_BaseMaterial extends I_Update {
             parameter?: weVec4
             invertModelMatrix?: number[];
         };
-    }
+    },
+    /**自定义shader代码，包括VS和FS */
+    shaderCode?: string,
 }
 /**自定义shader材质的初始化参数 */
 export interface IV_shaderMaterial extends IV_BaseMaterial {

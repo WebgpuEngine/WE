@@ -851,11 +851,11 @@ export abstract class BaseEntity extends NodeSpace {
      * 获取用户自定义的shader代码
      * @returns string
      */
-    getUserCodeVS(): string {
+    getUserCodeVS(): string | undefined {
         if (this.input.shaderCode) {
             return this.input.shaderCode;
         }
-        return "";
+        return undefined;
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //uniform merge part
