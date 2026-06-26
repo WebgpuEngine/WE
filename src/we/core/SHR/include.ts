@@ -369,10 +369,10 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         code: WGSL_ShaderCode["material/PBR/PBR.fs.wgsl"],
         renderMode: {
             forward: true,
-            defer: false,
+            defer: true,
             Msaa: true,
             MsaaInfo: true,
-            blend: false,
+            blend: true,
         }
     },
     "material.volume": {
