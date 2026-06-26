@@ -78,13 +78,13 @@ fn rayAABB(ro: vec3f, rd: vec3f) -> vec2f {
     let dt = total_ray_len / steps; // 单步空间步长，解决长短射线亮度差
 
     var t = t_enter;//位置步进距离，初始为tEnter，每次增加dt
-    var transmittance = 1.0; // 初始透射率=1（完全透光），指数吸收模型使用
+    var transmittance = vec4f(1.0); // 初始透射率=1（完全透光），指数吸收模型使用
     var opacity = 0.0;// 初始透明度=0（完全不透明）,加权模式使用
     //// 强制完整循环，无break/return，统一控制流
     for(var i = 0u; i < u_volume.max_steps; i += 1u) {
         let pos_local = ro_local + rd_local * t;
         let uvw = (pos_local.xyz + 1.0) *0.5;
-        let density = textureSample(u_volume_texture, u_volume_sampler, uvw).r;
+        let density = textureSample(u_volume_texture, u_volume_sampler, uvw);
 
         //指数吸收模型（Exponential Absorption Model）:比尔朗伯吸收定律 //ok
         // 掩码：仅t在射线有效区间才参与吸收，否则光学厚度=0
@@ -108,7 +108,25 @@ fn rayAABB(ro: vec3f, rd: vec3f) -> vec2f {
     // let alpha = opacity;//ok
     let alpha = 1.0 - transmittance;
 
-    materialColor= vec4(vec3(alpha), 1.0);
+    if (u_volume.channel == 0) {
+        materialColor= vec4( vec3f(alpha.x), 1.0);
+    }
+    else if (u_volume.channel == 1) {
+        materialColor= vec4( vec3f(alpha.y), 1.0);
+    }
+    else if (u_volume.channel == 2) {
+        materialColor= vec4( vec3f(alpha.z), 1.0);
+    }
+    else if (u_volume.channel == 3) {
+        materialColor= vec4( vec3f(alpha.w), 1.0);
+    }
+    else if (u_volume.channel == 4) {
+        materialColor= vec4( alpha.xyz, 1.0);
+    }
+    else if (u_volume.channel == 5) {
+        materialColor=  alpha;
+    }
+
 
     // 体积渲染 end
     //////////////////////////////////////////////////////////

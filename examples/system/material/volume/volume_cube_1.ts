@@ -59,7 +59,7 @@ await texture3D.init();
 
 let volumeMaterial = new VolumeMaterial({
   texture: texture3D,
-  channel: "R",
+  // channel: "R",
   absorbScale: 1,
   maxSteps: 64,
 });

@@ -45,7 +45,7 @@ export interface IV_VolumeTextureMaterial extends IV_BaseStandardMaterial {
      * 2、RGB：渲染RGB体素
      * 3、RGBA：渲染RGBA体素；todo：待定
      */
-    channel: "R" | "G" | "B" | "A" | "RGB" | "RGBA";
+    channel?: "R" | "G" | "B" | "A" | "RGB" | "RGBA";
     /**吸收强度，调节明暗 */
     absorbScale: number;
     /**总步数 */
@@ -144,7 +144,7 @@ export class VolumeMaterial extends BaseStandardMaterial {
         else {
             this.textures[E_TextureType.color] = input.texture;
         }
-        this.setupChannel(input.channel);
+        this.setupChannel(input.channel || "R");
         this._state = E_lifeState.unstart;
         this.shtOfMaterialType = {
             opacityForward: E_shaderRegisterAlianName["material.volume.forward"],
