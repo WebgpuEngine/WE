@@ -1,4 +1,4 @@
-import { mat4 } from "wgpu-matrix";
+import { Mat4, mat4, Vec4, vec4 } from "wgpu-matrix";
 import { IV_DrawCommandGenerator, DrawCommandGenerator, IV_DC } from "../../../../src/we/core/command/DrawCommandGenerator";
 import { IV_Scene, userDefineEventCall, eventOfScene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
@@ -37,7 +37,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.01,
   far: 100,
-  position: [0, 0, 3],
+  position: [0, 0, 5],
   lookAt: [0, 0, 0],
   controlType:"arcball",
 });
@@ -82,18 +82,19 @@ let inputMesh: IV_MeshEntity = {
     geometry: boxGeometry,
   },
   material: volumeMaterial,
-  //   wireFrame: {
-  //   color: [1, 1, 1, 1],
-  //   enable: true,
-  //   // wireFrameOnly: true,
-  // }
+    wireFrame: {
+    color: [1, 1, 1, 1],
+    enable: true,
+    // wireFrameOnly: true,
+  }
 }
 let mesh = new Mesh(inputMesh);
 
 console.log(mesh);
 window.mesh = mesh;
-window.instanceMash = await scene.add(mesh);
-
-// scene.run();
-
+window.instanceMash = await scene.add({
+  entity: mesh,
+  position: [1.5, 0, 0],
+  });
+volumeMaterial.setEntityWorldMatrix(window.instanceMash.matrixWorld);
 

@@ -18,7 +18,7 @@ struct st_volume_Uniform {
 //   modelMat: mat4x4f,
 //   invModelMat: mat4x4f,
   //entity的module matrix 
-  entity_world_matrix: mat4x4f,
+  invert_entity_world_matrix: mat4x4f,
   // 体积渲染参数
   absorb_scale: f32,  // 吸收强度，调节明暗
   max_steps: u32,     // 固定总步数 64
@@ -61,17 +61,15 @@ fn rayAABB(ro: vec3f, rd: vec3f) -> vec2f {
     let camera_position = u_mvp.cameraPosition;
     let ray_direction = normalize(fsInput.worldPosition - camera_position);
     // 2. 射线转换到立方体本地 [-1,1] 空间
-//     let inverse_entity_matrix = mat4x4f(
-//     vec4(1.0, 0.0, 0.0, 0.0), // 第1行
-//     vec4(0.0, 1.0, 0.0, 0.0), // 第2行
-//     vec4(0.0, 0.0, 1.0, 0.0), // 第3行
-//     vec4(0.0, 0.0, 0.0, 1.0)  // 第4行
-// );
-    // let inverse_entity_matrix = u_volume.entity_world_matrix;
-    let inverse_entity_matrix = transpose(u_volume.entity_world_matrix);
-    let ro_local = inverse_entity_matrix * vec4f(camera_position, 1.0);
-    let rd_local = inverse_entity_matrix * vec4f(ray_direction, 1.0);
-    let t_range = rayAABB(ro_local.xyz/ro_local.w, rd_local.xyz/rd_local.w);
+    // let inverse_entity_matrix = u_volume.invert_entity_world_matrix;
+    let inverse_entity_matrix = u_volume.invert_entity_world_matrix;
+    let ro_local = (inverse_entity_matrix * vec4f(camera_position, 1.0)).xyz;
+    let m3=mat3x3f(inverse_entity_matrix[0].xyz, inverse_entity_matrix[1].xyz, inverse_entity_matrix[2].xyz);
+    let rd_local = m3 * ray_direction;
+    // let ro_local =  camera_position - vec3f(0.51,0,0);
+    // let rd_local = ray_direction;
+
+    let t_range = rayAABB(ro_local.xyz, rd_local.xyz);
     let t_enter = t_range.x;
     let t_exit = t_range.y;
 
@@ -88,7 +86,7 @@ fn rayAABB(ro: vec3f, rd: vec3f) -> vec2f {
         let uvw = (pos_local.xyz + 1.0) *0.5;
         let density = textureSample(u_volume_texture, u_volume_sampler, uvw).r;
 
-        //指数吸收模型（Exponential Absorption Model）:比尔朗伯吸收定律
+        //指数吸收模型（Exponential Absorption Model）:比尔朗伯吸收定律 //ok
         // 掩码：仅t在射线有效区间才参与吸收，否则光学厚度=0
         let isValid = select(0.0, 1.0, t < t_exit);
         let opticalThickness = density * u_volume.absorb_scale * dt * isValid;

@@ -1,4 +1,17 @@
-
+/**
+ * 体积材质
+ * @description 体积材质用于渲染3D体积数据，如体积扫描数据、体积渲染等。
+ * @param texture 体积纹理
+ * @param channel 渲染通道
+ * @param absorbScale 吸收强度，调节明暗
+ * @param maxSteps 总步数
+ * @param transparentColor 透明颜色，todo：待定
+ * 
+ * todo：20260626
+ * 1、clipping，near和far的设置
+ *   A、 初步想法是在cube [-1,1]³上使用 xyz的near和far，将相交的进入与离开的点；即，不处理相交区间之外的数据；
+ *   B、 在3D纹理采样上，以对应增加和减少near和far，来调整采样的范围；
+ */
 
 import { Texture } from "../../texture/texture";
 import {
@@ -102,12 +115,12 @@ export class VolumeMaterial extends BaseStandardMaterial {
     sizeOfVolumeBuffer: number = 80;
     uniformVolumeBuffer: ArrayBuffer = new ArrayBuffer(this.sizeOfVolumeBuffer);
     uniformVolumeBufferView: {
-        entity_world_matrix: Float32Array,
+        invert_entity_world_matrix: Float32Array,
         absorb_scale: Float32Array,
         max_steps: Uint32Array,
         channel: Uint32Array,
     } = {
-            entity_world_matrix: new Float32Array(this.uniformVolumeBuffer, 0, 16),
+            invert_entity_world_matrix: new Float32Array(this.uniformVolumeBuffer, 0, 16),
             absorb_scale: new Float32Array(this.uniformVolumeBuffer, 64, 1),
             max_steps: new Uint32Array(this.uniformVolumeBuffer, 68, 1),
             channel: new Uint32Array(this.uniformVolumeBuffer, 72, 1),
@@ -322,7 +335,7 @@ export class VolumeMaterial extends BaseStandardMaterial {
     }
 
     writeUniformVolume(): void {
-        this.uniformVolumeBufferView.entity_world_matrix.set(this.entityWorldMatrix);
+        this.uniformVolumeBufferView.invert_entity_world_matrix.set(mat4.invert(this.entityWorldMatrix));
         this.uniformVolumeBufferView.absorb_scale.set([this.inputValues.absorbScale]);
         this.uniformVolumeBufferView.max_steps.set([this.inputValues.maxSteps]);
         this.uniformVolumeBufferView.channel.set([this.channel]);
