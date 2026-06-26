@@ -4,7 +4,7 @@ import { IV_Scene, userDefineEventCall, eventOfScene } from "../../../../src/we/
 import { initScene } from "../../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../../src/we/core/scene/scene";
-import { weGetBinaryResourceFromGzip } from "../../../../src/we/core/base/file/getFile";
+import { weGetBinaryByUrl, weGetBinaryResourceFromGzip } from "../../../../src/we/core/base/file/getFile";
 import { Texture3D } from "../../../../src/we/core/texture/texture3D";
 import { VolumeMaterial } from "../../../../src/we/core/material/standard/volumeMaterial";
 import { BoxGeometry } from "../../../../src/we/core/geometry/boxGeometry";
@@ -45,11 +45,11 @@ await scene.add(camera);
 
 //////////////////////////////////////////////////////////////
 //volume texture
-const width = 180;
-const height = 216;
-const depth = 180;
+const width = 256;
+const height = 256;
+const depth = 109;
 
-let decompressedArrayBuffer = await weGetBinaryResourceFromGzip("/volume/t1_icbm_normal_1mm_pn0_rf0_180x216x180_uint8_1x1.bin-gz.gz");
+let decompressedArrayBuffer = await weGetBinaryByUrl("/volume/head256x256x109");
 let texture3D = new Texture3D({
   source: decompressedArrayBuffer,
   format: "r8unorm",
@@ -95,8 +95,8 @@ window.mesh = mesh;
 window.instanceMash = await scene.add({
   entity: mesh,
   // position: [1.5, 0, 0],
-  rotate: [1, 0, 0, -Math.PI / 2],
-  scale: [1, 1, 1],
+  scale: [1, 1, 0.7],
+  rotate: [1, 0, 0, Math.PI],
 });
 volumeMaterial.setEntityWorldMatrix(window.instanceMash.matrixWorld);
 

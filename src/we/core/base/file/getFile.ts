@@ -6,6 +6,11 @@ export async function weGetImageByUrl(param: string): Promise<ImageBitmap> {
     let imageBitmap = await createImageBitmap(await response.blob());
     return imageBitmap;
 }
+export async function weGetBinaryByUrl(param: string): Promise<ArrayBuffer> {
+    let response = await fetch(param);
+    let binary = (await response.blob()).arrayBuffer();
+    return binary;
+}
 export async function weGetBinaryResourceFromGzip(param: string): Promise<ArrayBuffer> {
     let response = await fetch(param);
     // 在解压前判断是否存在传输压缩

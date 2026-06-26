@@ -1,10 +1,12 @@
 import { PerspectiveCamera } from "../../../src/we/core/camera/perspectiveCamera";
 import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
+import { BoxGeometry } from "../../../src/we/core/geometry/boxGeometry";
 import { SphereGeometry } from "../../../src/we/core/geometry/sphereGeometry";
 import { IBL } from "../../../src/we/core/ibl/ibl";
 import { AmbientLight } from "../../../src/we/core/light/ambientLight";
 import { DirectionalLight } from "../../../src/we/core/light/DirectionalLight";
 import { IV_PBRMaterial, PBRMaterial } from "../../../src/we/core/material/PBR/PBRMaterial";
+import { CubeTextureMaterial } from "../../../src/we/core/material/standard/cubeTextureMaterial";
 import { IV_Scene } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 
@@ -34,10 +36,10 @@ let camera = new PerspectiveCamera({
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
   near: 0.01,
-  far: 100,
+  far:  100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0],
-  controlType: "arcball",
+  controlType: "orbit",
 });
 await scene.add(camera);
 
@@ -95,9 +97,7 @@ await scene.add(mesh);
 
 let ibl = new IBL(scene, {
   enable: true,
-  // use_ibl: 1,
   ibl:
-  //  [
   {
     sh: [
       1.91613, 1.71772, 1.07797,
@@ -115,9 +115,35 @@ let ibl = new IBL(scene, {
     prefilteredCubeMap: "/IBL/pine_attic_2k/ktx1/output_ibl.ktx",
 
   },
-  // ],
   shAlreadyPreMultiplyConst: false
 });
 await ibl.init();
 window.ibl = ibl;
 console.log(ibl);
+
+
+let textureMaterial = new CubeTextureMaterial({
+  texture: "/IBL/CornellBox/CornellBox",
+  cubeType: "sky",
+});
+
+let boxGeometry = new BoxGeometry();
+let inputSkyMeshEntity: IV_MeshEntity = {
+  attributes: {
+    geometry: boxGeometry,
+  },
+  material: textureMaterial,
+  // wireFrame: {
+  //   color: [1, 1, 1, 1],
+  //   enable: true,
+  //   // wireFrameOnly: true,
+  // },
+  primitive: {
+    cullMode: "none"
+  },
+  // position: [0, 0, 3],
+  scale: [100, 100, 100],
+}
+let skyMesh = new Mesh(inputSkyMeshEntity);
+console.log(skyMesh);
+await scene.add(skyMesh);

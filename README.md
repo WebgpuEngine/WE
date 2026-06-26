@@ -66,8 +66,10 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 | ![1763631817758](images/README/1763631817758.png) | ![1763631965740](images/README/1763631965740.png) | ![1763631975198](images/README/1763631975198.png) |
 | 骨骼动画 skeleton                                 | 变形目标 morph target                             | gltf Fox 骨骼动画                                 |
 | ![1772438077121](images/README/1772438077121.png) | ![1772438257776](images/README/1772438257776.png) | ![1772437632575](images/README/1772437632575.png) |
-| gltf Hen 骨骼动画                                 | gltf LittlestTokyo                                |                                                   |
-| ![1772470423684](images/README/1772470423684.png) | ![1772437639746](images/README/1772437639746.png) |                                                   |
+| gltf Hen 骨骼动画                                 | gltf LittlestTokyo                                | 体渲染                                            |
+| ![1772470423684](images/README/1772470423684.png) | ![1782467345720](images/README/1782467345720.png) | ![1782467443074](images/README/1782467443074.png) |
+| PBR+IBL+SH                                        | PBR+IBL+SH+预览波+天空盒                          | rapier demo with WE3D                             |
+| ![1782468776687](images/README/1782468776687.png) | ![1782467363680](images/README/1782467363680.png) | ![1782468932611](images/README/1782468932611.png) |
 
 # 资料参考与推荐
 
