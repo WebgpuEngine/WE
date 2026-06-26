@@ -14,17 +14,25 @@ import {
 export class ShaderRegister {
     /**include file path,目的统一内外部使用方式 */
     _include: Map<string, string> = new Map();
+
     /**replace name,目的统一内外部使用方式 */
     _replace: Map<string, string> = new Map();
 
     _reflection: Map<string, string> = new Map();
+
     /**shader code,目的统一内外部使用方式 */
     _shaderCode: Map<string, string> = new Map();
+
     /**alias shader code, 外部调用数据 */
     _aliasShaderCode: Map<string, string> = new Map();
+
     /**const override ，目的统一内外部使用方式 */
     _override: Map<string, number> = new Map();
-    /**tga shader code */
+
+    /**tga shader code，目前包括两个tag：gbuffers、gbuffers.output
+     * 1、"gbuffers"：GBuffer struct的资源（#tag gbuffers_output ）
+     * 2、"gbuffers.output"：GBuffer output的资源（#tag gbuffers_output ）
+     */
     _tag: Map<string, any> = new Map();
 
     constructor() {
@@ -37,10 +45,17 @@ export class ShaderRegister {
         for (let key in WGSL_ShaderCode) {
             this.addShaderCode(key, WGSL_ShaderCode[key]);
         }
+        //添加gbuffers tag
         this._tag.set("gbuffers", WGSL_V_Gbuffers_struct);
+        //添加gbuffers.output tag
         this._tag.set("gbuffers.output", WGSL_V_Gbuffers_output);
+
+        //初始化alias shader code
         this.initShaderCodeAlias();
     }
+    /**
+     * 初始化alias shader code（ this._aliasShaderCode）
+     */
     initShaderCodeAlias() {
         for (let key in WGSL_AliasShaderCode) {
             let perAlias = WGSL_AliasShaderCode[key];
@@ -138,6 +153,7 @@ export class ShaderRegister {
         }
         return newLines.join("\n");
     }
+    /**根据tag name获取tag code（string） */
     getTag(tagName: string): string {
         let tagCode = this._tag.get(tagName);
         if (tagCode) {
@@ -147,6 +163,7 @@ export class ShaderRegister {
             throw new Error(tagName + " not found");
         }
     }
+    /**根据renderMode获取需要include的 gbuffers struct code（string） */
     getTagGBuffersStruct(renderMode: T_SHR_RenderMode): string {
         let tagCode = this._tag.get("gbuffers")[renderMode];
         if (tagCode) {
@@ -156,6 +173,7 @@ export class ShaderRegister {
             throw new Error("gbuffers not found");
         }
     }
+    /**根据renderMode获取gbuffers output 结构体 code（string） */
     getTagGBuffersOutput(renderMode: T_SHR_RenderMode): string {
         let tagCode = this._tag.get("gbuffers.output")[renderMode];
         if (tagCode) {
@@ -169,6 +187,7 @@ export class ShaderRegister {
     addInclude(filePath: string, code: string) {
         this._include.set(filePath, code);
     }
+    /**根据include file path获取include code（string） */
     getInclude(filePath: string) {
         let includeCode = this._include.get(filePath);
         if (includeCode) {
@@ -178,9 +197,18 @@ export class ShaderRegister {
             throw new Error(filePath + " not found");
         }
     }
+    /**
+     * 20260626 未使用，预留
+     * 根据replace name获取replace code（string） 
+     * 用于替换 指定的 replaceName
+    */
     getReplace(replaceName: string) {
         return this._replace.get(replaceName);
     }
+    /**根据replace name获取replace code（string） 
+     * 1、用于替换user_shader_code
+     * 2、在vs、fs编译之前调用
+    */
     replaceUserShaderCode(shaderCode: string, useShaderCode: string) {
         let lines = shaderCode.split("\n");
         for (let perLine_i in lines) {
@@ -238,6 +266,8 @@ export class ShaderRegister {
     joinByEnter(lines: string[]) {
         return this.join(lines, "\n");
     }
+    ////////////////////////////////////////////////////////////////////////////////////////
+    //reflection 处理
     /** 处理reflection指令，DCG调用 */
     reflection(vsCode: string, refName: string[], locations: string[]): string {
         let code = this.reflectionLocations(vsCode, refName, locations);

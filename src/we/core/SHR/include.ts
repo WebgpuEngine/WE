@@ -64,6 +64,7 @@ import videoExternalTextureFSWGSL from "../shaders/material/texture/videoExterna
 import wireFrameFSWGSL from "../shaders/material/wirframe/wireFrame.fs.wgsl?raw";
 import cubeSKyTextureFSWGSL from "../shaders/material/texture/cubeSkyTexture.fs.wgsl?raw";
 import cubePositionTextureFSWGSL from "../shaders/material/texture/cubeLocalTexture.fs.wgsl?raw";
+import volumeTextureFSWGSL from "../shaders/material/volume/volume.fs.wgsl?raw";
 
 import include_Phong_function_WGSL from "../shaders/material/phong/phongfunction.wgsl?raw"
 import phongMaterialWGSL from "../shaders/material/phong/phongcolor.fs.wgsl?raw"
@@ -85,15 +86,17 @@ import systemOfCamera_wgsl from "../shaders/system/system.wgsl?raw"
 import structOfCamera_wgsl from "../shaders/system/structOfCamera.wgsl?raw"
 //////////////////////////////////////////////////////////////////////////////////
 //IBL
-import  include_bindgroup3_wgsl from "../shaders/graphic/bindgroup3/bindgroup.wgsl?raw"
+import include_bindgroup3_wgsl from "../shaders/graphic/bindgroup3/bindgroup.wgsl?raw"
 // import  include_struct_ibl_wgsl from "../shaders/graphic/ibl/struct_ibl.wgsl?raw"
-import  include_ibl_fn_wgsl from "../shaders/graphic/ibl/ibl_fn.wgsl?raw"
+import include_ibl_fn_wgsl from "../shaders/graphic/ibl/ibl_fn.wgsl?raw"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /**渲染模式 */
 export type T_SHR_RenderMode = "forward" | "defer" | "Msaa" | "MsaaInfo" | "blend";
 
-/**include代码 */
+/**include代码 ：基础代码
+ * 1、为vs、fs的wgsl代码服务，提供include资源
+*/
 export var WGSL_Include: Record<string, string> = {
     "colorSpace/toneMapping.wgsl": include_toneMappingWGSL,
 
@@ -134,7 +137,12 @@ export var WGSL_Include: Record<string, string> = {
     // "graphic/ibl/struct_ibl.wgsl": include_struct_ibl_wgsl,
     "graphic/ibl/ibl_fn.wgsl": include_ibl_fn_wgsl,
 }
-/**指定GBuffer struct */
+
+/**指定GBuffer struct 
+ * 1、为fs的wgsl代码服务，提供选择性include GBufer结构体功能
+ * 2、在WGSL文件中的形式如：#tag gbuffers
+ * 
+*/
 export var WGSL_V_Gbuffers_struct: Record<T_SHR_RenderMode, string> = {
     "forward": tag_st_GBuffer_wgsl,
     "defer": tag_st_GBuffer_wgsl,
@@ -142,7 +150,10 @@ export var WGSL_V_Gbuffers_struct: Record<T_SHR_RenderMode, string> = {
     "MsaaInfo": tag_st_MSAAinfo_GBuffer_wgsl,
     "blend": tag_st_blend_GBuffer_wgsl,
 }
-/**指定GBuffer output */
+/**指定GBuffer output 
+ * 1、为fs的wgsl代码服务，提供选择性include GBufer output 结构体的定义
+ * 2、在WGSL文件中的形式如：#tag gbuffers_output
+*/
 export var WGSL_V_Gbuffers_output: Record<T_SHR_RenderMode, string> = {
     "forward": tag_gbuffer_output_wgsl,
     "defer": tag_gbuffer_output_wgsl,
@@ -154,7 +165,9 @@ export var WGSL_V_Gbuffers_output: Record<T_SHR_RenderMode, string> = {
 export var WGSL_Replace: Record<string, string> = {
     "test1": " ",
 }
-/**shader代码 */
+/**主shader代码
+ * 1、为WGSL_AliasShaderCode中的code部分的string赋值
+ */
 export var WGSL_ShaderCode: Record<string, string> = {
     "entity/mesh/main.vs.wgsl": meshMain_wgsl,
     "entity/shadowmap/main.vs.wgsl": shadowmapMain_wgsl,
@@ -178,6 +191,7 @@ export var WGSL_ShaderCode: Record<string, string> = {
     "material/phong/phongcolor.fs.wgsl": phongMaterialWGSL,
     "material/PBR/PBR.fs.wgsl": PBRMaterialWGSL,
 
+    "material/volume/volume.fs.wgsl": volumeTextureFSWGSL,
 
     "PostProcess/blur/blur3x3.fs.wgsl": PP_Blur3x3_FS_WGSL,
     "PostProcess/AA/FXAA.fs.wgsl": PP_FXAA_FS_WGSL,
@@ -195,7 +209,8 @@ export interface I_aliasShaderCode {
     // renderMode?: Record<string, boolean>
 }
 /**alias shader名称
- * 对外输出的shader名称
+ * 1、对外输出的shader名称,名称与E_shaderRegisterAlianName中的名称一致
+ * 2、material中的渲染模式部分 ，如：material.color.xxx 是在SHR中注册的别名
 */
 export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
 
@@ -354,10 +369,21 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         code: WGSL_ShaderCode["material/PBR/PBR.fs.wgsl"],
         renderMode: {
             forward: true,
-            defer: true,
+            defer: false,
             Msaa: true,
             MsaaInfo: true,
-            blend: true,
+            blend: false,
+        }
+    },
+    "material.volume": {
+        type: "fs",
+        code: WGSL_ShaderCode["material/volume/volume.fs.wgsl"],
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
         }
     },
     "postProcess.blur3x3": {
@@ -373,6 +399,9 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
         code: WGSL_ShaderCode["PostProcess/test/redToOne.fs.wgsl"],
     },
 }
+/**
+ * 着色器注册的别名
+ */
 export enum E_shaderRegisterAlianName {
     "toneMapping" = "toneMapping",
     "defer" = "defer",
@@ -432,6 +461,10 @@ export enum E_shaderRegisterAlianName {
     "material.pbr.Msaa" = "material.pbr.Msaa",
     "material.pbr.MsaaInfo" = "material.pbr.MsaaInfo",
     "material.pbr.blend" = "material.pbr.blend",
+
+    "material.volume.forward" = "material.volume.forward",
+    "material.volume.Msaa" = "material.volume.Msaa",
+    "material.volume.MsaaInfo" = "material.volume.MsaaInfo",
 
     "postProcess.blur3x3" = "postProcess.blur3x3",
     "postProcess.FXAA" = "postProcess.FXAA",

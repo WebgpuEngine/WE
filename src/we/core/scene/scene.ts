@@ -909,6 +909,10 @@ export class Scene {
     async renderToSurface() {
         let defaultCamera = this.cameraManager.defaultCamera;
         if (defaultCamera) {
+             if (this.finalTarget.NDC == true) {
+                console.warn("非NDC 模式下，但开启了modeNDC 模式.");
+                this.finalTarget.NDC = false;
+             }
             //直接copy GBuffer的color到canvas
             // let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].finalRender.color;
 

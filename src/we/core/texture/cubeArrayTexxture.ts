@@ -1,5 +1,5 @@
 import { E_lifeState } from "../base/coreDefine";
-import { weGetImagesByUrl } from "../base/coreFunction";
+import { weGetImagesByUrl } from "../base/file/getFile";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture } from "./base";

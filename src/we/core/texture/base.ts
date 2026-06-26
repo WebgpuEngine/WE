@@ -90,9 +90,9 @@ export interface I_BaseTexture extends I_Update {  /**纹理名称 */
     usage?: GPUTextureUsageFlags,
     name?: string,
     /**
-     * 纹理的源数据
+     * 纹理的源数据,由后续的基础类再次定义使用
      */
-    source: T_textureSourceType,
+    source: any,
 }
 
 export function isI_BaseTexture(texture: any): texture is I_BaseTexture {

@@ -1,5 +1,5 @@
 import { E_lifeState } from "../base/coreDefine";
-import { I_VideoOption, weGetVidoeByUrl } from "../base/coreFunction";
+import { I_VideoOption, weGetVidoeByUrl } from "../base/file/getFile";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
 import { I_BaseSampler, I_BaseTexture, numMipLevels, T_textureSourceType } from "./base";
@@ -59,8 +59,8 @@ export class VideoTexture extends BaseTexture {
     model: T_modelOfVideo = "copy";
     override inputValues: IV_OptionVideoTexture;
     declare texture: GPUTexture | GPUExternalTexture;
-    width!: number;
-    height!: number;
+    // width!: number;
+    // height!: number;
     premultipliedAlpha!: boolean;
     video!: HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | VideoFrame;
     constructor(input: IV_OptionVideoTexture, device: GPUDevice, scene?: Scene) {

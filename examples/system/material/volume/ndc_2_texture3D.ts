@@ -5,6 +5,7 @@ import { initScene } from "../../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../../src/we/core/scene/scene";
 import { weGetBinaryResourceFromGzip } from "../../../../src/we/core/base/file/getFile";
+import { Texture3D } from "../../../../src/we/core/texture/texture3D";
 
 
 declare global {
@@ -81,7 +82,13 @@ fn fs(
     result += select(0.0, (1.0 - result) * sample, intersects && result < 1.0);
     rayPos += step;
   }
-  return vec4f(vec3f(result), 1.0);
+  var color: vec4f;
+  if(result > 0.0) {
+   color = vec4f(vec3f(result), 1.0);
+  } else {
+    color = vec4f(0);
+  }
+  return color;
 }
 `;
 //////////////////////////////////////////////////////////////
@@ -96,19 +103,26 @@ const blocksHigh = Math.ceil(height / blockLength);
 const bytesPerRow = blocksWide * bytesPerBlock;
 
 let decompressedArrayBuffer = await weGetBinaryResourceFromGzip("/volume/t1_icbm_normal_1mm_pn0_rf0_180x216x180_uint8_1x1.bin-gz.gz");
-let volumeTexture = scene.device.createTexture({
-  dimension: '3d',
-  size: [width, height, depth],
-  format: "r8unorm",
-  usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-});
+// let volumeTexture = scene.device.createTexture({
+//   dimension: '3d',
+//   size: [width, height, depth],
+//   format: "r8unorm",
+//   usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+// });
 
-scene.device.queue.writeTexture(
-  { texture: volumeTexture },
-  decompressedArrayBuffer,
-  { bytesPerRow: bytesPerRow, rowsPerImage: blocksHigh },
-  [width, height, depth]
-);
+// scene.device.queue.writeTexture(
+//   { texture: volumeTexture },
+//   decompressedArrayBuffer,
+//   { bytesPerRow: bytesPerRow, rowsPerImage: blocksHigh },
+//   [width, height, depth]
+// );
+
+let texture3D = new Texture3D({
+  source: decompressedArrayBuffer,
+  format: "r8unorm",
+  size: { width, height, depth },
+}, scene.device, scene);
+await texture3D.init();
 //////////////////////////////////////////////////////////////
 //uniform buffer
 const uniformBufferSize = 4 * 16; // 4x4 matrix
@@ -182,17 +196,19 @@ let layout: GPUBindGroupLayout = scene.device.createBindGroupLayout({
       visibility: GPUShaderStage.FRAGMENT,
       sampler:
       {
-        type: "filtering",
+        type: texture3D.samplerLayout.type,
+        // type: "filtering",
       },
     },
     {
       binding: 2,
       visibility: GPUShaderStage.FRAGMENT,
       texture:
-      {
-        sampleType: "float",
-        viewDimension: "3d",
-      },
+        texture3D.textureLayout,
+      // {
+      //   sampleType: "float",
+      //   viewDimension: "3d",
+      // },
     },
 
   ],
@@ -211,7 +227,8 @@ const bindGroupDescriptor: GPUBindGroupDescriptor = {
     },
     {
       binding: 2,
-      resource: volumeTexture,
+      // resource: volumeTexture,
+      resource: texture3D.texture,
     },
   ],
 };

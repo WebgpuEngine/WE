@@ -1,0 +1,346 @@
+
+
+import { Texture } from "../../texture/texture";
+import {
+    E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
+    IV_BaseStandardMaterial,
+    materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
+} from "../base";
+import { E_lifeState, weVec3 } from "../../base/coreDefine";
+import { T_uniformEntries } from "../../command/base";
+import { Clock } from "../../scene/clock";
+import { BaseStandardMaterial } from "./baseStandard";
+import { E_shaderRegisterAlianName } from "../../SHR/include";
+import { BaseTexture } from "../../texture/baseTexture";
+import { Texture3D } from "../../texture/texture3D";
+import { mat4, Mat4 } from "wgpu-matrix";
+
+
+
+/**
+ * 不透明图像中的alpha值小于1.0时的操作
+ */
+// export type T_opacityAlphaOperations = "discard" | "opacity";
+/**
+ * 纹理材质的初始化参数 * 
+ */
+export interface IV_VolumeTextureMaterial extends IV_BaseStandardMaterial {
+    texture: Texture3D;
+    /**
+     * 渲染通道
+     * 1、R通道：默认
+     * 2、RGB：渲染RGB体素
+     * 3、RGBA：渲染RGBA体素；todo：待定
+     */
+    channel: "R" | "G" | "B" | "A" | "RGB" | "RGBA";
+    /**吸收强度，调节明暗 */
+    absorbScale: number;
+    /**总步数 */
+    maxSteps: number;
+    // /**
+    //  * 实体世界矩阵，shader中使用
+    //  */
+    // entityWorldMatrix: Mat4;
+
+    // /**
+    //  * 透明颜色，
+    //  * 1、默认为:不使用透明颜色
+    //  * 2、指定透明颜色，如 [0,0,0]，则指定颜色完全透明，[0,0,0]一般也是体渲染中的透明部分或底色（一般为黑色）
+    //  * 
+    //  */
+    // transparentColor?: weVec3;
+}
+
+export class VolumeMaterial extends BaseStandardMaterial {
+
+    channel: number = 0;
+    setupChannel(channel: "R" | "G" | "B" | "A" | "RGB" | "RGBA" = "R") {
+        switch (channel) {
+            case "R":
+                this.channel = 0;
+                break;
+            case "G":
+                this.channel = 1;
+                break;
+            case "B":
+                this.channel = 2;
+                break;
+            case "A":
+                this.channel = 3;
+                break;
+            case "RGB":
+                this.channel = 4;
+                break;
+            case "RGBA":
+                this.channel = 5;
+                break;
+            default:
+                this.channel = 0;
+                break;
+        }
+    }
+    /**
+     * 实体世界矩阵，shader中使用,默认为单位矩阵
+     */
+    entityWorldMatrix: Mat4 = mat4.create
+        (
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        );
+    /**是否使用实体世界矩阵 
+     * 1、默认为false，不使用实体世界矩阵
+     * 2、如果需要使用实体世界矩阵，需要在使用setEntityWorldMatrix()设置实体世界矩阵
+    */
+    hasEntityWorldMatrix: boolean = false;
+    /**设置实体世界矩阵 */
+    setEntityWorldMatrix(matrix: Mat4) {
+        this.entityWorldMatrix = matrix;
+        this.hasEntityWorldMatrix = true;
+    }
+    sizeOfVolumeBuffer: number = 80;
+    uniformVolumeBuffer: ArrayBuffer = new ArrayBuffer(this.sizeOfVolumeBuffer);
+    uniformVolumeBufferView: {
+        entity_world_matrix: Float32Array,
+        absorb_scale: Float32Array,
+        max_steps: Uint32Array,
+        channel: Uint32Array,
+    } = {
+            entity_world_matrix: new Float32Array(this.uniformVolumeBuffer, 0, 16),
+            absorb_scale: new Float32Array(this.uniformVolumeBuffer, 64, 1),
+            max_steps: new Uint32Array(this.uniformVolumeBuffer, 68, 1),
+            channel: new Uint32Array(this.uniformVolumeBuffer, 72, 1),
+        }
+    uniformVolumeGPUBuffer!: GPUBuffer;
+
+    declare inputValues: IV_VolumeTextureMaterial;
+
+    /**纹理收集器 */
+    declare textures: {
+        [name: string]: BaseTexture
+    };
+
+    constructor(input: IV_VolumeTextureMaterial) {
+        super(input);
+        this.kind = E_MaterialType.texture;
+        this.textures = {};
+        if (input.texture == undefined) {
+            throw new Error("TextureMaterial: texture is undefined");
+        }
+        else {
+            this.textures[E_TextureType.color] = input.texture;
+        }
+        this.setupChannel(input.channel);
+        this._state = E_lifeState.unstart;
+        this.shtOfMaterialType = {
+            opacityForward: E_shaderRegisterAlianName["material.volume.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.volume.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.volume.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.volume.MsaaInfo"],
+            TT: undefined,
+            // TO_Forward: SHT_materialTextureFS,
+            // TO_Defer: SHT_materialTextureFS,
+            // TO_MSAA: SHT_materialTextureFS_MSAA,
+            // TO_MsaaInfo: SHT_materialTextureFS_MSAAinfo,
+            // TTP: SHT_materialTexture_TTP_FS,
+            // TTPF: SHT_materialTexture_TTPF_FS,
+        };
+    }
+    _destroy() {
+        for (let key in this.textures) {
+            this.textures[key].destroy();
+        }
+        this.textures = {};
+        this._state = E_lifeState.destroyed;
+    }
+
+    async readyForGPU(): Promise<any> {
+        this.uniformVolumeGPUBuffer = this.device.createBuffer({
+            size: this.sizeOfVolumeBuffer,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        this.writeUniformVolume();
+
+        this.writeUniformCommon();
+        this.defaultSampler = this.checkSampler(this.inputValues);
+        let texture = this.inputValues.texture;
+        if (texture instanceof BaseTexture) {
+            this.textures[E_TextureType.color] = texture;
+        }
+        else {
+            let textureInstace = new Texture({ source: texture }, this.device, this.scene);
+            await textureInstace.init(this.scene);
+            this.textures[E_TextureType.color] = textureInstace;
+        }
+        this._state = E_lifeState.finished;
+    }
+    _writeUniformCommon(): void { }
+    // writeUniformBuffer(update: boolean = false) {
+    //     if (this.uniformPointer == undefined) {
+    //         let pointerParams: I_pointerCreateParams = {
+    //             name: `uniform ${this.kind} material: ${this.UUID}`,
+    //             byteSize: this.getPointerByteSize(16),//4 * 4,最小256字节对齐
+    //             type: E_BOLBufferType.uniform,
+    //             viewType: "f32",//由于data是ArrayBuffer,按照u8处理
+    //         };
+    //         this.uniformPointer = this.scene.pointers.createPointer(pointerParams);
+    //     }
+    //     let offset = this.uniformPointer.offset;
+    //     let unifromCPUBuffer = this.uniformPointer.cpuBuffer;
+    //     const uniform_texture_materialViews = {
+    //         has_opacity_percent: new Float32Array(unifromCPUBuffer, offset + 0, 1),
+    //         opacity: new Float32Array(unifromCPUBuffer, offset + 4, 1),
+    //         has_alphaTest: new Int32Array(unifromCPUBuffer, offset + 8, 1),
+    //         alphaTest: new Float32Array(unifromCPUBuffer, offset + 12, 1),
+    //     };
+    //     uniform_texture_materialViews.has_opacity_percent[0] = this.HasOpacity;
+    //     uniform_texture_materialViews.opacity[0] = this.Opacity;
+    //     uniform_texture_materialViews.has_alphaTest[0] = this.getHasAlphaTest();
+    //     uniform_texture_materialViews.alphaTest[0] = this.AlphaTest;
+    //     this.scene.pointers.updatePointerWriteTime(this.uniformPointer);
+    // }
+    /**是否有alphaTest */
+    getHasAlphaTest() {
+        if (this._transparentMode.mode == "alphaTest") {
+            return 1;
+        }
+        return 0;
+    }
+    get AlphaTest() {
+        let alphaCutOff = 0.0;
+        if (this._transparentMode.alphaParams?.alphaCutOff)
+            alphaCutOff = this._transparentMode.alphaParams.alphaCutOff;
+        return alphaCutOff;
+    }
+    set AlphaTest(value: number) {
+        this._transparentMode.alphaParams = {
+            alphaCutOff: value,
+        }
+        this.writeUniformCommon();
+    }
+    get Opacity() {
+        let opacity = 1.0;
+        if (this._transparentMode.alphaOfTransparent === true && this._transparentMode.alphaParams?.blendParams?.opacity)
+            opacity = this._transparentMode.alphaParams.blendParams.opacity;
+        return opacity;
+    }
+    set Opacity(value: number) {
+        this._transparentMode.alphaOfTransparent = true;
+        this._transparentMode.alphaParams = {
+            blendParams: {
+                opacity: value,
+            }
+        }
+        this.writeUniformCommon();
+    }
+    get HasOpacity() {
+        let hasOpacity = 0;
+        if (this._transparentMode.alphaOfTransparent && this._transparentMode.alphaParams?.blendParams?.opacity) {
+            hasOpacity = 1;
+        }
+        return hasOpacity;
+    }
+
+    getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
+        let binding: number = 0;
+        let layoutEntries: GPUBindGroupLayoutEntry[] = [
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {
+                    type: "uniform",
+                },
+            },
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {
+                    type: "uniform",
+                },
+            },
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture:
+                    this.textures[E_TextureType.color].textureLayout,
+            },
+            {
+                binding: binding++,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: this.textures[E_TextureType.color].samplerLayout,
+            }
+        ];
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
+            let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
+            layoutEntries.push(...layoutMSAA.layout);
+            binding = layoutMSAA.binding;
+        }
+        return layoutEntries;
+    }
+    getEntriesOfBindGroup(materialType: E_materialTypeForBindGroup, uuid?: string): T_uniformEntries[] {
+        let binding: number = 0;
+        let uniformEntries: T_uniformEntries[] = [
+            {
+                binding: binding++,
+                resource: this.uniformPointerCommon.gpuBufferView,
+            },
+            {
+                binding: binding++,
+                resource: this.uniformVolumeGPUBuffer,
+            },
+            {
+                binding: binding++,
+                resource: this.textures[E_TextureType.color].texture.createView(),
+            },
+            {
+                binding: binding++,
+                resource: this.textures[E_TextureType.color].sampler,
+            },
+        ];
+
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
+            if (uuid) {
+                let groupMSAA = materialAddBindGroupOfMSAA(this, binding, uuid);
+                uniformEntries.push(...groupMSAA.group);
+                binding = groupMSAA.binding;
+            }
+            else
+                throw new Error("uuid is undefined");
+        }
+        return uniformEntries;
+    }
+    getGroupAndBindingString(materialType: E_materialTypeForBindGroup): string {
+        let binding: number = 4;
+        let groupAndBindingString: string = "";//bindgroup 字符串在shader中;固定的前4个；
+        if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
+            let codeAddOfMSAA = materialAddGroupBindStringOfMSAA(binding);
+            groupAndBindingString += codeAddOfMSAA.code;
+            binding = codeAddOfMSAA.binding;
+        }
+        return groupAndBindingString;
+    }
+
+    writeUniformVolume(): void {
+        this.uniformVolumeBufferView.entity_world_matrix.set(this.entityWorldMatrix);
+        this.uniformVolumeBufferView.absorb_scale.set([this.inputValues.absorbScale]);
+        this.uniformVolumeBufferView.max_steps.set([this.inputValues.maxSteps]);
+        this.uniformVolumeBufferView.channel.set([this.channel]);
+        this.device.queue.writeBuffer(this.uniformVolumeGPUBuffer, 0, this.uniformVolumeBuffer);
+    }
+
+
+    updateSelf(clock: Clock): void {
+        this.writeUniformVolume();
+    }
+    saveJSON() {
+        throw new Error("Method not implemented.");
+    }
+    loadJSON(json: any): void {
+        throw new Error("Method not implemented.");
+    }
+
+
+
+
+}

@@ -3,7 +3,6 @@ import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 import {
     E_entityType,
-    I_EntityBundleOutput,
     I_entityInstance,
     IV_BaseEntity,
     I_optionShadowEntity,

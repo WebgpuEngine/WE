@@ -16,6 +16,23 @@ export abstract class BaseTexture extends RootGPU {
     _upsideDownY: boolean = true;
 
     source!: T_textureSourceType;
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // texture format and info 
+    /** 每个块字节数 */
+    bytesPerBlock: number = 1;
+    /** 每个块的宽度 */
+    blockLength: number = 1;
+    width: number = 1;
+    height: number = 1;
+    depth: number = 1;
+
+    /** 每行字节数 */
+    bytesPerRow!: number;
+    /** 每行块数 */
+    blocksWide!: number;
+    /** 每列块数 */
+    blocksHigh!: number;
+
     /**纹理 
      * 外部访问对象
     */
@@ -35,7 +52,7 @@ export abstract class BaseTexture extends RootGPU {
     };
 
     textureFormat: GPUTextureFormat = 'rgba8unorm-srgb';
-
+    ///////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 指定的纹理的采样器，由I_BaseTexture的sampler参数指定。
      * 默认：没有，使用材质的默认采样器。
@@ -58,6 +75,7 @@ export abstract class BaseTexture extends RootGPU {
     */
     _state: E_lifeState = E_lifeState.unstart;
 
+
     commands: commmandType[] = [];
 
     constructor(inputValues: I_BaseTexture, device: GPUDevice, scene?: Scene) {
@@ -68,7 +86,9 @@ export abstract class BaseTexture extends RootGPU {
         if (inputValues.format != undefined) {
             this.textureFormat = inputValues.format;
         }
-
+        //不能在这里使用，因为子类的textureFormat可能是不同的，比如HDRTexture的textureFormat是rgba332float
+        //// this.checkByteInfo(this.textureFormat);
+        //// this.checkTargetFormat(this.textureFormat);
         if (inputValues.upsideDownY != undefined) {
             this._upsideDownY = inputValues.upsideDownY;
         }
@@ -77,9 +97,10 @@ export abstract class BaseTexture extends RootGPU {
         }
         else
             this.source = inputValues.source
+
         if (scene) {
             this.scene = scene;
-            this.setRootENV(scene)
+            this.setRootENV(scene);
         }
     }
     _destroy(): void {
@@ -116,7 +137,7 @@ export abstract class BaseTexture extends RootGPU {
         this.texture = this.scene.resourcesGPU.textureOfString.get("default");
         //默认的采样器
         this.sampler = this.scene.resourcesGPU.getSampler("linear");
-        
+
         await super.init(scene);
         // this.initBindingLayoutSetting();
         // this.initSamplerAndLayout(this.inputValues);
@@ -374,5 +395,283 @@ export abstract class BaseTexture extends RootGPU {
         else this.setTextureLayoutsampleType('float');
 
     }
+    /**
+     * 检查textureFormat的字节数和块长度，返回字节数和块长度
+     * 1、按需调用，不在构造函数中调用，因为textureFormat可能是不同的，比如HDRTexture的textureFormat是rgba332float
+     * @param format 
+     * @returns 字节数和块长度
+     */
+    checkByteInfo(format: GPUTextureFormat): { bytesPerBlock: number; blockLength: number } {
+        let bytesPerBlock = 1;
+        let blockLength = 1;
+        switch (format) {
+            case "r8unorm":
+            case "r8snorm":
+            case "r8uint":
+            case "r8sint":
+                bytesPerBlock = 1;
+                blockLength = 1;
+                break;
+            case "r16unorm":
+            case "r16snorm":
+            case "r16uint":
+            case "r16sint":
+            case "r16float":
+            case "rg8unorm":
+            case "rg8snorm":
+            case "rg8uint":
+            case "rg8sint":
+                bytesPerBlock = 2;
+                blockLength = 1;
+                break;
+            case "r32uint":
+            case "r32sint":
+            case "r32float":
+            case "rg16unorm":
+            case "rg16snorm":
+            case "rg16uint":
+            case "rg16sint":
+            case "rg16float":
+            case "rgba8unorm":
+            case "rgba8unorm-srgb":
+            case "rgba8snorm":
+            case "rgba8uint":
+            case "rgba8sint":
+            case "bgra8unorm":
+            case "bgra8unorm-srgb":
+                bytesPerBlock = 4;
+                blockLength = 1;
+                break;
+            case "rgb9e5ufloat":
+            case "rgb10a2uint":
+            case "rgb10a2unorm":
+            case "rg11b10ufloat":
+                bytesPerBlock = 4;
+                blockLength = 1;
+                break;
+            case "rg32uint":
+            case "rg32sint":
+            case "rg32float":
+            case "rgba16unorm":
+            case "rgba16snorm":
+            case "rgba16uint":
+            case "rgba16sint":
+            case "rgba16float":
+                bytesPerBlock = 2 * 4;
+                blockLength = 1;
+                break;
+            case "rgba32uint":
+            case "rgba32sint":
+            case "rgba32float":
+                bytesPerBlock = 4 * 4;
+                blockLength = 1;
+                break;
 
-}  
+            // BC compressed formats 
+            case "bc1-rgba-unorm":
+            case "bc1-rgba-unorm-srgb":
+                bytesPerBlock = 8;
+                blockLength = 4;
+                break;
+            case "bc2-rgba-unorm":
+            case "bc2-rgba-unorm-srgb":
+            case "bc3-rgba-unorm":
+            case "bc3-rgba-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 4;
+                break;
+            case "bc4-r-unorm":
+            case "bc4-r-snorm":
+                bytesPerBlock = 8;
+                blockLength = 4;
+                break;
+            case "bc5-rg-unorm":
+            case "bc5-rg-snorm":
+
+            case "bc6h-rgb-ufloat":
+            case "bc6h-rgb-float":
+            case "bc7-rgba-unorm":
+            case "bc7-rgba-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 4;
+                break;
+
+            // ETC2 compressed formats 
+            case "etc2-rgb8unorm":
+            case "etc2-rgb8unorm-srgb":
+            case "etc2-rgb8a1unorm":
+            case "etc2-rgb8a1unorm-srgb":
+                bytesPerBlock = 8;
+                blockLength = 4;
+                break;
+            case "etc2-rgba8unorm":
+            case "etc2-rgba8unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 4;
+                break;
+            case "eac-r11unorm":
+            case "eac-r11snorm":
+                bytesPerBlock = 8;
+                blockLength = 4;
+                break;
+            case "eac-rg11unorm":
+            case "eac-rg11snorm":
+                bytesPerBlock = 16;
+                blockLength = 4;
+                break;
+            // ASTC compressed formats   
+            case "astc-4x4-unorm":
+            case "astc-4x4-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 4;
+                break;
+            case "astc-5x4-unorm":
+            case "astc-5x4-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 4;
+                break;
+            case "astc-5x5-unorm":
+            case "astc-5x5-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 5;
+                break;
+            case "astc-6x5-unorm":
+            case "astc-6x5-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 5;
+                break;
+            case "astc-6x6-unorm":
+            case "astc-6x6-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 6;
+                break;
+            case "astc-8x5-unorm":
+            case "astc-8x5-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 5;
+                break;
+            case "astc-8x6-unorm":
+            case "astc-8x6-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 6;
+                break;
+            case "astc-8x8-unorm":
+            case "astc-8x8-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 8;
+                break;
+            case "astc-10x5-unorm":
+            case "astc-10x5-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 5;
+                break;
+            case "astc-10x6-unorm":
+            case "astc-10x6-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 6;
+                break;
+            case "astc-10x8-unorm":
+            case "astc-10x8-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 8;
+                break;
+            case "astc-10x10-unorm":
+            case "astc-10x10-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 10;
+                break;
+            case "astc-12x10-unorm":
+            case "astc-12x10-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 10;
+                break;
+            case "astc-12x12-unorm":
+            case "astc-12x12-unorm-srgb":
+                bytesPerBlock = 16;
+                blockLength = 12;
+                break;
+            default:
+                throw new Error("input  format not fix : " + format);
+        }
+        this.blockLength = blockLength;
+        this.bytesPerBlock = bytesPerBlock;
+        return {
+            bytesPerBlock,
+            blockLength,
+        }
+    }
+    computeImageBytesPerRow(width: number, height: number) {
+        this.width = width;
+        this.height = height;
+        this.blocksWide = Math.ceil(width / this.blockLength);
+        this.blocksHigh = Math.ceil(height / this.blockLength);
+        this.bytesPerRow = this.blocksWide * this.bytesPerBlock;
+    }
+    /**
+     * 根据纹理格式生成配套采样器布局、纹理绑定布局
+     * @param format WebGPU纹理格式
+     * @returns samplerLayout 采样器布局 + textureLayout 纹理绑定布局（默认viewDimension:"2d"、multisampled:false）
+     * @throws stencil8 不允许作为采样纹理绑定，直接抛出异常
+     * 采样器 type 规则：
+     * 1. 深度格式(depth16unorm/depth32float等) → comparison（阴影比较专用）
+     * 2. uint / sint / unfilterable-float(32位浮点) → non-filtering，仅支持nearest过滤
+     * 3. 普通unorm/snorm/16float/HDR打包/压缩纹理 → filtering，支持线性过滤
+     */
+    checkTargetFormat(format: GPUTextureFormat): {
+        samplerLayout: GPUSamplerBindingLayout,
+        textureLayout: GPUTextureBindingLayout
+    } {
+        // stencil8 仅可作为渲染附件，无法采样绑定
+        if (format === "stencil8") {
+            throw new Error("Format stencil8 cannot be used as sampled texture binding.");
+        }
+
+        // 全部深度/深度模板格式集合
+        const depthFormats: GPUTextureFormat[] = [
+            "depth16unorm",
+            "depth24plus",
+            "depth24plus-stencil8",
+            "depth32float",
+            "depth32float-stencil8"
+        ];
+
+        let samplerType: GPUSamplerBindingLayout["type"] = "filtering";
+        let textureLayoutSampleType: GPUTextureSampleType = "float";
+
+        // 分支1：深度纹理
+        if (depthFormats.includes(format)) {
+            textureLayoutSampleType = "depth";
+            samplerType = "comparison";
+        }
+        // 分支2：无符号整数纹理
+        else if (format.endsWith("uint") || format === "rgb10a2uint") {
+            textureLayoutSampleType = "uint";
+        }
+        // 分支3：有符号整数纹理
+        else if (format.endsWith("sint")) {
+            textureLayoutSampleType = "sint";
+        }
+        // 分支4：32位浮点纹理（r32/rg32/rgba32 float，默认unfilterable-float）
+        else if (["r32float", "rg32float", "rgba32float"].includes(format)) {
+            textureLayoutSampleType = "unfilterable-float";
+        }
+
+        // 统一处理：uint / sint / 32float(unfilterable-float) 都使用 non-filtering 采样器
+        const needNonFilter = ["uint", "sint", "unfilterable-float"] as GPUTextureSampleType[];
+        if (needNonFilter.includes(textureLayoutSampleType)) {
+            samplerType = "non-filtering";
+        }
+        this.samplerLayout = {
+            type: samplerType
+        };
+        this.textureLayout = {
+            sampleType: textureLayoutSampleType,
+            viewDimension: "2d",
+            multisampled: false
+        }
+        return {
+            samplerLayout: this.samplerLayout,
+            textureLayout: this.textureLayout
+        }
+    };
+}

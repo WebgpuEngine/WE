@@ -43,51 +43,49 @@ export class HDRTexture extends BaseTexture {
         if (typeof input.source !== "string") {
             throw new Error("HDRTexture source must be string(url)");
         }
-        // if (input.format == undefined) {
-        //     throw new Error("HDRTexture format must be GPUTextureFormat");
-        // }
         this.textureFormat = input.format || "rgba32float";
+        this.checkByteInfo(this.textureFormat);
         this.checkTargetFormat(this.textureFormat);
     }
-    checkTargetFormat(format: GPUTextureFormat) {
-        if (format.includes("rgba32")) {
-            this.bitWidth = 4 * 4;
-        }
-        else if (format.includes("rg32")) {
-            this.bitWidth = 4 * 2;
-        }
-        else if (format.includes("r32")) {
-            this.bitWidth = 4;
-        }
-        else if (format.includes("rgba16")) {
-            this.bitWidth = 2 * 4;
-        }
-        else if (format.includes("rg16")) {
-            this.bitWidth = 2 * 2;
-        }
-        else if (format.includes("r16")) {
-            this.bitWidth = 2;
-        }
-        // else if (input.format == "rgb9e5ufloat" ||
-        //     input.format == "rgb10a2uint" ||
-        //     input.format == "rgb10a2unorm" ||
-        //     input.format == "rg11b10ufloat"
-        // ) {
-        //     this.bitWidth = 4;
-        // }
-        else {
-            throw new Error("input HDRTexture format not support: " + format);
-        }
+    // checkTargetFormat(format: GPUTextureFormat) {
+    //     // if (format.includes("rgba32")) {
+    //     //     this.bitWidth = 4 * 4;
+    //     // }
+    //     // else if (format.includes("rg32")) {
+    //     //     this.bitWidth = 4 * 2;
+    //     // }
+    //     // else if (format.includes("r32")) {
+    //     //     this.bitWidth = 4;
+    //     // }
+    //     // else if (format.includes("rgba16")) {
+    //     //     this.bitWidth = 2 * 4;
+    //     // }
+    //     // else if (format.includes("rg16")) {
+    //     //     this.bitWidth = 2 * 2;
+    //     // }
+    //     // else if (format.includes("r16")) {
+    //     //     this.bitWidth = 2;
+    //     // }
+    //     // // else if (input.format == "rgb9e5ufloat" ||
+    //     // //     input.format == "rgb10a2uint" ||
+    //     // //     input.format == "rgb10a2unorm" ||
+    //     // //     input.format == "rg11b10ufloat"
+    //     // // ) {
+    //     // //     this.bitWidth = 4;
+    //     // // }
+    //     // else {
+    //     //     throw new Error("input HDRTexture format not support: " + format);
+    //     // }
 
-        if (format.includes("32float")) {
-            this.textureLayout.sampleType = 'unfilterable-float';
-            this.samplerLayout.type = 'non-filtering';
-        }
-        else if (format.includes("float")) {
-            this.textureLayout.sampleType = 'float';
-            this.samplerLayout.type = 'filtering';
-        }
-    }
+    //     if (format.includes("32float")) {
+    //         this.textureLayout.sampleType = 'unfilterable-float';
+    //         this.samplerLayout.type = 'non-filtering';
+    //     }
+    //     else if (format.includes("float")) {
+    //         this.textureLayout.sampleType = 'float';
+    //         this.samplerLayout.type = 'filtering';
+    //     }
+    // }
     async initTextureAndLayout(): Promise<any> {
         let source = this.inputValues.source;
         if (this.scene.resourcesGPU.textureOfString.has(source)) {
@@ -142,7 +140,7 @@ export class HDRTexture extends BaseTexture {
                 this.device.queue.writeTexture(
                     { texture: this.texture },
                     image.data.buffer,
-                    { bytesPerRow: image.width * this.bitWidth },
+                    { bytesPerRow: image.width * this.bytesPerBlock },
                     { width: image.width, height: image.height }
                 )
 

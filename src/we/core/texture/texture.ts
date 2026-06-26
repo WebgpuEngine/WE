@@ -1,16 +1,16 @@
 import { E_lifeState } from "../base/coreDefine";
-import { weGetImageByUrl } from "../base/coreFunction";
+import { weGetImageByUrl } from "../base/file/getFile";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
-import { I_BaseSampler, I_BaseTexture, numMipLevels } from "./base";
+import { I_BaseSampler, I_BaseTexture, numMipLevels, T_textureSourceType } from "./base";
 import { BaseTexture } from "./baseTexture";
 
 
 
-// export interface IV_Texture extends I_BaseTexture {
-//     /**纹理来源 */
-//     texture: textureSourceType,
-// }
+export interface IV_Texture extends I_BaseTexture {
+    /**纹理来源 */
+    source: T_textureSourceType,
+}
 
 export class Texture extends BaseTexture {
     _destroy(): void {
@@ -26,13 +26,13 @@ export class Texture extends BaseTexture {
         throw new Error("Method not implemented.");
     }
 
-    declare inputValues: I_BaseTexture;
+    declare inputValues: IV_Texture;
     declare texture: GPUTexture;
-    constructor(input: I_BaseTexture, device: GPUDevice, scene?: Scene) {
+    constructor(input: IV_Texture, device: GPUDevice, scene?: Scene) {
         super(input, device, scene);
         this.inputValues = input;
     }
-    async initTextureAndLayout(input: I_BaseTexture): Promise<any> {
+    async initTextureAndLayout(input: IV_Texture): Promise<any> {
         let source = this.inputValues.source;
         //GPUTexture
         if (source instanceof GPUTexture) {
