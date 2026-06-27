@@ -64,7 +64,7 @@ export interface IV_VolumeTextureMaterial extends IV_BaseStandardMaterial {
     // transparentColor?: weVec3;
 }
 
-export class VolumeMaterial extends BaseStandardMaterial {
+export class VolumeTextureMaterial extends BaseStandardMaterial {
 
     channel: number = 0;
     setupChannel(channel: "R" | "G" | "B" | "A" | "RGB" | "RGBA" = "R") {
