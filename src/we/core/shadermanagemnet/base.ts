@@ -476,7 +476,7 @@ export var SHT_refDCG: I_singleShaderTemplate = {
     // for(var i=0 ;i < 1;i++) {
       position_morph_target += positions[i] * morph_matrix[attributes.instanceIndex * u_entity_base.morpht_target_count+ u32(i)];
     }
-    worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position_morph_target, 1.0));
+    worldPosition = vec4f(world_matrix[attributes.instanceIndex*2+0] * vec4f(position_morph_target, 1.0));
     vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
     vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
    }                
