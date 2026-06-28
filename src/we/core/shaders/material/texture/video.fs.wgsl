@@ -5,6 +5,8 @@
 #includeFile "function/encodeAndDecode.wgsl"
 #includeFile "entity/st_vertex_output.wgsl"
 
+#replace user_shader_function_code
+
 @fragment 
 fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
 #includeFile "gbuffers/commonGBufferValue.wgsl"  //初始化GBuffer的通用值
@@ -22,9 +24,9 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     materialColor = textureSample(u_videoTexture, u_Sampler, fsInput.uv.xy ); 
 #weEnd
 
+#replace user_shader_code
     var output: ST_GBuffer;
 #tag gbuffers_output 
 
-#replace user_shader_code
     return output;
 }

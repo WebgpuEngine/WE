@@ -236,6 +236,12 @@ export abstract class BaseMaterial extends RootGPU {
         }
         return undefined;
     }
+    getUserCodeFunction(): string | undefined {
+        if (this.inputValues.shaderCodeFunction) {
+            return this.inputValues.shaderCodeFunction;
+        }
+        return undefined;
+    }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础功能部分
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -324,7 +330,7 @@ export abstract class BaseMaterial extends RootGPU {
     bindGroupNumber: number = 2;
     /** 材质的SHT模板，key:材质类型，value:SHT模板。 */
     shtOfMaterialType!: {
-        [key in E_materialTypeForBindGroup]: E_shaderRegisterAlianName | undefined;
+        [key in E_materialTypeForBindGroup]: E_shaderRegisterAlianName | undefined | string;
     };
     /** VS bind group 
      * 1、 key :string 采样E_materialTypeForBindGroup的值
@@ -598,7 +604,7 @@ export abstract class BaseMaterial extends RootGPU {
      * */
     composeShaderBundle(aliasName: string, materialType: E_materialTypeForBindGroup = E_materialTypeForBindGroup.opacityForward): I_materialBundleOutput {
         let groupAndBindingString: string = this.getGroupAndBindingString(materialType);
-        let code: string = groupAndBindingString + this.scene.shaderRegister.getAliasShaderName(aliasName,this.getUserCode());
+        let code: string = groupAndBindingString + this.scene.shaderRegister.getAliasShaderName(aliasName, this.getUserCode(), this.getUserCodeFunction());
         let output: I_materialBundleOutput = {
             materialType,
             code,

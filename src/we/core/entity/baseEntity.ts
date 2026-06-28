@@ -86,7 +86,7 @@ export abstract class BaseEntity extends NodeSpace {
      * 2、instance数量
      * 3、2个矩阵，分别是world矩阵和逆矩阵
      */
-    _instanceWorldMatrixByteSize = 16 * 4 *2;
+    _instanceWorldMatrixByteSize = 16 * 4 * 2;
     /** 顶点属性的插值模式       
      */
     locationInterpolate: I_locationInterpolate | undefined;
@@ -833,14 +833,14 @@ export abstract class BaseEntity extends NodeSpace {
                 for (let j = 0; j < this.instance.numInstances; j++) {
                     let instanceIndex = (Number(i) * this.instance.numInstances + Number(j)) * this._instanceWorldMatrixByteSize + offset;
                     //array buffer view ，全部为0的arraybuffer，参见checkStorageBuffer
-                    const worldMatrix = new Float32Array(this.bufferPointers.wolrdMatrix.cpuBuffer, instanceIndex, 16*2);
+                    const worldMatrix = new Float32Array(this.bufferPointers.wolrdMatrix.cpuBuffer, instanceIndex, 16 * 2);
                     //20260628 修改
                     // let matrixWorld = mat4.multiply(this.getMatrixWorldOfInstance(perNode), this.getInsideInstanceMatrix(j));//内部矩阵乘以外部矩阵，得到世界矩阵
-                    let matrixWorld = mat4.multiply( this.matrix,this.getInsideInstanceMatrix(j));   //先是内部矩阵* 内部instance矩阵
-                    matrixWorld = mat4.multiply( matrixWorld,perNode.matrixWorld);                   //再是 内部总矩阵* 外部instance矩阵
+                    let matrixWorld = mat4.multiply(this.matrix, this.getInsideInstanceMatrix(j));   //先是内部矩阵* 内部instance矩阵
+                    matrixWorld = mat4.multiply(matrixWorld, perNode.matrixWorld);                   //再是 内部总矩阵* 外部instance矩阵
                     let invertMatrixWorld = mat4.invert(matrixWorld);           //todo 待应用，世界逆矩阵
                     //20260628 修改
-                    worldMatrix.set([...matrixWorld,...invertMatrixWorld]);
+                    worldMatrix.set([...matrixWorld, ...invertMatrixWorld]);
                 }
             }
             this.scene.pointers.updatePointerWriteTime(this.bufferPointers.wolrdMatrix);
@@ -859,6 +859,12 @@ export abstract class BaseEntity extends NodeSpace {
     getUserCodeVS(): string | undefined {
         if (this.input.shaderCode) {
             return this.input.shaderCode;
+        }
+        return undefined;
+    }
+    getUserCodeFunction(): string | undefined {
+        if (this.input.shaderCodeFunction) {
+            return this.input.shaderCodeFunction;
         }
         return undefined;
     }

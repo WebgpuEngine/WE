@@ -102,9 +102,11 @@ export interface IV_BaseEntity extends IV_NodeSpace {
     /**内部实例化参数，默认为只有当前entity，无其实例化 */
     instance?: I_entityInstance,
 
-    /**自定义shader代码，包括VS和FS */
+    /**自定义shader主代码，包括VS和FS */
     shaderCode?: string,
-
+    /**自定义shader 函数代码，包括VS和FS */
+    shaderCodeFunction?: string;
+    
     /** 顶点属性 和几何体二选一*/
     attributes: {
         /**几何体 与顶点数据二选一 */

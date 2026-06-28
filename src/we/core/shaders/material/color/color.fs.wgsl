@@ -9,6 +9,7 @@
 #includeFile "function/encodeAndDecode.wgsl"
 #includeFile "entity/st_vertex_output.wgsl"
 
+#replace user_shader_function_code
 
 @fragment fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
 #includeFile "gbuffers/commonGBufferValue.wgsl"  //初始化GBuffer的通用值
@@ -22,25 +23,24 @@
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
+output.color =  u_common_base.color;
 
+#replace user_shader_code
 
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   
-    output.color =  u_common_base.color;
     if(output.color.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
     {
         discard;
     }
   #renderMode blend    
-    output.color =  u_common_base.color;
     if(output.color.a>=1.0)
     {
         discard;
     }
 #weEnd
 
-#replace user_shader_code
 
     return output;
 }

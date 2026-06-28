@@ -9,8 +9,7 @@
 fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
 #includeFile "gbuffers/commonGBufferValue.wgsl"  //初始化GBuffer的通用值
     init_system_fs();
-    var output: ST_GBuffer;
-#tag gbuffers_output 
+
 #weStart
     #renderMode  Msaa
      #includeFile "material/MSAA/msaa.wgsl"
@@ -21,9 +20,11 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa       
-    output.color = textureSample(u_cubeTexture, u_Sampler, cubemapVec); 
+    materialColor= textureSample(u_cubeTexture, u_Sampler, cubemapVec); 
 #weEnd
 
+    var output: ST_GBuffer;
+#tag gbuffers_output 
 #replace user_shader_code
     // output.color=vec4f(1,0,0,1);
     return output;

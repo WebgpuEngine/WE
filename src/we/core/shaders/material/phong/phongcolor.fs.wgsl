@@ -32,6 +32,7 @@ struct st_bulin_phong {
 // @group(2)  @binding(4) var u_texture_parallax : texture_2d<f32>;
 // @group(2)  @binding(5) var u_texture_specular : texture_2d<f32>;
 
+#replace user_shader_function_code
 
 @fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
 #includeFile "gbuffers/commonGBufferValue.wgsl"  //初始化GBuffer的通用值
@@ -118,6 +119,8 @@ struct st_bulin_phong {
     );
 #weEnd
 
+#replace user_shader_code
+
     var output: ST_GBuffer;
 #tag gbuffers_output 
 
@@ -139,7 +142,6 @@ struct st_bulin_phong {
     //  var visibility = getVisibilityOflight(u_lights.lights[1],worldPosition.rgb,normal.rgb); 
     //  output.color  =vec4f(visibility,visibility,visibility,1);
     
-#replace user_shader_code
   
     return output;
 }

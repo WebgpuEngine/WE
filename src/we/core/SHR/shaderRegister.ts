@@ -54,6 +54,67 @@ export class ShaderRegister {
         this.initShaderCodeAlias();
     }
     /**
+     * 20260628 新增,代替在entity，materila等中使用enum部分，以确保shader code name的一定存在和一致性
+     * 获取shader code
+     * 1、如果是material shader code，返回material name
+     * 2、如果不是material shader code，返回shader code name
+     * @param name shader code name
+     * @returns 
+     */
+    getShaderName(name: string):
+        string | Record<T_SHR_RenderMode, string | undefined> {
+        let hasShaderName = false;
+        let shaderCodeName = "";
+        let materialName: Record<T_SHR_RenderMode, string | undefined> = {
+            forward: undefined,
+            defer: undefined,
+            Msaa: undefined,
+            MsaaInfo: undefined,
+            blend: undefined,
+        };
+        let isMaterial = false;
+        if (name.includes("material.")) {
+            isMaterial = true;
+            if (this._aliasShaderCode.has(name + ".forword")) {
+                materialName.forward = name + ".forword";
+                hasShaderName = true;
+            }
+            if (this._aliasShaderCode.has(name + ".defer")) {
+                materialName.defer = name + ".defer";
+                hasShaderName = true;
+            }
+            if (this._aliasShaderCode.has(name + ".msaa")) {
+                materialName.Msaa = name + ".msaa";
+                hasShaderName = true;
+            }
+            if (this._aliasShaderCode.has(name + ".msaaInfo")) {
+                materialName.MsaaInfo = name + ".msaaInfo";
+                hasShaderName = true;
+            }
+            if (this._aliasShaderCode.has(name + ".blend")) {
+                materialName.blend = name + ".blend";
+                hasShaderName = true;
+            }
+        }
+        else {
+            if (this._aliasShaderCode.has(name)) {
+                shaderCodeName = name;
+                hasShaderName = true;
+            }
+        }
+        if (hasShaderName === true) {
+            if (isMaterial === true) {
+                return materialName;
+            }
+            else {
+                return shaderCodeName;
+            }
+        }
+        else {
+            throw new Error(`shader code ${name} is not found`);
+        }
+    }
+    /**
      * 初始化alias shader code（ this._aliasShaderCode）
      */
     initShaderCodeAlias() {
@@ -220,6 +281,17 @@ export class ShaderRegister {
         }
         return lines.join("\n");
     }
+    replaceUserShaderCodeFunction(shaderCode: string, useShaderCode: string) {
+        let lines = shaderCode.split("\n");
+        for (let perLine_i in lines) {
+            let perLine = lines[perLine_i];
+            let lineTrimWithOutFirstSpace = perLine.trimStart();//只删开头空格
+            if (lineTrimWithOutFirstSpace.startsWith("#replace") && perLine.includes("user_shader_function_code")) {
+                lines[perLine_i] = useShaderCode;
+            }
+        }
+        return lines.join("\n");
+    }
     /**添加replace name */
     addReplace(replaceName: string, replaceCode: string) {
         this._replace.set(replaceName, replaceCode);
@@ -236,7 +308,7 @@ export class ShaderRegister {
         this._aliasShaderCode.set(registerName, code);
     }
     /**根据registerName获取shader code */
-    getAliasShaderName(registerName: string, useShaderCode: string | undefined = undefined): string {
+    getAliasShaderName(registerName: string, useShaderCode: string | undefined = undefined,userShaderCodeFunction: string | undefined = undefined): string {
         let code = this._aliasShaderCode.get(registerName);
         if (code) {
             if (useShaderCode) {
@@ -244,6 +316,12 @@ export class ShaderRegister {
             }
             else {
                 code = this.replaceUserShaderCode(code, "");
+            }
+            if (userShaderCodeFunction) {
+                code = this.replaceUserShaderCodeFunction(code, userShaderCodeFunction);
+            }
+            else {
+                code = this.replaceUserShaderCodeFunction(code, "");
             }
             return code;
         }

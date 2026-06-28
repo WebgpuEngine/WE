@@ -125,8 +125,11 @@ export interface IV_BaseMaterial extends I_Update {
             invertModelMatrix?: number[];
         };
     },
-    /**自定义shader代码，包括VS和FS */
+    /**自定义shader主代码，包括VS和FS */
     shaderCode?: string,
+    /**自定义shader 函数代码，包括VS和FS */
+    shaderCodeFunction?: string;
+
 }
 /**自定义shader材质的初始化参数 */
 export interface IV_shaderMaterial extends IV_BaseMaterial {

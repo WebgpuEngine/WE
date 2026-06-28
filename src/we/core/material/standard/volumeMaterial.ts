@@ -13,80 +13,33 @@
  *   B、 在3D纹理采样上，以对应增加和减少near和far，来调整采样的范围；
  */
 
-import { Texture } from "../../texture/texture";
 import {
-    E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
+    E_MaterialType, E_materialTypeForBindGroup,
     IV_BaseStandardMaterial,
     materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
 } from "../base";
-import { E_lifeState, weVec3 } from "../../base/coreDefine";
+import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
 import { BaseStandardMaterial } from "./baseStandard";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { BaseTexture } from "../../texture/baseTexture";
-import { Texture3D } from "../../texture/texture3D";
 import { mat4, Mat4 } from "wgpu-matrix";
 
 
 /**
  * 纹理材质的初始化参数 * 
  */
-export interface IV_VolumeTextureMaterial extends IV_BaseStandardMaterial {
-    texture: Texture3D;
-    /**
-     * 渲染通道
-     * 1、R通道：默认
-     * 2、RGB：渲染RGB体素
-     * 3、RGBA：渲染RGBA体素；todo：待定
-     */
-    channel?: "R" | "G" | "B" | "A" | "RGB" | "RGBA";
+export interface IV_VolumeShaderMaterial extends IV_BaseStandardMaterial {
     /**吸收强度，调节明暗 */
     absorbScale: number;
     /**总步数 */
     maxSteps: number;
-    // /**
-    //  * 实体世界矩阵，shader中使用
-    //  */
-    // entityWorldMatrix: Mat4;
-
-    // /**
-    //  * 透明颜色，
-    //  * 1、默认为:不使用透明颜色
-    //  * 2、指定透明颜色，如 [0,0,0]，则指定颜色完全透明，[0,0,0]一般也是体渲染中的透明部分或底色（一般为黑色）
-    //  * 
-    //  */
-    // transparentColor?: weVec3;
+    shaderCodeFunction: string;
+    shaderCode: string;
 }
 
-export class VolumeTextureMaterial extends BaseStandardMaterial {
-
-    channel: number = 0;
-    setupChannel(channel: "R" | "G" | "B" | "A" | "RGB" | "RGBA" = "R") {
-        switch (channel) {
-            case "R":
-                this.channel = 0;
-                break;
-            case "G":
-                this.channel = 1;
-                break;
-            case "B":
-                this.channel = 2;
-                break;
-            case "A":
-                this.channel = 3;
-                break;
-            case "RGB":
-                this.channel = 4;
-                break;
-            case "RGBA":
-                this.channel = 5;
-                break;
-            default:
-                this.channel = 0;
-                break;
-        }
-    }
+export class VolumeShaderMaterial extends BaseStandardMaterial {
     /**
      * 实体世界矩阵，shader中使用,默认为单位矩阵
      */
@@ -122,30 +75,32 @@ export class VolumeTextureMaterial extends BaseStandardMaterial {
         }
     uniformVolumeGPUBuffer!: GPUBuffer;
 
-    declare inputValues: IV_VolumeTextureMaterial;
+    declare inputValues: IV_VolumeShaderMaterial;
 
     /**纹理收集器 */
     declare textures: {
         [name: string]: BaseTexture
     };
 
-    constructor(input: IV_VolumeTextureMaterial) {
+    constructor(input: IV_VolumeShaderMaterial) {
         super(input);
         this.kind = E_MaterialType.texture;
         this.textures = {};
-        if (input.texture == undefined) {
-            throw new Error("TextureMaterial: texture is undefined");
-        }
-        else {
-            this.textures[E_TextureType.color] = input.texture;
-        }
-        this.setupChannel(input.channel || "R");
         this._state = E_lifeState.unstart;
+        //scene 还没有传入
+        // let shaderName = this.scene.shaderRegister.getShaderName("material.testRayMarchVolume") as Record<T_SHR_RenderMode, string | undefined>;
+        // this.shtOfMaterialType = {
+        //     opacityForward: shaderName.forward,
+        //     opacityDefer: shaderName.defer,
+        //     opacityMSAA: shaderName.Msaa,
+        //     opacityMSAAInfo: shaderName.MsaaInfo,
+        //     TT: shaderName.blend,
+        // };
         this.shtOfMaterialType = {
-            opacityForward: E_shaderRegisterAlianName["material.volumeTexture.forward"],
-            opacityDefer: E_shaderRegisterAlianName["material.volumeTexture.forward"],
-            opacityMSAA: E_shaderRegisterAlianName["material.volumeTexture.Msaa"],
-            opacityMSAAInfo: E_shaderRegisterAlianName["material.volumeTexture.MsaaInfo"],
+            opacityForward: E_shaderRegisterAlianName["material.testRayMarchVolume.forward"],
+            opacityDefer: E_shaderRegisterAlianName["material.testRayMarchVolume.forward"],
+            opacityMSAA: E_shaderRegisterAlianName["material.testRayMarchVolume.Msaa"],
+            opacityMSAAInfo: E_shaderRegisterAlianName["material.testRayMarchVolume.MsaaInfo"],
             TT: undefined,
         };
     }
@@ -166,19 +121,10 @@ export class VolumeTextureMaterial extends BaseStandardMaterial {
 
         this.writeUniformCommon();
         this.defaultSampler = this.checkSampler(this.inputValues);
-        let texture = this.inputValues.texture;
-        if (texture instanceof BaseTexture) {
-            this.textures[E_TextureType.color] = texture;
-        }
-        else {
-            let textureInstace = new Texture({ source: texture }, this.device, this.scene);
-            await textureInstace.init(this.scene);
-            this.textures[E_TextureType.color] = textureInstace;
-        }
+
         this._state = E_lifeState.finished;
     }
     _writeUniformCommon(): void { }
-
 
 
     getEntriesOfBindGroupLayout(materialType: E_materialTypeForBindGroup): GPUBindGroupLayoutEntry[] {
@@ -198,17 +144,6 @@ export class VolumeTextureMaterial extends BaseStandardMaterial {
                     type: "uniform",
                 },
             },
-            {
-                binding: binding++,
-                visibility: GPUShaderStage.FRAGMENT,
-                texture:
-                    this.textures[E_TextureType.color].textureLayout,
-            },
-            {
-                binding: binding++,
-                visibility: GPUShaderStage.FRAGMENT,
-                sampler: this.textures[E_TextureType.color].samplerLayout,
-            }
         ];
         if (materialType == E_materialTypeForBindGroup.opacityMSAA) {
             let layoutMSAA = materialAddBindGroupLayoutOfMSAA(binding);
@@ -227,14 +162,6 @@ export class VolumeTextureMaterial extends BaseStandardMaterial {
             {
                 binding: binding++,
                 resource: this.uniformVolumeGPUBuffer,
-            },
-            {
-                binding: binding++,
-                resource: this.textures[E_TextureType.color].texture.createView(),
-            },
-            {
-                binding: binding++,
-                resource: this.textures[E_TextureType.color].sampler,
             },
         ];
 
@@ -264,7 +191,7 @@ export class VolumeTextureMaterial extends BaseStandardMaterial {
         this.uniformVolumeBufferView.invert_entity_world_matrix.set(mat4.invert(this.entityWorldMatrix));
         this.uniformVolumeBufferView.absorb_scale.set([this.inputValues.absorbScale]);
         this.uniformVolumeBufferView.max_steps.set([this.inputValues.maxSteps]);
-        this.uniformVolumeBufferView.channel.set([this.channel]);
+        // this.uniformVolumeBufferView.channel.set([this.channel]);
         this.device.queue.writeBuffer(this.uniformVolumeGPUBuffer, 0, this.uniformVolumeBuffer);
     }
 

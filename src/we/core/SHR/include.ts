@@ -64,7 +64,8 @@ import videoExternalTextureFSWGSL from "../shaders/material/texture/videoExterna
 import wireFrameFSWGSL from "../shaders/material/wirframe/wireFrame.fs.wgsl?raw";
 import cubeSKyTextureFSWGSL from "../shaders/material/texture/cubeSkyTexture.fs.wgsl?raw";
 import cubePositionTextureFSWGSL from "../shaders/material/texture/cubeLocalTexture.fs.wgsl?raw";
-import volumeTextureFSWGSL from "../shaders/material/volume/volume.fs.wgsl?raw";
+import volumeTextureFSWGSL from "../shaders/material/volume/volumeTexture.fs.wgsl?raw";
+import testRayMarchVolumeFSWGSL from "../shaders/material/volume/testRayMarchVolume.fs.wgsl?raw";
 
 import include_Phong_function_WGSL from "../shaders/material/phong/phongfunction.wgsl?raw"
 import phongMaterialWGSL from "../shaders/material/phong/phongcolor.fs.wgsl?raw"
@@ -191,7 +192,8 @@ export var WGSL_ShaderCode: Record<string, string> = {
     "material/phong/phongcolor.fs.wgsl": phongMaterialWGSL,
     "material/PBR/PBR.fs.wgsl": PBRMaterialWGSL,
 
-    "material/volume/volume.fs.wgsl": volumeTextureFSWGSL,
+    "material/volume/volumeTexture.fs.wgsl": volumeTextureFSWGSL,
+    "material/volume/testRayMarchVolume.fs.wgsl": testRayMarchVolumeFSWGSL,
 
     "PostProcess/blur/blur3x3.fs.wgsl": PP_Blur3x3_FS_WGSL,
     "PostProcess/AA/FXAA.fs.wgsl": PP_FXAA_FS_WGSL,
@@ -375,9 +377,9 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
             blend: true,
         }
     },
-    "material.volume": {
+    "material.volumeTexture": {
         type: "fs",
-        code: WGSL_ShaderCode["material/volume/volume.fs.wgsl"],
+        code: WGSL_ShaderCode["material/volume/volumeTexture.fs.wgsl"],
         renderMode: {
             forward: true,
             defer: false,
@@ -386,6 +388,18 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
             blend: false,
         }
     },
+    "material.testRayMarchVolume": {
+        type: "fs",
+        code: testRayMarchVolumeFSWGSL,
+        renderMode: {
+            forward: true,
+            defer: false,
+            Msaa: true,
+            MsaaInfo: true,
+            blend: false,
+        }
+    },
+
     "postProcess.blur3x3": {
         type: "fs",
         code: WGSL_ShaderCode["PostProcess/blur/blur3x3.fs.wgsl"],
@@ -401,6 +415,12 @@ export var WGSL_AliasShaderCode: Record<string, I_aliasShaderCode> = {
 }
 /**
  * 着色器注册的别名
+ * 1、20260628,这里有个问题，需要多处保障名称的一致性
+ *   包括：
+ *       E_shaderRegisterAlianName：全部名称
+ *       WGSL_AliasShaderCode：部分名称+material的后缀，需要整合后完全对应
+ *       ShaderRegister._aliasShaderCode: 与E_shaderRegisterAlianName需要完全对应
+ *   所以，在ShaderRegister中，增加getShaderName()，以简化，并保障最终一致性，错误时会报错
  */
 export enum E_shaderRegisterAlianName {
     "toneMapping" = "toneMapping",
@@ -462,9 +482,14 @@ export enum E_shaderRegisterAlianName {
     "material.pbr.MsaaInfo" = "material.pbr.MsaaInfo",
     "material.pbr.blend" = "material.pbr.blend",
 
-    "material.volume.forward" = "material.volume.forward",
-    "material.volume.Msaa" = "material.volume.Msaa",
-    "material.volume.MsaaInfo" = "material.volume.MsaaInfo",
+    "material.volumeTexture.forward" = "material.volumeTexture.forward",
+    "material.volumeTexture.Msaa" = "material.volumeTexture.Msaa",
+    "material.volumeTexture.MsaaInfo" = "material.volumeTexture.MsaaInfo",
+
+    "material.testRayMarchVolume.forward" = "material.testRayMarchVolume.forward",
+    "material.testRayMarchVolume.Msaa" = "material.testRayMarchVolume.Msaa",
+    "material.testRayMarchVolume.MsaaInfo" = "material.testRayMarchVolume.MsaaInfo",
+    
 
     "postProcess.blur3x3" = "postProcess.blur3x3",
     "postProcess.FXAA" = "postProcess.FXAA",

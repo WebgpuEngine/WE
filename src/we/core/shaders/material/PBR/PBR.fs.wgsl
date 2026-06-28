@@ -44,6 +44,7 @@ struct PBRUniformInput{
 }
 // @group(1) @binding(2) var<uniform> u_pbr_uniform : PBRUniformInput ;     //这里可以写成固定，因为就是固定的。考虑到扩展，目前是在PBRMaterial.getUniformEntryBundleOfCommon()中定义的。
 
+#replace user_shader_function_code
 
 
 @fragment fn fs(fsInput : st_vertex_output) -> ST_GBuffer {
@@ -216,6 +217,7 @@ struct PBRUniformInput{
  
     RMAO=vec3f(roughness,metallic,ao);
 
+#replace user_shader_code
 
 
 #weStart 
@@ -260,7 +262,6 @@ struct PBRUniformInput{
     var output : ST_GBuffer;
 #tag gbuffers_output 
 
-#replace user_shader_code
 
     return output;
 }

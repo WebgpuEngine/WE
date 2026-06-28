@@ -10,6 +10,7 @@ override boundingBoxMaxSize : f32 = 1.0;
 #includeFile "entity/structEntity.wgsl"
 #includeFile "entity/st_vertex_output.wgsl"
 
+#replace user_shader_function_code
 
 @vertex fn vs(attributes: st_location) -> st_vertex_output {
   init_system_vs();
