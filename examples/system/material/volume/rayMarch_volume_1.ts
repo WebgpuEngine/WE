@@ -22,7 +22,7 @@ let input: IV_Scene = {
   // backgroudColor: [1, 1, 1, 0.1],
   reversedZ: true,
   // modeNDC: true,
-  toneMapping: E_ToneMappingType.ACES,
+  toneMapping: E_ToneMappingType.linear
 };
 let scene = await initScene({
   initConfig: input,
@@ -123,7 +123,7 @@ fn trace(ro: vec3f, rd: vec3f) -> vec4f {
     var total_t=t_enter;
     var pos_local=ro+rd*t_enter;
 
-    for(var i:i32=0;i<242;i++){ //??, sqrt(3)*1 /0.02=86.6 ,but real need 140+
+    for(var i:i32=0;i<231;i++){ //[-1,1], sqrt(3)*2 /0.015=230.6
         pos_local= ro+rd*total_t;
         let albedo = volume(pos_local, rd);
         let attenuation = exp(-sigma * dx * albedo);        // 比尔朗伯：单步指数衰减

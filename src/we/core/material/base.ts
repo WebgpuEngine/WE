@@ -23,17 +23,34 @@ export enum E_MaterialType {
     Phong = "PhongMaterial",
 }
 
+/**
+ * 透明材质的模式
+ * 1、opaque：不透明
+ * 2、alphaTest：不透明测试模式，进行alpha测试，去除透明区域
+ * 3、blend：透明混合模式
+ * 4、testAndBlend：进行alphaTest，并进行透明混合
+ */
 export type T_transparentMode = "opaque" | "alphaTest" | "blend" | "testAndBlend";
 
 /**alpha 模式 */
 export interface I_alphaMode {
 
 }
-/**透明材质的初始化参数 */
+/**透明材质的初始化参数
+ * 1、适配三种模式：alphaTest, blend、testAndBlend
+ *
+ */
 export interface I_AlphaTransparentOfMaterial {
-    /** 透明阈值 */
+    /** 透明阈值 
+     * 1、alphaTest模式下，alphaCutOff为透明阈值，大于该值的像素会被渲染，小于该值的像素会被剔除。
+     * 2、testAndBlend模式下，alphaCutOff为透明阈值，大于该值的像素会被blend渲染，小于该值的像素会被剔除。
+     * 3、blend模式下，忽略alphaCutOff。
+    */
     alphaCutOff?: number;
-    /** 透明混合参数 */
+    /** 透明混合参数 
+     * 1、只用工作在blend和testAndBlend模式下。
+     * 2、每个材质按照本身情况实现对应function。
+    */
     blendParams?: {
         /** 透明混合状态 
          * https://www.w3.org/TR/webgpu/#blend-state
