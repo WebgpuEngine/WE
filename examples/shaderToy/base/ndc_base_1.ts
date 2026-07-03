@@ -1,6 +1,6 @@
 import { mat4 } from "wgpu-matrix";
 import { IV_DrawCommandGenerator, DrawCommandGenerator, IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
-import { IV_Scene, userDefineEventCall, eventOfScene } from "../../../src/we/core/scene/base";
+import { IV_Scene, userDefineEventCall, eventOfScene, E_ToneMappingType } from "../../../src/we/core/scene/base";
 import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
@@ -18,6 +18,7 @@ let input: IV_Scene = {
   backgroudColor: [1, 1, 1, 0.5],
   reversedZ: true,
   modeNDC: true,
+  toneMapping: E_ToneMappingType.linear,
 };
 let scene = await initScene({
   initConfig: input,
@@ -27,55 +28,54 @@ window.scene = scene;
 
 //////////////////////////////////////////////////////////////
 //volume shader
-let shader = `   
+import shader from "./ndc_base_1.wgsl?raw";
+// // 着色器输入
+// var <private >  iResolution: vec3f=vec3(0.0,0.0,0.0);           // viewport resolution (in pixels)
+// var <private >  iTime: f32=0.0;                 // shader playback time (in seconds)
+// var <private >  iMouse: vec4f=vec4(0.0,0.0,0.0,0.0);                // mouse pixel coords. xy: current (if MLB down), zw: click
 
-// 着色器输入
-var <private >  iResolution: vec3f=vec3(0.0,0.0,0.0);           // viewport resolution (in pixels)
-var <private >  iTime: f32=0.0;                 // shader playback time (in seconds)
-var <private >  iMouse: vec4f=vec4(0.0,0.0,0.0,0.0);                // mouse pixel coords. xy: current (if MLB down), zw: click
-
-fn shadertoy(uv: vec2f,fragCoord: vec2f)->vec4f{
- let color =0.5 + 0.5*cos(iTime + uv.xyx + vec3f(0,2,4));
-  return vec4f(color,1.0);
-}
-//////////////////////////////////////////////////////////////
-struct st_uniform_toy {
-    u_resolution: vec2f,
-    u_mouse_xy: vec2f,
-    u_mouse_btn: i32,
-    u_time: f32,
-};
-@group(0) @binding(0) var<uniform> u_toy: st_uniform_toy;
-struct VertexOutput {
-  @builtin(position) position : vec4f,
-  @location(0) uv: vec2f,
-}
+// fn shadertoy(uv: vec2f,fragCoord: vec2f)->vec4f{
+//  let color =0.5 + 0.5*cos(iTime + uv.xyx + vec3f(0,2,4));
+//   return vec4f(color,1.0);
+// }
+// //////////////////////////////////////////////////////////////
+// struct st_uniform_toy {
+//     u_resolution: vec2f,
+//     u_mouse_xy: vec2f,
+//     u_mouse_btn: i32,
+//     u_time: f32,
+// };
+// @group(0) @binding(0) var<uniform> u_toy: st_uniform_toy;
+// struct VertexOutput {
+//   @builtin(position) position : vec4f,
+//   @location(0) uv: vec2f,
+// }
 
 
-@vertex fn vs(
-  @builtin(vertex_index) VertexIndex : u32
-) -> VertexOutput {
-  var pos = array<vec2f, 3>(
-    vec2(-1.0, 3.0),
-    vec2(-1.0, -1.0),
-    vec2(3.0, -1.0)
-  );
-  var xy = pos[VertexIndex];
-  return VertexOutput(
-    vec4f(xy, 0.0, 1.0),
-    vec2(xy)*0.5+0.5,
-  );
-}
-//////////////////////////////////////////////////////////////
+// @vertex fn vs(
+//   @builtin(vertex_index) VertexIndex : u32
+// ) -> VertexOutput {
+//   var pos = array<vec2f, 3>(
+//     vec2(-1.0, 3.0),
+//     vec2(-1.0, -1.0),
+//     vec2(3.0, -1.0)
+//   );
+//   var xy = pos[VertexIndex];
+//   return VertexOutput(
+//     vec4f(xy, 0.0, 1.0),
+//     vec2(xy)*0.5+0.5,
+//   );
+// }
+// //////////////////////////////////////////////////////////////
 
-@fragment
-fn fs(fsInput: VertexOutput) -> @location(0) vec4f {
- iTime = u_toy.u_time;
- iMouse = vec4f(u_toy.u_mouse_xy, f32(u_toy.u_mouse_btn),f32(u_toy.u_mouse_btn));
- iResolution = vec3f(u_toy.u_resolution, 0.0);
-  return shadertoy(fsInput.uv,fsInput.position.xy);
-}
-`;
+// @fragment
+// fn fs(fsInput: VertexOutput) -> @location(0) vec4f {
+//  iTime = u_toy.u_time;
+//  iMouse = vec4f(u_toy.u_mouse_xy, f32(u_toy.u_mouse_btn),f32(u_toy.u_mouse_btn));
+//  iResolution = vec3f(u_toy.u_resolution, 0.0);
+//   return shadertoy(fsInput.uv,fsInput.position.xy);
+// }
+// `;
 //////////////////////////////////////////////////////////////
 //uniform buffer
 const uniformBufferSize = 4 * 8; // 4x4 matrix
