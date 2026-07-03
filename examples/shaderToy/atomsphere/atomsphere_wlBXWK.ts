@@ -29,16 +29,18 @@ window.scene = scene;
 //volume shader
 let shader = `   
 
-// 着色器输入
-var <private >  iResolution: vec3f=vec3(0.0,0.0,0.0);           // viewport resolution (in pixels)
-var <private >  iTime: f32=0.0;                 // shader playback time (in seconds)
-var <private >  iMouse: vec4f=vec4(0.0,0.0,0.0,0.0);                // mouse pixel coords. xy: current (if MLB down), zw: click
+
 
 fn shadertoy(uv: vec2f,fragCoord: vec2f)->vec4f{
  let color =0.5 + 0.5*cos(iTime + uv.xyx + vec3f(0,2,4));
   return vec4f(color,1.0);
 }
 //////////////////////////////////////////////////////////////
+// 着色器输入
+var <private >  iResolution: vec3f=vec3(0.0,0.0,0.0);           // viewport resolution (in pixels)
+var <private >  iTime: f32=0.0;                 // shader playback time (in seconds)
+var <private >  iMouse: vec4f=vec4(0.0,0.0,0.0,0.0);                // mouse pixel coords. xy: current (if MLB down), zw: click
+
 struct st_uniform_toy {
     u_resolution: vec2f,
     u_mouse_xy: vec2f,
@@ -173,19 +175,30 @@ dc.submit();
 8：第四按键（通常是“浏览器后退”按键）
 16：第五按键（通常是“浏览器前进”按键）
  */
+let isMouseDown = false;
 scene.canvas.addEventListener('pointerdown', (event) => {
-  st_uniform_toyViews.u_mouse_btn[0] = (event as PointerEvent).buttons;
+  isMouseDown = true;
+  // st_uniform_toyViews.u_mouse_btn[0] = (event as PointerEvent).buttons;
   st_uniform_toyViews.u_mouse_xy[0] = (event as PointerEvent).clientX;
   st_uniform_toyViews.u_mouse_xy[1] = (event as PointerEvent).clientY;
+  // console.log(event.buttons, event.clientX, event.clientY, st_uniform_toyViews.u_mouse_btn[0],st_uniform_toyViews.u_mouse_xy[0],st_uniform_toyViews.u_mouse_xy[1]);
 });
 scene.canvas.addEventListener('pointerup', (event) => {
+  isMouseDown = false;
   st_uniform_toyViews.u_mouse_btn[0] = 0;
   st_uniform_toyViews.u_mouse_xy[0] = event.clientX;
   st_uniform_toyViews.u_mouse_xy[1] = event.clientY;
+  // console.log(event.buttons, event.clientX, event.clientY, st_uniform_toyViews.u_mouse_btn[0],st_uniform_toyViews.u_mouse_xy[0],st_uniform_toyViews.u_mouse_xy[1]);
+
+
 });
-scene.canvas.addEventListener("mousemove", (event) => {
+scene.canvas.addEventListener("pointermove", (event) => {
+  if (!isMouseDown) {
+    return;
+  }
   st_uniform_toyViews.u_mouse_xy[0] = event.clientX;
   st_uniform_toyViews.u_mouse_xy[1] = event.clientY;
+  // console.log(st_uniform_toyViews.u_mouse_btn[0],st_uniform_toyViews.u_mouse_xy[0],st_uniform_toyViews.u_mouse_xy[1]);
 });
 
 let timer = 0;
@@ -193,15 +206,10 @@ let oneCall: userDefineEventCall = {
   call: (scope: Scene) => {
     timer += 0.016667;
     st_uniform_toyViews.u_time[0] = timer;
-    // st_uniform_toyViews.u_time[0] = (scene.clock.timeNow - scene.clock.timeStart)*0.00167;
-
+    st_uniform_toyViews.u_mouse_btn[0] = isMouseDown ? 1 : 0;
     st_uniform_toyViews.u_resolution[0] = scene.surface.size.width
     st_uniform_toyViews.u_resolution[1] = scene.surface.size.height;
     scene.device.queue.writeBuffer(uniformBuffer, 0, st_uniform_toyValues);
-
-    // st_uniform_toyViews.u_mouse_btn[0] = -2;
-    // st_uniform_toyViews.u_mouse_xy[0] = 0;
-    // st_uniform_toyViews.u_mouse_xy[1] = 0;
 
     scope.renderManager.push({
       command: dc,

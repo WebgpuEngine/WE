@@ -425,7 +425,11 @@ export class Scene {
             .filter(g => adapter.features.has(g.feature))
             .map(g => g.feature);
 
-        console.log("当前支持的压缩特性：", supportedFeatures);
+        // console.log(adapter.features.has("texture-compression-bc"));
+        // console.log(adapter.features.has("texture-compression-etc2"));
+        // console.log(adapter.features.has("texture-compression-astc"));
+        // console.log(compressionGroups.filter(g => adapter.features.has(g.feature)));
+        // console.log("当前支持的压缩特性：", supportedFeatures);
 
         //2、申请
         if (adapter.limits.maxColorAttachmentBytesPerSample < limitsOfWE.maxColorAttachmentBytesPerSample) {
@@ -909,10 +913,10 @@ export class Scene {
     async renderToSurface() {
         let defaultCamera = this.cameraManager.defaultCamera;
         if (defaultCamera) {
-             if (this.finalTarget.NDC == true) {
+            if (this.finalTarget.NDC == true) {
                 console.warn("非NDC 模式下，但开启了modeNDC 模式.");
                 this.finalTarget.NDC = false;
-             }
+            }
             //直接copy GBuffer的color到canvas
             // let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].finalRender.color;
 
