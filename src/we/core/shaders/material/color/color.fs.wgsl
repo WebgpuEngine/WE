@@ -14,33 +14,32 @@
 @fragment fn fs(fsInput: st_vertex_output) -> ST_GBuffer {    
 #includeFile "gbuffers/commonGBufferValue.wgsl"  //初始化GBuffer的通用值
     init_system_fs();
-    var output: ST_GBuffer;
 
-#tag gbuffers_output 
 
 #weStart
     #renderMode  Msaa
      #includeFile "material/MSAA/msaa.wgsl"
 #weEnd
 
-output.color =  u_common_base.color;
-
-#replace user_shader_code
-
+materialColor =  u_common_base.color;
 #weStart 
   #renderMode  MsaaInfo  
   #renderMode forward defer Msaa   
-    if(output.color.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
+    if(materialColor.a<1.0)  //透明的在透明通道渲染，所以这里需要discard，不输出GBuffer
     {
         discard;
     }
   #renderMode blend    
-    if(output.color.a>=1.0)
+    if(materialColor.a>=1.0)
     {
         discard;
     }
 #weEnd
 
+#replace user_shader_code
+
+    var output: ST_GBuffer;
+#tag gbuffers_output 
 
     return output;
 }

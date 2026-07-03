@@ -23,6 +23,19 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     let scaleOffset=0.00001;
     let offsetWorld = max(scaleOffset, distance(fsInput.worldPosition.xyz, u_mvp.cameraPosition) * offsetOfWireframeVale*scaleOffset*scaleOffset);
     // let offsetWorld = max(scaleOffset,pow(scaleOffset,distance(fsInput.worldPosition.xyz, u_mvp.cameraPosition) * offsetOfWireframeVale));
+
+    
+#weStart 
+  #renderMode  MsaaInfo  
+  #renderMode forward defer Msaa   
+    materialColor =  u_common_base.color;
+#weEnd
+
+#replace user_shader_code
+
+    var output: ST_GBuffer;
+#tag gbuffers_output 
+
     if(u_mvp.reversedZ ==1)
     {
         output.depth = fsInput.position.z + offsetWorld ;
@@ -30,17 +43,6 @@ fn fs(fsInput: st_vertex_output) -> ST_GBuffer {
     else {
         output.depth = fsInput.position.z - offsetWorld;
     } 
-    
-#weStart 
-  #renderMode  MsaaInfo  
-  #renderMode forward defer Msaa   
-    output.color =  u_common_base.color;
-#weEnd
-
-#replace user_shader_code
-
-    var output: ST_GBuffer;
-#tag gbuffers_output 
     return output;
 }
 //end : wireFrame.fs.wgsl
