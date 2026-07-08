@@ -181,7 +181,7 @@ export abstract class BaseCamera extends NodeObject {
   get BackOfViewMatrix() { return this._back; }  // Returns column vector 2 of the camera matrix
   set BackOfViewMatrix(vec: Vec3) { vec3.copy(vec, this._back); }  // Assigns `vec` to the first 3 elements of column vector 2 of the camera matrix
   /**///////////////////////////////////////////////////////// 第四行,位置;modelMatrix 第四行,位置///////////////////////////////////////////// */
-  _positionOfModelMatrix: Vec3 = new Float32Array(this.modelMatrix.buffer, 4 * 12, 4); /**modelMatrix 第四行,位置 */
+  _positionOfModelMatrix: Vec3 = new Float32Array(this.viewMatrix.buffer, 4 * 12, 4); /**modelMatrix 第四行,位置 */
   get PositionOfModelMatrix() { return this._positionOfModelMatrix; }
   set PositionOfModelMatrix(vec: Vec3) { vec3.copy(vec, this._positionOfModelMatrix); } // Assigns `vec` to the first 3 elements of column vector 3 of the camera matrix
 
