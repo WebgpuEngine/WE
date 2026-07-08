@@ -135,7 +135,11 @@ export abstract class BaseCamera extends NodeObject {
   ]);;
   /** projection Matrix  */
   projectionMatrix!: Mat4;
-  /** MVP的Mat4的数组，[model,view,projection]  */
+  /** MVP的Mat4的数组，[VP,view,projection] 
+   * MVP中的M=V*P
+   * V=viewMatrix
+   * P=projectionMatrix
+   */
   MVP: Mat4[] = [];
   /**
   * shader 中的systemMVP的arraybuffer
@@ -566,8 +570,9 @@ export abstract class BaseCamera extends NodeObject {
     //   this.up = vec3.normalize(vec3.cross(this.back, this.right));
     // }
     // console.log("projectionMatrix=", this.projectionMatrix)
-    this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
-
+    let invViewMatrix = mat4.invert(this.viewMatrix);
+    // this.MVP = [mat4.multiply( invViewMatrix, this.projectionMatrix), invViewMatrix, this.projectionMatrix];
+    this.MVP = [mat4.multiply(this.projectionMatrix, invViewMatrix,), invViewMatrix, this.projectionMatrix];
     return this.MVP;
   }
   updateByPositionYawPitch(position: Vec3, yaw: number, pitch: number): Mat4[] {
@@ -582,8 +587,10 @@ export abstract class BaseCamera extends NodeObject {
     //   let pos = vec3.sub(this.PositionOfModelMatrix, this.Parent.worldPosition);//camera在其parent的local 坐标系下的位置
     //   vec3.copy(pos, this._position);
     // }
-    this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
+    let invViewMatrix = mat4.invert(this.viewMatrix);
+    this.MVP = [mat4.multiply(this.projectionMatrix, invViewMatrix), invViewMatrix, this.projectionMatrix];
     return this.MVP;
+
   }
 
   // /**

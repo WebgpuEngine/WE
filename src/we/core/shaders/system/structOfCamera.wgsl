@@ -92,7 +92,7 @@ struct st_fog{
 
 //默认相机参数
 struct st_system_mvp {
-  model: mat4x4f,
+  VP: mat4x4f,
   view: mat4x4f,
   projection: mat4x4f,
   cameraPosition: vec3f,

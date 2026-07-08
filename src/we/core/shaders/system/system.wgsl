@@ -32,7 +32,7 @@ fn init_system_vs() {
     // modelMatrix = u_mvp.model;
     viewMatrix = u_mvp.view;
     projectionMatrix = u_mvp.projection;
-    MVP = projectionMatrix * viewMatrix ;
+    MVP = u_mvp.VP;// MVP = projectionMatrix * viewMatrix ;
     ambient_light = u_lights.ambient;
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(
@@ -48,7 +48,7 @@ fn init_system_fs() {
     // modelMatrix = u_mvp.model;
     viewMatrix = u_mvp.view;
     projectionMatrix = u_mvp.projection;
-    MVP = projectionMatrix * viewMatrix ;
+    MVP = u_mvp.VP;// projectionMatrix * viewMatrix ;
     ambient_light = u_lights.ambient;
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(
