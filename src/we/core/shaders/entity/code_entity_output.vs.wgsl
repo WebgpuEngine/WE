@@ -12,7 +12,7 @@
     //instanc，14位，16384
     vsOutput.entityID = attributes.instanceIndex +  node_id +  stage_id;
     //position , uv,normal,color不一定有,需要的DCG的反射location进行确认与替换
-    vsOutput.position = matrix_z * MVP *  vec4f(worldPosition.xyz, 1.0);
+    vsOutput.position = matrix_z * VP *  vec4f(worldPosition.xyz, 1.0);
     //vsOutput.position = matrix_z * projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[attributes.instanceIndex] * vec4f(position, 1.0);
     vsOutput.uv = uv;
     vsOutput.normal = normalize(vec4f(transpose( world_matrix[attributes.instanceIndex*2+1]) * vec4f(normal, 0)).xyz);

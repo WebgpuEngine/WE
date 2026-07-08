@@ -5,7 +5,7 @@ var<private> weZero = 0.00000001;
 var<private > defaultCameraPosition : vec3f;
 var<private > viewMatrix : mat4x4f;
 var<private > projectionMatrix : mat4x4f;
-var<private > MVP : mat4x4f;
+var<private > VP : mat4x4f;
 
 var<private > ambient_light :  st_ambient_light;
 
@@ -15,7 +15,7 @@ var<private> matrix_z : mat4x4f = mat4x4f(
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 );
-@group(0) @binding(0) var<uniform> u_mvp : st_system_mvp;            //当前的摄像机的MVP结构
+@group(0) @binding(0) var<uniform> u_mvp : st_system_mvp;            //当前的摄像机的VP结构
 
 @group(0) @binding(1) var<storage> u_lights :  st_lights;            //全部的光源的uniform结构
 // //下面三个是fs中使用的，如果同时有VS和FS，则正确；如果只有VS，则报错（需要使用，SystemOnlyVS.wgsl）
@@ -32,7 +32,7 @@ fn init_system_vs() {
     // modelMatrix = u_mvp.model;
     viewMatrix = u_mvp.view;
     projectionMatrix = u_mvp.projection;
-    MVP = u_mvp.VP;// MVP = projectionMatrix * viewMatrix ;
+    VP = u_mvp.VP;// VP = projectionMatrix * viewMatrix ;
     ambient_light = u_lights.ambient;
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(
@@ -48,7 +48,7 @@ fn init_system_fs() {
     // modelMatrix = u_mvp.model;
     viewMatrix = u_mvp.view;
     projectionMatrix = u_mvp.projection;
-    MVP = u_mvp.VP;// projectionMatrix * viewMatrix ;
+    VP = u_mvp.VP;// projectionMatrix * viewMatrix ;
     ambient_light = u_lights.ambient;
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(

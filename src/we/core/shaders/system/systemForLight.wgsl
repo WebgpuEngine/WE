@@ -5,11 +5,11 @@
 
 //start system.wgsl
 struct st_system_mvp {
-  MVP: mat4x4f,
+  VP: mat4x4f,
   reversedZ: u32,
 };
 var<private> weZero=0.000001;
-var<private > MVP : mat4x4f;
+var<private > VP : mat4x4f;
 var<private> matrix_z : mat4x4f = mat4x4f(
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
@@ -21,7 +21,7 @@ var<private> matrix_z : mat4x4f = mat4x4f(
 
 
 fn init_system_vs() {
-    MVP = u_mvp.MVP;
+    VP = u_mvp.VP;
 
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(

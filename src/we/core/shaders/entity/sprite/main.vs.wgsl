@@ -32,7 +32,7 @@ override boundingBoxMaxSize : f32 = 1.0;
   );
   worldPosition= vec4f(world_matrix[attributes.instanceIndex*2+0] *sprite_matrix*vec4f(position, 1.0));
   vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
-  vsOutput.position = matrix_z * MVP * world_matrix[attributes.instanceIndex*2+0] * vec4f(worldPosition.xyz, 1.0);
+  vsOutput.position = matrix_z * VP * world_matrix[attributes.instanceIndex*2+0] * vec4f(worldPosition.xyz, 1.0);
 
   return vsOutput;
 }

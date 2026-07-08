@@ -136,5 +136,5 @@ struct st_shadowmap_matrix {
   light_id: u32,
   matrix_count: u32,   //数量：1 or 6,1=一个，6=cube
   matrix_self_index: u32,  //0-5,//按照cube方式排列 right=0,left=1,up=2,down=3,back=4,front=5
-  MVP: mat4x4f,
+  VP: mat4x4f,
 }
