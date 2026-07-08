@@ -12,14 +12,7 @@ import {
     T_transparentMode
 } from "./base";
 import { commmandType, isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, T_uniformEntries } from "../command/base";
-// import {
-//     E_shaderTemplateReplaceType,
-//     I_ShaderTemplate,
-//     I_ShaderTemplate_Final,
-//     I_shaderTemplateAdd,
-//     I_shaderTemplateReplace,
-//     I_singleShaderTemplate
-// } from "../shadermanagemnet/base";
+
 import { Scene } from "../scene/scene";
 import { I_mipmap } from "../texture/base";
 import { Clock } from "../scene/clock";

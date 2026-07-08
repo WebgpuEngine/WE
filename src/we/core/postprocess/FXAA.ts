@@ -3,7 +3,6 @@ import { createUniformBuffer, updataOneUniformBuffer } from "../command/baseFunc
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { Clock } from "../scene/clock";
 import { E_shaderRegisterAlianName } from "../SHR/include";
-// import { SHT_PP_FXAA } from "../shadermanagemnet/postProcess/FXAA";
 import { BasePostProcess, IV_PostProcess } from "./basePostProcess";
 
 export interface I_FXAAValues {

@@ -1,7 +1,6 @@
 import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
-// import { SHT_MeshMorphTargetVS } from "../../shadermanagemnet/mesh/morphTargetVS";
 import { E_entityType, IV_BaseEntity } from "../base";
 import { MorphTargetEntity } from "./morphTargetEntity";
 

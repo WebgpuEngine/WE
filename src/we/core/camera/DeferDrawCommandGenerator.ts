@@ -1,11 +1,10 @@
 import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
-import { commmandType, T_uniformEntries } from "../command/base";
+import { commmandType } from "../command/base";
 import { BaseDrawCommand, IV_BaseDrawCommand } from "../command/BaseDrawCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { E_GBufferNames } from "../gbuffers/base";
 import { Scene } from "../scene/scene";
-// import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
-// import { SHT_DeferRender } from "../shadermanagemnet/deferRender/deferRender";
+
 import { E_shaderRegisterAlianName } from "../SHR/include";
 import { CameraManager } from "./cameraManager";
 

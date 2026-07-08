@@ -1,7 +1,6 @@
 import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
-// import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
 import { E_entityType, IV_BaseEntity } from "../base";
 import { SkinsEntity } from "./skinsEntity";
 

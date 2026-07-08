@@ -6,7 +6,6 @@ import { E_GBufferNames } from "../gbuffers/base";
 import { E_ToneMappingType } from "../scene/base";
 import { Scene } from "../scene/scene";
 import { E_shaderRegisterAlianName } from "../SHR/include";
-// import { WGSL_colorSpaceFunction, WGSL_toneMappingFunction } from "../shadermanagemnet/colorSpace/colorSpace";
 import { CameraManager } from "./cameraManager";
 
 export class ToneMappingCommandGenerator {

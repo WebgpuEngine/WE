@@ -2,9 +2,8 @@
 
 
 var<private> weZero = 0.00000001;
-// var<private> shadow_DepthTexture : texture_depth_2d_array<f32>;
 var<private > defaultCameraPosition : vec3f;
-var<private > modelMatrix : mat4x4f;
+// var<private > modelMatrix : mat4x4f;
 var<private > viewMatrix : mat4x4f;
 var<private > projectionMatrix : mat4x4f;
 var<private > MVP : mat4x4f;
@@ -37,10 +36,10 @@ override shadowDepthTextureSize : f32 = 1024.0;
 
 fn init_system_vs() {
     defaultCameraPosition = u_mvp.cameraPosition;
-    modelMatrix = u_mvp.model;
+    // modelMatrix = u_mvp.model;
     viewMatrix = u_mvp.view;
     projectionMatrix = u_mvp.projection;
-    MVP = projectionMatrix * viewMatrix * modelMatrix;
+    MVP = projectionMatrix * viewMatrix ;
     ambient_light = u_lights.ambient;
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(
@@ -53,10 +52,10 @@ fn init_system_vs() {
 }
 fn init_system_fs() {
     defaultCameraPosition = u_mvp.cameraPosition;
-    modelMatrix = u_mvp.model;
+    // modelMatrix = u_mvp.model;
     viewMatrix = u_mvp.view;
     projectionMatrix = u_mvp.projection;
-    MVP = projectionMatrix * viewMatrix * modelMatrix;
+    MVP = projectionMatrix * viewMatrix ;
     ambient_light = u_lights.ambient;
     if u_mvp.reversedZ == 1 {
         matrix_z = mat4x4f(

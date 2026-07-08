@@ -1,7 +1,6 @@
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import { I_ShaderTemplate } from "../../shadermanagemnet/base";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import {
     E_MaterialType, E_materialTypeForBindGroup, I_materialBundleOutput,

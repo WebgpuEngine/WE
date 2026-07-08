@@ -3,7 +3,6 @@ import { DrawCommandGenerator, type IV_DrawCommandGenerator, type IV_DC } from "
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../../../src/we/core/command/SimpleDrawCommand";
 import type { IV_Scene } from "../../../src/we/core/scene/base";
 import { Scene } from "../../../src/we/core/scene/scene";
-import { I_ShaderTemplate } from "../../../src/we/core/shadermanagemnet/base";
 
 declare global {
   interface Window {
@@ -35,7 +34,7 @@ let QuadVS = `
     return vec4f(pos[vertexIndex], 0.0, 1.0);
 }
 `;
-var SHT: I_ShaderTemplate = {
+var SHT = {
   entity: {
     add: [{
       name: "QuadVS",

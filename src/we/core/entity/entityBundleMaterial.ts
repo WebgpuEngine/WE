@@ -18,21 +18,11 @@ import { I_BundleOfMaterialForMSAA, I_materialBundleOutput } from "../material/b
 import { BaseMaterial } from "../material/baseMaterial";
 import { boundingBox } from "../math/Box";
 import { E_renderPassName } from "../scene/renderManager";
-// import {
-//     E_shaderTemplateReplaceType,
-//     I_ShaderTemplate,
-//     I_ShaderTemplate_Final,
-//     I_shaderTemplateAdd,
-//     I_shaderTemplateReplace,
-//     I_singleShaderTemplate, WGSL_st_output
-// } from "../shadermanagemnet/base";
+
 import { I_EntityAttributes, IV_BaseEntity, E_entityType } from "./base";
 import { BaseEntity } from "./baseEntity";
 import { createIndexBuffer, createVerticesBuffer } from "../command/baseFunction";
-// import { SHT_MeshVS } from "../shadermanagemnet/mesh/meshVS";
-// import { SHT_LineVS } from "../shadermanagemnet/mesh/linesVS";
-// import { SHT_PointVS } from "../shadermanagemnet/mesh/pointsVS";
-// import { SHT_MeshShadowMapVS } from "../shadermanagemnet/mesh/shadowmapVS";
+
 import {
     computeNormalsArrayFromPositionsAndIndices,
     computeNormalsArrayFromPositionsNoIndex,

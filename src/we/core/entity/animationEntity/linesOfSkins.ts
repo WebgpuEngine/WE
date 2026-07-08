@@ -1,7 +1,5 @@
-// import { BaseCamera } from "../../camera/baseCamera";
 import { DrawCommand } from "../../command/DrawCommand";
 import { E_renderPassName } from "../../scene/renderManager";
-// import { SHT_MeshSkinsVS } from "../../shadermanagemnet/mesh/skinsVS";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { E_entityType } from "../base";
 import { IV_LinesEntity } from "../mesh/lines";

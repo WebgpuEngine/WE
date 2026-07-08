@@ -3,7 +3,6 @@ import { I_uniformArrayBufferEntry } from "../command/base";
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { Clock } from "../scene/clock";
 import { E_shaderRegisterAlianName } from "../SHR/include";
-// import { SHT_PP_Blur3x3 } from "../shadermanagemnet/postProcess/blur3x3";
 import { BasePostProcess, IV_PostProcess } from "./basePostProcess";
 
 export class Blur3x3 extends BasePostProcess {

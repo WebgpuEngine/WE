@@ -1,15 +1,10 @@
 import { weColor3, E_renderForDC } from "../../base/coreDefine";
-import { BaseCamera } from "../../camera/baseCamera";
 import { DrawCommand } from "../../command/DrawCommand";
-import { IV_DC } from "../../command/DrawCommandGenerator";
-import { mergeLightUUID } from "../../light/lightsManager";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { ColorMaterial } from "../../material/standard/colorMaterial";
 import { E_renderPassName } from "../../scene/renderManager";
-import { SHT_PointVS } from "../../shadermanagemnet/mesh/pointsVS";
-import { SHT_MeshShadowMapVS } from "../../shadermanagemnet/mesh/shadowmapVS";
-import { SHT_PointEmuSpriteVS } from "../../shadermanagemnet/mesh/spriteVS";
-import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC, I_vsfsBundle } from "../base";
+
+import { E_entityType, IV_BaseEntity } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -24,7 +19,7 @@ export interface IV_PointsEntity extends IV_BaseEntity {
                 [name: string]: number[];
             },
             indices?: number[],
-            vertexStepMode?: GPUVertexStepMode,
+            vertexStepMode?: GPUVertexStepMode[],
         },
     },
     /**
@@ -188,41 +183,41 @@ export class Points extends EntityBundleMaterial {
     //     throw new Error("Method not implemented.");
     // }
 
-    /**
-     * 生成模拟点的DrawCommand参数
-     * @param type 渲染类型
-     * @param UUID camera UUID or light merge UUID
-     * @param vsBundle 实体的uniform和shader模板
-     * @param vsOnly 是否只渲染顶点
-     * @param scope this
-     * @returns IV_DrawCommand
-     */
-    generateEmuInputValueOfDC(type: E_renderForDC, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
-        if (scope == undefined) scope = this;
-        let valueDC = super.generateInputValueOfDC(type, bundle, vsOnly, scope);
-        valueDC.render.primitive = {
-            topology: "triangle-list",
-            cullMode: scope._cullMode
-        }
-        return valueDC;
-    }
+    // /**
+    //  * 生成模拟点的DrawCommand参数
+    //  * @param type 渲染类型
+    //  * @param UUID camera UUID or light merge UUID
+    //  * @param vsBundle 实体的uniform和shader模板
+    //  * @param vsOnly 是否只渲染顶点
+    //  * @param scope this
+    //  * @returns IV_DrawCommand
+    //  */
+    // generateEmuInputValueOfDC(type: E_renderForDC, bundle: I_vsfsBundle, vsOnly: boolean = false, scope?: Points): IV_DC {
+    //     if (scope == undefined) scope = this;
+    //     let valueDC = super.generateInputValueOfDC(type, bundle, vsOnly, scope);
+    //     valueDC.render.primitive = {
+    //         topology: "triangle-list",
+    //         cullMode: scope._cullMode
+    //     }
+    //     return valueDC;
+    // }
 
     /**
      * 为每个camera创建前向渲染的DrawCommand
      * emulate points 是以instance方式绘制
      * @param camera 
      */
-    override createForwardDC(): void {
+    override createForwardDC(shaderName: string = "entity.points"): void {
         let dc: DrawCommand;
         if (this.emulate == "none") {
             super.createForwardDC();
         }
         else {
             if (this.emulate == "sprite") {
-                dc = this.generateOpacityDC(SHT_PointEmuSpriteVS, undefined, undefined, this.generateEmuInputValueOfDC);
+                dc = this.generateOpacityDC("entity.sprite");
             }
             else {
-                dc = this.generateOpacityDC(SHT_PointVS, undefined, undefined, this.generateEmuInputValueOfDC);
+                dc = this.generateOpacityDC(shaderName);
             }
             this.renderPassArray[E_renderPassName.forward].push(dc);
 
@@ -238,14 +233,12 @@ export class Points extends EntityBundleMaterial {
      * @param input 
      * @returns 
      */
-    override createShadowMapDC(): void {
-        let bundle = this.getVSUniformAndShaderTemplateFinal(SHT_MeshShadowMapVS);
+    override createShadowMapDC(sht: string = "entity.shadowmap"): void {
         if (this.inputValues.shadow?.generate === false) {
             return;
         }
-
-
-        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vsBundle: bundle }, true);
+        let vsCode = this.scene.shaderRegister.getAliasShaderName(sht, this.getUserCodeVS(), this.getUserCodeFunction());
+        let valueDC = this.generateInputValueOfDC(E_renderForDC.light, { vs: { code: vsCode } }, true);
         // valueDC.system.parent = this;//设置父对象，用于在渲染时，设置uniform值。由于存在 specialInitValueOfDC参数 ，在调用时，会传递不传递 this，所以需要单独设置。
         if (this.emulate == "none") {
             valueDC.render.primitive = {

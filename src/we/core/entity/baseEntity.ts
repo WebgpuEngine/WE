@@ -11,7 +11,6 @@ import {
 import { E_lifeState, E_renderForDC, weVec2 } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { I_bindGroupAndGroupLayout, I_drawMode, I_drawModeIndexed } from "../command/base";
-import { I_ShaderTemplate } from "../shadermanagemnet/base";
 import { EntityManager } from "./entityManager";
 import { Scene } from "../scene/scene";
 import { DrawCommandGenerator } from "../command/DrawCommandGenerator";

@@ -10,7 +10,6 @@ import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, isGPUBindGroup
 import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
-// import { E_shaderTemplateReplaceType, I_ShaderTemplate_Final, SHT_refDCG } from "../shadermanagemnet/base";
 import { Clock } from "../scene/clock";
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseDrawCommand, I_VertexBufferEntry } from "./BaseDrawCommand";

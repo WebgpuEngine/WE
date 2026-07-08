@@ -1,4 +1,3 @@
-import { SHT_WireFrameFS, SHT_WireFrameFS_MSAA, SHT_WireFrameFS_MSAAinfo } from "../../shadermanagemnet/material/wireFrameMaterial";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { E_MaterialType } from "../base";
 import { ColorMaterial, I_ColorMaterial } from "./colorMaterial";

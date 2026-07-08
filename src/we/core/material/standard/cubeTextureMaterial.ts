@@ -19,14 +19,6 @@ import {
     E_MaterialType, E_materialTypeForBindGroup, E_TextureType,
     materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA, materialAddGroupBindStringOfMSAA
 } from "../base";
-// import {
-//     SHT_materialCubePositionTextureFS,
-//     SHT_materialCubePositionTextureFS_MSAA,
-//     SHT_materialCubePositionTextureFS_MSAAinfo,
-//     SHT_materialCubeSkyTextureFS,
-//     SHT_materialCubeSkyTextureFS_MSAA,
-//     SHT_materialCubeSkyTextureFS_MSAAinfo
-// } from "../../shadermanagemnet/material/cubeTextureMaterial";
 import { Texture } from "../../texture/texture";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { PrefilteredCubemap } from "../../texture/prefilteredCubemap";

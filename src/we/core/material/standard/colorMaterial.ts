@@ -1,15 +1,9 @@
 import { weColor4, E_lifeState } from "../../base/coreDefine";
 import { isWeColor4 } from "../../base/coreFunction";
-import { E_BOLBufferType } from "../../bufferBlock/base";
-import { I_pointerCreateParams } from "../../bufferBlock/pointer";
+
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-import {
-    SHT_materialColor_TT_FS,
-    SHT_materialColorFS,
-    SHT_materialColorFS_MSAA,
-    SHT_materialColorFS_MSAA_info
-} from "../../shadermanagemnet/material/colorMaterial";
+
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import {
     E_MaterialType,

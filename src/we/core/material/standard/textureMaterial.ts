@@ -21,11 +21,6 @@ import {
 import { E_lifeState } from "../../base/coreDefine";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
-// import {
-//     SHT_materialTexture_TT_FS,
-//     SHT_materialTextureFS,
-//     SHT_materialTextureFS_MSAA, SHT_materialTextureFS_MSAAinfo
-// } from "../../shadermanagemnet/material/textureMaterial";
 import { BaseStandardMaterial } from "./baseStandard";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { BaseTexture } from "../../texture/baseTexture";

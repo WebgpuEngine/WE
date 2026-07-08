@@ -1,6 +1,5 @@
 // import { I_EntityBundleOutput } from "../entity/base";
 import { Scene } from "../scene/scene";
-// import { E_shaderTemplateReplaceType, I_ShaderTemplate, I_ShaderTemplate_Final, I_shaderTemplateAdd, I_shaderTemplateReplace, I_singleShaderTemplate } from "../shadermanagemnet/base";
 import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, isUniformBufferPart } from "./base";
 import { BaseCommand } from "./BaseCommand";
 import { I_VertexBufferEntry } from "./BaseDrawCommand";

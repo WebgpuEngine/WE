@@ -3,7 +3,6 @@ import { V_weLinearFormat } from "../base/coreDefine";
 import { IV_SimpleDrawCommand, SimpleDrawCommand } from "../command/SimpleDrawCommand";
 import { Clock } from "../scene/clock";
 import { E_shaderRegisterAlianName } from "../SHR/include";
-// import { SHT_PP_RedToOne } from "../shadermanagemnet/postProcess/RedToOne";
 import { BasePostProcess, IV_PostProcess } from "./basePostProcess";
 
 export class PP_RedToOne extends BasePostProcess {
