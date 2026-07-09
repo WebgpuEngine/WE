@@ -651,9 +651,13 @@ export abstract class BaseTexture extends RootGPU {
         else if (format.endsWith("sint")) {
             textureLayoutSampleType = "sint";
         }
+
         // 分支4：32位浮点纹理（r32/rg32/rgba32 float，默认unfilterable-float）
-        else if (["r32float", "rg32float", "rgba32float"].includes(format)) {
+        else if (["r32float", "rg32float", "rgba32float"].includes(format) && this.scene.webGPUFeaturesSupported.includes("float32-filterable") === false) {
             textureLayoutSampleType = "unfilterable-float";
+        }
+        else if (["r32float", "rg32float", "rgba32float"].includes(format) && this.scene.webGPUFeaturesSupported.includes("float32-filterable")) {
+            textureLayoutSampleType = "float";
         }
 
         // 统一处理：uint / sint / 32float(unfilterable-float) 都使用 non-filtering 采样器
