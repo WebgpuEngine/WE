@@ -2,10 +2,7 @@
 
 import { Scene } from "../scene/scene";
 
-//about  GPU  setting 
-export var limitsOfWE = {
-    maxColorAttachmentBytesPerSample: 64,
-}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 /** 通用的用户自定义的function */

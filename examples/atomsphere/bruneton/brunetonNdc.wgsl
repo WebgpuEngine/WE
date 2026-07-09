@@ -4,28 +4,67 @@ const kSphereCenter: vec3f = vec3f(0.0, 0.0, 1000.0) / kLengthUnitInMeters;
 const kSphereRadius: f32 = 1000.0 / kLengthUnitInMeters;
 const kSphereAlbedo: vec3f = vec3f(0.8);
 const kGroundAlbedo: vec3f = vec3f(0.0, 0.0, 0.04);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// 着色器输入
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+var <private >  iResolution: vec3f=vec3(0.0,0.0,0.0);           // viewport resolution (in pixels)
+var <private >  iTime: f32=0.0;                 // shader playback time (in seconds)
+var <private >  iMouse: vec4f=vec4(0.0,0.0,0.0,0.0);                // mouse pixel coords. xy: current (if MLB down), zw: click
+
+struct st_uniform_toy {
+    u_resolution: vec2f,
+    u_mouse_xy: vec2f,
+    u_mouse_btn: i32,
+    u_time: f32,
+};
+struct st_uniform_bruneton {
+  camera: vec3f,
+  exposure: f32,
+  white_point: vec3f,
+  earth_center: vec3f,
+  sun_direction: vec3f,
+  sun_size: vec2f,
+}
+var <private >  camera: vec3f=vec3(0.0,0.0,0.0);
+var <private >  exposure: f32=0.0;
+var <private >  white_point: vec3f=vec3(0.0,0.0,0.0);
+var <private >  earth_center: vec3f=vec3(0.0,0.0,0.0);
+var <private >  sun_direction: vec3f=vec3(0.0,0.0,0.0);
+var <private >  sun_size: vec2f=vec2(0.0,0.0);
+
+fn init_parameter() {
+  camera = u_bruneton.camera;
+  exposure = u_bruneton.exposure;
+  white_point = u_bruneton.white_point;
+  earth_center = u_bruneton.earth_center;
+  sun_direction = u_bruneton.sun_direction;
+  sun_size = u_bruneton.sun_size;
+}
 
 
-@group(0) @binding(0) var <uniform >u_view_inverse: mat4x4f;
-@group(0) @binding(1) var <uniform >u_projection_inverse: mat4x4f;
 
+@group(0) @binding(0) var<uniform> u_toy: st_uniform_toy;
+@group(0) @binding(1) var<uniform> u_bruneton: st_uniform_bruneton;
+@group(0) @binding(2) var <uniform >u_view_matrix_inverse: mat4x4f;
+@group(0) @binding(3) var <uniform >u_projection_matrix_inverse: mat4x4f;
 
-@group(1) @binding(0) var transmittance_texture: texture_2d<f32>;
-@group(1) @binding(1) var scattering_texture: texture_3d<f32>;
-@group(1) @binding(2) var single_mie_scattering_texture: texture_3d<f32>;
-@group(1) @binding(3) var irradiance_texture: texture_2d<f32>;
+@group(0) @binding(4) var transmittance_texture: texture_2d<f32>;
+@group(0) @binding(5) var scattering_texture: texture_3d<f32>;
+@group(0) @binding(6) var single_mie_scattering_texture: texture_3d<f32>;
+@group(0) @binding(7) var irradiance_texture: texture_2d<f32>;
+@group(0) @binding(8) var u_sampler: sampler;
 
-@group(1) @binding(4) var<uniform> camera: vec3f;
-@group(1) @binding(5) var<uniform> exposure: f32;
-@group(1) @binding(6) var<uniform> white_point: vec3f;
-@group(1) @binding(7) var<uniform> earth_center: vec3f;
-@group(1) @binding(8) var<uniform> sun_direction: vec3f;
-@group(1) @binding(9) var<uniform> sun_size: vec2f;
+// @group(1) @binding(4) var<uniform> camera: vec3f;
+// @group(1) @binding(5) var<uniform> exposure: f32;
+// @group(1) @binding(6) var<uniform> white_point: vec3f;
+// @group(1) @binding(7) var<uniform> earth_center: vec3f;
+// @group(1) @binding(8) var<uniform> sun_direction: vec3f;
+// @group(1) @binding(9) var<uniform> sun_size: vec2f;
 
-@group(1) @binding(10) var transmittance_sampler: sampler;
-@group(1) @binding(11) var scattering_sampler: sampler;
-@group(1) @binding(12) var single_mie_scattering_sampler: sampler;
-@group(1) @binding(13) var irradiance_sampler: sampler;
+// @group(1) @binding(10) var transmittance_sampler: sampler;
+// @group(1) @binding(11) var scattering_sampler: sampler;
+// @group(1) @binding(12) var single_mie_scattering_sampler: sampler;
+// @group(1) @binding(13) var irradiance_sampler: sampler;
 
 const TRANSMITTANCE_TEXTURE_WIDTH: i32 = 256;
 const TRANSMITTANCE_TEXTURE_HEIGHT: i32 = 64;

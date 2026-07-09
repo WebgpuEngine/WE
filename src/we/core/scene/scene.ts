@@ -91,13 +91,48 @@ export class Scene {
 
     /**是否使用premultiplied alpha */
     premultipliedAlpha: boolean = true;
-
-
-    //////////////////////////////////////////////////////////
-    //基础 render Pass Descriptor 和about GBuffer 
-
-    /**最后的各个功能输出的target texture 
-     * color: 这里是最后输出到canvas的颜色纹理，绘制
+    /**webgpu的特性，需要开启的；
+     * 1、目前是全都开启的，后续根据需要开启部分
+     * 2、有初始化参数可用定制开启，todo；
+     */
+    webGPUFeatures: GPUFeatureName[] = [
+        // "core-features-and-limits",
+        "depth-clip-control",
+        "depth32float-stencil8",
+        "texture-compression-bc",
+        "texture-compression-bc-sliced-3d",
+        "texture-compression-etc2",
+        "texture-compression-astc",
+        "texture-compression-astc-sliced-3d",
+        "timestamp-query",
+        "indirect-first-instance",
+        // "shader-f16",
+        "rg11b10ufloat-renderable",
+        "bgra8unorm-storage",
+        "float32-filterable",
+        "float32-blendable",
+        // "clip-distances",
+        // "dual-source-blending",
+        // "subgroups",
+        // "texture-formats-tier1",
+        // //@ts-ignore
+        // "texture-formats-tier2",
+        // "primitive-index",
+        // //@ts-ignore
+        // "texture-component-swizzle",
+        // //@ts-ignore
+        // "subgroup-size-control",
+    ];
+    /**webgpu的特性是否支持的输出 */
+    webGPUFeaturesSupported: GPUFeatureName[] = [];
+    /**webgpu的限制配置 
+     * 1、maxColorAttachmentBytesPerSample: 最大颜色附件的字节数，每个样本的字节数。默认64
+     * 2、有初始化参数可用申请限制，todo；
+    */
+    webGPULimits: Record<string, number> = {
+        maxColorAttachmentBytesPerSample: 64,
+    }
+    /**
      * depth: 配套finalTarget的深度纹理， 为了在DC中的RAW模式中可以使用深度而设置的
      * id: 配套finalTarget的id纹理， pickup使用
      * NDC: 是否为NDC模式。默认=false
@@ -388,108 +423,41 @@ export class Scene {
         this.adapter = adapter;
         let device: GPUDevice;
         ///////////////////////////////////////////////////////////////////////////
-        //扩展与限制 
 
-        // 所有想要使用的压缩特性
-        const compressionGroups: { feature: GPUFeatureName, name: string, testFormats: GPUTextureFormat[] }[] = [
-            {
-                feature: "texture-compression-bc",
-                name: "BC 系列(BC1~BC7/BC6H)",
-                testFormats: [
-                    "bc6h-rgb-ufloat",
-                    "bc6h-rgb-float",
-                    "bc7-rgba-unorm"
-                ]
-            },
-            {
-                feature: "texture-compression-etc2",
-                name: "ETC2/EAC 系列",
-                testFormats: [
-                    "etc2-rgb8unorm",
-                    "etc2-rgba8unorm",
-                    "eac-r11snorm"
-                ]
-            },
-            {
-                feature: "texture-compression-astc",
-                name: "ASTC 系列",
-                testFormats: [
-                    "astc-4x4-unorm",
-                    "astc-8x8-unorm",
-                    "astc-12x12-unorm"
-                ]
+        //1、扩展与限制 
+        // console.log("WebGPU limits:", adapter.limits);
+        for (let i in this.webGPULimits) {
+            const hardwareMax = adapter.limits[i as keyof GPUSupportedLimits] as number;
+            if (this.webGPULimits[i] > hardwareMax) {
+                throw new Error(`WebGPU device not meet minimum requirements. ${i}=${this.webGPULimits[i]}`);
             }
-        ];
-        // 1、过滤：只保留当前适配器支持的特性
-        const supportedFeatures: GPUFeatureName[] = compressionGroups
-            .filter(g => adapter.features.has(g.feature))
-            .map(g => g.feature);
-
-        // console.log(adapter.features.has("texture-compression-bc"));
-        // console.log(adapter.features.has("texture-compression-etc2"));
-        // console.log(adapter.features.has("texture-compression-astc"));
-        // console.log(compressionGroups.filter(g => adapter.features.has(g.feature)));
-        // console.log("当前支持的压缩特性：", supportedFeatures);
-
-        //2、申请
-        if (adapter.limits.maxColorAttachmentBytesPerSample < limitsOfWE.maxColorAttachmentBytesPerSample) {
-            // When the desired limit isn’t supported, take action to either fall back to a code
-            // path that does not require the higher limit or notify the user that their device
-            // does not meet minimum requirements.    
-            device = await adapter.requestDevice(
-                {
-                    requiredFeatures: supportedFeatures
-                }
-            );
-            console.warn("WebGPU device not meet minimum requirements. maxColorAttachmentBytesPerSample=", adapter.limits.maxColorAttachmentBytesPerSample);
         }
-        else {
+
+        const supportedFeatures: GPUFeatureName[] = this.webGPUFeatures
+            .filter(g => adapter.features.has(g))
+            .map(g => g);
+        //2、申请
+        {
             // Request higher limit of max color attachments bytes per sample.
             device = await adapter.requestDevice({
-                requiredLimits: { maxColorAttachmentBytesPerSample: limitsOfWE.maxColorAttachmentBytesPerSample },
+                requiredLimits: this.webGPULimits,// { maxColorAttachmentBytesPerSample: limitsOfWE.maxColorAttachmentBytesPerSample },
                 requiredFeatures: supportedFeatures
             });
         }
-        // 3、 二次校验
-        const featMap: GPUFeatureName[] = [];
+        // 3、 输出当前支持的特性与限制
+        console.log("当前支持的特性：");
         for (const f of supportedFeatures) {
             let enabled = device.features.has(f);
-            console.log(`${f}:`, enabled ? "✅ 已启用" : "❌ 不支持");
+            console.log(`       ${f}:`, enabled ? "✅ 已启用" : "❌ 不支持");
             if (enabled) {
-                featMap.push(f);
-
+                this.webGPUFeaturesSupported.push(f);
             }
         }
+        console.log("当前webGPU的limits:" );
+        for (let i in this.webGPULimits) {
+            console.log(`       ${i}:`, this.webGPULimits[i]);
+        }
 
-        // 4. 逐组、逐个格式创建纹理验证。正确，没有必要，保留代码
-        // for (const group of compressionGroups) {
-        //     const { feature, name, testFormats } = group;
-        //     const isEnabled = device.features.has(feature);
-
-        //     console.log(`【${name}】特性状态：${isEnabled ? "✅ 已启用" : "❌ 不支持"}`);
-
-        //     if (!isEnabled) {
-        //         // console.log("  → 跳过格式测试\n");
-        //         continue;
-        //     }
-
-        //     // 测试该组下所有格式
-        //     for (const fmt of testFormats) {
-        //         try {
-        //             let texture = device.createTexture({
-        //                 size: [16, 16, 1],
-        //                 format: fmt,
-        //                 usage: GPUTextureUsage.TEXTURE_BINDING
-        //             });
-        //             console.log(`  ${fmt} : ✅ 可用`);
-        //             texture.destroy();
-        //         } catch (err) {
-        //             console.log(`  ${fmt} : ❌ 不可用 | ${err.message.slice(0, 80)}...`);
-        //         }
-        //     }
-        //     console.log("");
-        // }
-        //end
         ///////////////////////////////////////////////////////////////////////////
 
         if (!device) throw new Error("Couldn't request WebGPU device.");
