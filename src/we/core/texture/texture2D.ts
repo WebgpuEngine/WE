@@ -1,22 +1,17 @@
+/**
+ * @description 2D数据纹理，用于来自ArrayBuffer的纹理数据
+ * 1、只接受ArrayBuffer类型的数据
+ * 2、必须手动指定纹理格式和大小
+ * @author bythesword 20260709
+ */
 import { E_lifeState } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture, isGPUSamplerDescriptor } from "./base";
 import { BaseTexture } from "./baseTexture";
 import { HdrifyImage, readExr, readHdr, readJpegGainMap } from "hdrify";
 
-/**
- * 体积纹理
- * 1、  samplerBindingType?: GPUSamplerBindingType,只能时"filter"
- * 2、  sampler?: GPUFilterMode | GPUSamplerDescriptor,默认为  
- {
-  magFilter: 'linear',
-  minFilter: 'linear',
-  mipmapFilter: 'linear',
-  maxAnisotropy: 16,
- }
- * 3、source: ArrayBuffer,体积纹理数据，必须是二进制数据
- */
-export interface I_VolumeTexture extends I_BaseTexture {
+
+export interface I_Texture2D extends I_BaseTexture {
     source: ArrayBuffer;
     format: GPUTextureFormat;
     size: { width: number, height: number};
@@ -24,7 +19,7 @@ export interface I_VolumeTexture extends I_BaseTexture {
     // blockLength: number;
 }
 
-export class Texture2Data extends BaseTexture {
+export class Texture2D extends BaseTexture {
 
     updateSelf(): void {
         // throw new Error("Method not implemented.");
@@ -33,7 +28,7 @@ export class Texture2Data extends BaseTexture {
         this.texture.destroy();
         this._state = E_lifeState.destroyed;
     }
-    constructor(input: I_VolumeTexture, device: GPUDevice, scene?: Scene) {
+    constructor(input: I_Texture2D, device: GPUDevice, scene?: Scene) {
         super(input, device, scene);
         this.inputValues = input;
         if (!(input.source instanceof ArrayBuffer)) {

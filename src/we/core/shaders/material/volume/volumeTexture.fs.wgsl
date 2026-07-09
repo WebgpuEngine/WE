@@ -106,10 +106,11 @@ fn rayAABB(ro: vec3f, rd: vec3f) -> vec2f {
     }
 
     // let alpha = opacity;//ok
-    let alpha = 1.0 - transmittance;
+    let alpha: vec4f = 1.0 - transmittance;
 
     if (u_volume.channel == 0) {
-        materialColor= vec4( vec3f(alpha.x), 1.0);
+        // materialColor= vec4( vec3f(alpha.x), 1.0);
+        materialColor= vec4( vec3f(alpha.x), alpha.w);// 透明度,可用工作，但预乘透明度透出底色(除非在depth上有更远的物体)
     }
     else if (u_volume.channel == 1) {
         materialColor= vec4( vec3f(alpha.y), 1.0);

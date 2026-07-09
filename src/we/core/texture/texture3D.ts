@@ -1,8 +1,12 @@
+/**
+ * @description 3DArrayBuffer纹理
+ * 1、只接受ArrayBuffer类型的数据
+ * 2、必须手动指定纹理格式和大小
+ */
 import { E_lifeState } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture, isGPUSamplerDescriptor } from "./base";
 import { BaseTexture } from "./baseTexture";
-import { HdrifyImage, readExr, readHdr, readJpegGainMap } from "hdrify";
 
 /**
  * 体积纹理
@@ -16,7 +20,7 @@ import { HdrifyImage, readExr, readHdr, readJpegGainMap } from "hdrify";
  }
  * 3、source: ArrayBuffer,体积纹理数据，必须是二进制数据
  */
-export interface I_VolumeTexture extends I_BaseTexture {
+export interface I_Texture3D extends I_BaseTexture {
     source: ArrayBuffer;
     format: GPUTextureFormat;
     size: { width: number, height: number, depth: number };
@@ -33,7 +37,7 @@ export class Texture3D extends BaseTexture {
         this.texture.destroy();
         this._state = E_lifeState.destroyed;
     }
-    constructor(input: I_VolumeTexture, device: GPUDevice, scene?: Scene) {
+    constructor(input: I_Texture3D, device: GPUDevice, scene?: Scene) {
         super(input, device, scene);
         this.inputValues = input;
         if (!(input.source instanceof ArrayBuffer)) {

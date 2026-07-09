@@ -13,6 +13,7 @@ dist-ssr
 *.local
 
 public/models/gltf/model
+!src/@loaders.gl/*
 
 # Editor directories and files
 .vscode/*

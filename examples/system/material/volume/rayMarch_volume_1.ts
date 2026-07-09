@@ -47,13 +47,13 @@ const width = 256;
 const height = 256;
 const depth = 109;
 
-let decompressedArrayBuffer = await weGetBinaryByUrl("/volume/head256x256x109");
-let texture3D = new Texture3D({
-  source: decompressedArrayBuffer,
-  format: "r8unorm",
-  size: { width, height, depth },
-}, scene.device, scene);
-await texture3D.init();
+// let decompressedArrayBuffer = await weGetBinaryByUrl("/volume/head256x256x109");
+// let texture3D = new Texture3D({
+//   source: decompressedArrayBuffer,
+//   format: "r8unorm",
+//   size: { width, height, depth },
+// }, scene.device, scene);
+// await texture3D.init();
 
 let shaderCode = `//////////////////////////////////////////////////////////
     // 体积渲染

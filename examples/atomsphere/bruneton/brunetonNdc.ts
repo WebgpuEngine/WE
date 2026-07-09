@@ -8,7 +8,7 @@ import { weGetBinaryResourceFromGzip } from "../../../src/we/core/base/file/getF
 import shader from "./fromGLSL.wgsl?raw";
 import { Texture3D } from "../../../src/we/core/texture/texture3D";
 import { Texture } from "../../../src/we/core/texture/texture";
-import { Texture2Data } from "../../../src/we/core/texture/texture2Data";
+import { Texture2D } from "../../../src/we/core/texture/texture2D";
 
 declare global {
   interface Window {
@@ -130,7 +130,7 @@ let sampler = scene.device.createSampler({
   addressModeU: "clamp-to-edge",
   addressModeV: "clamp-to-edge",
 });
-let texture2DTransmittance = new Texture2Data({
+let texture2DTransmittance = new Texture2D({
   source: dataTransmittance,
   format: "rgba32float",
   size: { width: TRANSMITTANCE_TEXTURE_WIDTH, height: TRANSMITTANCE_TEXTURE_HEIGHT, },
@@ -144,7 +144,7 @@ let texture3DScattering = new Texture3D({
   sampler: sampler,
 }, scene.device, scene);
 
-let texture2DIrradiance = new Texture2Data({
+let texture2DIrradiance = new Texture2D({
   source: dataIrradiance,
   format: "rgba32float",
   size: { width: IRRADIANCE_TEXTURE_WIDTH, height: IRRADIANCE_TEXTURE_HEIGHT, },

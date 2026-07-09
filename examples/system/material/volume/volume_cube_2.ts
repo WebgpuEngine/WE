@@ -21,8 +21,9 @@ declare global {
 }
 let input: IV_Scene = {
   canvas: "render",
-  backgroudColor: [0, 0, 0, 1],
-  // backgroudColor: [1, 1, 1, 0.1],
+  backgroudColor: [0, 0, 0, 0.5],
+  // backgroudColor: [1, 1, 1, 1],
+  premultipliedAlpha: false,
   reversedZ: true,
   // modeNDC: true,
 };
