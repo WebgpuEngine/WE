@@ -5,7 +5,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { weGetBinaryResourceFromGzip } from "../../../src/we/core/base/file/getFile";
-import shader from "./atomsphere_wlBXWK.wgsl?raw";
+import shader from "./atmosphere_wlBXWK.wgsl?raw";
 
 declare global {
   interface Window {

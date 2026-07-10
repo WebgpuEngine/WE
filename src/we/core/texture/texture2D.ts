@@ -8,7 +8,6 @@ import { E_lifeState } from "../base/coreDefine";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture, isGPUSamplerDescriptor } from "./base";
 import { BaseTexture } from "./baseTexture";
-import { HdrifyImage, readExr, readHdr, readJpegGainMap } from "hdrify";
 
 
 export interface I_Texture2D extends I_BaseTexture {
@@ -55,7 +54,7 @@ export class Texture2D extends BaseTexture {
     } {
         super.checkTargetFormat(format);
 
-        this.textureLayout.viewDimension = "3d";
+        this.textureLayout.viewDimension = "2d";
         return {
             samplerLayout: this.samplerLayout,
             textureLayout: this.textureLayout

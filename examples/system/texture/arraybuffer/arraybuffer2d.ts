@@ -1,3 +1,4 @@
+import { weGetBinaryResourceFromGzip } from "../../../../src/we/core/base/file/getFile";
 import { PerspectiveCamera } from "../../../../src/we/core/camera/perspectiveCamera";
 import { IV_MeshEntity, Mesh } from "../../../../src/we/core/entity/mesh/mesh";
 import { BoxGeometry } from "../../../../src/we/core/geometry/boxGeometry";
@@ -6,6 +7,7 @@ import { TextureMaterial } from "../../../../src/we/core/material/standard/textu
 import { IV_Scene } from "../../../../src/we/core/scene/base";
 import { initScene } from "../../../../src/we/core/scene/fn";
 import { HDRTexture } from "../../../../src/we/core/texture/HDRTexture";
+import { Texture2D } from "../../../../src/we/core/texture/texture2D";
 
 
 declare global {
@@ -38,23 +40,25 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 
+const dataIrradiance = await weGetBinaryResourceFromGzip('/atmosphere/irradiance_rgba32f64x16.gz');
 
-
-
-let boxGeometry = new BoxGeometry();
 
 let colorMaterial = new ColorMaterial({
   color: [0, 0.1, 0.2, 1]
 });
-let hdrTexture = new HDRTexture({
-  source: "/IBL/brdfLut/dfg_lut_512.hdr",
-  // format: "rgba32float",
+let hdrTexture = new Texture2D({
+  source: dataIrradiance,
+  format: "rgba32float",
+  size: { width: 64, height: 16 },
 }, scene.device, scene);
 await hdrTexture.init();
 
 let textureMaterial = new TextureMaterial({
   texture: hdrTexture,
 });
+
+
+let boxGeometry = new BoxGeometry();
 
 let inputMesh: IV_MeshEntity = {
   attributes: {

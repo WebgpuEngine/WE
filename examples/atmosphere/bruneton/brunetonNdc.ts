@@ -5,10 +5,10 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { weGetBinaryResourceFromGzip } from "../../../src/we/core/base/file/getFile";
-import shader from "./fromGLSL.wgsl?raw";
 import { Texture3D } from "../../../src/we/core/texture/texture3D";
 import { Texture } from "../../../src/we/core/texture/texture";
 import { Texture2D } from "../../../src/we/core/texture/texture2D";
+import shader from "./brunetonNdc.wgsl?raw";
 
 declare global {
   interface Window {
@@ -121,9 +121,9 @@ const st_uniform_toyViews = {
 ////////////////////////////////////////////////////////////////
 //texture
 
-const dataTransmittance = await weGetBinaryResourceFromGzip('/atomsphere/transmittance_rgba32f256x64.gz');
-const dataScattering = await weGetBinaryResourceFromGzip('/atomsphere/scattering_rgba32f256x128x32.gz');
-const dataIrradiance = await weGetBinaryResourceFromGzip('/atomsphere/irradiance_rgba32f64x16.gz');
+const dataTransmittance = await weGetBinaryResourceFromGzip('/atmosphere/transmittance_rgba32f256x64.gz');
+const dataScattering = await weGetBinaryResourceFromGzip('/atmosphere/scattering_rgba32f256x128x32.gz');
+const dataIrradiance = await weGetBinaryResourceFromGzip('/atmosphere/irradiance_rgba32f64x16.gz');
 let sampler = scene.device.createSampler({
   magFilter: 'linear',
   minFilter: 'linear',
@@ -136,13 +136,14 @@ let texture2DTransmittance = new Texture2D({
   size: { width: TRANSMITTANCE_TEXTURE_WIDTH, height: TRANSMITTANCE_TEXTURE_HEIGHT, },
   sampler: sampler,
 }, scene.device, scene);
-
+await texture2DTransmittance.init();
 let texture3DScattering = new Texture3D({
   source: dataScattering,
   format: "rgba32float",
   size: { width: SCATTERING_TEXTURE_WIDTH, height: SCATTERING_TEXTURE_HEIGHT, depth: SCATTERING_TEXTURE_DEPTH },
   sampler: sampler,
 }, scene.device, scene);
+await texture3DScattering.init();
 
 let texture2DIrradiance = new Texture2D({
   source: dataIrradiance,
@@ -150,6 +151,7 @@ let texture2DIrradiance = new Texture2D({
   size: { width: IRRADIANCE_TEXTURE_WIDTH, height: IRRADIANCE_TEXTURE_HEIGHT, },
   sampler: sampler,
 }, scene.device, scene);
+await texture2DIrradiance.init();
 
 //////////////////////////////////////////////////////////////
 //bindgroup  and layout 
@@ -214,6 +216,33 @@ let layout: GPUBindGroupLayout = scene.device.createBindGroupLayout({
         type: "filtering",
       },
     },
+    {//sampler
+      binding: 9,
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler:
+      {
+        //type: texture3D.samplerLayout.type,
+        type: "filtering",
+      },
+    },
+    {//sampler
+      binding: 10,
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler:
+      {
+        //type: texture3D.samplerLayout.type,
+        type: "filtering",
+      },
+    },
+    {//sampler
+      binding: 11,
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler:
+      {
+        //type: texture3D.samplerLayout.type,
+        type: "filtering",
+      },
+    },
   ],
 });
 
@@ -254,6 +283,18 @@ const bindGroupDescriptor: GPUBindGroupDescriptor = {
     },
     {
       binding: 8,
+      resource: sampler,
+    },
+    {
+      binding: 9,
+      resource: sampler,
+    },
+    {
+      binding: 10,
+      resource: sampler,
+    },
+    {
+      binding: 11,
       resource: sampler,
     },
   ],
@@ -349,10 +390,33 @@ scene.canvas.addEventListener("pointermove", (event) => {
 //time event and update
 
 function updateGPUBuffers() {
+  const kFovY = 50 / 180 * Math.PI;
+  const kTanFovY = Math.tan(kFovY / 2);
+  const aspectRatio = scene.surface.size.width / scene.surface.size.height;
+
+  projection_inverse.set([
+    kTanFovY * aspectRatio, 0, 0, 0,
+    0, kTanFovY, 0, 0,
+    0, 0, 0, -1,
+    0, 0, 1, 1]);
+    
+  const cosZ = Math.cos(viewZenithAngleRadians);
+  const sinZ = Math.sin(viewZenithAngleRadians);
+  const cosA = Math.cos(viewAzimuthAngleRadians);
+  const sinA = Math.sin(viewAzimuthAngleRadians);
+  const viewDistance = viewDistanceMeters / kLengthUnitInMeters;
+  view_inverse.set([
+    -sinA, -cosZ * cosA, sinZ * cosA, sinZ * cosA * viewDistance,
+    cosA, -cosZ * sinA, sinZ * sinA, sinZ * sinA * viewDistance,
+    0, sinZ, cosZ, cosZ * viewDistance,
+    0, 0, 0, 1]);
+  setParameter();
+
+
   scene.device.queue.writeBuffer(gpuBuffer_uniform_toy, 0, st_uniform_toyValues);
   scene.device.queue.writeBuffer(gpuBuffer_uniform_brunetons, 0, st_uniform_brunetonValues);
-  scene.device.queue.writeBuffer(gpuBuffer_uniform_view_inverse, 0, view_inverse);
-  scene.device.queue.writeBuffer(gpuBuffer_uniform_projection_inverse, 0, projection_inverse);
+  scene.device.queue.writeBuffer(gpuBuffer_uniform_view_inverse, 0, view_inverse.buffer);
+  scene.device.queue.writeBuffer(gpuBuffer_uniform_projection_inverse, 0, projection_inverse.buffer);
 }
 let timer = 0;
 let oneCall: userDefineEventCall = {
