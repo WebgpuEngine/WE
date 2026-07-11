@@ -42,6 +42,9 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * stage有四个：默认的world，ui、stage1(导航等)，stage2（地图等）；
 * ECS应用的比较多，比如实体、材质、光影、摄像机、输入管理、动画、纹理等都是采用的ECS的概念进行管理；
 * 动画系统包括：关键帧(keyFrame)、变形目标(mophTarget)、骨骼动画、以及通过物理引擎实现的物理驱动动画；
+* 体渲染材质有两个落地方案，一个是三维纹理的方案（3D采样），另一个是ray march的shader方案（实时计算）；
+* 大气层方案，有实时积分方案，Bruneton方案，Hillaire方案；
+* 在大气层上叠加的还有体积云，丁达尔光学，云阴影等；
 * todo：粒子系统、SSGI、SSR、SSAO、TAA、
 
 # 简单示例
@@ -70,9 +73,9 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 | ![1772470423684](images/README/1772470423684.png) | ![1782467345720](images/README/1782467345720.png) | ![1782468932611](images/README/1782468932611.png) |
 | PBR+IBL+SH                                        | PBR+IBL+SH+预览波+天空盒                          | 体渲染  3D 纹理                                  |
 | ![1782468776687](images/README/1782468776687.png) | ![1782467363680](images/README/1782467363680.png) | ![1782467443074](images/README/1782467443074.png) |
-| 体渲染 ray march                                  | 大气层 实时计算                                   | 大气层 Bruneton                                  |
+| 体渲染 ray march                                  | 大气层 实时积分计算                               | 大气层 Bruneton                                  |
 | ![1782608331334](images/README/1782608331334.png) | ![1783090247925](images/README/1783090247925.png) | ![1783745555533](images/README/1783745555533.png) |
-| 大气层 Hillaire体积云                            | 体积云                                            | 大气层 + 体积云                                   |
+| 大气层 Hillaire                                  | 体积云                                            | 大气层 + 体积云                                   |
 |                                                   |                                                   |                                                   |
 | 大气层+云+丁达尔                                  | 大气层+云+阴影                                    | 大气层+云+丁达尔+云阴影                           |
 |                                                   |                                                   |                                                   |
@@ -113,4 +116,8 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * rapier [Rapier physics engine | Rapier](https://rapier.rs/)
 * [Bullet Real-Time Physics Simulation](https://pybullet.org/wordpress/)  https://pybullet.org/
 * CSS Color Module Level 4 https://www.w3.org/TR/css-color-4/
-* [Self Shadow](https://blog.selfshadow.com/)
+* Self Shadow  https://blog.selfshadow.com/
+* bruneton大气层： https://ebruneton.github.io/precomputed_atmospheric_scattering/
+* Hillaire大气层方案的webgpu实现：https://github.com/JolifantoBambla/webgpu-sky-atmosphere
+* Sebastien Hillaire的 Unreal Engine 示例仓库，https://github.com/sebh/UnrealEngineSkyAtmosphere
+*
