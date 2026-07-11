@@ -18,8 +18,9 @@ declare global {
 }
 let input: IV_Scene = {
   canvas: "render",
-  backgroudColor: [1, 1, 1, 0.5],
-  reversedZ: true,
+  backgroudColor: [1, 1, 1, 1],
+  premultipliedAlpha: false,
+  reversedZ: false,
   modeNDC: true,
 };
 let scene = await initScene({
@@ -77,10 +78,10 @@ const st_uniform_brunetonViews = {
 };
 //更新uniform buffer参数
 function setParameter() {
-  st_uniform_brunetonViews.camera.set([view_inverse[3], view_inverse[7], view_inverse[11]]);
+  st_uniform_brunetonViews.camera.set([view_inverse[12], view_inverse[13], view_inverse[14]]);
   st_uniform_brunetonViews.exposure[0] = exposure;
   st_uniform_brunetonViews.white_point.set([1, 1, 1]);
-  st_uniform_brunetonViews.earth_center.set([-6360000 / kLengthUnitInMeters]);
+  st_uniform_brunetonViews.earth_center.set([0, 0, -6360000 / kLengthUnitInMeters]);
   st_uniform_brunetonViews.sun_direction.set(
     [
       Math.cos(sunAzimuthAngleRadians) * Math.sin(sunZenithAngleRadians),
@@ -336,7 +337,7 @@ dc.submit();
 //////////////////////////////////////////////////////////////////////////////////////////
 //mouse event
 let isMouseDown = false;
-let typeOfMouseDown = "camera";
+let typeOfMouseDown: "camera" | "sun" | undefined = "camera";
 let previousMouseX = 0;
 let previousMouseY = 0;
 scene.canvas.addEventListener('pointerdown', (event) => {
@@ -351,7 +352,7 @@ scene.canvas.addEventListener('pointerdown', (event) => {
 });
 scene.canvas.addEventListener('pointerup', (event) => {
   isMouseDown = false;
-  typeOfMouseDown = "";
+  typeOfMouseDown = undefined;
   st_uniform_toyViews.u_mouse_btn[0] = 0;
   st_uniform_toyViews.u_mouse_xy[0] = event.clientX;
   st_uniform_toyViews.u_mouse_xy[1] = event.clientY;
@@ -381,11 +382,16 @@ scene.canvas.addEventListener("pointermove", (event) => {
   else {
     return;
   }
+  ///！！！！！！！！！！！！！！！
+  previousMouseX = mouseX;
+  previousMouseY = mouseY;
   // st_uniform_toyViews.u_mouse_xy[0] = event.clientX;
   // st_uniform_toyViews.u_mouse_xy[1] = event.clientY;
   // console.log(st_uniform_toyViews.u_mouse_btn[0],st_uniform_toyViews.u_mouse_xy[0],st_uniform_toyViews.u_mouse_xy[1]);
 });
-
+scene.canvas.addEventListener("wheel", (event) => {
+  viewDistanceMeters *= event.deltaY > 0 ? 1.05 : 1 / 1.05;
+});
 //////////////////////////////////////////////////////////////////////////////////////////
 //time event and update
 
@@ -394,30 +400,34 @@ function updateGPUBuffers() {
   const kTanFovY = Math.tan(kFovY / 2);
   const aspectRatio = scene.surface.size.width / scene.surface.size.height;
 
+  // 修正 WebGPU NDC 投影逆矩阵（适配 z:0→1 范围）
   projection_inverse.set([
-    kTanFovY * aspectRatio, 0, 0, 0,
-    0, kTanFovY, 0, 0,
-    0, 0, 0, -1,
-    0, 0, 1, 1]);
-    
+    (kTanFovY * aspectRatio), 0, 0, 0, // 原 kTanFovY*aspectRatio 是错误的（逆矩阵需取倒数）
+    0, kTanFovY, 0, 0,                 // 同上，逆矩阵要取倒数
+    0, 0, 0, 1,                          // z 轴适配 WebGPU
+    0, 0, -1, 1                          // 修正裁剪空间映射
+  ]);
+
   const cosZ = Math.cos(viewZenithAngleRadians);
   const sinZ = Math.sin(viewZenithAngleRadians);
   const cosA = Math.cos(viewAzimuthAngleRadians);
   const sinA = Math.sin(viewAzimuthAngleRadians);
   const viewDistance = viewDistanceMeters / kLengthUnitInMeters;
   view_inverse.set([
-    -sinA, -cosZ * cosA, sinZ * cosA, sinZ * cosA * viewDistance,
-    cosA, -cosZ * sinA, sinZ * sinA, sinZ * sinA * viewDistance,
-    0, sinZ, cosZ, cosZ * viewDistance,
-    0, 0, 0, 1]);
+        -sinA, cosA, 0, 0,
+        -cosZ * cosA, -cosZ * sinA, sinZ, 0,
+        sinZ * cosA, sinZ * sinA, cosZ, 0,
+        sinZ * cosA * viewDistance, sinZ * sinA * viewDistance, cosZ * viewDistance, 1
+    ]);
+
   setParameter();
-
-
   scene.device.queue.writeBuffer(gpuBuffer_uniform_toy, 0, st_uniform_toyValues);
   scene.device.queue.writeBuffer(gpuBuffer_uniform_brunetons, 0, st_uniform_brunetonValues);
   scene.device.queue.writeBuffer(gpuBuffer_uniform_view_inverse, 0, view_inverse.buffer);
   scene.device.queue.writeBuffer(gpuBuffer_uniform_projection_inverse, 0, projection_inverse.buffer);
 }
+
+
 let timer = 0;
 let oneCall: userDefineEventCall = {
   call: (scope: Scene) => {

@@ -92,6 +92,7 @@ export class Scene {
     /**是否使用premultiplied alpha */
     premultipliedAlpha: boolean = true;
     /**webgpu的特性，需要开启的；
+     * https://gpuweb.github.io/gpuweb/#gpufeaturename
      * 1、目前是全都开启的，后续根据需要开启部分
      * 2、有初始化参数可用定制开启，todo；
      */
@@ -126,6 +127,7 @@ export class Scene {
     /**webgpu的特性是否支持的输出 */
     webGPUFeaturesSupported: GPUFeatureName[] = [];
     /**webgpu的限制配置 
+     * https://gpuweb.github.io/gpuweb/#gpusupportedlimits     * 
      * 1、maxColorAttachmentBytesPerSample: 最大颜色附件的字节数，每个样本的字节数。默认64
      * 2、有初始化参数可用申请限制，todo；
     */
