@@ -599,7 +599,7 @@ override WORKGROUP_SIZE_Y: u32 = 16;              // 计算着色器工作组高
 @group(0) @binding(3) var transmittance_lut: texture_2d<f32>;              // 透射率LUT（2D纹理）
 @group(0) @binding(4) var multiple_scatter_lut: texture_2d<f32>;              // 透射率LUT（2D纹理）
 @group(0) @binding(5) var sky_view_lut: texture_2d<f32>;                  // 天空视图LUT（2D纹理）
-@group(0) @binding(5) var aerial_perspective_lut : texture_3d<f32>;       // 大气透视LUT（3D纹理）
+@group(0) @binding(6) var aerial_perspective_lut : texture_3d<f32>;       // 大气透视LUT（3D纹理）
 // @group(0) @binding(6) var depth_buffer: texture_2d<f32>;                   // 深度缓冲
 // @group(0) @binding(7) var backbuffer: texture_2d<f32>;                    // 后缓冲（已有场景渲染结果）
 // @group(0) @binding(8) var render_target: texture_storage_2d<rgba16float, write>;  // 渲染目标（写入结果）
@@ -636,8 +636,9 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
 	let config = config_buffer;                                        // 获取渲染帧参数
 
 	var uv = (vec2<f32>(pix) + 0.5) / vec2<f32>(config.screen_resolution);  // 计算像素中心UV坐标（[0,1]范围）
-     uv.x =uv.x*config.screen_resolution.x/config.screen_resolution.y;
+    // uv.x =uv.x*config.screen_resolution.x/config.screen_resolution.y;
 
+	//这里是逆矩阵，需要替换为实际的逆矩阵
 	let world_dir = uv_to_world_dir(uv, config.inverse_projection, config.inverse_view);  // 将UV转换为世界空间视线方向向量
 	var world_pos = (config.camera_world_position * TO_KM_SCALE) - atmosphere.planet_center;  // 将相机位置从世界坐标系转换到大气坐标系（以行星中心为原点，单位km）
 	let sun_dir = normalize(config.sun.direction);                     // 获取归一化的太阳方向向量

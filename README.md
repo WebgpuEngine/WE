@@ -76,7 +76,7 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 | 体渲染 ray march                                  | 大气层 实时积分计算                               | 大气层 Bruneton                                  |
 | ![1782608331334](images/README/1782608331334.png) | ![1783090247925](images/README/1783090247925.png) | ![1783745555533](images/README/1783745555533.png) |
 | 大气层 Hillaire LUT                              | 大气层 Hillaire ray march                        | 体积云                                            |
-| ![1784266416463](images/README/1784266416463.png) |                                                   |                                                   |
+| ![1784266416463](images/README/1784266416463.png) | ![1784292871394](images/README/1784292871394.png) |                                                   |
 | 大气层+云                                         | 大气层+云+阴影                                    | 大气层+云+丁达尔+云阴影                           |
 |                                                   |                                                   |                                                   |
 | SSAO                                              | SSGI                                              | SSR                                               |

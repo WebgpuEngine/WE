@@ -6,7 +6,7 @@ import shaderComputeTrans from "./shader/lut/exp_lut_trans.wgsl?raw";
 import shaderComputeMulitScatt from "./shader/lut/exp_lut_mulitpleScatter.wgsl?raw";
 import shaderComputeSkyview from "./shader/lut/exp_lut_skyview.wgsl?raw";
 import shaderComputeAP from "./shader/lut/exp_lut_ap.wgsl?raw";
-import shaderRenderWithLUT from "./shader/lut/exp_renderWithLUT_renderonly.wgsl?raw";
+import shaderRenderRayMarch from "./shader/lut/renderRayMarching_renderOnly.wgsl?raw";
 import shaderVS from "./shader/ndc_base_1.wgsl?raw";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
@@ -750,7 +750,7 @@ let dc;
         entryPoint: "vs",
       },
       fragment: {
-        code: shaderRenderWithLUT,
+        code: shaderRenderRayMarch,
         entryPoint: "fragment",
         targets: [{ format: scene.colorFormatOfLinearSpace }],
         aliasName: "test NDC",
