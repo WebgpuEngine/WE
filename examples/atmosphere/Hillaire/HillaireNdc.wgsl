@@ -1,4 +1,3 @@
-//https://ebruneton.github.io/precomputed_atmospheric_scattering/
 const kLengthUnitInMeters: f32 = 1000.000000;                     // 长度单位（米），用于坐标转换
 
 const kSphereCenter: vec3f = vec3f(0.0, 0.0, 1000.0) / kLengthUnitInMeters;  // 黑色障碍球心 (0,0,1) km

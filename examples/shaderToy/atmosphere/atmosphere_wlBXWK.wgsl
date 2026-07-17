@@ -1,3 +1,4 @@
+//https://www.shadertoy.com/view/wlBXWK
 // ===================== 全局常量（替换原 #define 宏） =====================
 // 星球基础参数
 const PLANET_POS: vec3<f32> = vec3(0.0, 0.0, 0.0);

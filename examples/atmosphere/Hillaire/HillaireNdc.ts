@@ -1,4 +1,3 @@
-//https://ebruneton.github.io/precomputed_atmospheric_scattering/
 import { mat4 } from "wgpu-matrix";
 import { IV_DrawCommandGenerator, DrawCommandGenerator, IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
 import { IV_Scene, userDefineEventCall, eventOfScene } from "../../../src/we/core/scene/base";
@@ -9,7 +8,7 @@ import { weGetBinaryResourceFromGzip } from "../../../src/we/core/base/file/getF
 import { Texture3D } from "../../../src/we/core/texture/texture3D";
 import { Texture } from "../../../src/we/core/texture/texture";
 import { Texture2D } from "../../../src/we/core/texture/texture2D";
-import shader from "./brunetonNdc.wgsl?raw";
+import shader from "./HillaireNdc.wgsl?raw";
 
 declare global {
   interface Window {
