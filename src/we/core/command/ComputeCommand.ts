@@ -132,6 +132,7 @@ export class ComputeCommand {
             layout: pipelineLayout,
             compute: {
                 module: device.createShaderModule({
+                    label: label ,
                     code: pipelineValue.shader.shaderCode
                 }),
                 entryPoint: pipelineValue.shader.entryPoint
