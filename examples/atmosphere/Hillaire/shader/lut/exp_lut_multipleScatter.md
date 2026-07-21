@@ -8,7 +8,7 @@ toolName: view_files
 status: success
           
             
-filePath: d:\tools\openSourceCode\atmosphere\webgpu-sky-atmosphere-1.2.0\src\shaders\webgpu\exp_lut_mulitpleScatter.wgsl
+filePath: d:\tools\openSourceCode\atmosphere\webgpu-sky-atmosphere-1.2.0\src\shaders\webgpu\exp_lut_multipleScatter.wgsl
           
 ## 问题分析
 

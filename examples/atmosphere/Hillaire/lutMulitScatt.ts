@@ -3,7 +3,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 
 import { IV_ComputeCommand, ComputeCommand } from "../../../src/we/core/command/ComputeCommand";
 import shaderComputeTrans from "./shader/lut/exp_lut_trans.wgsl?raw";
-import shaderComputeMulitScatt from "./shader/lut/exp_lut_mulitpleScatter.wgsl?raw";
+import shaderComputeMulitScatt from "./shader/lut/exp_lut_multipleScatter.wgsl?raw";
 
 declare global {
   interface Window {

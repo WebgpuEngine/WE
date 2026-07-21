@@ -29,8 +29,8 @@ import shaderLutTrans from "./output/lut_trans.wgsl?raw";
 let shaderLutTransCommon = shader_const + shader_intersection + shader_medium + shader_struct;
 // let shaderLutTransCommon = shader_aerial_perspective + shader_const + shader_coordinate_system + shader_intersection + shader_medium + shader_multi_scattering + shader_phase + shader_sample_segment_t + shader_struct + shader_sun_disk + shader_uv;
 
-import shaderLutMulittransOverride from "./output/lut_mulitpleScatter_override.wgsl?raw";
-import shaderLutMulittrans from "./output/lut_mulitpleScatter.wgsl?raw";
+import shaderLutMulittransOverride from "./output/lut_multipleScatter_override.wgsl?raw";
+import shaderLutMulittrans from "./output/lut_multipleScatter.wgsl?raw";
 let shaderLutMulittransCommon = shader_const + shader_intersection + shader_medium + shader_struct + shader_uv;
 
 import shaderLutSkyviewOverride from "./output/lut_skyview_override.wgsl?raw";

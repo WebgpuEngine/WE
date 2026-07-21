@@ -3,7 +3,7 @@ import { initScene } from "../../../src/we/core/scene/fn";
 import { IV_DrawCommandGenerator, DrawCommandGenerator, IV_DC } from "../../../src/we/core/command/DrawCommandGenerator";
 import { IV_ComputeCommand, ComputeCommand } from "../../../src/we/core/command/ComputeCommand";
 import shaderComputeTrans from "./shader/lut/exp_lut_trans.wgsl?raw";
-import shaderComputeMulitScatt from "./shader/lut/exp_lut_mulitpleScatter.wgsl?raw";
+import shaderComputeMulitScatt from "./shader/lut/exp_lut_multipleScatter.wgsl?raw";
 import shaderComputeSkyview from "./shader/lut/exp_lut_skyview.wgsl?raw";
 import shaderComputeAP from "./shader/lut/exp_lut_ap.wgsl?raw";
 import shaderRenderRayMarch from "./shader/lut/renderRayMarching_renderOnly.wgsl?raw";

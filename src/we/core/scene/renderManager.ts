@@ -72,26 +72,41 @@ export enum E_renderPassName {
      */
     forward = "forward",
     /**
-     * todo：20260414，是否启用需要再考虑，是否有必要，是否会增加复杂性
-     * 延迟渲染之前的quad渲染，用于提升渲染性能
-     * 一、定位
-     * 1、提升绘制性能，将需要大量计算的GPU操作，使用quad模式集中处理
-     * 2、避免forward中的大量重复计算（减少overDraw）
-     * 3、绘制的内容是FS（是替换、混合等，可以包括color、normal、albedo等），VS是quad模式（worldPosition来自camera GBuffer的worldPosition）
-     * 4、用途，包括PBR参数的FS shder：
-     *      A、包括normal、albedo等内容的投影纹理、贴花等；
-     *      B、其他（需要更改PBR参数）大量需要重复像素计算的；
+     * 状态：todo
+     * 时间：
+     *      1、20260414，是否启用需要再考虑，是否有必要，是否会增加复杂性
+     * 用途：
+     *      延迟渲染之前的quad渲染，用于提升渲染性能。
+     * 定位：   
+     *      1、提升绘制性能，将需要大量计算的GPU操作，使用quad模式集中处理
+     *      2、避免forward中的大量重复计算（减少overDraw）
+     *      3、绘制的内容：
+     *          FS（是替换、混合等，可以包括color、normal、albedo等）
+     *          VS是quad模式（worldPosition来自camera GBuffer的worldPosition）
+     * 方式：
+     *      可用是FS或CS     
      * 
-     * 二、RPD 和GBuffer
-     * 1、RPD是与forward通道中的RPD不同，不输出worldPosition buffer
-     * 2、写入除worldPosition之外的GBuffer。
-     * 
-     * 二、draw的内容
-     * 1、draw的内容是需要在defer通道中进行处理。
-     * 2、用途： 投影纹理，贴花纹理等，
-     * 3、可以写入多个GBuffer，color,normal，albedo等。depth视情况而定，原则上不写入。
+    //  * 二、RPD 和GBuffer
+    //  * 1、RPD是与forward通道中的RPD不同，不输出worldPosition buffer
+    //  * 2、写入除worldPosition之外的GBuffer。
+    //  * 
+    //  * 二、draw的内容
+    //  * 1、draw的内容是需要在defer通道中进行处理。
+    //  * 2、用途： 投影纹理，贴花纹理等，
+    //  * 3、可以写入多个GBuffer，color,normal，albedo等。depth视情况而定，原则上不写入。
      */
     quadDrawBeforeDeferRender = "quadDrawBeforeDeferRender",
+    /**
+     * 时间：
+     *      1、20260721 定义
+     * 状态：
+     *      todo
+     * 用途：
+     *      延迟渲染之前的quad渲染，用于更改PBR参数。
+     *          A、包括normal、albedo等内容的贴花（如：改变法线实现凹凸）等；
+     *          B、其他（需要更改PBR参数）大量需要重复像素计算的；比如：下雨方案
+     */
+    quadChangePbrParamsBeforeDeferRender = "quadChangePbrParamsBeforeDeferRender",
     /**
      * 延迟通道，统一处理光照与阴影
      */
@@ -105,7 +120,15 @@ export enum E_renderPassName {
      *      A、只进行颜色覆盖，与alpha混合的FS shader。
      *      B、比如：投影纹理，贴花等
      */
+    quadBlendAfterDeferRender = "quadBlendAfterDeferRender",
+    /**
+     * 延迟渲染之后quad渲染，用于绘制Quad方式的方案.
+     * 用途：
+     *  1、大气层
+     *  2、落雪等类似方案；
+     */
     quadDrawAfterDeferRender = "quadDrawAfterDeferRender",
+
     /**
      * 透明层，按距离绘制
      */

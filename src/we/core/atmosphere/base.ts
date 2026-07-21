@@ -1,4 +1,4 @@
-import { weVec2, weVec3 } from "../../../../src/we/core/base/coreDefine";
+import { weVec2, weVec3 } from "../base/coreDefine";
 
 
 /** 基础层参数。共性参数 
@@ -119,7 +119,7 @@ export interface I_AtomSphereAbsorption extends I_AttomSphereBaseLayerParams {
  *          vec3 CloudScatterConst = vec3(0.14, 0.142, 0.144);
  *          float CloudExtinction = 0.15;
  */
-export interface I_AtomsphereCloudParams extends I_AttomSphereBaseLayerParams {
+export interface I_AtmosphereCloudParams extends I_AttomSphereBaseLayerParams {
     // height: weVec2;
     // scatterConst: weVec3;
     // extinction: number;
@@ -130,7 +130,7 @@ export interface I_AtomsphereCloudParams extends I_AttomSphereBaseLayerParams {
      * todo；单位:为 `m/s`。     */
     windSpeed: weVec3;
 }
-export interface I_AtomspherePLanetParams {
+export interface I_AtmospherePLanetParams {
     /** 中心位置 ,默认为[0,0,0]    */
     center?: weVec3;
     /** 星球半径,      默认：地球，6371e3 单位为米     */
@@ -143,18 +143,18 @@ export interface I_AtomspherePLanetParams {
  * Hillaire大气参数
  */
 export interface I_AtmosphereHillaire {
-    planet?: I_AtomspherePLanetParams;
+    planet?: I_AtmospherePLanetParams;
     rayLeigh?: I_AtomSphereRayLeigh;
     mie?: I_AtomSphereMie;
     absorption?: I_AtomSphereHillaireAbsorption
-    clouds?: I_AtomsphereCloudParams[];
+    clouds?: I_AtmosphereCloudParams[];
 
     /** LUT纹理初始化参数 */
     lut?: {
-        transmittances?: I_AtomsphereTextureLUT;
-        mulitScattering?: I_AtomsphereTextureLUT;
-        skyView?: I_AtomsphereTextureLUT;
-        aerialPerspective?: I_AtomsphereTextureLUT;
+        transmittances?: I_AtmosphereTextureLUT;
+        mulitScattering?: I_AtmosphereTextureLUT;
+        skyView?: I_AtmosphereTextureLUT;
+        aerialPerspective?: I_AtmosphereTextureLUT;
     };
     /**
      * 用于模拟行星表面反射光的地表平均反照率。
@@ -166,14 +166,14 @@ export interface I_AtmosphereHillaire {
     multipleScatteringFactor?: number,
 }
 export interface I_AtmosphereParams {
-    planet?: I_AtomspherePLanetParams;
+    planet?: I_AtmospherePLanetParams;
     rayLeigh?: I_AtomSphereRayLeigh;
     mie?: I_AtomSphereMie;
     absorption?: I_AtomSphereAbsorption | any;
-    clouds?: I_AtomsphereCloudParams[];
+    clouds?: I_AtmosphereCloudParams[];
 }
 /** LUT纹理初始化参数 */
-export interface I_AtomsphereTextureLUT {
+export interface I_AtmosphereTextureLUT {
     /** 宽度、高度、深度 
      * transmittances: [256,64,1]
      * mulitScattering: [32,32,1]
