@@ -44,7 +44,7 @@ export class pickupManager extends ECSManager<Pickup> {
         this.add(pickup);
         return pickup;
     }
-    onResize() {
+    async onResize() {
         for (let perOne of this.list) {
             perOne.onResize();
         }

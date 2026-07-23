@@ -1,3 +1,4 @@
+
 // import { I_EntityBundleOutput } from "../entity/base";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, I_uniformArrayBufferEntry, isUniformBufferPart } from "./base";
@@ -57,7 +58,13 @@ export interface IV_SimpleDrawCommand {
     },
 
 }
-
+/**
+ * 简单绘制命令
+ * 
+ * 1、通过shader code 创建 shader module 和 pipeline;
+ * 
+ * 2、pipeline layout 为 auto 模式；
+ */
 export class SimpleDrawCommand extends BaseCommand {
     scene: Scene;
     label: string;

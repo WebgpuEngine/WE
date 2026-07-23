@@ -1,14 +1,27 @@
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
-import { FeatureClass } from "./featureClass";
 import { ECSManager } from "./manager";
+import { I_UUID } from "./root";
 
-export class FeatureManager extends ECSManager<FeatureClass> {
+
+export interface I_FeatureModule extends I_UUID {
+    onResize(): Promise<void>;
+    update(clock: Clock): void;
+}
+
+
+export class FeatureManager extends ECSManager<I_FeatureModule> {
     update(clock: Clock): void {
-         this.checkDestroy();
-         for (const perOne of this.list) {
+        this.checkDestroy();
+        for (const perOne of this.list) {
             perOne.update(clock);
-         }
+        }
+    }
+    async onResize(): Promise<void> {
+        this.checkDestroy();
+        for (const perOne of this.list) {
+            await perOne.onResize();
+        }
     }
     constructor(scene: Scene) {
         super(scene);

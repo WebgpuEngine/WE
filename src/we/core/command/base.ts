@@ -3,6 +3,7 @@ import { BaseDrawCommand } from "./BaseDrawCommand";
 import { ComputeCommand } from "./ComputeCommand";
 import { CopyCommandT2T } from "./copyCommandT2T";
 import { DrawCommand } from "./DrawCommand";
+import { DynBindGroupDrawCommand } from "./dynBindGroupDrawCommand";
 import { SimpleDrawCommand } from "./SimpleDrawCommand";
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //base start 
@@ -30,7 +31,7 @@ export interface I_PipelineStructure {
 /**
  * DCCC类型
  */
-export type commmandType = BaseDrawCommand | DrawCommand | ComputeCommand | CopyCommandT2T | SimpleDrawCommand;
+export type commmandType = BaseDrawCommand | DrawCommand | ComputeCommand | CopyCommandT2T | SimpleDrawCommand | DynBindGroupDrawCommand;
 /**
  * https://www.w3.org/TR/webgpu/#ref-for-dom-gpurenderpassencoder-setviewport%E2%91%A1
  */

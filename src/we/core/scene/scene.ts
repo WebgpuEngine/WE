@@ -753,6 +753,7 @@ export class Scene {
             //实体的onSizeChange
             // await this.entityManager.onResize();
             await this.pickupManager.onResize();
+            await this.otherManager.onResize();
             await this.postProcessManager.onResize();
             //20260419 移动到cleanUp中，因为material的MSAA部分需要判断是resize；
             // this.flags.reSize.status = false;
