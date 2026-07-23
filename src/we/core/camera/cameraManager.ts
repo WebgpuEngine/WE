@@ -286,7 +286,12 @@ export class CameraManager extends ECSManager<BaseCamera> {
     getCATsForFinalTarget(UUID: string): GPUColorTargetState[] {
         return this.GBufferManager.GBuffer[UUID].finalRender.colorAttachmentTargets;
     }
-
+    getRpdForFinalTargetByDefaultCamera(): GPURenderPassDescriptor {
+        return this.getRpdForFinalTarget(this.defaultCamera.UUID);
+    }
+    getCATsForFinalTargetByDefaultCamera(): GPUColorTargetState[] {
+        return this.getCATsForFinalTarget(this.defaultCamera.UUID);
+    }
 
     /////////////////////////////////////////////////////////////////////////
     //需要重构的RPD 和CATs 部分

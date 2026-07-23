@@ -361,7 +361,9 @@ export class ShaderRegister {
             return vsCode;
         }
         else {
-            throw new Error("'#reflection location' not found");
+            // throw new Error("'#reflection location' not found");
+            console.log("'#reflection location' not found");
+            return vsCode;
         }
     }
     /** #reflection attributes */
@@ -381,7 +383,9 @@ export class ShaderRegister {
             return vsCode;
         }
         else {
-            throw new Error("'#reflection attributes' not found");
+            // throw new Error("'#reflection attributes' not found");
+            console.log("'#reflection attributes' not found");
+            return vsCode;
         }
     }
     /** #reflection morphTarget */

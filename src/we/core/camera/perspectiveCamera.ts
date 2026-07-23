@@ -103,8 +103,8 @@ export class PerspectiveCamera extends BaseCamera {
         ];
 
         for (let i of positions) {
-            i = vec4.transformMat4(i,  this.modelMatrix);
-            i = vec4.transformMat4(i,  this.viewMatrix);
+            i = vec4.transformMat4(i, this.modelMatrix);
+            i = vec4.transformMat4(i, this.viewMatrix);
         }
         let positionsForAABB: [number, number, number][] = []
         for (let i of positions) {
@@ -112,7 +112,9 @@ export class PerspectiveCamera extends BaseCamera {
         }
         this.boundingBox = computeAABB(positionsForAABB);
         // this.boundingSphere = computeBoundingSphere(positionsForAABB);
-        this.boundingSphere = generateSphereFromBox3(this.boundingBox );
+        this.boundingSphere = generateSphereFromBox3(this.boundingBox);
     }
-    
+    getfov() {
+        return this.inpuValues.fov;
+    }
 }

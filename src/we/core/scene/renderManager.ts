@@ -6,10 +6,9 @@ import { CopyCommand } from "../command/compyCommand";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand } from "../command/DrawCommand";
 import { SimpleDrawCommand } from "../command/SimpleDrawCommand";
-import { E_GBufferNames, V_TransparentGBufferNames } from "../gbuffers/base";
+import { E_GBufferNames } from "../gbuffers/base";
 import { NodeObject } from "../organization/nodeObject";
 import { Scene } from "./scene";
-import { T_rpdInfomationOfMSAA } from "../command/base";
 
 
 /**
@@ -43,32 +42,37 @@ export enum E_renderPassName {
     //  */
     // depth = "depth",
     /**
-     * MSAA通道，用于MSAA抗锯齿。
-     * 1、webGPU的MSAA目前（1.0版本）不支持r32unint ,rgba32float。
-     * 2、无法进行多采样与非多采样的混合。
-     * 3、使用单独的MSAA GBuffer，只输出color和depth。
-     * 4、resolve操作：在每个camera的MSAA通道之后，进行resolve操作。（resolve操作在forward之前在MSAA的最后进行）
-     *        A、需要调用cameraManager的resolveMSAA方法，进行resolve操作。
-     * 综上所述，MSAA需要在透明渲染之前完成resolve的单样本的输出
+     * 方式：FS  
+     * 用途：
+     *      MSAA通道，用于MSAA抗锯齿。
+     * 说明：
+     *      1、webGPU的MSAA目前（1.0版本）不支持r32unint ,rgba32float。
+     *      2、无法进行多采样与非多采样的混合。
+     *      3、使用单独的MSAA GBuffer，只输出color和depth。
+     *      4、resolve操作：在每个camera的MSAA通道之后，进行resolve操作。（resolve操作在forward之前在MSAA的最后进行）
+     *            A、需要调用cameraManager的resolveMSAA方法，进行resolve操作。
+     *      5、综上所述，MSAA需要在透明渲染之前完成resolve的单样本的输出
      */
     MSAA = "MSAA",
     /**
-     * 前向渲染通道，用于正常的渲染。前向渲染通道可以被forward,TO,MSAA info 使用.
-     * 一、按照RPD-->pipeline-->Draw的方案进行渲染。
-     * 1、RPD：即每个camera或light+index
-     * 2、pipeline：pipeline的队列。
-     * 3、Draw：draw命令。
-     *  A、全部是instance draw，即使instance数量为1
-     *  B、可见性剔除也需要考虑，camera + Entity => BVH => instance 实例（可见性剔除后的）。
-     * 
-     * 二、备注（距离方案思考）
-     * 1、可以按照距离排序，从近到远绘制，减少overDraw
-     * 2、如果按照从近到远排序：
-     *  A、排序在renderManager中获取,并同时进行可见性管理调用，得到新的需要绘制的DC队列。
-     *  B、队列是全部的DC。
-     * 3、还需要考虑instance draw， pipeline 排序等因素。
-     *  A、instance draw，按照最近距离原则
-     *  B、pipeline 排序，就基本没有了，邻近距离形成pipeline集合的概率 是否有性能提升是其一，可以考虑（均衡over draw 和pipeline 切换的性能成本）。
+     * 方式：FS
+     * 用途：
+     *      前向渲染通道，用于正常的渲染。前向渲染通道可以被forward,TO,MSAA info 使用.
+     * 说明：
+     *      一、按照RPD-->pipeline-->Draw的方案进行渲染。
+     *            1、RPD：即每个camera或light+index
+     *            2、pipeline：pipeline的队列。
+     *            3、Draw：draw命令。
+     *                  A、全部是instance draw，即使instance数量为1
+     *                  B、可见性剔除也需要考虑，camera + Entity => BVH => instance 实例（可见性剔除后的）。
+     *      二、备注（距离方案思考）
+     *            1、可以按照距离排序，从近到远绘制，减少overDraw
+     *            2、如果按照从近到远排序：
+     *              A、排序在renderManager中获取,并同时进行可见性管理调用，得到新的需要绘制的DC队列。
+     *                B、队列是全部的DC。
+     *            3、还需要考虑instance draw， pipeline 排序等因素。
+     *              A、instance draw，按照最近距离原则
+     *                B、pipeline 排序，就基本没有了，邻近距离形成pipeline集合的概率 是否有性能提升是其一，可以考虑（均衡over draw 和pipeline 切换的性能成本）。
      */
     forward = "forward",
     /**
@@ -83,8 +87,7 @@ export enum E_renderPassName {
      *      3、绘制的内容：
      *          FS（是替换、混合等，可以包括color、normal、albedo等）
      *          VS是quad模式（worldPosition来自camera GBuffer的worldPosition）
-     * 方式：
-     *      可用是FS或CS     
+     * 方式：FS或CS     
      * 
     //  * 二、RPD 和GBuffer
     //  * 1、RPD是与forward通道中的RPD不同，不输出worldPosition buffer
@@ -95,39 +98,49 @@ export enum E_renderPassName {
     //  * 2、用途： 投影纹理，贴花纹理等，
     //  * 3、可以写入多个GBuffer，color,normal，albedo等。depth视情况而定，原则上不写入。
      */
-    quadDrawBeforeDeferRender = "quadDrawBeforeDeferRender",
+    beforeDeferRender = "beforeDeferRender",
     /**
+     * 状态：    todo
      * 时间：
      *      1、20260721 定义
-     * 状态：
-     *      todo
      * 用途：
-     *      延迟渲染之前的quad渲染，用于更改PBR参数。
+     *      1、延迟渲染之前的quad渲染，用于更改PBR参数。
      *          A、包括normal、albedo等内容的贴花（如：改变法线实现凹凸）等；
      *          B、其他（需要更改PBR参数）大量需要重复像素计算的；比如：下雨方案
      */
-    quadChangePbrParamsBeforeDeferRender = "quadChangePbrParamsBeforeDeferRender",
+    changePbrParamsBeforeDeferRender = "changePbrParamsBeforeDeferRender",
     /**
      * 延迟通道，统一处理光照与阴影
      */
     defer = "defer",
     /**
-     * todo：20260414，可以启用，未实现，需要增加一个renderPass的识别并分配到渲染通道
-     * 延迟渲染之后quad渲染，用于提升渲染性能.
-     * 1、RPD只包括color，进行混合操作。
-     * 2、没有PBR相关参数的操作。
-     * 3、用途：
-     *      A、只进行颜色覆盖，与alpha混合的FS shader。
-     *      B、比如：投影纹理，贴花等
-     */
-    quadBlendAfterDeferRender = "quadBlendAfterDeferRender",
-    /**
-     * 延迟渲染之后quad渲染，用于绘制Quad方式的方案.
+     * 状态：
+     *      todo：20260414，可以启用，未实现，需要增加一个renderPass的识别并分配到渲染通道
+     * 方式：FS或CS 
      * 用途：
-     *  1、大气层
-     *  2、落雪等类似方案；
+     *      1、延迟渲染之后quad渲染，用于提升渲染性能.
+     *          A、只进行颜色覆盖，与alpha混合的FS shader。
+     *             比如：投影纹理，贴花（不修改PBR参数的）等
+     *          B、其他（不更改PBR参数）大量需要重复像素计算的；比如：落雪方案
+     *      2、RPD只包括color，进行混合或覆盖像素的操作。
+     *      3、没有PBR相关参数的操作。  
+     * 说明：
+     *      1、在defer之后进行绘制，是不需要更新PBR参数的。
+     *      2、在afterDeferRender之前进行绘制，afterDeferRender可能会更高光影效果（比如：天光等）。
      */
-    quadDrawAfterDeferRender = "quadDrawAfterDeferRender",
+    quadAddDrawAfterDeferRender = "quadAddDrawAfterDeferRender",
+    /**
+     * 方式：FS或CS 
+     * 说明：
+     *      1、用于绘制Quad方式的方案.
+     *      1、使用的是 commmandType[]队列，不区分相机；
+     *      2、其中的命令，都是完整的passEncoder编码开始执行，无聚合优化
+     * 用途：
+     *      1、大气层
+     * 问题：
+     
+     */
+    afterDeferRender = "afterDeferRender",
 
     /**
      * 透明层，按距离绘制
@@ -299,6 +312,7 @@ export class RenderManager {
         [E_renderPassName.MSAA]: I_renderDrawCommand,
         [E_renderPassName.sprite]: I_renderDrawCommand,
         [E_renderPassName.defer]: I_renderDrawOfQuad,
+        [E_renderPassName.afterDeferRender]: commmandType[],
         [E_renderPassName.transparent]: I_renderDrawOfDistancesLine,
         [E_renderPassName.sprite]: I_renderDrawCommand,
         // [E_renderPassName.spriteTransparent]: I_renderDrawOfDistancesLine,
@@ -318,6 +332,7 @@ export class RenderManager {
             [E_renderPassName.MSAA]: {},
             [E_renderPassName.forward]: {},
             [E_renderPassName.defer]: {},
+            [E_renderPassName.afterDeferRender]: [],
             [E_renderPassName.transparent]: {},
             [E_renderPassName.sprite]: {},
             // [E_renderPassName.spriteTransparent]: {},
@@ -410,6 +425,7 @@ export class RenderManager {
         this.RC[E_renderPassName.texture] = [];
         this.RC[E_renderPassName.material] = [];
         this.RC[E_renderPassName.renderTarget] = [];
+        this.RC[E_renderPassName.afterDeferRender] = [];
 
         for (let UUID in this.RC[E_renderPassName.shadowmapOpaque]) {
             this.RC[E_renderPassName.shadowmapOpaque][UUID as E_renderPassName].clear();
@@ -516,6 +532,7 @@ export class RenderManager {
             case E_renderPassName.texture:
             case E_renderPassName.material:
             case E_renderPassName.renderTarget:
+            case E_renderPassName.afterDeferRender:
             case E_renderPassName.stage1:
             case E_renderPassName.stage2:
             case E_renderPassName.ui:
@@ -554,9 +571,10 @@ export class RenderManager {
         else {
             this.commandEncoder = this.device.createCommandEncoder({ label: "RenderManager" });
 
-            // for (let onePass of this.listCommandType) {
-            //     this.doCommand(onePass);
-            // }
+            //compute ,texture ,material ,renderTarget
+            for (let onePass of this.listCommandType) {
+                this.doCommand(onePass, E_renderPassName.renderTarget);
+            }
 
             //不透明shadowmap
             this.renderForwaredDC(this.RC[E_renderPassName.shadowmapOpaque], E_renderPassName.shadowmapOpaque);
@@ -572,6 +590,9 @@ export class RenderManager {
 
             //defer render
             this.renderComplexQuad(this.RC[E_renderPassName.defer], E_renderPassName.defer);
+
+            //afterDeferRender
+            this.doCommand(this.RC[E_renderPassName.afterDeferRender], E_renderPassName.afterDeferRender);
 
             //透明enity
             this.renderTransParentDC(this.RC[E_renderPassName.transparent], E_renderPassName.transparent);
@@ -753,13 +774,13 @@ export class RenderManager {
         }
     }
     /**
-     * 绘制复合命令
+     * 有camera聚合的复合命令:
      * 1、包括：绘制，计算，复制命令
      * 2、基本上每个命令（都是没有共性的），都需要设置RPD，或者设置ComputePass，或者设置CopyCommand。
      * 3、不管理RPD的loadOp状态，由command类自行管理；
      * 
-     * @param list  合并绘制命令的列表
-         * @param renderPassName 
+     * @param list I_renderDrawOfQuad  有camera聚合的命令的列表
+     * @param renderPassName E_renderPassName
      */
     renderComplexQuad(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
         for (let id in list) {
@@ -778,22 +799,22 @@ export class RenderManager {
             }
         }
     }
-    /**相同RPD情况下的绘制命令 */
-    renderQuadDC(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
-        for (let id in list) {
-            let perSetOfCommand = list[id];
-            // let rpd: GPURenderPassDescriptor = this.scene.getRenderPassDescriptor(id, E_renderForDC.camera);
-            for (let perCommand of perSetOfCommand) {
-                if (perCommand instanceof SimpleDrawCommand || perCommand instanceof BaseDrawCommand) {
-                    perCommand.doWithRPD(this.commandEncoder);
-                }
-                else {
-                    throw new Error("renderQuadDC: not support command type");
-                }
+    // /**相同RPD情况下的绘制命令 */
+    // renderQuadDC(list: I_renderDrawOfQuad, renderPassName: E_renderPassName) {
+    //     for (let id in list) {
+    //         let perSetOfCommand = list[id];
+    //         // let rpd: GPURenderPassDescriptor = this.scene.getRenderPassDescriptor(id, E_renderForDC.camera);
+    //         for (let perCommand of perSetOfCommand) {
+    //             if (perCommand instanceof SimpleDrawCommand || perCommand instanceof BaseDrawCommand) {
+    //                 perCommand.doWithRPD(this.commandEncoder);
+    //             }
+    //             else {
+    //                 throw new Error("renderQuadDC: not support command type");
+    //             }
+    //         }
+    //     }
+    // }
 
-            }
-        }
-    }
     /** 执行命令集合
      * 1、命令集合为数组
      */
@@ -805,11 +826,17 @@ export class RenderManager {
             else if (perCommand instanceof BaseDrawCommand) {
                 perCommand.doWithRPD(this.commandEncoder);
             }
+            else if (perCommand instanceof DrawCommand) {
+                perCommand.doWithRPD(this.commandEncoder);
+            }
             else if (perCommand instanceof ComputeCommand) {
                 perCommand.doWithComputePass(this.commandEncoder);
             }
             else if (perCommand instanceof CopyCommandT2T) {
                 perCommand.copy(this.commandEncoder);
+            }
+            else {
+                throw new Error("doCommand: not support command type");
             }
         }
 

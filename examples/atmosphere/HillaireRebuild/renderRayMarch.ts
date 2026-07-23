@@ -703,7 +703,7 @@ let dc;
   //bindgroup  and layout 
 
   let layout: GPUBindGroupLayout = scene.device.createBindGroupLayout({
-    label: "renderSkyWithLut",
+    label: "renderSkyWithRayMarching",
     entries: [
       {
         binding: 0,
@@ -804,7 +804,7 @@ let dc;
   let DCManager = new DrawCommandGenerator(inputDC);
 
   let valueDC: IV_DC = {
-    label: "renderSkyWithLut",
+    label: "renderSkyWithRayMarching",
     data: {
       uniforms: [bindGroup],
       unifromLayout: [layout],

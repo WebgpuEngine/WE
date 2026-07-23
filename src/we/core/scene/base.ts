@@ -2,12 +2,23 @@ import { I_BolRebulidPercent, I_BolSize, I_BolStrideSizeOfUpdate } from "../buff
 import { commmandType } from "../command/base"
 import { IV_DirectionalLight } from "../light/DirectionalLight"
 import { Scene } from "./scene"
-
+/**场景单位 */
+export interface I_SceneBaseUnit {
+    /**轴向，默认：Y */
+    axisUp?: "X" | "Y" | "Z",
+    /**是否开启右手系，默认=true */
+    rightHand?: boolean,
+    /**长度单位，默认：米 */
+    lengthUnit?: "m" | "cm" | "mm" | "km",
+    /**当前长度到公里的转换因子，默认：1/1000;用途：大气层*/
+    scaleFactorToKm?: number,
+}
+/**
+ * 场景配置
+ */
 export interface IV_Scene {
     /**canvas id */
     canvas: string,
-    // /**是否禁用canvas的context, 默认=true */
-    // disableCanvasContext?: boolean,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
     /**预乘，根据预乘设置canvas的alphaMode
@@ -20,17 +31,16 @@ export interface IV_Scene {
     ambientLight?: IV_DirectionalLight,
     /**是否开启 Reversed Z，默认=false，为了开发简单些（避免debug的复杂度增加），release后，切换为默认=true */
     reversedZ?: boolean,
-    /**backgroudColor ,默认是[0,0,0,0]*/
+    /**backgroudColor ,默认是[0,0,0,1]*/
     backgroudColor?: [number, number, number, number],
     /**渲染模式，默认：deferRender */
     renderMode?: "deferRender" | "MSAARender" | "forwardRender",
     // surface?: optionSurface,
     /** 是否进行实时渲染*/
     realTimeRender?: boolean,
+    /** 是否开启NDC，默认=false */
     modeNDC?: boolean,
-    /**
-     * 色调映射，默认：acesToSRGB
-     */
+    /** 色调映射，默认：acesToSRGB     */
     toneMapping?: E_ToneMappingType,
     /** BOL配置 */
     BOL?: {
@@ -43,6 +53,8 @@ export interface IV_Scene {
     },
     /** 是否使用设备像素比，默认=true */
     useDevicePixelRatio?: boolean,
+    /** 场景单位 */
+    baseUnit?: I_SceneBaseUnit,
 }
 
 /**
@@ -79,7 +91,7 @@ export enum E_ToneMappingType {
      * 
      */
     linear = "linear",
-    
+
     Reinhard = "Reinhard",
     Cineon = "Cineon",
     AgX = "AgX",

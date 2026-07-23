@@ -16,7 +16,7 @@ import { generateSphereFromBox3, type boundingSphere } from "../math/sphere";
 import { pickupManager } from "../pickup/pickupManager";
 import { PostProcessManager } from "../postprocess/postProcessManager";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
-import { eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType } from "./base";
+import { eventOfScene, IV_Scene, IJ_Scene, userDefineEventCall, E_ToneMappingType, I_SceneBaseUnit } from "./base";
 import { Clock } from "./clock";
 import { RenderManager } from "./renderManager";
 import { BaseEntity } from "../entity/baseEntity";
@@ -33,6 +33,7 @@ import { I_BolRebulidPercent, I_BolSize, I_BolStrideSizeOfUpdate } from "../buff
 // import type { PBRMaterial } from "../material/PBR/PBRMaterial";
 import { ShaderRegister } from "../SHR/shaderRegister";
 import { IBL } from "../ibl/ibl";
+import { FeatureManager } from "../organization/featureManager";
 
 
 export class Scene {
@@ -77,6 +78,13 @@ export class Scene {
             }
         };
     backgroudColor: number[] = [0, 0, 0, 1];
+    /**场景单位 */
+    baseUnit: I_SceneBaseUnit = {
+        axisUp: "Y",
+        rightHand: true,
+        lengthUnit: "m",
+        scaleFactorToKm: 1 / 1000,
+    }
     ///////////////////////////////////////////////////////////////
     //GPU
     adapter!: GPUAdapter;
@@ -304,6 +312,8 @@ export class Scene {
     pointers!: Pointers;
     /**BPC */
     BPC!: BlockPointerCoordinator;
+    /**其他管理器 */
+    otherManager!: FeatureManager;
 
     IBL: IBL | undefined;
     ////////////////////////////////////////////////////////////////////////////////
@@ -355,6 +365,13 @@ export class Scene {
             this.premultipliedAlpha = value.premultipliedAlpha;
         }
 
+        //场景单位
+        if (value.baseUnit) {
+            this.baseUnit.scaleFactorToKm = value.baseUnit.scaleFactorToKm || 1 / 1000;
+            this.baseUnit.lengthUnit = value.baseUnit.lengthUnit || "m";
+            this.baseUnit.axisUp = value.baseUnit.axisUp || "Y";
+            this.baseUnit.rightHand = value.baseUnit.rightHand || true;
+        }
         //是否使用反向Z
         if (value.reversedZ !== undefined && typeof value.reversedZ == "boolean") {
             this.reversedZ = {
@@ -455,7 +472,7 @@ export class Scene {
                 this.webGPUFeaturesSupported.push(f);
             }
         }
-        console.log("当前webGPU的limits:" );
+        console.log("当前webGPU的limits:");
         for (let i in this.webGPULimits) {
             console.log(`       ${i}:`, this.webGPULimits[i]);
         }
@@ -486,7 +503,7 @@ export class Scene {
 
         this.textureManager = new TextureManager(this);
         this.materialManager = new MaterialManager(this);
-
+        this.otherManager = new FeatureManager(this);
         this.memoryBlockManager = new MemoryBlockManager(this);
         this.BPC = new BlockPointerCoordinator(this);
         this.pointers = this.BPC.pointers;
@@ -772,20 +789,26 @@ export class Scene {
         //root update :entiy ,light,camera 共性基础（位置、旋转、缩放、矩阵）
         this.root.update(this.clock);
 
-        //skins manager update,更新全局的逆绑定矩阵
-        //在root ECS之后更新。（在这里更新就是本镇同步的更新）
+        /**skins manager update,更新全局的逆绑定矩阵
+        在root ECS之后更新。（在这里更新就是每帧同步的更新）
+        */
         this.skinsManager.update(this.clock);
 
         //entity 与 instance的更新（uniform，storage）
         this.entityManager.update(this.clock);
 
+        //需要在entity更新之后更新BPC
         this.BPC.update(this.clock);
+        //需要在BPC更新之后更新内存块
         this.memoryBlockManager.update(this.clock);
 
         //lights(shadowmap) manager update
         this.lightsManager.update(this.clock);
         //push DC of MSAA,ToneMapping,Defer to render manager
         this.cameraManager.update(this.clock);
+
+        //其他管理器更新（大气层）,在后处理之前
+        this.otherManager.update(this.clock);
 
         this.postProcessManager.update(this.clock);//push command to render manager array
 
@@ -794,6 +817,7 @@ export class Scene {
         //更新包围盒数据，下一帧使用
         this.generateBox();
         this.generateSphere();
+        //更新BVH
         this.updateBVH();
     }
     /**每帧循环 onBeforeRender */
@@ -882,11 +906,7 @@ export class Scene {
 
     async renderToSurface() {
         let defaultCamera = this.cameraManager.defaultCamera;
-        if (defaultCamera) {
-            if (this.finalTarget.NDC == true) {
-                console.warn("非NDC 模式下，但开启了modeNDC 模式.");
-                this.finalTarget.NDC = false;
-            }
+        if (defaultCamera && this.finalTarget.NDC === false) {
             //直接copy GBuffer的color到canvas
             // let finalColorOfGBuffer = this.cameraManager.GBufferManager.GBuffer[defaultCamera.UUID].finalRender.color;
 
@@ -898,7 +918,12 @@ export class Scene {
             //适用于还有后续操作的情况，比如：多camera窗口，viewport，GBuffer可视化等
             copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
         }
+
         else {
+            // if (this.finalTarget.NDC == true) {
+            //     console.warn("非NDC 模式下，但开启了modeNDC 模式.");
+            //     //this.finalTarget.NDC = false;
+            // }
             if (this.finalTarget.NDC == true) {
                 copyTextureToTexture(this.device, this.finalTarget.color!, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.surface.size.width, height: this.surface.size.height });
             }

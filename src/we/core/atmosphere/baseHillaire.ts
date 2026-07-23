@@ -6,24 +6,24 @@ import { weVec2, weVec3 } from "../../base/coreDefine";
 */
 export interface I_HillaireAtmosphereParams {
     //大气参数结构
-    rayleigh_scattering: weVec3,           // Rayleigh散射系数
-    rayleigh_density_exp_scale: number,          // Rayleigh密度指数分布缩放因子
-    mie_scattering: weVec3,         // Mie散射系数
-    mie_density_exp_scale: number,               // Mie密度指数分布缩放因子
-    mie_extinction: weVec3,                // Mie消光系数
-    mie_phase_param: number,                     // Mie相位参数（Cornette-Shanks偏心率或HG-Draine水滴直径）
-    mie_absorption: weVec3,                // Mie吸收系数
-    absorption_density_0_layer_height: number,   // 吸收层0的高度
-    absorption_density_0_constant_term: number,  // 吸收层0的常数项
-    absorption_density_0_linear_term: number,    // 吸收层0的线性项
-    absorption_density_1_constant_term: number,  // 吸收层1的常数项
-    absorption_density_1_linear_term: number,    // 吸收层1的线性项
-    absorption_extinction: weVec3,         // 吸收消光系数（如臭氧）
-    bottom_radius: number,                       // 行星半径（球心到地面）
-    ground_albedo: weVec3,                 // 地面反照率
-    top_radius: number,                          // 大气顶部半径（球心到大气顶）
-    planet_center: weVec3,                 // 行星球心在世界空间中的位置（Z轴向上）
-    multi_scattering_factor: number,             // 多重散射因子
+    rayleigh_scattering?: weVec3,           // Rayleigh散射系数
+    rayleigh_density_exp_scale?: number,          // Rayleigh密度指数分布缩放因子
+    mie_scattering?: weVec3,         // Mie散射系数
+    mie_density_exp_scale?: number,               // Mie密度指数分布缩放因子
+    mie_extinction?: weVec3,                // Mie消光系数
+    mie_phase_param?: number,                     // Mie相位参数（Cornette-Shanks偏心率或HG-Draine水滴直径）
+    mie_absorption?: weVec3,                // Mie吸收系数
+    absorption_density_0_layer_height?: number,   // 吸收层0的高度
+    absorption_density_0_constant_term?: number,  // 吸收层0的常数项
+    absorption_density_0_linear_term?: number,    // 吸收层0的线性项
+    absorption_density_1_constant_term?: number,  // 吸收层1的常数项
+    absorption_density_1_linear_term?: number,    // 吸收层1的线性项
+    absorption_extinction?: weVec3,         // 吸收消光系数（如臭氧）
+    bottom_radius?: number,                       // 行星半径（球心到地面）
+    ground_albedo?: weVec3,                 // 地面反照率
+    top_radius?: number,                          // 大气顶部半径（球心到大气顶）
+    planet_center?: weVec3,                 // 行星球心在世界空间中的位置（Z轴向上）
+    multi_scattering_factor?: number,             // 多重散射因子
     ////////////override params //////////////
     /** 单位转换因子，将距离从米(或其他单位)转换为千米 ，默认为：m->km,1/1000*/
     TO_KM_SCALE?: number;
