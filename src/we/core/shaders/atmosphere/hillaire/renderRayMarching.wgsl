@@ -158,7 +158,6 @@ fn render_sky(pix: vec2<u32>) -> RenderSkyResult {
     let depth =0.0;
     if !is_valid_depth(depth) {
         luminance += get_sun_luminance(world_pos, world_dir, atmosphere, config, uv);
-        // luminance += get_sun_luminance(world_pos, world_dir, atmosphere, config);
     }
 
     if !move_to_atmosphere_top(&world_pos, world_dir, atmosphere.top_radius) {
@@ -176,11 +175,7 @@ struct RenderSkyFragment {
     @location(0) luminance: vec4<f32>,
     @location(1) transmittance: vec4<f32>,
 }
-fn tonemap(rgb: vec3<f32>) -> vec3<f32> {
-    let white_point = vec3(1.08241, 0.96756, 0.95003);
-    let exposure = 10.0;
-    return pow(vec3(1.0) - exp(-rgb / white_point * exposure), vec3(1.0 / 2.2));
-}
+
 @fragment
 fn fragment(@builtin(position) coord: vec4<f32>) -> RenderSkyFragment {
     let result = render_sky(vec2<u32>(floor(coord.xy)));

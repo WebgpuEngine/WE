@@ -147,11 +147,11 @@ export class HillaireRenderWithRayMarching extends HillaireRenderBase {
                 bindGroupLayouts: this.bindGroupLayout,
             });
             let moduleVS = this.device.createShaderModule({
-                label: "vs",
+                label: "renderSkyWithRayMarching vs",
                 code: shader_three_point_vs,
             });
             let moduleFS = this.device.createShaderModule({
-                label: "fs",
+                label: "renderSkyWithRayMarching fs",
                 code: shaderRenderWithRayMarching,
             });
             let vertex: GPUVertexState = {

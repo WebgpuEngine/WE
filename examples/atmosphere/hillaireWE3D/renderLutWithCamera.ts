@@ -14,7 +14,7 @@ declare global {
 }
 let input: IV_Scene = {
   canvas: "render",
-  toneMapping: E_ToneMappingType.linear,
+  toneMapping: E_ToneMappingType.ACES,
   backgroudColor: [1, 1, 1, 1],
   premultipliedAlpha: false,
   reversedZ: false,
@@ -31,7 +31,7 @@ let camera = new PerspectiveCamera({
   near: 0.1,
   far: 1000,
   position: [0, 1, 100],//km
-  lookAt: [0, 0, 1],
+  lookAt: [0, 4, 1],
   controlType: "wasd",
 });
 await scene.add(camera);

@@ -94,7 +94,10 @@ fn sun_disk_luminance(world_pos: vec3<f32>, world_dir: vec3<f32>, atmosphere: At
 	let sun_screen_radius = tan(sun_radius_angle) / tan_fov_over_2;
 	
 	// 计算当前像素到太阳中心的屏幕空间距离
-	let screen_dist = length(ndc - sun_ndc);
+	// let screen_dist = length(ndc - sun_ndc);
+		// NDC空间中x和y映射到屏幕像素的比例不同，需要考虑宽高比修正
+	let diff = ndc - sun_ndc;
+	let screen_dist = length(vec2<f32>(diff.x * aspect_ratio, diff.y));
 	
 	// 判断是否在太阳圆盘内（使用屏幕空间距离）
 	if screen_dist > sun_screen_radius {
@@ -114,7 +117,8 @@ fn sun_disk_luminance(world_pos: vec3<f32>, world_dir: vec3<f32>, atmosphere: At
 
 	if apply_limb_darkening {
 		let center_to_edge = screen_dist / sun_screen_radius;
-		return transmittance_sun * l_outer_space * limb_darkeining_factor(center_to_edge);
+		// return transmittance_sun * l_outer_space * limb_darkeining_factor(center_to_edge);
+		return transmittance_sun * l_outer_space * limb_darkeining_factor(1.0 - center_to_edge);
 	} else {
 		return transmittance_sun * l_outer_space;
 	}
