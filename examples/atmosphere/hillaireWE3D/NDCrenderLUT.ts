@@ -37,7 +37,7 @@ let camera = new PerspectiveCamera({
 await scene.add(camera);
 
 let atmosphereHillaire = new AtmosphereHillaire({
-  mode: "rayMarch"
+  // mode: "rayMarch"
 }, scene);
 // atmosphereHillaire.generateTransmittanceLUT();
 // atmosphereHillaire.generateMultipleScatteringLUT();

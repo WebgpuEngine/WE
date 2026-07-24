@@ -1,4 +1,5 @@
 import { IV_DC, IV_DrawCommandGenerator } from "../../command/DrawCommandGenerator";
+import { IV_DynBindGroupDrawCommand, DynBindGroupDrawCommand } from "../../command/dynBindGroupDrawCommand";
 
 import { shaderRenderWithRayMarching, shader_three_point_vs } from "./baseHillaire";
 import { HillaireRenderBase } from "./renderBase";
@@ -67,7 +68,7 @@ export class HillaireRenderWithRayMarching extends HillaireRenderBase {
                 },
             ],
         });
-        this.bindGroupLayout = layout;
+        this.bindGroupLayout.push(layout);
 
         const bindGroupDescriptor: GPUBindGroupDescriptor = {
             label: "renderSkyWithRayMarching",
@@ -137,6 +138,59 @@ export class HillaireRenderWithRayMarching extends HillaireRenderBase {
             }
 
             let dc = DCG.generateDrawCommand(valueDC);
+            this.commands.push(dc);
+        }
+        else {
+
+            let pipelineLayout = this.device.createPipelineLayout({
+                label: "renderSkyWithRayMarching",
+                bindGroupLayouts: this.bindGroupLayout,
+            });
+            let moduleVS = this.device.createShaderModule({
+                label: "vs",
+                code: shader_three_point_vs,
+            });
+            let moduleFS = this.device.createShaderModule({
+                label: "fs",
+                code: shaderRenderWithRayMarching,
+            });
+            let vertex: GPUVertexState = {
+                module: moduleVS,
+                entryPoint: "vs",
+                // constants: constansVS,
+            }
+
+            let fragment: GPUFragmentState = {
+                module: moduleFS,
+                entryPoint: "fragment",
+                targets: [{ format: this.scene.colorFormatOfLinearSpace }],
+                // constants: constansFS,
+            }
+            let descriptor: GPURenderPipelineDescriptor = {
+                label: "renderSkyWithRayMarching",
+                vertex: vertex,
+                fragment: fragment,
+                layout: pipelineLayout,
+            }
+            this.pipeline = this.device.createRenderPipeline(descriptor);
+
+            let rpd = this.getRpd();
+            let valueDC: IV_DynBindGroupDrawCommand = {
+                baseInfo: {
+                    parent: this,
+                },
+                device: this.scene.device,
+                label: "renderSkyWithRayMarching",
+                drawInfo: {
+                    drawMode: {
+                        vertexCount: 3
+                    },
+                    pipeline: this.pipeline,
+                    bindGroups: this.bindGroups,
+                    renderPassDescriptor: () => this.getRpd(),
+                },
+            };
+            let dc = new DynBindGroupDrawCommand(valueDC);
             this.commands.push(dc);
         }
     }

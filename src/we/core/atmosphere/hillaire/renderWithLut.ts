@@ -1,9 +1,5 @@
-import { commmandType } from "../../command/base";
 import { IV_DC } from "../../command/DrawCommandGenerator";
-import { E_GBufferNames } from "../../gbuffers/base";
-import { E_renderPassName } from "../../scene/renderManager";
-import { Scene } from "../../scene/scene";
-import { AtmosphereHillaire } from "./atmosphereHillaire";
+import { DynBindGroupDrawCommand, IV_DynBindGroupDrawCommand } from "../../command/dynBindGroupDrawCommand";
 import { shaderRenderWithLUT, shader_three_point_vs } from "./baseHillaire";
 import { HillaireRenderBase } from "./renderBase";
 
@@ -71,7 +67,7 @@ export class HillaireRenderWithLut extends HillaireRenderBase {
                 },
             ],
         });
-        this.bindGroupLayout = layout;
+        this.bindGroupLayout.push(layout);
 
         const bindGroupDescriptor: GPUBindGroupDescriptor = {
             label: "renderSkyWithLut",
@@ -137,11 +133,55 @@ export class HillaireRenderWithLut extends HillaireRenderBase {
             }
             let dc = DCG.generateDrawCommand(valueDC);
             this.commands.push(dc);
-            // console.log(dc);
-            // dc.submit();
         }
         else {
-            let rpd = this.getRpd();
+            let pipelineLayout = this.device.createPipelineLayout({
+                label: "renderSkyWithLut",
+                bindGroupLayouts: this.bindGroupLayout,
+            });
+            let moduleVS = this.device.createShaderModule({
+                label: "vs",
+                code: shader_three_point_vs,
+            });
+            let moduleFS = this.device.createShaderModule({
+                label: "fs",
+                code: shaderRenderWithLUT,
+            });
+            let vertex: GPUVertexState = {
+                module: moduleVS,
+                entryPoint: "vs",
+                // constants: constansVS,
+            }
+            let fragment: GPUFragmentState = {
+                module: moduleFS,
+                entryPoint: "fragment",
+                targets: [{ format: this.scene.colorFormatOfLinearSpace }],
+                // constants: constansFS,
+            }
+            let descriptor: GPURenderPipelineDescriptor = {
+                label: "renderSkyWithLut",
+                vertex: vertex,
+                fragment: fragment,
+                layout: pipelineLayout,
+            }
+            this.pipeline = this.device.createRenderPipeline(descriptor);
+            let valueDC: IV_DynBindGroupDrawCommand = {
+                baseInfo: {
+                    parent: this,
+                },
+                device: this.scene.device,
+                label: "renderSkyWithLut",
+                drawInfo: {
+                    drawMode: {
+                        vertexCount: 3
+                    },
+                    pipeline: this.pipeline,
+                    bindGroups: this.bindGroups,
+                    renderPassDescriptor: () => this.getRpd(),
+                },
+            };
+            let dc = new DynBindGroupDrawCommand(valueDC);
+            this.commands.push(dc);
         }
     }
 

@@ -40,7 +40,7 @@ await scene.add(camera);
 // console.log("invert viewMatrix:", scene.defaultCamera.viewMatrix);
 let atmosphereHillaire = new AtmosphereHillaire(
   {
-    TO_KM_SCALE: 1.0,
+    // TO_KM_SCALE: 1.0,
     mode: "rayMarch"
   },
   scene);

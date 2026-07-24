@@ -8,10 +8,11 @@ export abstract class HillaireRenderBase {
     scene: Scene;
     device: GPUDevice;
     parent: AtmosphereHillaire;
-    bindGroupLayout!: GPUBindGroupLayout;
+    bindGroupLayout: GPUBindGroupLayout[]=[];
     bindGroups: GPUBindGroup[] = [];
     commands: commmandType[] = [];
     rpd!: GPURenderPassDescriptor;
+    pipeline!: GPURenderPipeline;
     constructor(parent: AtmosphereHillaire) {
         this.parent = parent;
         this.scene = parent.scene;
@@ -21,7 +22,7 @@ export abstract class HillaireRenderBase {
     abstract generateCommands(): void;
     abstract getBindGroups(): GPUBindGroup[];
 
-    getRpd() {
+    getRpd():GPURenderPassDescriptor {
         let colorTexture = this.scene.cameraManager.getGBufferTextureByUUID(this.scene.defaultCamera.UUID, E_GBufferNames.color);
         this.rpd = {
             label: "renderSkyWithLut",
@@ -29,7 +30,7 @@ export abstract class HillaireRenderBase {
                 {
                     loadOp: "clear",
                     storeOp: "store",
-                    view: colorTexture,
+                    view: colorTexture.createView(),
                 },
             ],
         };
@@ -43,7 +44,10 @@ export abstract class HillaireRenderBase {
                     kind: E_renderPassName.ndc,
                 })
             } else {
-
+                this.scene.renderManager.push({
+                    command: DC,
+                    kind: E_renderPassName.afterDeferRender,
+                })
             }
         })
     }
