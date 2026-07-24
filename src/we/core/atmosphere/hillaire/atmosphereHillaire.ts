@@ -138,7 +138,7 @@ export class AtmosphereHillaire extends Atmosphere {
 
     sampler: GPUSampler;
     // commands: commmandType[] = [];
-    constructor(input: I_HillaireAtmosphereParams, scene: Scene) {
+    constructor(scene: Scene, input: I_HillaireAtmosphereParams,) {
         super(scene);
         if (input) {
             const keys = Object.keys(input) as Array<keyof I_HillaireAtmosphereParams>;
@@ -208,60 +208,82 @@ export class AtmosphereHillaire extends Atmosphere {
         this.init();
     }
     init() {
-        {
-            const rayleighScaleHeight = 8.0;
-            const mieScaleHeight = 1.2;
-            const bottomRadius = 6360.0;
-            //todo 从参数中获取
-            this.AtmosphereViews.rayleigh_density_exp_scale[0] = -1.0 / rayleighScaleHeight;
-            this.AtmosphereViews.rayleigh_scattering.set([0.005802, 0.013558, 0.033100]);
-
-            this.AtmosphereViews.mie_density_exp_scale[0] = -1.0 / mieScaleHeight;
-            this.AtmosphereViews.mie_scattering.set([0.003996, 0.003996, 0.003996]);
-            this.AtmosphereViews.mie_extinction.set([0.004440, 0.004440, 0.004440]);
-            this.AtmosphereViews.mie_phase_param[0] = 0.8;
-            // this.AtmosphereViews.mie_absorption.set([0,0,0]);//未设置，默认值为0
-
-            this.AtmosphereViews.absorption_density_0_layer_height[0] = 25.0;
-            this.AtmosphereViews.absorption_density_0_constant_term[0] = -2 / 3;
-            this.AtmosphereViews.absorption_density_0_linear_term[0] = 1 / 15;
-
-            this.AtmosphereViews.absorption_density_1_constant_term[0] = 8 / 3;
-            this.AtmosphereViews.absorption_density_1_linear_term[0] = -1 / 15;
-            this.AtmosphereViews.absorption_extinction.set([0.000650, 0.001881, 0.000085]);
-
-            this.AtmosphereViews.bottom_radius[0] = bottomRadius;
-            this.AtmosphereViews.ground_albedo.set([0.40, 0.40, 0.40]);
-            /**
-             * 顶部半径，用于计算散射,
-             * uv_to_transmittance_lut_params()中是大气层半径，
-             * 1、与webgpu-sky-atomsphere中的“atmosphere.ts”的makeEarthAtmosphere（）top_radius不同
-             * 2、wgsl：let h_sq = atmosphere.top_radius * atmosphere.top_radius - bottom_radius_sq;
-             */
-            this.AtmosphereViews.top_radius[0] = 100.0 + bottomRadius;
-            this.AtmosphereViews.planet_center.set([0, -bottomRadius, 0.0]);
-
-            this.AtmosphereViews.multi_scattering_factor[0] = 1.0;
-        }
+        this.updateAtmosphereBuffer();
         this.updateConfigArrayBuffer();
         this.scene.device.queue.writeBuffer(this.atmosphereGPUBuffer, 0, this.atmosphereCPUBuffer);
         this.scene.device.queue.writeBuffer(this.configGPUBuffer, 0, this.configCPUBuffer);
-        // this.generateTransmittanceLUT();
         this.lutTransmittance = new HillaireLutTransmittance(this);
-        // this.generateMultipleScatteringLUT();
         this.lutMultipleScattering = new HillaireLutMultipleScattering(this);
-        // this.generateSkyViewLUT();
-        // this.generateApLUT();
         this.lutSkyView = new HillaireLutSkyView(this);
         this.lutAP = new HillaireLutAP(this);
-        
-        // Object.values(this.lutCommands).forEach((item) => {
-        //     item.forEach((DC) => {
-        //         DC.submit();
-        //     })
-        // })
         this.renderWithLut = new HillaireRenderWithLut(this);
         this.renderRayMarch = new HillaireRenderWithRayMarching(this);
+    }
+    updateAtmosphereBuffer() {
+        this.AtmosphereViews.rayleigh_density_exp_scale[0] = this.atmosphereParams.rayleigh_density_exp_scale!;
+        this.AtmosphereViews.rayleigh_scattering.set(this.atmosphereParams.rayleigh_scattering!);
+
+        this.AtmosphereViews.mie_density_exp_scale[0] = this.atmosphereParams.mie_density_exp_scale!;
+        this.AtmosphereViews.mie_scattering.set(this.atmosphereParams.mie_scattering!);
+        this.AtmosphereViews.mie_extinction.set(this.atmosphereParams.mie_extinction!);
+        this.AtmosphereViews.mie_phase_param[0] = this.atmosphereParams.mie_phase_param!;
+        this.AtmosphereViews.mie_absorption.set(this.atmosphereParams.mie_absorption!);
+
+        this.AtmosphereViews.absorption_density_0_layer_height[0] = this.atmosphereParams.absorption_density_0_layer_height!;
+        this.AtmosphereViews.absorption_density_0_constant_term[0] = this.atmosphereParams.absorption_density_0_constant_term!;
+        this.AtmosphereViews.absorption_density_0_linear_term[0] = this.atmosphereParams.absorption_density_0_linear_term!;
+
+        this.AtmosphereViews.absorption_density_1_constant_term[0] = this.atmosphereParams.absorption_density_1_constant_term!;
+        this.AtmosphereViews.absorption_density_1_linear_term[0] = this.atmosphereParams.absorption_density_1_linear_term!;
+        this.AtmosphereViews.absorption_extinction.set(this.atmosphereParams.absorption_extinction!);
+
+        this.AtmosphereViews.bottom_radius[0] = this.atmosphereParams.bottom_radius!;
+        this.AtmosphereViews.ground_albedo.set(this.atmosphereParams.ground_albedo!);
+        /**
+         * 顶部半径，用于计算散射,
+         * uv_to_transmittance_lut_params()中是大气层半径，
+         * 1、与webgpu-sky-atomsphere中的“atmosphere.ts”的makeEarthAtmosphere（）top_radius不同
+         * 2、wgsl：let h_sq = atmosphere.top_radius * atmosphere.top_radius - bottom_radius_sq;
+         */
+        this.AtmosphereViews.top_radius[0] = this.atmosphereParams.top_radius!;
+        this.AtmosphereViews.planet_center.set(this.atmosphereParams.planet_center!);
+
+        this.AtmosphereViews.multi_scattering_factor[0] = this.atmosphereParams.multi_scattering_factor!;
+        // {
+        // const rayleighScaleHeight = 8.0;
+        // const mieScaleHeight = 1.2;
+        // const bottomRadius = 6360.0;
+        ////todo 从参数中获取
+        // this.AtmosphereViews.rayleigh_density_exp_scale[0] =  -1.0 / rayleighScaleHeight;
+        // this.AtmosphereViews.rayleigh_scattering.set([0.005802, 0.013558, 0.033100]);
+
+        // this.AtmosphereViews.mie_density_exp_scale[0] = -1.0 / mieScaleHeight;
+        // this.AtmosphereViews.mie_scattering.set([0.003996, 0.003996, 0.003996]);
+        // this.AtmosphereViews.mie_extinction.set([0.004440, 0.004440, 0.004440]);
+        // this.AtmosphereViews.mie_phase_param[0] = 0.8;
+        // // this.AtmosphereViews.mie_absorption.set([0,0,0]);//未设置，默认值为0
+
+        // this.AtmosphereViews.absorption_density_0_layer_height[0] = 25.0;
+        // this.AtmosphereViews.absorption_density_0_constant_term[0] = -2 / 3;
+        // this.AtmosphereViews.absorption_density_0_linear_term[0] = 1 / 15;
+
+        // this.AtmosphereViews.absorption_density_1_constant_term[0] = 8 / 3;
+        // this.AtmosphereViews.absorption_density_1_linear_term[0] = -1 / 15;
+        // this.AtmosphereViews.absorption_extinction.set([0.000650, 0.001881, 0.000085]);
+
+        // this.AtmosphereViews.bottom_radius[0] = bottomRadius;
+        // this.AtmosphereViews.ground_albedo.set([0.40, 0.40, 0.40]);
+        // /**
+        //  * 顶部半径，用于计算散射,
+        //  * uv_to_transmittance_lut_params()中是大气层半径，
+        //  * 1、与webgpu-sky-atomsphere中的“atmosphere.ts”的makeEarthAtmosphere（）top_radius不同
+        //  * 2、wgsl：let h_sq = atmosphere.top_radius * atmosphere.top_radius - bottom_radius_sq;
+        //  */
+        // this.AtmosphereViews.top_radius[0] = 100.0 + bottomRadius;
+        // this.AtmosphereViews.planet_center.set([0, -bottomRadius, 0.0]);
+
+        // this.AtmosphereViews.multi_scattering_factor[0] = 1.0;
+        // }
     }
 
     /** 太阳     */

@@ -79,7 +79,7 @@ fn vertex(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f
 fn use_sky_view_lut(view_height: f32, world_pos: vec3<f32>, world_dir: vec3<f32>, sun_dir: vec3<f32>, atmosphere: Atmosphere, config: Uniforms, uv: vec2<f32>) -> vec4<f32> {
     let sky_view_uv = compute_sky_view_lut_uv(view_height, world_pos, world_dir, sun_dir, atmosphere, config);
     let sky_view = textureSampleLevel(sky_view_lut, lut_sampler, sky_view_uv, 0);
-    return vec4<f32>(sky_view.rgb + get_sun_luminance(world_pos, world_dir, atmosphere, config, uv) * 1.5, sky_view.a);
+    return vec4<f32>(sky_view.rgb + get_sun_luminance(world_pos, world_dir, atmosphere, config, uv), sky_view.a);
 }
 
 /**
