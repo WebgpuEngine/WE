@@ -48,8 +48,24 @@ fn vertex(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f
 @group(0) @binding(5) var sky_view_lut: texture_2d<f32>;                  // 天空视图LUT（2D纹理）
 @group(0) @binding(6) var aerial_perspective_lut: texture_3d<f32>;       // 大气透视LUT（3D纹理）
 
+// /**
+//  * 使用天空视图LUT渲染天空
+//  * 
+//  * @param view_height 观察者高度
+//  * @param world_pos 观察者世界位置
+//  * @param world_dir 视线方向
+//  * @param sun_dir 太阳方向
+//  * @param atmosphere 大气参数
+//  * @param config Uniform参数
+//  * @return 天空颜色（RGB=散射亮度，Alpha=1-透射率）
+//  */
+// fn use_sky_view_lut(view_height: f32, world_pos: vec3<f32>, world_dir: vec3<f32>, sun_dir: vec3<f32>, atmosphere: Atmosphere, config: Uniforms) -> vec4<f32> {
+//     let uv = compute_sky_view_lut_uv(view_height, world_pos, world_dir, sun_dir, atmosphere, config); // 计算天空视图LUT的UV坐标（考虑观察者高度、视线方向、太阳方向）
+//     let sky_view = textureSampleLevel(sky_view_lut, lut_sampler, uv, 0);                              // 查询天空视图LUT（预计算的天空颜色）
+//     return vec4<f32>(sky_view.rgb + get_sun_luminance(world_pos, world_dir, atmosphere, config), sky_view.a); // 返回天空颜色 + 太阳/月亮圆盘亮度，Alpha=透射率
+// }
 /**
- * 使用天空视图LUT渲染天空
+ * 使用天空视图LUT渲染天空（太阳圆盘修正版）
  * 
  * @param view_height 观察者高度
  * @param world_pos 观察者世界位置
@@ -57,12 +73,13 @@ fn vertex(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f
  * @param sun_dir 太阳方向
  * @param atmosphere 大气参数
  * @param config Uniform参数
+ * @param uv 屏幕UV坐标（用于太阳圆盘屏幕空间计算）
  * @return 天空颜色（RGB=散射亮度，Alpha=1-透射率）
  */
-fn use_sky_view_lut(view_height: f32, world_pos: vec3<f32>, world_dir: vec3<f32>, sun_dir: vec3<f32>, atmosphere: Atmosphere, config: Uniforms) -> vec4<f32> {
-    let uv = compute_sky_view_lut_uv(view_height, world_pos, world_dir, sun_dir, atmosphere, config); // 计算天空视图LUT的UV坐标（考虑观察者高度、视线方向、太阳方向）
-    let sky_view = textureSampleLevel(sky_view_lut, lut_sampler, uv, 0);                              // 查询天空视图LUT（预计算的天空颜色）
-    return vec4<f32>(sky_view.rgb + get_sun_luminance(world_pos, world_dir, atmosphere, config), sky_view.a); // 返回天空颜色 + 太阳/月亮圆盘亮度，Alpha=透射率
+fn use_sky_view_lut(view_height: f32, world_pos: vec3<f32>, world_dir: vec3<f32>, sun_dir: vec3<f32>, atmosphere: Atmosphere, config: Uniforms, uv: vec2<f32>) -> vec4<f32> {
+    let sky_view_uv = compute_sky_view_lut_uv(view_height, world_pos, world_dir, sun_dir, atmosphere, config);
+    let sky_view = textureSampleLevel(sky_view_lut, lut_sampler, sky_view_uv, 0);
+    return vec4<f32>(sky_view.rgb + get_sun_luminance(world_pos, world_dir, atmosphere, config, uv) * 1.5, sky_view.a);
 }
 
 /**
@@ -90,8 +107,8 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
     // if !is_valid_depth(depth) 
     {
         // 天空区域：直接使用天空视图LUT
-        return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config);
         // return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config);
+        return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config, uv);
     }
 
     // // 物体区域：计算大气透视效果

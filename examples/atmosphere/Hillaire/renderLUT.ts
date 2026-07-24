@@ -7,6 +7,7 @@ import shaderComputeMulitScatt from "./shader/lut/exp_lut_multipleScatter.wgsl?r
 import shaderComputeSkyview from "./shader/lut/exp_lut_skyview.wgsl?raw";
 import shaderComputeAP from "./shader/lut/exp_lut_ap.wgsl?raw";
 import shaderRenderWithLUT from "./shader/lut/exp_renderWithLUT_renderonly.wgsl?raw";
+import shaderRenderWithLUT_sun from "./shader/lut/renderWithLUT_sun.wgsl?raw";
 import shaderVS from "./shader/ndc_base_1.wgsl?raw";
 import { Scene } from "../../../src/we/core/scene/scene";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
@@ -19,7 +20,7 @@ declare global {
 }
 let input: IV_Scene = {
   canvas: "render",
-  toneMapping:E_ToneMappingType.linear,
+  toneMapping: E_ToneMappingType.linear,
   backgroudColor: [1, 1, 1, 1],
   premultipliedAlpha: false,
   reversedZ: false,
@@ -191,24 +192,44 @@ const UniformsConfigValues = new ArrayBuffer(224);
     0
   ]);
   //!!!!!!!!!!!!这个是相机的逆视图矩阵，需要替换为实际的逆视图矩阵
-  UniformsConfigViews.inverse_view.set([
-    0.9982005399352043,
-    -3.469446951953616e-18,
-    -0.059964006479444616,
+  UniformsConfigViews.inverse_view.set(
+    // [
+    //   0.9982005399352043,
+    //   -3.469446951953616e-18,
+    //   -0.059964006479444616,
+    //   0,
+    //   0.021123774406648883,
+    //   0.9358968236779351,
+    //   0.35164032986045496,
+    //   0,
+    //   0.05612012319911533,
+    //   -0.35227423327509005,
+    //   0.9342127147189574,
+    //   0,
+    //   -8.881784197001256e-16,
+    //   1.0000000000000004,
+    //   99.99999999999999,
+    //   1
+    // ]
+    [
+    0.9372984296889098,
     0,
-    0.021123774406648883,
-    0.9358968236779351,
-    0.35164032986045496,
+    0.34852783777297314,
     0,
-    0.05612012319911533,
-    -0.35227423327509005,
-    0.9342127147189574,
+    0.08892592251509306,
+    0.9669022061162115,
+    -0.23914912525962323,
     0,
-    -8.881784197001256e-16,
-    1.0000000000000004,
+    -0.3369923352356008,
+    0.2551472590634736,
+    0.9062759194554676,
+    0,
+    3.552713678800501e-15,
+    0.9999999999999964,
     99.99999999999999,
     1
-  ]);
+]
+  );
   UniformsConfigViews.camera_world_position.set([0, 1, 100]);
   UniformsConfigViews.frame_id.set([0]);//当前帧ID,用于计算时间,在NDC中忽略
   UniformsConfigViews.screen_resolution.set([scene.surface.size.width, scene.surface.size.height]);//屏幕分辨率
@@ -750,7 +771,8 @@ let dc;
         entryPoint: "vs",
       },
       fragment: {
-        code: shaderRenderWithLUT,
+        // code:shaderRenderWithLUT,
+        code: shaderRenderWithLUT_sun,
         entryPoint: "fragment",
         targets: [{ format: scene.colorFormatOfLinearSpace }],
         aliasName: "test NDC",
