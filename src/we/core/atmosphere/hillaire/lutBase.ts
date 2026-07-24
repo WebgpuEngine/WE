@@ -30,7 +30,10 @@ export abstract class HillaireLutBase {
                     kind: E_renderPassName.ndc,
                 })
             } else {
-
+                this.scene.renderManager.push({
+                    command: DC,
+                    kind: E_renderPassName.afterDeferRender,
+                })
             }
         })
     }

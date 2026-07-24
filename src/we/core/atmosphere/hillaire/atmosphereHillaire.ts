@@ -1,6 +1,6 @@
 import { Scene } from "../../scene/scene";
 import { Atmosphere } from "../atmosphere";
-import { I_HillaireAtmosphereLight, I_HillaireAtmosphereParams } from "./baseHillaire";
+import { I_HillaireAtmosphereLight, I_HillaireAtmosphereParams, I_HillaireUniforms } from "./baseHillaire";
 import { commmandType } from "../../command/base";
 import { mat4 } from "wgpu-matrix";
 import { PerspectiveCamera } from "../../camera/perspectiveCamera";
@@ -20,6 +20,31 @@ export class AtmosphereHillaire extends Atmosphere {
     mieScaleHeight = 1.2;
     /** 星球半径 :6360km*/
     bottomRadius = 6360.0;
+    /** 太阳     */
+    sun: I_HillaireAtmosphereLight = {
+        illuminance: [1, 1, 1],
+        disk_diameter: 0.04014257279586957,
+        direction: [0, 1, 0],
+        disk_luminance_scale: 65
+    };
+    /**月亮,这和太阳相同，需要根据实际情况调整     */
+    moon: I_HillaireAtmosphereLight = {
+        illuminance: [1, 1, 1],
+        disk_diameter: 0.04014257279586957,
+        direction: [0, 1, 0],
+        disk_luminance_scale: 65
+    };
+    configHillaire: I_HillaireUniforms = {
+        inverse_projection: new ArrayBuffer(16),  // 逆投影矩阵
+        inverse_view: new ArrayBuffer(16),        // 逆视图矩阵
+        camera_world_position: [0, 1, 0], // 相机世界坐标
+        frame_id: 0,                    // 当前帧ID
+        screen_resolution: [0, 0],     // 屏幕分辨率
+        ray_march_min_spp: 30,           // 光线步进最小采样数
+        ray_march_max_spp: 14,           // 光线步进最大采样数
+        sun: this.sun,             // 太阳参数
+        moon: this.moon,            // 月亮参数
+    }
     // 大气初始化参数
     atmosphereParams: I_HillaireAtmosphereParams = {
         rayleigh_scattering: [0.005802, 0.013558, 0.033100],
@@ -135,24 +160,32 @@ export class AtmosphereHillaire extends Atmosphere {
     renderWithLut!: HillaireRenderWithLut;
     renderRayMarch!: HillaireRenderWithRayMarching;
     mode: "lut" | "rayMarch" = "lut";
+    frame_id: number = 0;
 
     sampler: GPUSampler;
     // commands: commmandType[] = [];
-    constructor(scene: Scene, input: I_HillaireAtmosphereParams,) {
+    constructor(scene: Scene, inputAtmosphereParams?: I_HillaireAtmosphereParams,configHillaire?: I_HillaireUniforms) {
         super(scene);
-        if (input) {
-            const keys = Object.keys(input) as Array<keyof I_HillaireAtmosphereParams>;
+        if (inputAtmosphereParams) {
+            const keys = Object.keys(inputAtmosphereParams) as Array<keyof I_HillaireAtmosphereParams>;
             for (const key of keys) {
-                let value = input[key];
+                let value = inputAtmosphereParams[key];
                 if (value != undefined) {
                     (this.atmosphereParams[key] as typeof value) = value;
                 }
             }
-            this.mode = input.mode || "lut";
+            this.mode = inputAtmosphereParams.mode || "lut";
         }
-        else {
-            throw new Error("input is null");
+        if (configHillaire) {
+            const keys = Object.keys(configHillaire) as Array<keyof I_HillaireUniforms>;
+            for (const key of keys) {
+                let value = configHillaire[key];
+                if (value != undefined) {
+                    (this.configViews[key] as typeof value) = value;
+                }
+            }
         }
+
         if (this.device) {
             this.atmosphereGPUBuffer = this.scene.device.createBuffer({
                 size: this.atmosphereBufferSize,
@@ -285,21 +318,6 @@ export class AtmosphereHillaire extends Atmosphere {
         // this.AtmosphereViews.multi_scattering_factor[0] = 1.0;
         // }
     }
-
-    /** 太阳     */
-    sun: I_HillaireAtmosphereLight = {
-        illuminance: [1, 1, 1],
-        disk_diameter: 0.04014257279586957,
-        direction: [0, 1, 0],
-        disk_luminance_scale: 65
-    };
-    /**月亮,这和太阳相同，需要根据实际情况调整     */
-    moon: I_HillaireAtmosphereLight = {
-        illuminance: [1, 1, 1],
-        disk_diameter: 0.04014257279586957,
-        direction: [0, 1, 0],
-        disk_luminance_scale: 65
-    };
     /** 更新uniform config 的arraybuffer数值     */
     updateConfigArrayBuffer() {
         //todo替换 赋值
@@ -360,15 +378,25 @@ export class AtmosphereHillaire extends Atmosphere {
             ]);
             this.configViews.camera_world_position.set([0, 1, 100]);
         }
-        this.configViews.frame_id.set([0]);//当前帧ID,用于计算时间,在NDC中忽略
+        this.configViews.frame_id.set([this.frame_id++]);//当前帧ID,用于计算时间,在NDC中忽略
         this.configViews.screen_resolution.set([this.scene.surface.size.width, this.scene.surface.size.height]);//屏幕分辨率
-        this.configViews.ray_march_max_spp.set([30]);//光线步进最大采样数
-        this.configViews.ray_march_min_spp.set([14]);//光线步进最小采样数
-        this.configViews.sun.illuminance.set([1, 1, 1]);//太阳照度（W/m²）
-        this.configViews.sun.disk_diameter.set([0.04014257279586957]);//太阳视直径（弧度）
-        // this.configViews.sun.direction.set([0,1, 0]);//太阳方向（指向光源）
-        this.configViews.sun.direction.set([0, 0.05989229072794672, -0.9982048454657787]);//太阳方向（指向光源）
-        this.configViews.sun.disk_luminance_scale.set([65]);//太阳盘面亮度缩放因子
+        this.configViews.ray_march_max_spp.set([this.configHillaire.ray_march_max_spp]);//光线步进最大采样数
+        this.configViews.ray_march_min_spp.set([this.configHillaire.ray_march_min_spp]);//光线步进最小采样数
+        this.configViews.sun.illuminance.set(this.configHillaire.sun.illuminance);//太阳照度（W/m²）
+        this.configViews.sun.disk_diameter.set([this.configHillaire.sun.disk_diameter]);//太阳视直径（弧度）
+        this.configViews.sun.direction.set(this.sun.direction);//太阳方向（指向光源）
+        this.configViews.sun.disk_luminance_scale.set([this.configHillaire.sun.disk_luminance_scale]);//太阳盘面亮度缩放因子
+     
+        // this.configViews.frame_id.set([0]);//当前帧ID,用于计算时间,在NDC中忽略
+        // this.configViews.screen_resolution.set([this.scene.surface.size.width, this.scene.surface.size.height]);//屏幕分辨率
+        // this.configViews.ray_march_max_spp.set([30]);//光线步进最大采样数
+        // this.configViews.ray_march_min_spp.set([14]);//光线步进最小采样数
+        // this.configViews.sun.illuminance.set([1, 1, 1]);//太阳照度（W/m²）
+        // this.configViews.sun.disk_diameter.set([0.04014257279586957]);//太阳视直径（弧度）
+        // // this.configViews.sun.direction.set([0,1, 0]);//太阳方向（指向光源）
+        // this.configViews.sun.direction.set([0, 0.05989229072794672, -0.9982048454657787]);//太阳方向（指向光源）
+        // this.configViews.sun.disk_luminance_scale.set([65]);//太阳盘面亮度缩放因子
+        // this.configViews.sun.direction.set(this.sun.direction);//太阳方向（指向光源）
 
     }
 

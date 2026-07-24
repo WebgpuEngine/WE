@@ -20,8 +20,8 @@ const ABSORPTION_FALLOFF: f32 = 4000.0;
 
 // 性能/采样配置
 const HW_PERFORMANCE: i32 = 1; // 1=桌面高画质 0=移动端低画质
-const PRIMARY_STEPS: i32 =12;// select(12, 32, HW_PERFORMANCE == 1);
-const LIGHT_STEPS: i32 = 4;// select(4, 8, HW_PERFORMANCE == 1);
+const PRIMARY_STEPS: i32 =32;// select(12, 32, HW_PERFORMANCE == 1);
+const LIGHT_STEPS: i32 = 8;// select(4, 8, HW_PERFORMANCE == 1);
 
 // 相机模式：0地面/1太空/2上下往复/3地面升空
 const CAMERA_MODE: i32 = 0;
@@ -318,7 +318,7 @@ fn render_scene(
         let surface_normal = normalize(sample_pos);
         
         // get the color of the sphere
-        color =vec4f( vec3<f32>(0.0, 0.25, 0.05),color.w); // 地面深绿色
+        color =vec4f( vec3<f32>(0.0, 0.25, 0.45),color.w); // 地面深绿色
         
         // get wether this point is shadowed, + how much light scatters towards the camera according to the lommel-seelinger law
           // Lommel-Seelinger 地表阴影衰减，模拟球面明暗过渡
@@ -432,7 +432,20 @@ fn shadertoy(uv: vec2f,fragCoord: vec2f)->vec4f{
 var <private >  iResolution: vec3f=vec3(0.0,0.0,0.0);           // viewport resolution (in pixels)
 var <private >  iTime: f32=0.0;                 // shader playback time (in seconds)
 var <private >  iMouse: vec4f=vec4(0.0,0.0,0.0,0.0);                // mouse pixel coords. xy: current (if MLB down), zw: click
-
+/**
+ * 渲染配置统一缓冲结构
+ */
+struct Uniforms {
+    inverse_projection: mat4x4<f32>,  // 逆投影矩阵
+    inverse_view: mat4x4<f32>,        // 逆视图矩阵
+    camera_world_position: vec3<f32>, // 相机世界坐标
+    frame_id: f32,                    // 当前帧ID,form TS:frameId = frameId + 1（递增）
+    screen_resolution: vec2<f32>,     // 屏幕分辨率
+    ray_march_min_spp: f32,           // 光线步进最小采样数
+    ray_march_max_spp: f32,           // 光线步进最大采样数
+    sun: AtmosphereLight,             // 太阳参数
+    moon: AtmosphereLight,            // 月亮参数
+}
 struct st_uniform_toy {
     u_resolution: vec2f,
     u_mouse_xy: vec2f,

@@ -1,12 +1,13 @@
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { DynBindGroupDrawCommand, IV_DynBindGroupDrawCommand } from "../../command/dynBindGroupDrawCommand";
 import { shaderRenderWithLUT, shader_three_point_vs } from "./baseHillaire";
-import { HillaireRenderBase } from "./renderBase";
+import { AtmosphereRenderBase } from "../renderBase";
+import { AtmosphereHillaire } from "./atmosphereHillaire";
 
-export class HillaireRenderWithLut extends HillaireRenderBase {
-
-    getBindGroups(): GPUBindGroup[] {
-        return this.bindGroups;
+export class HillaireRenderWithLut extends AtmosphereRenderBase {
+    declare parent: AtmosphereHillaire;
+    constructor(parent: AtmosphereHillaire) {
+        super(parent);
     }
     generateCommands() {
         //bindgroup  and layout 
@@ -124,7 +125,7 @@ export class HillaireRenderWithLut extends HillaireRenderBase {
                         code: shaderRenderWithLUT,
                         entryPoint: "fragment",
                         targets: [{ format: this.scene.colorFormatOfLinearSpace }],
-                        aliasName: "test NDC",
+                        aliasName: "renderSkyWithLut NDC",
                     },
                     drawMode: {
                         vertexCount: 3

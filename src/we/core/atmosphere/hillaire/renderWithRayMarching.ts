@@ -2,9 +2,9 @@ import { IV_DC, IV_DrawCommandGenerator } from "../../command/DrawCommandGenerat
 import { IV_DynBindGroupDrawCommand, DynBindGroupDrawCommand } from "../../command/dynBindGroupDrawCommand";
 
 import { shaderRenderWithRayMarching, shader_three_point_vs } from "./baseHillaire";
-import { HillaireRenderBase } from "./renderBase";
+import { AtmosphereRenderBase } from "../renderBase";
 
-export class HillaireRenderWithRayMarching extends HillaireRenderBase {
+export class HillaireRenderWithRayMarching extends AtmosphereRenderBase {
 
     getBindGroups(): GPUBindGroup[] {
         return this.bindGroups;

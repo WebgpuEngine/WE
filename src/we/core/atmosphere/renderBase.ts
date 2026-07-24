@@ -1,28 +1,35 @@
-import { commmandType } from "../../command/base";
-import { E_GBufferNames } from "../../gbuffers/base";
-import { E_renderPassName } from "../../scene/renderManager";
-import { Scene } from "../../scene/scene";
-import { AtmosphereHillaire } from "./atmosphereHillaire";
+import { commmandType } from "../command/base";
+import { E_GBufferNames } from "../gbuffers/base";
+import { E_renderPassName } from "../scene/renderManager";
+import { Scene } from "../scene/scene";
+import { Atmosphere } from "./atmosphere";
 
-export abstract class HillaireRenderBase {
+export abstract class AtmosphereRenderBase {
     scene: Scene;
     device: GPUDevice;
-    parent: AtmosphereHillaire;
-    bindGroupLayout: GPUBindGroupLayout[]=[];
+    parent: Atmosphere;
+    bindGroupLayout: GPUBindGroupLayout[] = [];
     bindGroups: GPUBindGroup[] = [];
+    /**
+     * 渲染命令:创建两种模式的渲染命令（跟进finalTarget.NDC变化）
+     * 1、ndc渲染命令；
+     * 2、afterDefer渲染命令；
+     */
     commands: commmandType[] = [];
     rpd!: GPURenderPassDescriptor;
     pipeline!: GPURenderPipeline;
-    constructor(parent: AtmosphereHillaire) {
+    constructor(parent: Atmosphere) {
         this.parent = parent;
         this.scene = parent.scene;
         this.device = parent.scene.device;
         this.generateCommands();
     }
     abstract generateCommands(): void;
-    abstract getBindGroups(): GPUBindGroup[];
+    getBindGroups(): GPUBindGroup[] {
+        return this.bindGroups;
+    }
 
-    getRpd():GPURenderPassDescriptor {
+    getRpd(): GPURenderPassDescriptor {
         let colorTexture = this.scene.cameraManager.getGBufferTextureByUUID(this.scene.defaultCamera.UUID, E_GBufferNames.color);
         this.rpd = {
             label: "renderSkyWithLut",

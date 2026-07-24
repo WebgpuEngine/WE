@@ -42,17 +42,19 @@ let atmosphereHillaire = new AtmosphereHillaire(
   scene,
   {
     // TO_KM_SCALE: 1.0,
-    mode: "rayMarch"
+    // mode: "rayMarch"
   },
-  );
+);
 
+window.atmosphereHillaire = atmosphereHillaire;
 
 ////////////////////////////////////////////////////////////
 let timer = 0;
 let oneCall: userDefineEventCall = {
   call: (scope: Scene) => {
     timer += 0.016667;
-
+    atmosphereHillaire.sun.direction = [0, (Math.sin(timer/2)+0.8)/5, -1];
+    // atmosphereHillaire.sun.direction = [0,0, -1];
   },
   name: "",
   state: true,

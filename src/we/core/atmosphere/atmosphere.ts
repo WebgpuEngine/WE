@@ -4,7 +4,7 @@ import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
 
 export abstract class Atmosphere implements I_FeatureModule {
-    abstract onResize(): void;
+    abstract onResize(): Promise<void>;
     abstract update(clock: Clock): void;
     UUID: string;
     _manager: any;

@@ -104,6 +104,7 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
 
     let view_height = length(world_pos);                               // 计算观察者到行星中心的距离（km）
 
+    // return vec4<f32>(sun_dir, 1.0);
     // if !is_valid_depth(depth) 
     {
         // 天空区域：直接使用天空视图LUT
@@ -143,7 +144,12 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
 struct RenderSkyFragment {
     @location(0) luminance: vec4<f32>,        // RGB=散射亮度，Alpha=1-平均透射率
 }
-
+// fn tonemap(rgb: vec3<f32>) -> vec3<f32> {
+//     let white_point = vec3(1.08241, 0.96756, 0.95003);
+//     let exposure = 10.0;
+//     // return pow(vec3(1.0) - exp(-rgb / white_point * exposure), vec3(1.0 / 2.2));//gamma 2.2
+//     return pow(vec3(1.0) - exp(-rgb / white_point * exposure), vec3(1.0));//不进行gamma校正，在WE3D中进行统一的ToneMapping
+// }
 /**
  * 光栅化管线片段着色器
  * - 不输出独立的透射率通道
