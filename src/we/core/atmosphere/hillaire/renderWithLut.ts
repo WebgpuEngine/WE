@@ -1,16 +1,20 @@
 import { IV_DC } from "../../command/DrawCommandGenerator";
 import { DynBindGroupDrawCommand, IV_DynBindGroupDrawCommand } from "../../command/dynBindGroupDrawCommand";
 import { shaderRenderWithLUT, shader_three_point_vs } from "./baseHillaire";
-import { AtmosphereRenderBase } from "../renderBase";
-import { AtmosphereHillaire } from "./atmosphereHillaire";
+import { RenderHillaire } from "./renderHillaire";
 
-export class HillaireRenderWithLut extends AtmosphereRenderBase {
-    declare parent: AtmosphereHillaire;
-    constructor(parent: AtmosphereHillaire) {
-        super(parent);
+export class HillaireRenderWithLut extends RenderHillaire {
+
+    generateBindGroup() {
+        if (this.scene.finalTarget.NDC == true) {
+            this.generateBindGroup0();
+        }
+        else {
+            this.generateBindGroup0();
+            this.generateBindGroup1();
+        }
     }
-    generateCommands() {
-        //bindgroup  and layout 
+    generateBindGroup0() {
         let layout: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
             label: "renderSkyWithLut",
             entries: [
@@ -59,16 +63,15 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
                 {
                     binding: 6,
                     visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-                    storageTexture:
+                    texture:
                     {
-                        access: "write-only", // 和 WGSL 的 read_write 对应
-                        format: "rgba16float", // 必须和纹理创建时的格式完全一致
+                        sampleType: "float",
                         viewDimension: "3d",
                     },
                 },
             ],
         });
-        this.bindGroupLayout.push(layout);
+        this.bindGroupLayout[0] = layout;
 
         const bindGroupDescriptor: GPUBindGroupDescriptor = {
             label: "renderSkyWithLut",
@@ -105,16 +108,93 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
             ],
         };
         const bindGroup = this.scene.device.createBindGroup(bindGroupDescriptor);
-        this.bindGroups.push(bindGroup);
-        //DC
+        this.bindGroups[0] = bindGroup;
+    }
+    generateBindGroup1() {
+        let layout_1: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
+            label: "renderSkyWithLut_1",
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    texture: {
+                        sampleType: "depth",
+                    },
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    texture: {
+                        sampleType: "float",
+                    },
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    texture: {
+                        sampleType: "depth",
+                    },
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    texture: {
+                        sampleType: "depth",
+                    },
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                    sampler: {
+                        type: "filtering"
+                    },
+                },
+            ]
+        });
+        this.bindGroupLayout[1] = layout_1;
 
+        const bindGroupDescriptor_1: GPUBindGroupDescriptor = {
+            label: "renderSkyWithLut_1",
+            layout: layout_1,
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.depthTexture ? this.depthTexture : this.parent.depthShadowMapTexture,
+                },
+                {
+                    binding: 1,
+                    resource: this.copyColorTexture ? this.copyColorTexture : this.scene.getResourceDefaultGPUTexture(),
+                },
+                {
+                    binding: 2,
+                    resource: this.parent.depthShadowMapTexture
+                },
+                {
+                    binding: 3,
+                    resource: this.parent.depthShadowMapTexture,
+                },
+                {
+                    binding: 4,
+                    resource: this.parent.sampler,
+                },
+            ]
+        };
+        const bindGroup_1 = this.scene.device.createBindGroup(bindGroupDescriptor_1);
+        this.bindGroups[1] = bindGroup_1;
+    }
+    generateCommands() {
+        this.commands.forEach((DC) => {
+                DC.destroy();
+        });
+        this.commands = [];
+        this.generateBindGroup0();//NDC 和DC 都需要的绑定组
         let DCG = this.scene.DCG;
         if (this.scene.finalTarget.NDC == true) {
             let valueDC: IV_DC = {
                 label: "renderSkyWithLut",
                 data: {
-                    uniforms: [bindGroup],
-                    unifromLayout: [layout],
+                    uniforms: [this.bindGroups[0]],
+                    unifromLayout: [this.bindGroupLayout[0]],
                 },
                 render: {
                     vertex: {
@@ -136,30 +216,8 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
             this.commands.push(dc);
         }
         else {
-            // let layout_1: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
-            //     label: "renderSkyWithLut",
-            //     entries: [
-            //         {
-            //             binding: 0,
-            //             visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-            //             buffer: {
-            //                 type: "uniform",
-            //             },
-            //         },]
-            // });
-            // const bindGroupDescriptor_1: GPUBindGroupDescriptor = {
-            //     label: "renderSkyWithLut",
-            //     layout: layout,
-            //     entries: [
-            //         {
-            //             binding: 0,
-            //             resource: this.parent.atmosphereGPUBuffer,
-            //         },
-            //     ]
-            // };
-            // const bindGroup_1 = this.scene.device.createBindGroup(bindGroupDescriptor_1);
-            // this.bindGroups.push(bindGroup_1);
-
+            this.generateBindGroup1();//DC 需要的绑定组
+            this.commands.push(this.copyColorCommand());
             let pipelineLayout = this.device.createPipelineLayout({
                 label: "renderSkyWithLut",
                 bindGroupLayouts: this.bindGroupLayout,
@@ -209,18 +267,19 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
             this.commands.push(dc);
         }
     }
-    getConstants(): Record<string, number> | undefined {
-        return undefined;
-    }
+
     getBindGroupString(): string {
         let bindGroupString = `
-        @group(1) @binding(0) var u_camerea_depth_buffer: texture_depth_2d<f32>;                   // 深度缓冲
-        @group(2) @binding(1) var u_camera_color_buffer: texture_2d<f32>;                    // 后缓冲（已有场景渲染结果）
-        @group(1) @binding(2) var u_shadowmap_sun: texture_depth_2d<f32>;                   // 深度缓冲
-        @group(1) @binding(3) var u_shadowmap_moon: texture_depth_2d<f32>;                   // 深度缓冲
-        @group(1) @binding(4) var u_shadowmap_sampler: sampler_comparison;
+        @group(1) @binding(0) var u_camerea_depth_buffer: texture_depth_2d;                   // 深度缓冲
+        @group(1) @binding(1) var u_camera_color_buffer: texture_2d<f32>;                    // 后缓冲（已有场景渲染结果）
+        @group(1) @binding(2) var u_shadowmap_sun: texture_depth_2d;                   // 深度缓冲
+        @group(1) @binding(3) var u_shadowmap_moon: texture_depth_2d;                   // 深度缓冲
+        @group(1) @binding(4) var u_shadowmap_sampler: sampler;
 
         `;
-        return '';
+        return bindGroupString;
+    }
+    override getBindGroups(): GPUBindGroup[] {
+        return this.bindGroups;
     }
 }

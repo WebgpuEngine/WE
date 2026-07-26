@@ -1,10 +1,10 @@
-import { weVec2, weVec3 } from "../../base/coreDefine";
+import { I_Update, weVec2, weVec3 } from "../../base/coreDefine";
 
 /** Hillaire大气参数 
  * 1、大气参数结构部分对应shader中的Atmosphere
  * 2、剩余部分对应override constant
 */
-export interface I_HillaireAtmosphereParams {
+export interface I_HillaireAtmosphereParams extends I_Update{
     //大气参数结构
     rayleigh_scattering?: weVec3,           // Rayleigh散射系数
     rayleigh_density_exp_scale?: number,          // Rayleigh密度指数分布缩放因子
@@ -26,7 +26,7 @@ export interface I_HillaireAtmosphereParams {
     multi_scattering_factor?: number,             // 多重散射因子
     ////////////override params //////////////
     /** 单位转换因子，将距离从米(或其他单位)转换为千米 ，默认为：m->km,1/1000*/
-    TO_KM_SCALE?: number;
+    FROM_KM_SCALE?: number;
     /** 是否使用月亮， 默认为false ;todo,wgsl中未实现(暂时注解掉了)*/
     USE_MOON?: boolean;
     /** 是否使用太阳阴影地图， 默认为true;todo,wgsl中未实现(暂时注解掉了) */

@@ -55,8 +55,12 @@ export class ColorMaterial extends BaseStandardMaterial {
                 }
             };
             let blendMode = false;
+            //全透明，特殊处理，绘制透明像素，按照不透明处理
+            if(input.color[3] ==0.0){
+
+            }
             //使用alpha值
-            if (input.color[3] < 1.0) {
+            else if (input.color[3] < 1.0) {
                 blendMode = true;
             }
             //使用透明度值

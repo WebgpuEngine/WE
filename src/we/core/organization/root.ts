@@ -87,7 +87,7 @@ export abstract class RootGPU implements I_UUID {
         // this.UUID = WeGenerateUUID();
         if (input) this.inputValues = input;
         if (input?.name) {
-            this._name = input!.name!;
+            this._name = input.name;
         }
         else this._name = this.ID.toString();
         //是否需要用户自定义更新函数

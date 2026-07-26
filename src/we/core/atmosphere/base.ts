@@ -1,11 +1,11 @@
-import { weVec2, weVec3 } from "../base/coreDefine";
+import { I_Update, weVec2, weVec3 } from "../base/coreDefine";
 
 
 /** 基础层参数。共性参数 
  * 1、单位需要明确，
  *      todo：积分方式是m^-1 ,hillaire方案是 `km^-1`
 */
-export interface I_AttomSphereBaseLayerParams {
+export interface I_AttomSphereBaseLayerParams extends I_Update {
     /** 高度
      * [0]=bottom,默认0
      * [1]=top

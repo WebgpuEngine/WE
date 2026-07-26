@@ -2,7 +2,7 @@ import { Scene } from "../../scene/scene";
 import { Atmosphere } from "../atmosphere";
 import { I_HillaireAtmosphereLight, I_HillaireAtmosphereParams, I_HillaireUniforms } from "./baseHillaire";
 import { commmandType } from "../../command/base";
-import { mat4 } from "wgpu-matrix";
+import { Mat4, mat4 } from "wgpu-matrix";
 import { PerspectiveCamera } from "../../camera/perspectiveCamera";
 
 import { HillaireRenderWithLut } from "./renderWithLut";
@@ -71,7 +71,7 @@ export class AtmosphereHillaire extends Atmosphere {
         planet_center: [0, -this.bottomRadius, 0.0],
 
         multi_scattering_factor: 1.0,
-        TO_KM_SCALE: 1.0 / 1000.0,
+        FROM_KM_SCALE: 1.0,
         USE_MOON: false,
         sunShadowMap: false,
         moonShadowMap: false,
@@ -170,7 +170,7 @@ export class AtmosphereHillaire extends Atmosphere {
 
     sampler: GPUSampler;
     // commands: commmandType[] = [];
-    constructor(scene: Scene, inputAtmosphereParams?: I_HillaireAtmosphereParams,configHillaire?: I_HillaireUniforms) {
+    constructor(scene: Scene, inputAtmosphereParams?: I_HillaireAtmosphereParams, configHillaire?: I_HillaireUniforms) {
         super(scene);
         if (inputAtmosphereParams) {
             const keys = Object.keys(inputAtmosphereParams) as Array<keyof I_HillaireAtmosphereParams>;
@@ -193,9 +193,9 @@ export class AtmosphereHillaire extends Atmosphere {
         }
         this.depthShadowMapTexture = scene.device.createTexture({
             label: "defaultHillaireShadowMap-1x1",
-            size: [1,1],
+            size: [1, 1],
             format: V_weShadowMapFormat,
-            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+            usage: GPUTextureUsage.TEXTURE_BINDING,
         });
         if (this.device) {
             this.atmosphereGPUBuffer = this.scene.device.createBuffer({
@@ -260,8 +260,14 @@ export class AtmosphereHillaire extends Atmosphere {
         this.lutMultipleScattering = new HillaireLutMultipleScattering(this);
         this.lutSkyView = new HillaireLutSkyView(this);
         this.lutAP = new HillaireLutAP(this);
-        this.renderWithLut = new HillaireRenderWithLut(this);
-        this.renderRayMarch = new HillaireRenderWithRayMarching(this);
+        if (this.mode == "lut") {
+            console.log("lut mode");
+            this.renderWithLut = new HillaireRenderWithLut(this);
+        }
+        else {
+            console.log("rayMarch mode");
+            this.renderRayMarch = new HillaireRenderWithRayMarching(this);
+        }
     }
     updateAtmosphereBuffer() {
         this.AtmosphereViews.rayleigh_density_exp_scale[0] = this.atmosphereParams.rayleigh_density_exp_scale!;
@@ -334,14 +340,25 @@ export class AtmosphereHillaire extends Atmosphere {
         //todo替换 赋值
         //!!!!!!!!!!!!这个是相机的逆投影矩阵，需要替换为实际的逆投影矩阵
         if (this.scene.defaultCamera) {
-            const projection = mat4.perspectiveReverseZ(
-                // 45.0 * (Math.PI / 180.0), // 45度视场角
-                (this.scene.defaultCamera as PerspectiveCamera).getfov(), // 视场角
-                this.scene.defaultCamera.aspect,
-                1.0, // 近裁剪面
-                // this.scene.defaultCamera.near,
-                // this.scene.defaultCamera.far, // 远裁剪面
-            );
+            let projection: Mat4 = mat4.create();
+            if (this.scene.reversedZ.isReversedZ) {
+                projection = mat4.perspectiveReverseZ(
+                    // 45.0 * (Math.PI / 180.0), // 45度视场角
+                    (this.scene.defaultCamera as PerspectiveCamera).getfov(), // 视场角
+                    this.scene.defaultCamera.aspect,
+                    this.scene.defaultCamera.Near,//1.0, // 近裁剪面                    
+                    // this.scene.defaultCamera.far, // 远裁剪面,可以缺省
+                );
+            }
+            else {
+                projection = mat4.perspective(
+                    // 45.0 * (Math.PI / 180.0), // 45度视场角
+                    (this.scene.defaultCamera as PerspectiveCamera).getfov(), // 视场角
+                    this.scene.defaultCamera.aspect,
+                    this.scene.defaultCamera.Near,
+                    (this.scene.defaultCamera as PerspectiveCamera).Far, // 远裁剪面，不可以缺省
+                );
+            }
             let inverseProjection = mat4.inverse(projection);
             this.configViews.inverse_projection.set(inverseProjection);
 
@@ -397,7 +414,7 @@ export class AtmosphereHillaire extends Atmosphere {
         this.configViews.sun.disk_diameter.set([this.configHillaire.sun.disk_diameter]);//太阳视直径（弧度）
         this.configViews.sun.direction.set(this.sun.direction);//太阳方向（指向光源）
         this.configViews.sun.disk_luminance_scale.set([this.configHillaire.sun.disk_luminance_scale]);//太阳盘面亮度缩放因子
-     
+
         // this.configViews.frame_id.set([0]);//当前帧ID,用于计算时间,在NDC中忽略
         // this.configViews.screen_resolution.set([this.scene.surface.size.width, this.scene.surface.size.height]);//屏幕分辨率
         // this.configViews.ray_march_max_spp.set([30]);//光线步进最大采样数
@@ -408,7 +425,6 @@ export class AtmosphereHillaire extends Atmosphere {
         // this.configViews.sun.direction.set([0, 0.05989229072794672, -0.9982048454657787]);//太阳方向（指向光源）
         // this.configViews.sun.disk_luminance_scale.set([65]);//太阳盘面亮度缩放因子
         // this.configViews.sun.direction.set(this.sun.direction);//太阳方向（指向光源）
-
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -442,16 +458,12 @@ export class AtmosphereHillaire extends Atmosphere {
      */
     async onResize() {
         console.log("onResize");
-        this.renderWithLut.onResize();
-        this.renderRayMarch.onResize();
-        // this.renderCommands.withLut.forEach((item) => {
-        //     item.destroy();
-        // });
-        // this.renderCommands.rayMarch.forEach((item) => {
-        //     item.destroy();
-        // });
-        // this.renderWithLut();
-        // this.renderWithRayMarching();
-
+        //bind group 1 需要的绑定组
+        if (this.mode == "lut") {
+            this.renderWithLut.onResize();
+        }
+        else {
+            this.renderRayMarch.onResize();
+        }
     }
 }

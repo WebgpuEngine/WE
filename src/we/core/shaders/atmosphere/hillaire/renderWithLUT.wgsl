@@ -104,33 +104,39 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
 
     let view_height = length(world_pos);                               // 计算观察者到行星中心的距离（km）
 
-    // if !is_valid_depth(depth) 
+	let depth = textureLoad(u_camerea_depth_buffer, pix, 0);
+
+    if !is_valid_depth(depth) 
     {
         // 天空区域：直接使用天空视图LUT
         // return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config);
         return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config, uv);
     }
-
-    // // 物体区域：计算大气透视效果
-    // let depth_buffer_world_pos = uv_and_depth_to_world_pos(uv, config.inverse_projection, config.inverse_view, depth);
-    // let t_depth = length(depth_buffer_world_pos - (world_pos + atmosphere.planet_center));  // 到物体的距离
-
-    // var slice = aerial_perspective_depth_to_slice(t_depth);  // 距离转切片索引
-    // var weight = 1.0;
-    // if slice < 0.5 {
-    //     // 近距离时进行淡入处理，避免深度为0时的突变
-    //     weight = saturate(slice * 2.0);
-    //     slice = 0.5;
-    // }
-    // let w = sqrt(slice / AP_SLICE_COUNT);  // 平方分布采样，使近处采样更密集
-
-    // let aerial_perspective = textureSampleLevel(aerial_perspective_lut, lut_sampler, vec3<f32>(uv, w), 0);
-
-    // if all(aerial_perspective.rgb == vec3<f32>()) {
-    //     return vec4<f32>();  // 无效LUT值，返回黑色
+    // else {
+    //     return vec4<f32>(1,0,0,1);
     // }
 
-    // return weight * aerial_perspective;
+    // 物体区域：计算大气透视效果
+    let depth_buffer_world_pos = uv_and_depth_to_world_pos(uv, config.inverse_projection, config.inverse_view, depth);
+    let t_depth = length(depth_buffer_world_pos - (world_pos + atmosphere.planet_center));  // 到物体的距离
+
+    var slice = aerial_perspective_depth_to_slice(t_depth);  // 距离转切片索引
+    var weight = 1.0;
+    if slice < 0.5 {
+        // 近距离时进行淡入处理，避免深度为0时的突变
+        weight = saturate(slice * 2.0);
+        slice = 0.5;
+    }
+    let w = sqrt(slice / AP_SLICE_COUNT);  // 平方分布采样，使近处采样更密集
+
+    let aerial_perspective = textureSampleLevel(aerial_perspective_lut, lut_sampler, vec3<f32>(uv, w), 0);
+
+    if all(aerial_perspective.rgb == vec3<f32>()) {
+        return vec4<f32>();  // 无效LUT值，返回黑色
+    }
+	let color_of_buffer: vec4<f32> = textureLoad(u_camera_color_buffer, pix, 0);
+
+    return weight * aerial_perspective+color_of_buffer;
 }
 
 /**

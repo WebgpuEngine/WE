@@ -85,6 +85,13 @@ export interface I_BaseCameraValue extends IV_NodeSpace {
  * 摄像机抽象类
  */
 export abstract class BaseCamera extends NodeObject {
+  //////////基础参数
+  _near: number = 0.10;
+  _far: number = 1000.0;
+  get Near() { return this._near; }
+  set Near(value: number) { this._near = value; }
+  get Far() { return this._far; }
+  set Far(value: number) { this._far = value; }
   /** 初始化参数  */
   declare inpuValues: I_BaseCameraValue;
   manager!: CameraManager;

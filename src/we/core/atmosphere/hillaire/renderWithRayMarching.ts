@@ -1,18 +1,21 @@
 import { IV_DC, IV_DrawCommandGenerator } from "../../command/DrawCommandGenerator";
 import { IV_DynBindGroupDrawCommand, DynBindGroupDrawCommand } from "../../command/dynBindGroupDrawCommand";
-
 import { shaderRenderWithRayMarching, shader_three_point_vs } from "./baseHillaire";
-import { AtmosphereRenderBase } from "../renderBase";
-import { AtmosphereHillaire } from "./atmosphereHillaire";
+import { RenderHillaire } from "./renderHillaire";
 
-export class HillaireRenderWithRayMarching extends AtmosphereRenderBase {
-    declare parent: AtmosphereHillaire;
-    constructor(parent: AtmosphereHillaire) {
-        super(parent);
+export class HillaireRenderWithRayMarching extends RenderHillaire {
+    getConstants(): Record<string, number> | undefined {
+        // throw new Error("Method not implemented.");
+        return undefined;
     }
-    getBindGroups(): GPUBindGroup[] {
-        return this.bindGroups;
+    getBindGroupString(): string {
+        // throw new Error("Method not implemented.");
     }
+    generateBindGroup(): void {
+        // throw new Error("Method not implemented.");
+    }
+
+
     generateCommands() {
         //bindgroup  and layout 
         let layout: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({

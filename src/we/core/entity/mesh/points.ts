@@ -1,4 +1,4 @@
-import { weColor3, E_renderForDC } from "../../base/coreDefine";
+import { weColor3, E_renderForDC, weColor4 } from "../../base/coreDefine";
 import { DrawCommand } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { ColorMaterial } from "../../material/standard/colorMaterial";
@@ -31,7 +31,7 @@ export interface IV_PointsEntity extends IV_BaseEntity {
      * 1、颜色，与material互斥
      * 2、顶点着色，需要使用VertexMaterial材质
      */
-    color?: weColor3,
+    color?: weColor4 | weColor3,
     /**
      * 1、材质, 与颜色互斥 
      * 2、默认是没有材质，只有在emulate有值的时候才会有材质
@@ -49,7 +49,7 @@ export class Points extends EntityBundleMaterial {
     override inputValues: IV_PointsEntity;
 
     size: number = 1;
-    color: weColor3 = [1, 1, 1];
+    color: weColor4 = [1, 1, 1, 1];
     emulate: T_PointEmulate = "none";
     // /** 顶点数据 */
     // attributes: I_EntityAttributes = {
@@ -72,7 +72,14 @@ export class Points extends EntityBundleMaterial {
         this.kind = E_entityType.points;
         this.inputValues = input;
 
-        if (input.color) this.color = input.color;
+        if (input.color) {
+            if (input.color.length == 4) {
+                this.color = input.color;
+            }
+            else {
+                this.color = [...input.color, 1];
+            }
+        }
 
         // 模拟模式
         if (input.emulate && input.emulate !== "none") {
@@ -174,7 +181,7 @@ export class Points extends EntityBundleMaterial {
     override async readyForGPU() {
         if (this.inputValues.material == undefined || this.inputValues.color != undefined) {
             this._material = new ColorMaterial({
-                color: [...this.color, 1],
+                color: [...this.color],
             });
         }
         await super.readyForGPU();

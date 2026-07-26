@@ -109,7 +109,8 @@ export class HillaireLutSkyView extends HillaireLutBase {
                     pipelineLayout: pipelineLayout,
                     shader: {
                         shaderCode: shaderLutSkyview,
-                        entryPoint: "render_sky_view_lut"
+                        entryPoint: "render_sky_view_lut",
+                        constants: this.getConstants(),
                     }
                 },
             },

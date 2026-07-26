@@ -30,6 +30,8 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
     depthTexture!: GPUTexture;
     copyColorTexture!: GPUTexture;
 
+    state: boolean = false;
+
     constructor(parent: Atmosphere) {
         this._id = WeGenerateID();
         this.UUID = this._id.toString();
@@ -37,8 +39,8 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
         this.parent = parent;
         this.scene = parent.scene;
         this.device = parent.scene.device;
-        this.generateCommands();
-        this.initTexture();
+        // this.generateCommands();
+        // this.initTexture();
     }
     /**
      * 生成渲染命令
@@ -56,7 +58,11 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
      * @returns 绑定组字符串
      */
     abstract getBindGroupString(): string;
+    abstract generateBindGroup(): void;
 
+    /**
+     *映射纹理
+     */
     initTexture() {
         this.colorTexture = this.scene.cameraManager.getGBufferTextureByUUID(this.scene.defaultCamera.UUID, E_GBufferNames.color);
         this.depthTexture = this.scene.cameraManager.getDepthTextureByUUID(this.scene.defaultCamera.UUID);
@@ -68,10 +74,6 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
     }
 
 
-    async onResize(): Promise<void> {
-        this.initTexture();
-        this.getRpd();
-    }
 
     copyColorCommand() {
         let size = this.scene.surface.size;
@@ -83,7 +85,7 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
                 device: this.device
             }
         );
-        this.commands.push(copyToColorTexture);
+        return copyToColorTexture;
     }
     getRpd(): GPURenderPassDescriptor {
         this.rpd = {
@@ -99,18 +101,34 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
         return this.rpd;
     }
     update(clock?: Clock): void {
-        this.commands.forEach((DC) => {
-            if (this.scene.finalTarget.NDC == true) {
-                this.scene.renderManager.push({
-                    command: DC,
-                    kind: E_renderPassName.ndc,
-                })
-            } else {
-                this.scene.renderManager.push({
-                    command: DC,
-                    kind: E_renderPassName.afterDeferRender,
-                })
-            }
-        })
+        if (this.state == false) {
+            if ((this.colorTexture == undefined || this.depthTexture == undefined) &&
+                this.scene.cameraManager.getGBufferTextureByUUID(this.scene.defaultCamera.UUID, E_GBufferNames.color)) {
+                this.onResize();
+                this.generateCommands();
+                this.state = true;
+            };
+        }
+        if (this.state == true)
+            this.commands.forEach((DC) => {
+                if (this.scene.finalTarget.NDC == true) {
+                    this.scene.renderManager.push({
+                        command: DC,
+                        kind: E_renderPassName.ndc,
+                    })
+                } else {
+                    this.scene.renderManager.push({
+                        command: DC,
+                        kind: E_renderPassName.afterDeferRender,
+                    })
+                }
+            })
     }
+    async onResize(): Promise<void> {
+        this.initTexture();
+        this.getRpd();
+        this.generateBindGroup();
+        this.commands[0] = this.copyColorCommand();
+    }
+
 }
