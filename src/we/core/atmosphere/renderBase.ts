@@ -28,7 +28,7 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
     pipeline!: GPURenderPipeline;
     colorTexture!: GPUTexture;
     depthTexture!: GPUTexture;
-    copyCcolorTexture!: GPUTexture;
+    copyColorTexture!: GPUTexture;
 
     constructor(parent: Atmosphere) {
         this._id = WeGenerateID();
@@ -40,36 +40,45 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
         this.generateCommands();
         this.initTexture();
     }
+    /**
+     * 生成渲染命令
+     */
     abstract generateCommands(): void;
-
-    initTexture() {
-        this.colorTexture = this.scene.cameraManager.getGBufferTextureByUUID(this.scene.defaultCamera.UUID, E_GBufferNames.color);
-        this.depthTexture = this.scene.cameraManager.getDepthTextureByUUID(this.scene.defaultCamera.UUID);
-        this.copyCcolorTexture = this.scene.cameraManager.GBufferManager.GBuffer[this.scene.defaultCamera.UUID].finalRender.color;
-    }
-
-    getBindGroups(): GPUBindGroup[] {
-        return this.bindGroups;
-    }
+    /**
+     * 获取常量
+     * 用于在渲染时判断是否需要更新常量
+     * @returns 常量字符串
+     */
+    abstract getConstants(): Record<string, number> | undefined;
     /**
      * 获取绑定组字符串
      * 用于在渲染时判断是否需要更新绑定组
      * @returns 绑定组字符串
      */
-    getBindGroupString(): string {
-        return "";
+    abstract getBindGroupString(): string;
+
+    initTexture() {
+        this.colorTexture = this.scene.cameraManager.getGBufferTextureByUUID(this.scene.defaultCamera.UUID, E_GBufferNames.color);
+        this.depthTexture = this.scene.cameraManager.getDepthTextureByUUID(this.scene.defaultCamera.UUID);
+        this.copyColorTexture = this.scene.cameraManager.GBufferManager.GBuffer[this.scene.defaultCamera.UUID].finalRender.color;
     }
+
+    getBindGroups(): GPUBindGroup[] {
+        return this.bindGroups;
+    }
+
+
     async onResize(): Promise<void> {
         this.initTexture();
         this.getRpd();
     }
 
-    copyColorTexture() {
+    copyColorCommand() {
         let size = this.scene.surface.size;
         let copyToColorTexture = new CopyCommandT2T(
             {
                 A: this.colorTexture,
-                B: this.copyCcolorTexture,
+                B: this.copyColorTexture,
                 size: { width: size.width, height: size.height },
                 device: this.device
             }

@@ -47,7 +47,7 @@ let colorMaterial = new ColorMaterial({
   color: [0, 0.1, 0.2, 1]
 });
 let hdrTexture = new HDRTexture({
-  source: "/IBL/brdfLut/dfg_lut_512.hdr",
+  source: "/IBL/brdfLut/dfg_lut_128.hdr",
   // format: "rgba32float",
 }, scene.device, scene);
 await hdrTexture.init();

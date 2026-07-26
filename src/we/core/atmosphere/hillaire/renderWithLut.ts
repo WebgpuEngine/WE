@@ -136,6 +136,30 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
             this.commands.push(dc);
         }
         else {
+            // let layout_1: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
+            //     label: "renderSkyWithLut",
+            //     entries: [
+            //         {
+            //             binding: 0,
+            //             visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+            //             buffer: {
+            //                 type: "uniform",
+            //             },
+            //         },]
+            // });
+            // const bindGroupDescriptor_1: GPUBindGroupDescriptor = {
+            //     label: "renderSkyWithLut",
+            //     layout: layout,
+            //     entries: [
+            //         {
+            //             binding: 0,
+            //             resource: this.parent.atmosphereGPUBuffer,
+            //         },
+            //     ]
+            // };
+            // const bindGroup_1 = this.scene.device.createBindGroup(bindGroupDescriptor_1);
+            // this.bindGroups.push(bindGroup_1);
+
             let pipelineLayout = this.device.createPipelineLayout({
                 label: "renderSkyWithLut",
                 bindGroupLayouts: this.bindGroupLayout,
@@ -146,7 +170,7 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
             });
             let moduleFS = this.device.createShaderModule({
                 label: "renderSkyWithLut fs",
-                code: shaderRenderWithLUT,
+                code: this.getBindGroupString() + shaderRenderWithLUT,
             });
             let vertex: GPUVertexState = {
                 module: moduleVS,
@@ -157,7 +181,7 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
                 module: moduleFS,
                 entryPoint: "fragment",
                 targets: [{ format: this.scene.colorFormatOfLinearSpace }],
-                // constants: constansFS,
+                constants: this.getConstants(),
             }
             let descriptor: GPURenderPipelineDescriptor = {
                 label: "renderSkyWithLut",
@@ -185,5 +209,18 @@ export class HillaireRenderWithLut extends AtmosphereRenderBase {
             this.commands.push(dc);
         }
     }
+    getConstants(): Record<string, number> | undefined {
+        return undefined;
+    }
+    getBindGroupString(): string {
+        let bindGroupString = `
+        @group(1) @binding(0) var u_camerea_depth_buffer: texture_depth_2d<f32>;                   // 深度缓冲
+        @group(2) @binding(1) var u_camera_color_buffer: texture_2d<f32>;                    // 后缓冲（已有场景渲染结果）
+        @group(1) @binding(2) var u_shadowmap_sun: texture_depth_2d<f32>;                   // 深度缓冲
+        @group(1) @binding(3) var u_shadowmap_moon: texture_depth_2d<f32>;                   // 深度缓冲
+        @group(1) @binding(4) var u_shadowmap_sampler: sampler_comparison;
 
+        `;
+        return '';
+    }
 }

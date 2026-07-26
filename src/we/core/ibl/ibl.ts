@@ -41,7 +41,7 @@ export class IBL {
 
 
     // iblArray!: iblItem[];
-    dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_512.hdr";
+    dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_128.hdr";
 
     enable_ibl: boolean = false;
     use_ibl: number = 0;
@@ -168,7 +168,7 @@ export class IBL {
         this.bufferView.count[0] = this.iblCount;
         this.bufferView.filament_sh[0] = this.shAlreadyPreMultiplyConst ? 1 : 0;
         this.bufferView.use_ibl[0] = this.use_ibl;
-        this.bufferView.mip_level[0] =5;// this.mip_level;
+        this.bufferView.mip_level[0] = 5;// this.mip_level;
         this.bufferView.array_sh.set(this.input.ibl.sh.flat());
         // this.bufferView.array_sh.set(this.input.ibl.map((item) => item.sh).flat());//ok,多组的情况
         this.device.queue.writeBuffer(this.bufferGPU, 0, this.buffer);
@@ -188,7 +188,7 @@ export class IBL {
             }, this.device, this.scene);
             await this.prefilteredCubeMap.init();
         }
-        this.mip_level = this.prefilteredCubeMap.mipmapLevel-1;
+        this.mip_level = this.prefilteredCubeMap.mipmapLevel - 1;
         console.log(this.mip_level);
     }
     initBindGroup() {
@@ -222,18 +222,26 @@ export class IBL {
                 {
                     binding: 3,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: //this.brdfLUT.textureLayout,
-                    {
-                        sampleType: "unfilterable-float",
-                        viewDimension: "2d",
-                        multisampled: false,
-                    },
+                    texture:
+                        this.brdfLUT ? this.brdfLUT.textureLayout : {
+                            sampleType: "unfilterable-float",
+                            viewDimension: "2d",
+                            multisampled: false,
+                        },
+                    // {
+                    //     sampleType: "float",
+                    //     viewDimension: "2d",
+                    //     multisampled: false,
+                    // },
+
                 },
                 {
                     binding: 4,
                     visibility: GPUShaderStage.FRAGMENT,
                     sampler: {
-                        type: "non-filtering",//this.brdfLUT.samplerLayout.type,
+                        type: this.brdfLUT ? this.brdfLUT.samplerLayout.type : "non-filtering",
+                        // type: "non-filtering",
+                        // type: this.brdfLUT.samplerLayout.type,
                     },
                 },
 

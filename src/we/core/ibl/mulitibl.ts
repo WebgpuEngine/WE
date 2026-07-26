@@ -43,7 +43,7 @@ export class IBL {
     input: IV_IBL;
 
     // iblArray!: iblItem[];
-    dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_256.hdr";
+    dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_128.hdr";
 
     use_ibl: boolean = false;
     iblCount: number = 1;

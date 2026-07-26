@@ -156,24 +156,33 @@ export class HDRTexture extends BaseTexture {
         return this._state;
     }
     override async initSamplerAndLayout(input: I_BaseTexture) {
-        if (input.sampler != undefined) {
-            if (input.sampler instanceof GPUSampler) {
-                this.sampler = input.sampler;
-            }
-            else if (typeof input.sampler == "string" && (input.sampler == "linear" || input.sampler == "nearest")) {
-                this.sampler = this.scene.resourcesGPU.getSampler(input.sampler);
-            }
-            else if (isGPUSamplerDescriptor(input.sampler)) {
-                this.sampler = this.device.createSampler(input.sampler);
-            }
+        if (this.scene.webGPUFeaturesSupported.includes("float32-filterable")) {
+            this.samplerLayout.type = 'filtering';
+            this.sampler = this.scene.resourcesGPU.getSampler("linear");
         }
         else {
-            if (this.samplerLayout.type == 'non-filtering') {
-                this.sampler = this.scene.resourcesGPU.getSampler("nearest");
-            }
-            else {
-                this.sampler = this.scene.resourcesGPU.getSampler("linear");
-            }
+            this.samplerLayout.type = 'non-filtering';
+            this.sampler = this.scene.resourcesGPU.getSampler("nearest");
         }
+        // if (input.sampler != undefined) {
+        //     if (input.sampler instanceof GPUSampler) {
+        //         this.sampler = input.sampler;
+        //     }
+        //     else if (typeof input.sampler == "string" && (input.sampler == "linear" || input.sampler == "nearest")) {
+        //         this.sampler = this.scene.resourcesGPU.getSampler(input.sampler);
+        //     }
+        //     else if (isGPUSamplerDescriptor(input.sampler)) {
+        //         this.sampler = this.device.createSampler(input.sampler);
+        //     }
+        // }
+        // else {
+
+        //     if (this.samplerLayout.type == 'non-filtering') {
+        //         this.sampler = this.scene.resourcesGPU.getSampler("nearest");
+        //     }
+        //     else {
+        //         this.sampler = this.scene.resourcesGPU.getSampler("linear");
+        //     }
+        // }
     }
 }

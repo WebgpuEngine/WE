@@ -41,7 +41,7 @@ export class IBL {
 
 
     // iblArray!: iblItem[];
-    dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_512.hdr";
+    dfgLutUrl: string = "/IBL/brdfLut/dfg_lut_128.hdr";
 
     enable_ibl: boolean = false;
     use_ibl: number = 0;
