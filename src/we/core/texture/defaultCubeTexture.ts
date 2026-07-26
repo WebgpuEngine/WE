@@ -11,7 +11,7 @@ export class DefaultCubeTexture extends Texture {
         }
         super(input, device);
         this.texture = device.createTexture({
-            label: 'default cube texture',
+            label: 'defaultCubeTexture-1x1x6',
             size: [1, 1, 6],
             format: 'rgba8unorm',
             usage:

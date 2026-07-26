@@ -1,4 +1,4 @@
-import { V_weLinearFormat } from "../base/coreDefine"
+import { V_weDepthFormat,  V_weLinearFormat } from "../base/coreDefine"
 import { T_uniformGroups } from "../command/base"
 
 /**GBuffer的 GPUTexture集合 
@@ -54,7 +54,7 @@ export var V_MsaaGBufferNames: I_GBufferName = {
  */
 export var V_ForwardGBufferNames: I_GBufferName = {
     [E_GBufferNames.depth]: {
-        "format": "depth32float",
+        "format": V_weDepthFormat,
         "label": "GBuffer depth attachment",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
@@ -178,7 +178,7 @@ export var V_TransparentGBufferNames: I_GBufferName = {
     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     // },
     "depth": {
-        "format": "rgba32float",
+        "format": "rgba32float",//TTP写4个深度使用
         "label": "depth",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
         uniformType: " texture_2d<f32>",

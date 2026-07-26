@@ -10,7 +10,7 @@ export class DefaultTexture extends Texture {
         }
         super(input, device);
         this.texture = device.createTexture({
-            label: 'default one pixel texture',
+            label: 'defaultTexture-1x1',
             size: [1, 1],
             format: 'rgba8unorm',
             usage:

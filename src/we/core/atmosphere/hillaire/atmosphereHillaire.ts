@@ -11,6 +11,7 @@ import { HillaireLutTransmittance } from "./lutTransmittance";
 import { HillaireLutMultipleScattering } from "./lutMultipleScattering";
 import { HillaireLutAP } from "./lutAP";
 import { HillaireLutSkyView } from "./lutSkyView";
+import { V_weShadowMapFormat } from "../../base/coreDefine";
 
 export class AtmosphereHillaire extends Atmosphere {
 
@@ -124,7 +125,12 @@ export class AtmosphereHillaire extends Atmosphere {
             disk_luminance_scale: new Float32Array(this.configCPUBuffer, 220, 1),
         },
     };
-
+    /** 缺省的阴影纹理 */
+    depthShadowMapTexture: GPUTexture;
+    /**
+     * LUT纹理
+     * 包括透射率、多散射、天空视图、AP
+     * */
     lutGPUTexture: {
         transTexture: GPUTexture,
         multiScattTexture: GPUTexture,
@@ -185,7 +191,12 @@ export class AtmosphereHillaire extends Atmosphere {
                 }
             }
         }
-
+        this.depthShadowMapTexture = scene.device.createTexture({
+            label: "defaultHillaireShadowMap-1x1",
+            size: [1,1],
+            format: V_weShadowMapFormat,
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+        });
         if (this.device) {
             this.atmosphereGPUBuffer = this.scene.device.createBuffer({
                 size: this.atmosphereBufferSize,
@@ -431,6 +442,8 @@ export class AtmosphereHillaire extends Atmosphere {
      */
     async onResize() {
         console.log("onResize");
+        this.renderWithLut.onResize();
+        this.renderRayMarch.onResize();
         // this.renderCommands.withLut.forEach((item) => {
         //     item.destroy();
         // });

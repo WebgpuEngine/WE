@@ -820,11 +820,10 @@ export class RenderManager {
      */
     doCommand(list: commmandType[], renderPassName: E_renderPassName) {
         for (let perCommand of list) {
-            // if (perCommand instanceof SimpleDrawCommand) {
-            //     perCommand.doWithRPD(this.commandEncoder);
-            // }
-            // else 
-            if (perCommand instanceof BaseDrawCommand) {
+            if (perCommand instanceof SimpleDrawCommand) {
+                perCommand.doWithRPD(this.commandEncoder);
+            }
+            else if (perCommand instanceof BaseDrawCommand) {
                 perCommand.doWithRPD(this.commandEncoder);
             }
             // else if (perCommand instanceof DrawCommand) {

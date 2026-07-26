@@ -3,9 +3,13 @@ import { IV_DynBindGroupDrawCommand, DynBindGroupDrawCommand } from "../../comma
 
 import { shaderRenderWithRayMarching, shader_three_point_vs } from "./baseHillaire";
 import { AtmosphereRenderBase } from "../renderBase";
+import { AtmosphereHillaire } from "./atmosphereHillaire";
 
 export class HillaireRenderWithRayMarching extends AtmosphereRenderBase {
-
+    declare parent: AtmosphereHillaire;
+    constructor(parent: AtmosphereHillaire) {
+        super(parent);
+    }
     getBindGroups(): GPUBindGroup[] {
         return this.bindGroups;
     }

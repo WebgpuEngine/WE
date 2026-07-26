@@ -108,6 +108,9 @@ export var V_layerOfShadowMapTransparnet = 3;
 //HDR and color space 
 
 export var V_weLinearFormat: GPUTextureFormat = "rgba16float";
+export const V_weShadowMapFormat: GPUTextureFormat = "depth32float";
+export const V_weDepthFormat: GPUTextureFormat = "depth32float";
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //通用

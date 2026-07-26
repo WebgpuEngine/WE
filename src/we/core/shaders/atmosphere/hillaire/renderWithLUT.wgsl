@@ -104,7 +104,6 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
 
     let view_height = length(world_pos);                               // 计算观察者到行星中心的距离（km）
 
-    // return vec4<f32>(sun_dir, 1.0);
     // if !is_valid_depth(depth) 
     {
         // 天空区域：直接使用天空视图LUT

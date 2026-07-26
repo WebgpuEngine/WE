@@ -91,6 +91,7 @@ export class IBL {
         this.initStorageBuffer();
         if (this._brdfLUT == undefined) {
             this._brdfLUT = this.device.createTexture({
+                label: "defaultBrdfLUT-1x1",
                 // format: "rg11b10ufloat",
                 format: "rgba32float",
                 size: [1, 1],
@@ -101,6 +102,7 @@ export class IBL {
         }
         if (this._prefilteredCubeMap == undefined) {
             this._prefilteredCubeMap = this.device.createTexture({
+                label: "defaultPrefilteredCubeMap-1x1x6",
                 format: "rg11b10ufloat",
                 size: [1, 1, 6 * this.iblCount],
                 usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,

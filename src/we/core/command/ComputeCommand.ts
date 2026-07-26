@@ -6,6 +6,7 @@ export interface I_ComputePipelineInitValues {
     shader: {
         shaderCode: string,
         entryPoint: string,
+        constants?: Record<string, number>
     },
     /**
      * 1、auto：自动创建pipelineLayout
@@ -132,10 +133,11 @@ export class ComputeCommand {
             layout: pipelineLayout,
             compute: {
                 module: device.createShaderModule({
-                    label: label ,
+                    label: label,
                     code: pipelineValue.shader.shaderCode
                 }),
-                entryPoint: pipelineValue.shader.entryPoint
+                entryPoint: pipelineValue.shader.entryPoint,
+                constants: pipelineValue.shader.constants,
             },
         };
 
