@@ -49,10 +49,15 @@ await scene.add(camera);
 
 //////////////////////////////////////////////////////////////////////
 // light
+let timer = 0;
 let dirLight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [0, 1, 0],
   intensity: 1,
+  update: (light: DirectionalLight) => {
+    timer += 0.016667;
+    light.Direction = [0, (Math.sin(timer / 2) + 0.8) / 6, -1];
+  }
 });
 await scene.add(dirLight);
 let ambientLight = new AmbientLight(
@@ -138,26 +143,33 @@ let atmosphereHillaire = new AtmosphereHillaire(
   scene,
   {
     // FROM_KM_SCALE:  1000,
-    mode: "rayMarch"
+    mode: "rayMarch",
+    ray_march_min_spp: 64,
+    ray_march_max_spp: 48,
   },
+  [
+    {
+      directionalLight: dirLight,
+    }
+  ]
 );
 window.atmosphereHillaire = atmosphereHillaire;
 
-let timer = 0;
-let oneCall: userDefineEventCall = {
-  call: (scope: Scene) => {
-    timer += 0.016667;
-    let direction: weVec3 = [0, (Math.sin(timer / 2) + 0.8) / 2, -1];
-    // let direction: weVec3 = [0, 1, 0];
-    atmosphereHillaire.sun.direction = direction;
-    dirLight.Direction = direction;
-    // atmosphereHillaire.sun.direction = [0,0, -1];
-  },
-  name: "",
-  state: true,
-  event: eventOfScene.onBeforeUpdate
-}
-scene.addUserDefineEvent(oneCall);
+// let timer = 0;
+// let oneCall: userDefineEventCall = {
+//   call: (scope: Scene) => {
+//     timer += 0.016667;
+//     let direction: weVec3 = [0, (Math.sin(timer / 2) + 0.8) / 6, -1];
+//     // let direction: weVec3 = [0, 1, 0];
+//     atmosphereHillaire.sun.direction = direction;
+//     dirLight.Direction = direction;
+//     // atmosphereHillaire.sun.direction = [0,0, -1];
+//   },
+//   name: "",
+//   state: true,
+//   event: eventOfScene.onBeforeUpdate
+// }
+// scene.addUserDefineEvent(oneCall);
 
 scene.run();
 

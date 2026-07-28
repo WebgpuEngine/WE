@@ -4,7 +4,7 @@ import { I_Update, weVec2, weVec3 } from "../../base/coreDefine";
  * 1、大气参数结构部分对应shader中的Atmosphere
  * 2、剩余部分对应override constant
 */
-export interface I_HillaireAtmosphereParams extends I_Update{
+export interface I_HillaireAtmosphereParams extends I_Update {
     //大气参数结构
     rayleigh_scattering?: weVec3,           // Rayleigh散射系数
     rayleigh_density_exp_scale?: number,          // Rayleigh密度指数分布缩放因子
@@ -29,13 +29,21 @@ export interface I_HillaireAtmosphereParams extends I_Update{
     FROM_KM_SCALE?: number;
     /** 是否使用月亮， 默认为false ;todo,wgsl中未实现(暂时注解掉了)*/
     USE_MOON?: boolean;
-    /** 是否使用太阳阴影地图， 默认为true;todo,wgsl中未实现(暂时注解掉了) */
-    sunShadowMap?: boolean;
-    /** 是否使用月亮阴影地图， 默认为true;todo,wgsl中未实现(暂时注解掉了) */
-    moonShadowMap?: boolean;
+    // /** 是否使用太阳阴影地图， 默认为true;todo,wgsl中未实现(暂时注解掉了) */
+    // sunShadowMap?: boolean;
+    // /** 是否使用月亮阴影地图， 默认为true;todo,wgsl中未实现(暂时注解掉了) */
+    // moonShadowMap?: boolean;
     mode?: "lut" | "rayMarch";
+    ray_march_min_spp?: number,           // 光线步进最小采样数
+    ray_march_max_spp?: number,           // 光线步进最大采样数
 }
-
+export interface IV_HillaireAtmosphereLightParams {
+    directionalLight: DirectionalLight
+    // illuminance: weVec3,         // 光源照度（W/m²）；这个使用DirectionalLight的intensity*color计算
+    disk_diameter?: number,             // 光源视直径（弧度）
+    disk_luminance_scale?: number,      // 光源盘面亮度缩放因子
+}
+/** Hillaire大气光源参数,对应shader中的Light结构 */
 export interface I_HillaireAtmosphereLight {
     illuminance: weVec3,         // 光源照度（W/m²）
     disk_diameter: number,             // 光源视直径（弧度）
@@ -77,6 +85,7 @@ import shader_LutSkyview from "../../shaders/atmosphere/hillaire/lut_skyview.wgs
 import shader_LutAp from "../../shaders/atmosphere/hillaire/lut_ap.wgsl?raw";
 import shader_RenderWithLUT from "../../shaders/atmosphere/hillaire/renderWithLUT.wgsl?raw";
 import shader_RenderWithRayMarching from "../../shaders/atmosphere/hillaire/renderRayMarching.wgsl?raw";
+import { DirectionalLight } from "../../light/DirectionalLight";
 // import shader_three_point_vs_in from "../../shaders/quad/quad_three_point.vs.wgsl?raw";
 // export var shader_three_point_vs = shader_three_point_vs_in;
 export { default as shader_three_point_vs } from "../../shaders/quad/quad_three_point.vs.wgsl?raw";

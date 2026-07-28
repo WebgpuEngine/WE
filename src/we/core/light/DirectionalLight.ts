@@ -10,11 +10,13 @@ export interface IV_DirectionalLight extends I_optionBaseLight {
     */
     intensity: number,
     direction: weVec3,
-    distance?: 0,
+    // distance?: 0,
 }
 
 
 export class DirectionalLight extends BaseLight {
+    declare _direction: Vec3;
+    declare _intensity: number;
     async readyForGPU(): Promise<any> {
     }
     _destroy(): void {

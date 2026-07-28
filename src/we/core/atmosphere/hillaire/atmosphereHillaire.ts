@@ -1,8 +1,8 @@
 import { Scene } from "../../scene/scene";
 import { Atmosphere } from "../atmosphere";
-import { I_HillaireAtmosphereLight, I_HillaireAtmosphereParams, I_HillaireUniforms } from "./baseHillaire";
+import { I_HillaireAtmosphereLight, I_HillaireAtmosphereParams, I_HillaireUniforms, IV_HillaireAtmosphereLightParams } from "./baseHillaire";
 import { commmandType } from "../../command/base";
-import { Mat4, mat4 } from "wgpu-matrix";
+import { Mat4, mat4, vec3, Vec3 } from "wgpu-matrix";
 import { PerspectiveCamera } from "../../camera/perspectiveCamera";
 
 import { HillaireRenderWithLut } from "./renderWithLut";
@@ -11,7 +11,8 @@ import { HillaireLutTransmittance } from "./lutTransmittance";
 import { HillaireLutMultipleScattering } from "./lutMultipleScattering";
 import { HillaireLutAP } from "./lutAP";
 import { HillaireLutSkyView } from "./lutSkyView";
-import { V_weShadowMapFormat } from "../../base/coreDefine";
+import { V_weShadowMapFormat, weVec3 } from "../../base/coreDefine";
+import { DirectionalLight } from "../../light/DirectionalLight";
 
 export class AtmosphereHillaire extends Atmosphere {
 
@@ -21,6 +22,12 @@ export class AtmosphereHillaire extends Atmosphere {
     mieScaleHeight = 1.2;
     /** 星球半径 :6360km*/
     bottomRadius = 6360.0;
+    /** 大气光源参数列表 */
+    lights: IV_HillaireAtmosphereLightParams[] = [];
+    /** 是否开启太阳阴影地图 */
+    sunShadowMap: boolean = false;
+    /** 是否开启月亮阴影地图 */
+    moonShadowMap: boolean = false;
     /** 太阳     */
     sun: I_HillaireAtmosphereLight = {
         illuminance: [1, 1, 1],
@@ -73,9 +80,10 @@ export class AtmosphereHillaire extends Atmosphere {
         multi_scattering_factor: 1.0,
         FROM_KM_SCALE: 1.0,
         USE_MOON: false,
-        sunShadowMap: false,
-        moonShadowMap: false,
-        mode: "lut"
+
+        mode: "lut",
+        ray_march_min_spp: 30,
+        ray_march_max_spp: 14,
     };
     atmosphereBufferSize = 128;
     atmosphereGPUBuffer: GPUBuffer;
@@ -170,7 +178,13 @@ export class AtmosphereHillaire extends Atmosphere {
 
     sampler: GPUSampler;
     // commands: commmandType[] = [];
-    constructor(scene: Scene, inputAtmosphereParams?: I_HillaireAtmosphereParams, configHillaire?: I_HillaireUniforms) {
+    /**
+     * 
+     * @param scene 场景
+     * @param inputAtmosphereParams 大气参数
+     * @param lights 大气光源参数列表[],
+     */
+    constructor(scene: Scene, inputAtmosphereParams?: I_HillaireAtmosphereParams, lights?: IV_HillaireAtmosphereLightParams[]) {
         super(scene);
         if (inputAtmosphereParams) {
             const keys = Object.keys(inputAtmosphereParams) as Array<keyof I_HillaireAtmosphereParams>;
@@ -182,15 +196,20 @@ export class AtmosphereHillaire extends Atmosphere {
             }
             this.mode = inputAtmosphereParams.mode || "lut";
         }
-        if (configHillaire) {
-            const keys = Object.keys(configHillaire) as Array<keyof I_HillaireUniforms>;
-            for (const key of keys) {
-                let value = configHillaire[key];
-                if (value != undefined) {
-                    (this.configViews[key] as typeof value) = value;
-                }
-            }
+        if (lights) {
+            this.lights = lights;
+        } else {
+            this.lights = [];
         }
+        // if (configHillaire) {
+        //     const keys = Object.keys(configHillaire) as Array<keyof I_HillaireUniforms>;
+        //     for (const key of keys) {
+        //         let value = configHillaire[key];
+        //         if (value != undefined) {
+        //             (this.configViews[key] as typeof value) = value;
+        //         }
+        //     }
+        // }
         this.depthShadowMapTexture = scene.device.createTexture({
             label: "defaultHillaireShadowMap-1x1",
             size: [1, 1],
@@ -252,6 +271,7 @@ export class AtmosphereHillaire extends Atmosphere {
         this.init();
     }
     init() {
+        this.initLightsParameter();
         this.updateAtmosphereBuffer();
         this.updateConfigArrayBuffer();
         this.scene.device.queue.writeBuffer(this.atmosphereGPUBuffer, 0, this.atmosphereCPUBuffer);
@@ -269,6 +289,10 @@ export class AtmosphereHillaire extends Atmosphere {
             this.renderRayMarch = new HillaireRenderWithRayMarching(this);
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //update 
+    ///////////////////////////////////////////////////////////////////////////////////
     updateAtmosphereBuffer() {
         this.AtmosphereViews.rayleigh_density_exp_scale[0] = this.atmosphereParams.rayleigh_density_exp_scale!;
         this.AtmosphereViews.rayleigh_scattering.set(this.atmosphereParams.rayleigh_scattering!);
@@ -299,48 +323,20 @@ export class AtmosphereHillaire extends Atmosphere {
         this.AtmosphereViews.planet_center.set(this.atmosphereParams.planet_center!);
 
         this.AtmosphereViews.multi_scattering_factor[0] = this.atmosphereParams.multi_scattering_factor!;
-        // {
-        // const rayleighScaleHeight = 8.0;
-        // const mieScaleHeight = 1.2;
-        // const bottomRadius = 6360.0;
-        ////todo 从参数中获取
-        // this.AtmosphereViews.rayleigh_density_exp_scale[0] =  -1.0 / rayleighScaleHeight;
-        // this.AtmosphereViews.rayleigh_scattering.set([0.005802, 0.013558, 0.033100]);
 
-        // this.AtmosphereViews.mie_density_exp_scale[0] = -1.0 / mieScaleHeight;
-        // this.AtmosphereViews.mie_scattering.set([0.003996, 0.003996, 0.003996]);
-        // this.AtmosphereViews.mie_extinction.set([0.004440, 0.004440, 0.004440]);
-        // this.AtmosphereViews.mie_phase_param[0] = 0.8;
-        // // this.AtmosphereViews.mie_absorption.set([0,0,0]);//未设置，默认值为0
-
-        // this.AtmosphereViews.absorption_density_0_layer_height[0] = 25.0;
-        // this.AtmosphereViews.absorption_density_0_constant_term[0] = -2 / 3;
-        // this.AtmosphereViews.absorption_density_0_linear_term[0] = 1 / 15;
-
-        // this.AtmosphereViews.absorption_density_1_constant_term[0] = 8 / 3;
-        // this.AtmosphereViews.absorption_density_1_linear_term[0] = -1 / 15;
-        // this.AtmosphereViews.absorption_extinction.set([0.000650, 0.001881, 0.000085]);
-
-        // this.AtmosphereViews.bottom_radius[0] = bottomRadius;
-        // this.AtmosphereViews.ground_albedo.set([0.40, 0.40, 0.40]);
-        // /**
-        //  * 顶部半径，用于计算散射,
-        //  * uv_to_transmittance_lut_params()中是大气层半径，
-        //  * 1、与webgpu-sky-atomsphere中的“atmosphere.ts”的makeEarthAtmosphere（）top_radius不同
-        //  * 2、wgsl：let h_sq = atmosphere.top_radius * atmosphere.top_radius - bottom_radius_sq;
-        //  */
-        // this.AtmosphereViews.top_radius[0] = 100.0 + bottomRadius;
-        // this.AtmosphereViews.planet_center.set([0, -bottomRadius, 0.0]);
-
-        // this.AtmosphereViews.multi_scattering_factor[0] = 1.0;
-        // }
+        if (this.atmosphereParams.ray_march_max_spp)
+            this.configHillaire.ray_march_max_spp = this.atmosphereParams.ray_march_max_spp;
+        if (this.atmosphereParams.ray_march_min_spp)
+            this.configHillaire.ray_march_min_spp = this.atmosphereParams.ray_march_min_spp;
     }
     /** 更新uniform config 的arraybuffer数值     */
     updateConfigArrayBuffer() {
-        //todo替换 赋值
         //!!!!!!!!!!!!这个是相机的逆投影矩阵，需要替换为实际的逆投影矩阵
+        let inverseProjection: Mat4 = mat4.create();
+        let projection: Mat4 = mat4.create();
+        let cameraWorldPosition: Vec3 = vec3.create();
+        let inverseView: Mat4 = mat4.create();
         if (this.scene.defaultCamera) {
-            let projection: Mat4 = mat4.create();
             if (this.scene.reversedZ.isReversedZ) {
                 projection = mat4.perspectiveReverseZ(
                     // 45.0 * (Math.PI / 180.0), // 45度视场角
@@ -359,33 +355,17 @@ export class AtmosphereHillaire extends Atmosphere {
                     (this.scene.defaultCamera as PerspectiveCamera).Far, // 远裁剪面，不可以缺省
                 );
             }
-            let inverseProjection = mat4.inverse(projection);
-            this.configViews.inverse_projection.set(inverseProjection);
-
-            let inverseView = this.scene.defaultCamera.viewMatrix;
-            this.configViews.inverse_view.set(inverseView);
-            this.configViews.camera_world_position.set(this.scene.defaultCamera.Position);
+            inverseView = this.scene.defaultCamera.viewMatrix;
+            cameraWorldPosition.set(this.scene.defaultCamera.Position);
         }
         else {
-            this.configViews.inverse_projection.set([
-                0.4237397686627659,
-                0,
-                0,
-                0,
-                0,
-                0.41421356237309503,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0.9999999999999999,
-                0,
-                0,
-                -0.9999999999999999,
-                0
-            ]);
-            //!!!!!!!!!!!!这个是相机的逆视图矩阵，需要替换为实际的逆视图矩阵
+            projection = mat4.perspectiveReverseZ(
+                45.0 * (Math.PI / 180.0), // 45度视场角
+                this.scene.finalTarget.color!.width! / this.scene.finalTarget.color!.height!,
+                1.0, // 近裁剪面                    
+                // this.scene.defaultCamera.far, // 远裁剪面,可以缺省
+            );
+            //NDC的逆视图矩阵
             this.configViews.inverse_view.set([
                 0.9982005399352043,
                 -3.469446951953616e-18,
@@ -404,8 +384,14 @@ export class AtmosphereHillaire extends Atmosphere {
                 99.99999999999999,
                 1
             ]);
-            this.configViews.camera_world_position.set([0, 1, 100]);
+            cameraWorldPosition.set([0, 1, 100]);
         }
+        inverseProjection = mat4.inverse(projection);
+
+        this.configViews.inverse_projection.set(inverseProjection);
+        this.configViews.inverse_view.set(inverseView);
+        this.configViews.camera_world_position.set(cameraWorldPosition);
+
         this.configViews.frame_id.set([this.frame_id++]);//当前帧ID,用于计算时间,在NDC中忽略
         this.configViews.screen_resolution.set([this.scene.surface.size.width, this.scene.surface.size.height]);//屏幕分辨率
         this.configViews.ray_march_max_spp.set([this.configHillaire.ray_march_max_spp]);//光线步进最大采样数
@@ -414,30 +400,47 @@ export class AtmosphereHillaire extends Atmosphere {
         this.configViews.sun.disk_diameter.set([this.configHillaire.sun.disk_diameter]);//太阳视直径（弧度）
         this.configViews.sun.direction.set(this.sun.direction);//太阳方向（指向光源）
         this.configViews.sun.disk_luminance_scale.set([this.configHillaire.sun.disk_luminance_scale]);//太阳盘面亮度缩放因子
-
-        // this.configViews.frame_id.set([0]);//当前帧ID,用于计算时间,在NDC中忽略
-        // this.configViews.screen_resolution.set([this.scene.surface.size.width, this.scene.surface.size.height]);//屏幕分辨率
-        // this.configViews.ray_march_max_spp.set([30]);//光线步进最大采样数
-        // this.configViews.ray_march_min_spp.set([14]);//光线步进最小采样数
-        // this.configViews.sun.illuminance.set([1, 1, 1]);//太阳照度（W/m²）
-        // this.configViews.sun.disk_diameter.set([0.04014257279586957]);//太阳视直径（弧度）
-        // // this.configViews.sun.direction.set([0,1, 0]);//太阳方向（指向光源）
-        // this.configViews.sun.direction.set([0, 0.05989229072794672, -0.9982048454657787]);//太阳方向（指向光源）
-        // this.configViews.sun.disk_luminance_scale.set([65]);//太阳盘面亮度缩放因子
-        // this.configViews.sun.direction.set(this.sun.direction);//太阳方向（指向光源）
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////
-    //update 
-    ///////////////////////////////////////////////////////////////////////////////////
+    initLightsParameter() {
+        this.lights.forEach((light, index) => {
+            let sun: I_HillaireAtmosphereLight | undefined = undefined;
+            if (index == 0) {
+                sun = this.sun;
+                if(light.directionalLight.Shadow)  this.sunShadowMap = true;
+            }
+            else if (index == 1) {
+                sun = this.moon;
+                if(light.directionalLight.Shadow)  this.moonShadowMap = true;
+            }
+            if (sun != undefined) {
+                let color: weVec3 = [(light.directionalLight.Color as Vec3)[0], (light.directionalLight.Color as Vec3)[1], (light.directionalLight.Color as Vec3)[2]];
+                color[0] *= light.directionalLight.Intensity;
+                color[1] *= light.directionalLight.Intensity;
+                color[2] *= light.directionalLight.Intensity;
+                sun.illuminance = color;
+
+                if (light.disk_diameter) sun.disk_diameter = light.disk_diameter;
+                if (light.disk_luminance_scale) sun.disk_luminance_scale = light.disk_luminance_scale;
+            }
+        });
+        this.updateLightsParameter();
+    }
+    updateLightsParameter() {
+        this.lights.forEach((light, index) => {
+            let sun: I_HillaireAtmosphereLight | undefined = undefined;
+            if (index == 0) sun = this.sun; else if (index == 1) sun = this.moon;
+            if (sun != undefined) sun.direction = [(light.directionalLight.Direction as Vec3)[0], (light.directionalLight.Direction as Vec3)[1], (light.directionalLight.Direction as Vec3)[2]];
+        });
+    }
     /**
-     * 更新
-     * 1、配置数组缓冲区，并写入GPUBuffer
+     * 更新配置数组缓冲区，并写入GPUBuffer
      * 2、推送到  render pass
      *    A、render 模式的command 推送；
      *    B、lut 模式的sky view 和 ap 推送（重新生成）；
      */
     update() {
+        this.updateLightsParameter();
         this.updateConfigArrayBuffer();
         this.scene.device.queue.writeBuffer(this.atmosphereGPUBuffer, 0, this.atmosphereCPUBuffer);
         this.scene.device.queue.writeBuffer(this.configGPUBuffer, 0, this.configCPUBuffer);
