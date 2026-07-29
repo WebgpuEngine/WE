@@ -20,6 +20,12 @@ export abstract class RenderHillaire extends AtmosphereRenderBase {
         if (Object.keys(constants).length == 0) {
             return undefined;
         }
+        if (this.parent.sunShadowMap === true) {
+            constants["USE_SHADOW_MAP1"] = 1;
+        }
+        if (this.parent.moonShadowMap === true) {
+            constants["USE_SHADOW_MAP2"] = 1;
+        }
         console.log(constants);
         return constants;
     }

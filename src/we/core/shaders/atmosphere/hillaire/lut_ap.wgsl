@@ -25,19 +25,6 @@
 //#include "common/aerial_perspective.wgsl"
 //#include "common/sample_segment_t.wgsl"
 
-/**
- * 获取大气采样点的阴影值（封装函数）
- * 将大气坐标系转换为世界坐标系后调用 get_shadow
- * 
- * @param atmosphere 大气参数（提供行星球心坐标）
- * @param sample_position 采样点的大气坐标（以球心为原点，单位：千米）
- * @param light_index 光源索引（0=太阳，1=月亮）
- * @returns 阴影因子（0.0=完全阴影，1.0=完全光照）
- */
-fn get_sample_shadow(atmosphere: Atmosphere, sample_position: vec3<f32>, light_index: u32) -> f32 {
-    return 1.0;
-}
-
 // override USE_MOON: bool = false;
 
 override WORKGROUP_SIZE_X: u32 = 16;
@@ -50,6 +37,11 @@ override WORKGROUP_SIZE_Y: u32 = 16;
 @group(0) @binding(3) var transmittance_lut: texture_2d<f32>;      // 透射率LUT
 @group(0) @binding(4) var multi_scattering_lut: texture_2d<f32>;   // 多重散射LUT
 @group(0) @binding(5) var aerial_perspective_lut: texture_storage_3d<rgba16float, write>;  // Aerial Perspective LUT（输出，3D纹理）
+
+@group(1) @binding(0) var<uniform> sun_view_projection: array<mat4x4<f32>, 2>;
+@group(1) @binding(1) var shadow_sampler: sampler_comparison;
+@group(1) @binding(2) var shadow_map1: texture_depth_2d;
+@group(1) @binding(3) var shadow_map2: texture_depth_2d;
 
 /**
  * 单次散射积分结果结构

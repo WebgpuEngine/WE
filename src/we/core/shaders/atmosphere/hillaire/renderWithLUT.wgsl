@@ -48,6 +48,9 @@ fn vertex(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f
 @group(0) @binding(5) var sky_view_lut: texture_2d<f32>;                  // 天空视图LUT（2D纹理）
 @group(0) @binding(6) var aerial_perspective_lut: texture_3d<f32>;       // 大气透视LUT（3D纹理）
 
+@group(1) @binding(0) var u_camerea_depth_buffer: texture_depth_2d;                   // 深度缓冲
+@group(1) @binding(1) var u_camera_color_buffer: texture_2d<f32>;                    // 后缓冲（已有场景渲染结果）
+
 // /**
 //  * 使用天空视图LUT渲染天空
 //  * 
@@ -104,10 +107,9 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
 
     let view_height = length(world_pos);                               // 计算观察者到行星中心的距离（km）
 
-	let depth = textureLoad(u_camerea_depth_buffer, pix, 0);
+    let depth = textureLoad(u_camerea_depth_buffer, pix, 0);
 
-    if !is_valid_depth(depth) 
-    {
+    if !is_valid_depth(depth) {
         // 天空区域：直接使用天空视图LUT
         // return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config);
         return use_sky_view_lut(view_height, world_pos, world_dir, sun_dir, atmosphere, config, uv);
@@ -134,9 +136,9 @@ fn render_sky(pix: vec2<u32>) -> vec4<f32> {
     if all(aerial_perspective.rgb == vec3<f32>()) {
         return vec4<f32>();  // 无效LUT值，返回黑色
     }
-	let color_of_buffer: vec4<f32> = textureLoad(u_camera_color_buffer, pix, 0);
+    let color_of_buffer: vec4<f32> = textureLoad(u_camera_color_buffer, pix, 0);
 
-    return weight * aerial_perspective+color_of_buffer;
+    return weight * aerial_perspective + color_of_buffer;
 }
 
 /**

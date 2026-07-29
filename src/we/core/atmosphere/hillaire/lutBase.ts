@@ -8,20 +8,24 @@ export abstract class HillaireLutBase {
     scene: Scene;
     device: GPUDevice;
     parent: AtmosphereHillaire;
-    bindGroupLayout!: GPUBindGroupLayout;
+    bindGroupLayout: GPUBindGroupLayout[] = [];
     bindGroups: GPUBindGroup[] = [];
     commands: commmandType[] = [];
     constructor(parent: AtmosphereHillaire) {
         this.parent = parent;
         this.scene = parent.scene;
         this.device = parent.scene.device;
+    }
+    abstract generateCommands(): void;
+    /** 初始化 
+     * 单独初始化，避免构造函数中使用generateCommands()中生成资源，skyView和AP的资源还未生成，导致报错
+    */
+    init() {
         this.generateCommands();
         this.commands.forEach((DC) => {
             DC.submit();
         })
-    }
-    abstract generateCommands(): void;
-
+    };
     update() {
         this.commands.forEach((DC) => {
             if (this.scene.finalTarget.NDC == true) {
@@ -50,6 +54,12 @@ export abstract class HillaireLutBase {
         }
         if (Object.keys(constants).length == 0) {
             return undefined;
+        }
+        if(this.parent.sunShadowMap === true){
+            constants["USE_SHADOW_MAP1"] = 1;
+        }
+        if(this.parent.moonShadowMap === true){
+            constants["USE_SHADOW_MAP2"] = 1;
         }
         console.log(constants);
         return constants;

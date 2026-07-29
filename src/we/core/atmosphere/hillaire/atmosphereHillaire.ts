@@ -277,9 +277,13 @@ export class AtmosphereHillaire extends Atmosphere {
         this.scene.device.queue.writeBuffer(this.atmosphereGPUBuffer, 0, this.atmosphereCPUBuffer);
         this.scene.device.queue.writeBuffer(this.configGPUBuffer, 0, this.configCPUBuffer);
         this.lutTransmittance = new HillaireLutTransmittance(this);
+        this.lutTransmittance.init();
         this.lutMultipleScattering = new HillaireLutMultipleScattering(this);
+        this.lutMultipleScattering.init();
         this.lutSkyView = new HillaireLutSkyView(this);
+        this.lutSkyView.init();
         this.lutAP = new HillaireLutAP(this);
+        this.lutAP.init();
         if (this.mode == "lut") {
             console.log("lut mode");
             this.renderWithLut = new HillaireRenderWithLut(this);

@@ -42,7 +42,6 @@ override RENDER_MOON_DISK: bool = true;
 override LIMB_DARKENING_ON_SUN: bool = true;
 override LIMB_DARKENING_ON_MOON: bool = false;
 
-
 //lut aerial perspective 
 override USE_MOON: bool = false;
 // override WORKGROUP_SIZE_X: u32 = 16;
@@ -79,3 +78,7 @@ override USE_COLORED_TRANSMISSION: bool = true;
 // override SKY_VIEW_LUT_RES_X: f32 = 192.0;
 // override SKY_VIEW_LUT_RES_Y: f32 = 108.0;
 // override USE_UNIFORM_LONGITUDE_PARAMETERIZATION: bool = false;
+
+//add shadow map
+override USE_SHADOW_MAP1: bool = false;
+override USE_SHADOW_MAP2: bool = false;

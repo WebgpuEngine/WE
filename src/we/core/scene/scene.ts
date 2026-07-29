@@ -84,7 +84,23 @@ export class Scene {
         rightHand: true,
         lengthUnit: "m",
         scaleFactorToKm: 1 / 1000,
+    };
+    /** 阴影地图重建时间 
+     * 用途:
+     * 1、阴影地图重建时间，用于判断是否需要重新绑定与阴影地图相关的资源；
+     *      比如：hillaire大气层的lutSkyview，lutAP，renderRayMarching
+     * 
+    */
+    shadowMapRebuildTime: number = 0;
+    /** 设置阴影地图重建时间 */
+    setShadowMapRebuildTime() {
+        this.shadowMapRebuildTime = this.clock.now;
     }
+    /** 获取阴影地图重建时间 */
+    getShadowMapRebuildTime() {
+        return this.shadowMapRebuildTime;
+    }
+
     ///////////////////////////////////////////////////////////////
     //GPU
     adapter!: GPUAdapter;

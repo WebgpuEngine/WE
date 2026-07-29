@@ -338,7 +338,10 @@ export abstract class BaseLight extends NodeObject {
         // console.log("Position = ", scope.Position[0], scope.Position[1], scope.Position[2])
         // console.log("worldPosition = ", scope.worldPosition[0], scope.worldPosition[1], scope.worldPosition[2])
     }
-    /**更新光源MVP */
+    /**更新光源MVP 
+     * 1、点光源有6个MVP，每个MVP对应一个阴影地图
+     * 2、方向光和聚光灯有1个MVP
+    */
     abstract updateMVP(scene: Scene): Mat4[];
 
     /**

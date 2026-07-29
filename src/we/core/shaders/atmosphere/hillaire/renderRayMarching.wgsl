@@ -10,13 +10,7 @@
 //#include "common/sun_disk.wgsl"
 //#include "common/sample_segment_t.wgsl"
 
-fn get_shadow(p: vec3<f32>, light_index: u32) -> f32 {
-    return 1.0;
-}
 
-fn get_sample_shadow(atmosphere: Atmosphere, sample_position: vec3<f32>, light_index: u32) -> f32 {
-    return get_shadow((sample_position + atmosphere.planet_center) * FROM_KM_SCALE, light_index);
-}
 
 @vertex
 fn vertex(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {

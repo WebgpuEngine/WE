@@ -206,6 +206,7 @@ export class LightsManager extends ECSManager<BaseLight> {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
         };
         this.reNewLightsNumberOfShadow = false;//动态更新用，目前没有用途
+        this.scene.setShadowMapRebuildTime();//设置阴影地图重建时间
         return this.device.createTexture(shadowmapTextureDesc);
         //todo 20250105,目前是固定的，后期改成动态
         // this.shadowIndexID++;
@@ -408,7 +409,7 @@ export class LightsManager extends ECSManager<BaseLight> {
         let stageName: string = "default";
         let size = lightStructSize;
         // let lightNumber = lightNumber;
-        let lightRealNumberOfSystem = this.list.length ;//this.getLightNumbers();
+        let lightRealNumberOfSystem = this.list.length;//this.getLightNumbers();
 
         //  {//不同，注销并新建
         //     if (this.lightsUniformGPUBuffer) {

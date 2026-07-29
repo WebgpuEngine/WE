@@ -1,11 +1,11 @@
 import { IV_ComputeCommand, ComputeCommand } from "../../command/ComputeCommand";
 import { shaderLutAp } from "./baseHillaire";
 import { HillaireLutBase } from "./lutBase";
+import { LutUseShadowMap } from "./lutUseShadowMap";
 
-export class HillaireLutAP extends HillaireLutBase {
+export class HillaireLutAP extends LutUseShadowMap {
 
-    generateCommands() {
-        //bindgroup  and layout 
+    generateBindGroup0() {
         let layout: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
             label: "lutAP",
             entries: [
@@ -56,6 +56,7 @@ export class HillaireLutAP extends HillaireLutBase {
                 },
             ],
         });
+        this.bindGroupLayout[0] = layout;
 
         const bindGroupDescriptor: GPUBindGroupDescriptor = {
             layout: layout,
@@ -87,12 +88,19 @@ export class HillaireLutAP extends HillaireLutBase {
             ],
         };
         const bindGroup = this.scene.device.createBindGroup(bindGroupDescriptor);
+        this.bindGroups[0] = bindGroup;
+    }
+    generateCommands() {
+        //bindgroup  and layout 
+
+        this.generateBindGroup0();
+        this.generateBindGroup1();
 
         //1、创建GPURenderPipelineDescriptor
         let pipelineLayoutDescriptor: GPUPipelineLayoutDescriptor = {
             label: "lutAPPipelineLayout",
             // label: "PipelineLayout@" + this.clock.now + " " + values.label,
-            bindGroupLayouts: [layout],
+            bindGroupLayouts: this.bindGroupLayout,
         }
         //2、创建GPUPipelineLayout
         let pipelineLayout = this.scene.device.createPipelineLayout(pipelineLayoutDescriptor);
@@ -101,15 +109,19 @@ export class HillaireLutAP extends HillaireLutBase {
         let options: IV_ComputeCommand = {
             label: "lutAP",
             device: this.scene.device,
+            baseInfo: {
+                parent: this,
+            },
             computeInfo: {
                 dispatchCount: [Math.ceil(this.parent.lutGPUTexture.apTexture.width / 16), Math.ceil(this.parent.lutGPUTexture.apTexture.height / 16), this.parent.lutGPUTexture.apTexture.depthOrArrayLayers],
                 // uniforms: [],
-                bindGroups: [bindGroup],
+                bindGroups: this.bindGroups,
                 pipeline: {
                     pipelineLayout: pipelineLayout,
                     shader: {
                         shaderCode: shaderLutAp,
-                        entryPoint: "render_aerial_perspective_lut"
+                        entryPoint: "render_aerial_perspective_lut",
+                        constants: this.getConstants(),
                     }
                 },
             },

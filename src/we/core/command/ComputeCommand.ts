@@ -13,7 +13,8 @@ export interface I_ComputePipelineInitValues {
      * 2、GPUPipelineLayout：已经创建pipelineLayout，在pipeline创建中使用
      * 3、GPUBindGroupLayout[]：每个bindGroupLayouts的数据，需要创建GPUPipelineLayout，然后再在pipeline创建中使用
      */
-    pipelineLayout: "auto" | GPUPipelineLayout | GPUBindGroupLayout[]
+    pipelineLayout: "auto" | GPUPipelineLayout | GPUBindGroupLayout[],
+
 }
 /**
  * 计算命令 参数
@@ -33,6 +34,11 @@ export interface IV_ComputeCommand {
     //  */
     // pipeline: GPUComputePipeline | I_ComputePipelineInitValues,
 
+    /** 基础信息 */
+    baseInfo?: {
+        /**drawInfo的dynamicLoadBindGroup为true时，需要绑定的父对象 */
+        parent?: { getBindGroups(): GPUBindGroup[] },
+    },
 
     computeInfo: {
         pipeline: GPUComputePipeline | I_ComputePipelineInitValues,
@@ -221,9 +227,20 @@ export class ComputeCommand {
         this.doDispatch(passEncoder);
     }
     doDispatch(passEncoder: GPUComputePassEncoder) {
-        for (let i in this.bindGroups) {
-            let perGroup = this.bindGroups[i]
-            passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
+        // 从parent中获取bindGroup
+        if (this.inputValues.baseInfo?.parent && typeof this.inputValues.baseInfo.parent.getBindGroups === 'function') {
+            let bindGroups = this.inputValues.baseInfo.parent.getBindGroups();
+            for (let i in bindGroups) {
+                let perGroup = bindGroups[i]
+                passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
+            }
+        }
+        // 从this.bindGroups中获取bindGroup
+        else {
+            for (let i in this.bindGroups) {
+                let perGroup = this.bindGroups[i]
+                passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
+            }
         }
         let [x = 1, y = 1, z = 1] = [...this.inputValues.computeInfo.dispatchCount];
         passEncoder.dispatchWorkgroups(x, y, z);

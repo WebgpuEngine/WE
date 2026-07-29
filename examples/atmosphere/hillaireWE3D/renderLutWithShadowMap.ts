@@ -9,9 +9,7 @@ import { SphereGeometry } from "../../../src/we/core/geometry/sphereGeometry";
 import { AmbientLight } from "../../../src/we/core/light/ambientLight";
 import { DirectionalLight } from "../../../src/we/core/light/DirectionalLight";
 import { IV_PBRMaterial, PBRMaterial } from "../../../src/we/core/material/PBR/PBRMaterial";
-import { weVec3 } from "../../../src/we/core/base/coreDefine";
 import { PlaneGeometry } from "../../../src/we/core/geometry/planeGeomertry";
-import { PhongMaterial } from "../../../src/we/core/material/phong/phongMaterial";
 
 
 declare global {
@@ -25,7 +23,7 @@ let input: IV_Scene = {
   toneMapping: E_ToneMappingType.ACES,
   backgroudColor: [0.5, 0.5, 0.5, 0.2],
   premultipliedAlpha: false,
-  reversedZ: false,
+  reversedZ: true,
   // modeNDC: true,
 };
 let scene = await initScene({
@@ -38,7 +36,7 @@ let camera = new PerspectiveCamera({
   aspect: scene.aspect,
   near: 0.1,
   far: 100000,
-  position: [15, 10, 30],//km
+  position: [15, 10, 50],//km
   // position: [0, 1, 100],//km
   lookAt: [0.0, 0.4, 1],
   isLookAtGlobal: true,
@@ -54,16 +52,17 @@ let dirLight = new DirectionalLight({
   color: [1, 1, 1],
   direction: [0, 1, 0],
   intensity: 1,
+  shadow: true,
   update: (light: DirectionalLight) => {
     timer += 0.016667;
-    light.Direction = [0, (Math.sin(timer / 2) + 0.8) / 6, -1];
+    light.Direction = [0, (Math.sin(timer / 2) + 0.8) / 4, -1];
   }
 });
 await scene.add(dirLight);
 let ambientLight = new AmbientLight(
   {
     color: [1, 1, 1],
-    intensity: 0.06
+    intensity: 0.0006
   }
 )
 // await scene.add(ambientLight);
@@ -110,8 +109,8 @@ let geometry = new SphereGeometry({
 let PBROption: IV_PBRMaterial = {
   textures: {
     albedo: { value: [1.0, 0.71, 0.29, 1] },
-    metallic: { value: 0.91 },
-    roughness: { value: 0.31 },
+    metallic: { value: 0.3 },
+    roughness: { value: 0.7 },
   }
 }
 let pbrMaterial = new PBRMaterial(PBROption);
@@ -129,7 +128,7 @@ let inputMesh: IV_MeshEntity = {
   // }
 }
 let mesh = new Mesh(inputMesh);
-console.log(mesh);
+// console.log(mesh);
 await scene.add({
   entity: mesh,
   position: [1, 2, 0],
@@ -143,9 +142,9 @@ let atmosphereHillaire = new AtmosphereHillaire(
   scene,
   {
     // FROM_KM_SCALE:  1000,
-    mode: "rayMarch",
-    ray_march_min_spp: 64,
-    ray_march_max_spp: 48,
+    // mode: "rayMarch",
+    // ray_march_min_spp: 64,
+    // ray_march_max_spp: 48,
   },
   [
     {
@@ -153,6 +152,7 @@ let atmosphereHillaire = new AtmosphereHillaire(
     }
   ]
 );
+console.log(atmosphereHillaire);
 window.atmosphereHillaire = atmosphereHillaire;
 
 // let timer = 0;

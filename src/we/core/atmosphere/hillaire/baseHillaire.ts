@@ -86,6 +86,8 @@ import shader_LutAp from "../../shaders/atmosphere/hillaire/lut_ap.wgsl?raw";
 import shader_RenderWithLUT from "../../shaders/atmosphere/hillaire/renderWithLUT.wgsl?raw";
 import shader_RenderWithRayMarching from "../../shaders/atmosphere/hillaire/renderRayMarching.wgsl?raw";
 import { DirectionalLight } from "../../light/DirectionalLight";
+import shader_shadowmap from "../../shaders/atmosphere/hillaire/common/shadowmap.wgsl?raw";
+
 // import shader_three_point_vs_in from "../../shaders/quad/quad_three_point.vs.wgsl?raw";
 // export var shader_three_point_vs = shader_three_point_vs_in;
 export { default as shader_three_point_vs } from "../../shaders/quad/quad_three_point.vs.wgsl?raw";
@@ -111,7 +113,7 @@ export const shaderLutSkyview =
     shader_medium +
     shader_phase +
     shader_uv +
-    shader_coordinate_system +
+    shader_coordinate_system + shader_shadowmap +
     shader_multi_scattering + shader_LutSkyview;
 export const shaderLutAp =
     shader_override +
@@ -123,7 +125,7 @@ export const shaderLutAp =
     shader_uv +
     shader_coordinate_system +
     shader_multi_scattering +
-    shader_aerial_perspective +
+    shader_aerial_perspective + shader_shadowmap +
     shader_sample_segment_t + shader_LutAp;
 export const shaderRenderWithRayMarching =
     shader_override +
@@ -135,7 +137,7 @@ export const shaderRenderWithRayMarching =
     shader_uv +
     shader_coordinate_system +
     shader_multi_scattering +
-    shader_sun_disk +
+    shader_sun_disk + shader_shadowmap +
     shader_sample_segment_t + shader_RenderWithRayMarching;
 export const shaderRenderWithLUT =
     shader_override +
