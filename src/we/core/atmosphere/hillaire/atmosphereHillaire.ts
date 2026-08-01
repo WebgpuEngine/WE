@@ -13,6 +13,7 @@ import { HillaireLutAP } from "./lutAP";
 import { HillaireLutSkyView } from "./lutSkyView";
 import { V_weShadowMapFormat, weVec3 } from "../../base/coreDefine";
 import { DirectionalLight } from "../../light/DirectionalLight";
+import { HillaireShadowMap } from "./HillaireShadowMap";
 
 export class AtmosphereHillaire extends Atmosphere {
 
@@ -133,8 +134,7 @@ export class AtmosphereHillaire extends Atmosphere {
             disk_luminance_scale: new Float32Array(this.configCPUBuffer, 220, 1),
         },
     };
-    /** 缺省的阴影纹理 */
-    depthShadowMapTexture: GPUTexture;
+
     /**
      * LUT纹理
      * 包括透射率、多散射、天空视图、AP
@@ -177,7 +177,11 @@ export class AtmosphereHillaire extends Atmosphere {
     frame_id: number = 0;
 
     sampler: GPUSampler;
-    // commands: commmandType[] = [];
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    //shadow map
+    shadowMap!: HillaireShadowMap;
+    /** 缺省的阴影纹理 */
+    // depthShadowMapTexture: GPUTexture;
     /**
      * 
      * @param scene 场景
@@ -210,12 +214,14 @@ export class AtmosphereHillaire extends Atmosphere {
         //         }
         //     }
         // }
-        this.depthShadowMapTexture = scene.device.createTexture({
-            label: "defaultHillaireShadowMap-1x1",
-            size: [1, 1],
-            format: V_weShadowMapFormat,
-            usage: GPUTextureUsage.TEXTURE_BINDING,
-        });
+        this.shadowMap = new HillaireShadowMap(this.scene, this);
+
+        // this.depthShadowMapTexture = scene.device.createTexture({
+        //     label: "defaultHillaireShadowMap-1x1",
+        //     size: [1, 1],
+        //     format: V_weShadowMapFormat,
+        //     usage: GPUTextureUsage.TEXTURE_BINDING,
+        // });
         if (this.device) {
             this.atmosphereGPUBuffer = this.scene.device.createBuffer({
                 size: this.atmosphereBufferSize,
@@ -268,6 +274,7 @@ export class AtmosphereHillaire extends Atmosphere {
         else {
             throw new Error("GPU device is null");
         }
+
         this.init();
     }
     init() {
@@ -411,11 +418,11 @@ export class AtmosphereHillaire extends Atmosphere {
             let sun: I_HillaireAtmosphereLight | undefined = undefined;
             if (index == 0) {
                 sun = this.sun;
-                if(light.directionalLight.Shadow)  this.sunShadowMap = true;
+                if (light.directionalLight.Shadow) this.sunShadowMap = true;
             }
             else if (index == 1) {
                 sun = this.moon;
-                if(light.directionalLight.Shadow)  this.moonShadowMap = true;
+                if (light.directionalLight.Shadow) this.moonShadowMap = true;
             }
             if (sun != undefined) {
                 let color: weVec3 = [(light.directionalLight.Color as Vec3)[0], (light.directionalLight.Color as Vec3)[1], (light.directionalLight.Color as Vec3)[2]];
