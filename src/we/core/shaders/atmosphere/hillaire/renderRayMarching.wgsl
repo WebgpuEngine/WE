@@ -10,8 +10,6 @@
 //#include "common/sun_disk.wgsl"
 //#include "common/sample_segment_t.wgsl"
 
-
-
 @vertex
 fn vertex(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
     return vec4<f32>(vec2<f32>(f32((vertex_index << 1) & 2), f32(vertex_index & 2)) * 2 - 1, 0, 1);
@@ -29,7 +27,14 @@ override WORKGROUP_SIZE_Y: u32 = 16;
 @group(0) @binding(3) var transmittance_lut: texture_2d<f32>;              // 透射率LUT（2D纹理）
 @group(0) @binding(4) var multi_scattering_lut: texture_2d<f32>;              // 透射率LUT（2D纹理）
 @group(0) @binding(5) var sky_view_lut: texture_2d<f32>;                  // 天空视图LUT（2D纹理）
-@group(0) @binding(6) var aerial_perspective_lut : texture_3d<f32>;       // 大气透视LUT（3D纹理）
+@group(0) @binding(6) var aerial_perspective_lut: texture_3d<f32>;       // 大气透视LUT（3D纹理）
+
+@group(1) @binding(0) var<uniform> sun_view_projection: array<mat4x4<f32>, 2>;
+@group(1) @binding(1) var shadow_sampler: sampler_comparison;
+@group(1) @binding(2) var shadow_map1: texture_depth_2d;
+@group(1) @binding(3) var shadow_map2: texture_depth_2d;
+@group(1) @binding(4) var u_camerea_depth_buffer: texture_depth_2d;                   // 深度缓冲
+@group(1) @binding(5) var u_camera_color_buffer: texture_2d<f32>;                    // 后缓冲（已有场景渲染结果）
 
 struct SingleScatteringResult {
     luminance: vec3<f32>,				// Scattered light (luminance)
@@ -149,7 +154,9 @@ fn render_sky(pix: vec2<u32>) -> RenderSkyResult {
 
     var luminance = vec3<f32>();
 
-    let depth =0.0;
+    // let depth =0.0;
+    let depth = textureLoad(u_camerea_depth_buffer, pix, 0);
+
     if !is_valid_depth(depth) {
         luminance += get_sun_luminance(world_pos, world_dir, atmosphere, config, uv);
     }
@@ -162,9 +169,29 @@ fn render_sky(pix: vec2<u32>) -> RenderSkyResult {
     let ss = integrate_scattered_luminance(uv, world_pos, world_dir, atmosphere, depth, config);
     luminance += ss.luminance;
 
+    // let dst =  textureLoad(u_camera_color_buffer, pix, 0);    
+    // luminance += ss.luminance+dst.rgb;
+
     return RenderSkyResult(max(vec4<f32>(luminance, 1.0), vec4<f32>()), max(vec4<f32>(ss.transmittance, 1.0), vec4<f32>()));
 }
 
+fn blend(pix: vec2<u32>, src: vec4<f32>) -> vec4<f32> {
+    let dst = textureLoad(u_camera_color_buffer, pix, 0);
+    // blend op:        src*1 + dst * (1.0 - srcA)
+    // alpha blend op:  src  * 0 + dst * 1
+    let rgb = src.rgb + dst.rgb * (1.0 - saturate(src.a));
+    let a = dst.a;
+    return vec4<f32>(rgb, a);
+    // return dst;
+}
+fn dual_source_blend(pix: vec2<u32>, src0: vec4<f32>, src1: vec4<f32>)  -> vec4<f32> {
+    let dst = textureLoad(u_camera_color_buffer, pix, 0);
+    // blend op:        src0 * 1 + dst * src1
+    // alpha blend op:  src  * 0 + dst * 1
+    let rgb = src0.rgb + dst.rgb * src1.rgb;
+    let a = dst.a;
+    return vec4<f32>(rgb, a);
+}
 struct RenderSkyFragment {
     @location(0) luminance: vec4<f32>,
     @location(1) transmittance: vec4<f32>,
@@ -173,6 +200,13 @@ struct RenderSkyFragment {
 @fragment
 fn fragment(@builtin(position) coord: vec4<f32>) -> RenderSkyFragment {
     let result = render_sky(vec2<u32>(floor(coord.xy)));
-    let rgb = vec4f(tonemap(result.luminance.rgb), result.luminance.a);
+    // let rgb = vec4f(tonemap(result.luminance.rgb), result.luminance.a);
+
+    // let color_with_buffer=blend(vec2<u32>(floor(coord.xy)),result.luminance.rgba);
+    let color_with_buffer = blend(vec2<u32>(floor(coord.xy)), vec4<f32>(result.luminance.rgb, 1.0 - dot(result.transmittance.rgb, vec3<f32>(1.0 / 3.0))));
+    // let color_with_buffer = dual_source_blend(vec2<u32>(floor(coord.xy)), result.luminance, result.transmittance);
+
+    let rgb = vec4f(tonemap(color_with_buffer.rgb), result.luminance.a);
+
     return RenderSkyFragment(rgb, result.transmittance);
 }

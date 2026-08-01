@@ -21,7 +21,7 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   toneMapping: E_ToneMappingType.ACES,
-  backgroudColor: [0.5, 0.5, 0.5, 0.2],
+  backgroudColor: [0., 0., 0., 0.],
   premultipliedAlpha: false,
   reversedZ: true,
   // modeNDC: true,
@@ -131,7 +131,12 @@ let mesh = new Mesh(inputMesh);
 // console.log(mesh);
 await scene.add({
   entity: mesh,
-  position: [1, 2, 0],
+  position: [1, 5, 0],
+  scale: [2, 2, 2],
+});
+await scene.add({
+  entity: mesh,
+  position: [6, 5, 0],
   scale: [2, 2, 2],
 });
 
@@ -155,21 +160,7 @@ let atmosphereHillaire = new AtmosphereHillaire(
 console.log(atmosphereHillaire);
 window.atmosphereHillaire = atmosphereHillaire;
 
-// let timer = 0;
-// let oneCall: userDefineEventCall = {
-//   call: (scope: Scene) => {
-//     timer += 0.016667;
-//     let direction: weVec3 = [0, (Math.sin(timer / 2) + 0.8) / 6, -1];
-//     // let direction: weVec3 = [0, 1, 0];
-//     atmosphereHillaire.sun.direction = direction;
-//     dirLight.Direction = direction;
-//     // atmosphereHillaire.sun.direction = [0,0, -1];
-//   },
-//   name: "",
-//   state: true,
-//   event: eventOfScene.onBeforeUpdate
-// }
-// scene.addUserDefineEvent(oneCall);
+
 
 scene.run();
 

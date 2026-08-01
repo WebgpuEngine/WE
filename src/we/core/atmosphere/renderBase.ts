@@ -57,7 +57,7 @@ export abstract class AtmosphereRenderBase implements I_FeatureModule {
      * 用于在渲染时判断是否需要更新绑定组
      * @returns 绑定组字符串
      */
-    abstract getBindGroupString(): string;
+    // abstract getBindGroupString(): string;
     abstract generateBindGroup(): void;
 
     /**

@@ -159,7 +159,7 @@ export class HillaireRenderWithLut extends RenderHillaire {
             entries: [
                 {
                     binding: 0,
-                    resource: this.depthTexture ? this.depthTexture : this.parent.depthShadowMapTexture,
+                    resource: this.depthTexture ? this.depthTexture : this.parent.shadowMap.depthShadowMapTexture,
                 },
                 {
                     binding: 1,
@@ -187,8 +187,9 @@ export class HillaireRenderWithLut extends RenderHillaire {
             DC.destroy();
         });
         this.commands = [];
-        this.generateBindGroup0();//NDC 和DC 都需要的绑定组
-        this.generateBindGroup1();//DC 需要的绑定组
+        // this.generateBindGroup0();//NDC 和DC 都需要的绑定组
+        // this.generateBindGroup1();//DC 需要的绑定组
+        this.generateBindGroup();
         if (this.scene.finalTarget.NDC == true) {
             let DCG = this.scene.DCG;
             let valueDC: IV_DC = {

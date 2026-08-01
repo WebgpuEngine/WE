@@ -33,7 +33,7 @@ fn get_shadow(p: vec3<f32>, light_index: u32) -> f32 {
         }
     }
     if USE_SHADOW_MAP2 && light_index == 1 {
-        var shadow_pos = (sun_view_projection[1] * vec4(p, 1.0)).xyz;
+        var shadow_pos = (matrix_z *sun_view_projection[1] * vec4(p, 1.0)).xyz;
         shadow_pos = vec3(shadow_pos.xy * vec2(0.5, -0.5) + 0.5, shadow_pos.z);
         if all(shadow_pos >= vec3<f32>()) && all(shadow_pos < vec3(1.0)) {
             return textureSampleCompareLevel(shadow_map2, shadow_sampler, shadow_pos.xy, shadow_pos.z);

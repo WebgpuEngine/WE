@@ -4,19 +4,16 @@ import { shaderRenderWithRayMarching, shader_three_point_vs } from "./baseHillai
 import { RenderHillaire } from "./renderHillaire";
 
 export class HillaireRenderWithRayMarching extends RenderHillaire {
-    getConstants(): Record<string, number> | undefined {
-        // throw new Error("Method not implemented.");
-        return undefined;
+    generateBindGroup() {
+        if (this.scene.finalTarget.NDC == true) {
+            this.generateBindGroup0();
+        }
+        else {
+            this.generateBindGroup0();
+            this.generateBindGroup1();
+        }
     }
-    getBindGroupString(): string {
-        // throw new Error("Method not implemented.");
-    }
-    generateBindGroup(): void {
-        // throw new Error("Method not implemented.");
-    }
-
-
-    generateCommands() {
+    generateBindGroup0(): void {
         //bindgroup  and layout 
         let layout: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
             label: "renderSkyWithRayMarching",
@@ -75,7 +72,7 @@ export class HillaireRenderWithRayMarching extends RenderHillaire {
                 },
             ],
         });
-        this.bindGroupLayout.push(layout);
+        this.bindGroupLayout[0] = layout;
 
         const bindGroupDescriptor: GPUBindGroupDescriptor = {
             label: "renderSkyWithRayMarching",
@@ -112,8 +109,104 @@ export class HillaireRenderWithRayMarching extends RenderHillaire {
             ],
         };
         const bindGroup = this.device.createBindGroup(bindGroupDescriptor);
-        this.bindGroups.push(bindGroup);
+        this.bindGroups[0] = bindGroup;
 
+    }
+
+
+    generateBindGroup1() {
+        if (this.bindGroupLayout[1] === undefined) {
+            let layout_1: GPUBindGroupLayout = this.scene.device.createBindGroupLayout({
+                label: "renderSkyWithLut_1",
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                        buffer: {
+                            type: "uniform",
+                        },
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                        sampler: {
+                            type: "comparison"
+                        },
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                        texture: {
+                            sampleType: "depth",
+                        },
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                        texture: {
+                            sampleType: "depth",
+                        },
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                        texture: {
+                            sampleType: "depth",
+                        },
+                    },
+                    {
+                        binding: 5,
+                        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                        texture: {
+                            sampleType: "float",
+                        },
+                    },
+                ]
+            });
+            this.bindGroupLayout[1] = layout_1;
+        }
+        const bindGroupDescriptor_1: GPUBindGroupDescriptor = {
+            label: "renderSkyWithLut_1",
+            layout: this.bindGroupLayout[1],
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.parent.shadowMap.gpuBufferShadowMapVP,
+                },
+                {
+                    binding: 1,
+                    resource: this.parent.shadowMap.shadowCmpSampler,
+                },
+                {
+                    binding: 2,
+                    // resource: this.parent.depthShadowMapTexture,
+                    resource: this.parent.shadowMap.getShowShadowMap(0),
+                },
+                {
+                    binding: 3,
+                    // resource: this.parent.depthShadowMapTexture,
+                    resource: this.parent.shadowMap.getShowShadowMap(1),
+                },
+                {
+                    binding: 4,
+                    resource: this.depthTexture ? this.depthTexture : this.parent.shadowMap.depthShadowMapTexture,
+                },
+                {
+                    binding: 5,
+                    resource: this.copyColorTexture ? this.copyColorTexture : this.scene.getResourceDefaultGPUTexture(),
+                },
+            ]
+        };
+        const bindGroup_1 = this.scene.device.createBindGroup(bindGroupDescriptor_1);
+        this.bindGroups[1] = bindGroup_1;
+    }
+
+    generateCommands() {
+        this.commands.forEach((DC) => {
+            DC.destroy();
+        });
+        this.commands = [];
+        this.generateBindGroup();
         //DC
         if (this.scene.finalTarget.NDC == true) {
             let inputDC: IV_DrawCommandGenerator = {
@@ -124,8 +217,8 @@ export class HillaireRenderWithRayMarching extends RenderHillaire {
             let valueDC: IV_DC = {
                 label: "renderSkyWithRayMarching",
                 data: {
-                    uniforms: [bindGroup],
-                    unifromLayout: [layout],
+                    uniforms: this.bindGroups,
+                    unifromLayout: this.bindGroupLayout,
                 },
                 render: {
                     vertex: {
@@ -148,6 +241,7 @@ export class HillaireRenderWithRayMarching extends RenderHillaire {
             this.commands.push(dc);
         }
         else {
+            this.commands.push(this.copyColorCommand());
 
             let pipelineLayout = this.device.createPipelineLayout({
                 label: "renderSkyWithRayMarching",
