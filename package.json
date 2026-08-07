@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "examples:generate": "node scripts/generate-examples-json.mjs"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",

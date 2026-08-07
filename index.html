@@ -1,22 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>WE3D - WebGPU Engine 3D</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #1a1a2e; color: #c8d6e5;
+        display: flex; align-items: center; justify-content: center;
+        min-height: 100vh; flex-direction: column; gap: 32px;
+      }
+      .logo { font-size: 56px; font-weight: 800; color: #0f9bf2; letter-spacing: -2px; }
+      .sub { font-size: 16px; color: #576574; }
+      .links { display: flex; gap: 16px; margin-top: 8px; }
+      .links a {
+        display: inline-block; padding: 12px 28px;
+        background: #16213e; border: 1px solid #2c3e50; border-radius: 8px;
+        color: #c8d6e5; font-size: 15px; font-weight: 500;
+        text-decoration: none; transition: all 0.2s;
+      }
+      .links a:hover { border-color: #0f9bf2; color: #0f9bf2; }
+    </style>
   </head>
   <body>
-    <h3>内容分类入口</h3>
-    <ul>
-        <!-- <li>
-            <a href="./examples/base/index.html"> 测试功能(基础功能完善后删除)</a>
-        </li> -->
-        <li><a href="./doc//index.html">API 文档</a></li>
-                <li>
-            <a href="./examples/index.html">示例 </a>
-        </li>
-
-    </ul>
+    <div class="logo">WE3D</div>
+    <div class="sub">WebGPU Engine 3D</div>
+    <div class="links">
+      <a href="./examples/index.html">Examples</a>
+      <a href="./doc/index.html">API Docs</a>
+    </div>
   </body>
 </html>
