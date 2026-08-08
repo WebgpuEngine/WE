@@ -20,6 +20,9 @@ public/models/gltf/model
 !.vscode/extensions.json
 .idea
 .DS_Store
+
+# Claude
+.claude
 *.suo
 *.ntvs*
 *.njsproj
