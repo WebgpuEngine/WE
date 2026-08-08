@@ -67,3 +67,4 @@ window.gltfInstance = await scene.add(gltf, {
   scale: [3, 3, 3],
   // rotate: [1, 0, 0, Math.PI/2],
 });
+gltfInstance.AnimationGroup[0].play("loop");;

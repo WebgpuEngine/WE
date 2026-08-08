@@ -233,7 +233,10 @@ export abstract class NodeSpace extends RootGPU {
 
     }
     /** 绕任意轴旋转 */
-    rotate = this.rotateAxis;
+    // rotate = this.rotateAxis;
+    rotate(axis: Vec3, angle: number) {
+        this.rotateAxis(axis, angle);
+    }
     rotateAxis(axis: Vec3, angle: number) {
         mat4.axisRotate(this.matrix as Mat4, axis, angle, this.matrix as Mat4);
     }

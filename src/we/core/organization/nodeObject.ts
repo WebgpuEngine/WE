@@ -6,7 +6,7 @@ import { vec3, Mat4, mat4, Vec3, vec4, Quat, Vec4 } from "wgpu-matrix";
 import { AnimationGroup } from "../animation/animationGroup";
 import { BaseAnimation } from "../animation/BaseAnimation";
 import { SkinAnimation } from "../animation/skin";
-import { WeightMixAnimation } from "../animation/weightMixAnimation";
+import { WeightMixAnimation } from "../animation/weightMixAnimation.ts";
 import { weVec4, weVec3, weMat4, E_lifeState } from "../base/coreDefine";
 import { BaseCamera } from "../camera/baseCamera";
 import { BaseEntity } from "../entity/baseEntity";
@@ -594,7 +594,10 @@ export class NodeObject extends NodeSpace {
         this._children.push(childNode);
         return childNode;
     }
-    add = this.addChild;
+    // add = this.addChild;
+    async add(child: NodeObject | BaseEntity | IV_Node | BaseModel, modelAttachValue?: IV_NodeSpace): Promise<NodeObject> {
+        return await this.addChild(child, modelAttachValue);
+    }
 
     async initNodeObject(value: IV_Node): Promise<NodeObject> {
         // let childNode: NodeObject = new NodeInstance(value);//创建node object

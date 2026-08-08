@@ -89,5 +89,5 @@ window.gltfInstance = await scene.add(gltf,
   }
 );
 
-// gltfInstance.AnimationGroup[0].play();;
+gltfInstance.AnimationGroup[2].play("loop");;
 

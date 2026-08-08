@@ -1,7 +1,7 @@
 import { IV_NodeSpace } from "../organization/nodeSpace";
 import { IV_Node, NodeObject } from "../organization/nodeObject";
 import { Texture } from "../texture/texture";
-import { limitsOfWE, E_renderForDC, V_weLinearFormat, V_shadowMapSize } from "../base/coreDefine";
+import { E_renderForDC, V_weLinearFormat } from "../base/coreDefine";
 import { copyTextureToTexture } from "../base/coreFunction";
 import { BaseCamera } from "../camera/baseCamera";
 import { CameraManager } from "../camera/cameraManager";
@@ -107,7 +107,7 @@ export class Scene {
     device!: GPUDevice;
     canvas!: HTMLCanvasElement;
     // /**是否禁用canvas的context, 默认=true */
-    // disableCanvasContext: boolean = true;
+    disableCanvasContext: boolean = true;
     /** 渲染对象: 默认的渲染对象输出：GPUCanvasContext;    */
     context!: GPUCanvasContext | GPUTexture;
     /**颜色通道输出的纹理格式     *  presentationFormat*/

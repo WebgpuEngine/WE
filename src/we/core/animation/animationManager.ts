@@ -1,7 +1,7 @@
 import { ECSManager } from "../organization/manager";
 import { Clock } from "../scene/clock";
 import { BaseAnimation } from "./BaseAnimation";
-import { WeightMixAnimation } from "./weightMixAnimation";
+import { WeightMixAnimation } from "./weightMixAnimation.ts";
 
 export class AnimationManager extends ECSManager<BaseAnimation> {
     /**运行优先级

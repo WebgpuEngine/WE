@@ -38,6 +38,9 @@ export interface IV_PhongMaterial extends IV_BaseStandardMaterial {
 }
 
 export class PhongMaterial extends BaseStandardMaterial {
+  updateSelf(clock: Clock): void {
+    // throw new Error("Method not implemented.");
+  }
   _writeUniformCommon(): void {
     // throw new Error("Method not implemented.");
   }
@@ -413,18 +416,18 @@ export class PhongMaterial extends BaseStandardMaterial {
   // }
 
 
-  formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-    throw new Error("Method not implemented.");
-  }
+  // formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
+  //   throw new Error("Method not implemented.");
+  // }
 
-  updateSelf(clock: Clock): void {
-  }
-  saveJSON() {
-    throw new Error("Method not implemented.");
-  }
-  loadJSON(json: any): void {
-    throw new Error("Method not implemented.");
-  }
+  // updateSelf(clock: Clock): void {
+  // }
+  // saveJSON() {
+  //   throw new Error("Method not implemented.");
+  // }
+  // loadJSON(json: any): void {
+  //   throw new Error("Method not implemented.");
+  // }
 
 }
 

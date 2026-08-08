@@ -1,12 +1,10 @@
-import { Vec3 } from "wgpu-matrix";
 import { Scene } from "../scene/scene";
 import { E_GBufferNames } from "../gbuffers/base";
 import { BaseInputControl } from "../input/baseInputControl";
 import { E_InputControlType, E_InputEvent, E_InputPriority } from "../input/base";
-import { InputManager } from "../input/inputManager";
-import { I_Update } from "../base/coreDefine";
 import { IV_Pickup, IV_PickupInitValue, pickupTargetOfIDs } from "./base";
 import { pickupManager } from "./pickupManager";
+import { WeGenerateID } from "../math/baseFunction";
 
 
 
@@ -20,6 +18,11 @@ export interface I_PickupedMouseKey {
     altKey: boolean | undefined,
 }
 export class Pickup extends BaseInputControl {
+    //I_UUID
+    // _id: number  = WeGenerateID();
+    // _manager: any;
+    //end I_UUID
+
     kind: E_InputControlType = E_InputControlType.Pickup;
     _event: Event | undefined;
     input: IV_Pickup;

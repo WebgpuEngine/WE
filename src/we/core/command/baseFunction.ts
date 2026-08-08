@@ -29,6 +29,11 @@ export function isGPUBindGroup(obj: T_uniformOneGroup): obj is GPUBindGroup {
 export function isGPUBindGroupLayout(obj: any): obj is GPUBindGroupLayout {
     return obj instanceof GPUBindGroupLayout;
 }
+
+export function isGPUBindGroupLayoutEntry(obj: any): obj is GPUBindGroupLayoutEntry {
+    return obj.binding != undefined && obj.visibility != undefined;
+}
+
 /**
  * 克隆BufferSource
  * 1、如果是ArrayBuffer，直接创建新的ArrayBuffer

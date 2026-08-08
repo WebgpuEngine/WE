@@ -1,4 +1,3 @@
-import { get } from "../../../@loaders.gl/draco/dist/draco-worker-node";
 import { createEmptyGPUBuffer } from "../command/baseFunction";
 import { WeGenerateUUID } from "../math/baseFunction";
 import { I_UUID } from "../organization/root";
@@ -114,7 +113,7 @@ export class BlockOffsetLength implements I_UUID {
 
     UUID: string = '';
     _isDestroy: boolean = false;
-
+    _manager: any;
     _id: number = 1;
     state: E_BOLState = E_BOLState.open;
 
@@ -226,6 +225,7 @@ export class BlockOffsetLength implements I_UUID {
         }
         this.init();
     }
+
 
     destroy(): boolean {
         this.gpuBuffer.destroy();

@@ -34,7 +34,11 @@ import { Clock } from "../scene/clock";
 import { E_AnimationTargetType, E_InterpolationModes, I_AnimationPlayParams, I_AnimationSampler, I_AnimationWeightForMergePlay } from "./base";
 import { BaseAnimation, IV_AnimationValue } from "./BaseAnimation";
 
+/**todo 权重动画组 */
 export class WeightMixAnimation extends BaseAnimation {
+    updateAttribute(): void {
+        throw new Error("Method not implemented.");
+    }
 
     loop: boolean = false;
 
@@ -61,9 +65,9 @@ export class WeightMixAnimation extends BaseAnimation {
         let targetStride = weightPlay.weight.length / weightPlay.timer.length;
         let sampler: I_AnimationSampler = {
             interpolation: E_InterpolationModes.linear,
-            times: weightPlay.timer,
-            value: weightPlay.weight,
-            target: E_AnimationTargetType.weight,
+            frames: weightPlay.timer,
+            values: weightPlay.weight,
+            target: E_AnimationTargetType.weights,
             targetStride: targetStride,
         };
         let iv: IV_AnimationValue = {
@@ -108,15 +112,18 @@ export class WeightMixAnimation extends BaseAnimation {
             return;
         }
         else {
-            targetStride = group[0].interpolator.sampler.targetStride;
-            target = group[0].interpolator.sampler.target;
-        }
-        let output: number[] = [];
-        for (let perOne of group) {
-            let perOutput = perOne.interpolator.output;
-            for (let i = 0; i < targetStride; i++) {
-                output[i] += perOutput[i] * weghtsGroup.weight;
+            if (group[0] instanceof BaseAnimation) {
+                targetStride = group[0].interpolator.sampler.targetStride;
+                target = group[0].interpolator.sampler.target;
+                let output: number[] = [];
+                for (let perOne of group as BaseAnimation[]) {
+                    let perOutput = perOne.interpolator.output;
+                    for (let i = 0; i < targetStride; i++) {
+                        output[i] += perOutput[i] * weghtsGroup.weight[i];
+                    }
+                }
             }
+
         }
 
     }

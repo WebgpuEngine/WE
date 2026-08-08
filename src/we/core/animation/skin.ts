@@ -36,7 +36,7 @@
  *  B、skinAnimation.stop()由AnimationGroup.stop()触发。
  * 
  */
-import { WeGenerateUUID } from "../math/baseFunction";
+import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
 import { Scene } from "../scene/scene";
@@ -59,6 +59,8 @@ export interface IV_SkinAnimationValue {
 }
 export class SkinAnimation implements I_UUID {
     UUID: string;
+    _id: number;
+    _manager: any;
     /** 是否销毁 */
     _isDestroy: boolean = false;
     /** 父节点 */
@@ -81,6 +83,8 @@ export class SkinAnimation implements I_UUID {
         this.parent = values.parent;
         this.scene = values.parent.scene;
         this.UUID = WeGenerateUUID();
+        this._id = WeGenerateID();
+
         if (values.parent == undefined) {
             throw new Error("SkinAnimation: parent is undefined");
         }
@@ -168,8 +172,10 @@ export class SkinAnimation implements I_UUID {
             return;
         }
         if (this.playOnce == false) {
-            this.skeleton.update(clock);
-            this.playOnce = true;
+            if (this.skeleton) {
+                this.skeleton.update(clock);
+                this.playOnce = true;
+            }
         }
         if (this.playState == E_PlayState.playing) {
             if (this.skeleton == undefined) {

@@ -16,7 +16,7 @@
  *      A、会根据权重，生成WeightMixAnimation,并添加到animationManager中。
  *      B、之后的操作与状态，由WeightMixAnimation负责。
  */
-import { WeGenerateUUID } from "../math/baseFunction";
+import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { NodeObject } from "../organization/nodeObject";
 import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
@@ -36,6 +36,7 @@ export interface IV_AnimationGroupValue {
 export class AnimationGroup implements I_UUID {
     UUID: string;
     _isDestroy: boolean = false;
+    _id: number;
     list: BaseAnimation[] = [];
 
     _name: string = "";
@@ -54,6 +55,7 @@ export class AnimationGroup implements I_UUID {
     listSkins: SkinAnimation[] = [];
     constructor(values: IV_AnimationGroupValue) {
         this.UUID = WeGenerateUUID();
+        this._id = WeGenerateID();
         if (values.parent) this.parent = values.parent;
         this.scene = values.scene;
         this.manager = values.scene.animationGroupManager;
@@ -63,6 +65,7 @@ export class AnimationGroup implements I_UUID {
         }
         this.manager.add(this);
     }
+    _manager: any;
     destroy(): void {
         this._isDestroy = true;
         this.manager.remove(this);

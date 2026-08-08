@@ -1,4 +1,4 @@
-import { WeGenerateUUID } from "../math/baseFunction";
+import { WeGenerateID, WeGenerateUUID } from "../math/baseFunction";
 import { NodeObject } from "../organization/nodeObject";
 import { I_UUID } from "../organization/root";
 import { Clock } from "../scene/clock";
@@ -6,8 +6,7 @@ import { Scene } from "../scene/scene";
 import { AnimationManager } from "./animationManager";
 import { E_AnimationPlayType, E_AnimationTargetType, E_AnimationType, E_PlayState, I_AnimationPlayParams, I_AnimationSampler, isI_AnimationPlayParams } from "./base";
 import { Interpolator } from "./interpolator";
-import { SkinsManager } from "./skinsManager";
-import { WeightMixAnimation } from "./weightMixAnimation";
+
 
 export interface IV_AnimationValue {
     parent: NodeObject,
@@ -17,7 +16,7 @@ export interface IV_AnimationValue {
 
 export abstract class BaseAnimation implements I_UUID {
     UUID: string;
-
+    _id: number;
     _isDestroy: boolean = false;
 
     _loop: boolean = false;
@@ -91,6 +90,7 @@ export abstract class BaseAnimation implements I_UUID {
         this.parent = values.parent;
         this.interpolator = new Interpolator({ parent: this, sampler: values.sampler });
         this.UUID = WeGenerateUUID();
+        this._id = WeGenerateID();
         this.scene = this.parent.scene;
         this.manager = this.scene.animationManager;
         if (kind == undefined || kind != E_AnimationTargetType.weights) {
@@ -101,6 +101,7 @@ export abstract class BaseAnimation implements I_UUID {
         }
         this.parent.Animation.push(this);
     }
+    _manager: any;
     destroy(): void {
         this._isDestroy = true;
         this.manager.remove(this as any);

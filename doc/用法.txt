@@ -3,5 +3,12 @@ tags:
 
 command:
     npx typedoc --entryPoints ./*.ts --out ./dist
-    npx typedoc  --tsconfig ..\tsconfigdoc.json   
+    npx typedoc  --tsconfig .\tsconfigdoc.json   
 
+定位：
+    开发状态下的文档
+    发布版本的文档在https://github.com/WebgpuEngine/WE3DDoc
+
+文档地址：
+    输出：/docs
+    访问地址：https://webgpuengine.github.io/WE3D/

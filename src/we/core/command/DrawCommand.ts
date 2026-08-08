@@ -3,6 +3,7 @@ import { isI_pointerStruct } from "../bufferBlock/pointer";
 import { BaseEntity } from "../entity/baseEntity";
 import { E_TransparentType, E_materialTypeForBindGroup } from "../material/base";
 import { BaseMaterial } from "../material/baseMaterial";
+import { PBRMaterial } from "../material/PBR/PBRMaterial";
 import { Scene } from "../scene/scene";
 import { I_drawMode, I_drawModeIndexed, } from "./base";
 import { BaseDrawCommand, I_drawCallOption, IV_BaseDrawCommand } from "./BaseDrawCommand";
@@ -57,6 +58,10 @@ export class DrawCommand extends BaseDrawCommand {
     material: I_DrawInputValueMaterial | undefined;
 
     inputValues: IV_DrawCommand;
+    /**draw 目标，
+     * 1、有值：camera或light
+     * 2、无值：NDC等
+    */
     traget: I_DrawInputValueTarget | undefined;
 
     constructor(input: IV_DrawCommand) {
@@ -124,11 +129,13 @@ export class DrawCommand extends BaseDrawCommand {
             passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
         }
 
+        // 无值：NDC等
         if (this.traget == undefined) {
             for (let i in this.bindGroups) {
                 passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
             }
         }
+        // this.traget  有值：camera或light
         else if (this.inputValues.baseInfo?.traget
             // && option.mergeID
         ) {
@@ -165,7 +172,7 @@ export class DrawCommand extends BaseDrawCommand {
                             passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
                     }
                 }
-                else if (i == '3') {
+                else if (i == '3' && this.material && this.material.owner instanceof PBRMaterial) {
                     if (this.bindGroups[i] !== undefined && this.scene.IBL !== undefined) {
                         let iblBindGroup = this.scene.IBL.bindGroup();
                         passEncoder.setBindGroup(parseInt(i), iblBindGroup);

@@ -2,7 +2,7 @@
  * 精灵
  */
 import { BaseMaterial } from "../../material/baseMaterial";
-import { E_entityType, IV_BaseEntity, I_ShadowMapValueOfDC } from "../base";
+import { E_entityType, IV_BaseEntity } from "../base";
 import { EntityBundleMaterial } from "../entityBundleMaterial";
 
 
@@ -63,7 +63,7 @@ export class Sprite extends EntityBundleMaterial {
     /**三段式初始化的第三段
      * 覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
-        await this._material.init(this.scene,this);
+        await this._material.init(this.scene);
         if (this._material.getTransparent() === true) {
             this._cullMode = "none";
         }

@@ -724,8 +724,10 @@ export abstract class EntityBundleMaterial extends BaseEntity {
             }
         }
 
-        if (vsOnly)
+        if (vsOnly){
             delete valueDC.render.fragment;
+            valueDC.label += " vsOnly";
+        }
         return valueDC;
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

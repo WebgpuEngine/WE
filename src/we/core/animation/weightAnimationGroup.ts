@@ -7,6 +7,7 @@
  */
 import { AnimationGroup } from "./animationGroup";
 
+/**todo */
 export class WeightMixAnimationGroup  {
 
 

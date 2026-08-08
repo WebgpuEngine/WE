@@ -6,7 +6,7 @@
 
 import { Scene } from "../scene/scene";
 import { isDynamicTextureEntryForExternal, isDynamicTextureEntryForView, isUniformBufferPart, type I_DrawCommandIDs, type I_uniformArrayBufferEntry, type I_viewport, type T_BindGroupLayout, type T_drawMode, type T_rpdInfomationOfMSAA, type T_uniformGroups } from "./base";
-import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, isGPUBindGroupLayout } from "./baseFunction";
+import { createVerticesBuffer, getTypedArrayType, isGPUBindGroup, isGPUBindGroupLayout, isGPUBindGroupLayoutEntry } from "./baseFunction";
 import { DrawCommand, I_DrawInputValueMaterial, IV_DrawCommand } from "./DrawCommand";
 import { E_renderForDC, TypedArray, weVec3 } from "../base/coreDefine";
 import { ResourceManagerOfGPU } from "../resources/resourcesGPU";
@@ -19,6 +19,7 @@ import { EntityBundleMaterial } from "../entity/entityBundleMaterial";
 import { Mesh } from "../entity/mesh/mesh";
 import { getColorAttachmentTargetsOfBlend, getColorAttachmentTargetsOfForward, getColorAttachmentTargetsOfMSAA, getColorAttachmentTargetsOfMSAAinfo } from "../gbuffers/base";
 import { MD5 } from "../../reExport/md5";
+import { PBRMaterial } from "../material/PBR/PBRMaterial";
 
 export interface IV_DrawCommandGenerator {
     scene: Scene,
@@ -1196,7 +1197,7 @@ export class DrawCommandGenerator {
                 }
             }
             layoutNumber = 3;
-            // if (this.scene.IBL != undefined) 
+            if (this.scene.IBL != undefined && values.system.material && values.system.material.owner instanceof PBRMaterial) 
             {
                 DC_bindGroupLayouts[layoutNumber] = this.scene.IBL!.bindGroupLayout();
                 DC_bindGroups[layoutNumber] = this.scene.IBL!.bindGroup();
@@ -1306,8 +1307,10 @@ export class DrawCommandGenerator {
                         let perEntry = perGroup[j];
                         let perBindGroupLayoutEntry: GPUBindGroupLayoutEntry;
                         //有对应的layout
-                        if (values.data.unifromLayout) {
+                        if (values.data.unifromLayout != undefined)// && isGPUBindGroupLayoutEntry(values.data.unifromLayout[i])) {
+                        {
                             //如果传入的参数中有GPUBindGroupLayoutEntry，就从GPUBindGroupLayoutEntry中获取，    
+                            //@ts-ignore
                             perBindGroupLayoutEntry = values.data.unifromLayout[i]![j];         //使用断言，判断在前面已经判断了layout不为空
                             bindGroupLayoutEntry.push(perBindGroupLayoutEntry);
                         }

@@ -3,6 +3,12 @@ import { AtmosphereIntegrate } from "./atmosphereIntegrate";
 import { shader_atmosphere_wlBXWK } from "./baseIntergrate";
 
 export class RenderIntegrateAtmoSphere extends AtmosphereRenderBase {
+    getConstants(): Record<string, number> | undefined {
+        throw new Error("Method not implemented.");
+    }
+    generateBindGroup(): void {
+        throw new Error("Method not implemented.");
+    }
 
     declare parent: AtmosphereIntegrate;
     constructor(parent: AtmosphereIntegrate) {

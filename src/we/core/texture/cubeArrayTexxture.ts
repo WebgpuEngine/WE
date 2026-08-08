@@ -3,7 +3,7 @@ import { weGetImagesByUrl } from "../base/file/getFile";
 import { E_resourceKind } from "../resources/resourcesGPU";
 import { Scene } from "../scene/scene";
 import { I_BaseTexture } from "./base";
-import { BaseTexture } from "./baseTexture";
+import { IV_CubeTexture } from "./cubeTexxture";
 import { Texture } from "./texture";
 
 

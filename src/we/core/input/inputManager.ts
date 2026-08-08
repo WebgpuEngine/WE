@@ -172,6 +172,7 @@ export class InputManager extends ECSManager<BaseInputControl> {
         // this.canvas.addEventListener('click', this.click);
         // this.canvas.addEventListener('dblclick', this.dblclick);
 
+        //屏蔽鼠标右键的canvas功能，这样可以使用右键操作，比如平移等
         if (this.scene.disableCanvasContext === true) {
             let stop = (event: Event) => {
                 event.preventDefault();

@@ -16,7 +16,7 @@ export class CopyCommandT2T extends CopyCommand {
         this.input = input;
     }
 
-    update(): GPUCommandBuffer {
+    update(): GPUCommandBuffer | void {
         const commandEncoder = this.device.createCommandEncoder();
         return this.copy(commandEncoder);
     }
@@ -32,8 +32,8 @@ export class CopyCommandT2T extends CopyCommand {
                 },
                 [this.input.size.width, this.input.size.height]
             );
-        //     commandBuffer = commandEncoder.finish();
-        // debugger;
+            //     commandBuffer = commandEncoder.finish();
+            // debugger;
 
             // this.device.queue.submit([commandBuffer]);
         }
@@ -45,8 +45,8 @@ export class CopyCommandT2T extends CopyCommand {
                 ,
                 [this.input.size.width, this.input.size.height]
             );
-        //     commandBuffer = commandEncoder.finish();
-        // debugger;
+            //     commandBuffer = commandEncoder.finish();
+            // debugger;
 
             // this.device.queue.submit([commandBuffer]);
         }
@@ -59,8 +59,8 @@ export class CopyCommandT2T extends CopyCommand {
                 ,
                 [this.input.size.width, this.input.size.height]
             );
-        //     commandBuffer = commandEncoder.finish();
-        // debugger;
+            //     commandBuffer = commandEncoder.finish();
+            // debugger;
             // this.device.queue.submit([commandBuffer]);
         }
         else if ((this.input.A as GPUTexelCopyTextureInfo).texture && this.input.B instanceof GPUTexture) {
@@ -71,8 +71,8 @@ export class CopyCommandT2T extends CopyCommand {
                 },
                 [this.input.size.width, this.input.size.height]
             );
-        // debugger;
-        //     commandBuffer = commandEncoder.finish();
+            // debugger;
+            //     commandBuffer = commandEncoder.finish();
             // this.device.queue.submit([commandBuffer]);
         }
         else {
@@ -83,6 +83,7 @@ export class CopyCommandT2T extends CopyCommand {
     async submit() {
         let commandBuffer = await this.update();
         let device = this.device;
+        if (commandBuffer == undefined) return;
         device.queue.submit([commandBuffer]);
     }
     destroy() {

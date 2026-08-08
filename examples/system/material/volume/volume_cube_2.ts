@@ -6,7 +6,7 @@ import { E_renderPassName } from "../../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../../src/we/core/scene/scene";
 import { weGetBinaryByUrl, weGetBinaryResourceFromGzip } from "../../../../src/we/core/base/file/getFile";
 import { Texture3D } from "../../../../src/we/core/texture/texture3D";
-import { VolumeTextureMaterial } from "../../../../src/we/core/material/standard/volumeTexture3DMaterial";
+import { VolumeTextureMaterial } from "../../../../src/we/core/material/standard/volumeTexture3DMaterial.ts";
 import { BoxGeometry } from "../../../../src/we/core/geometry/boxGeometry";
 import { IV_MeshEntity, Mesh } from "../../../../src/we/core/entity/mesh/mesh";
 import { ColorMaterial } from "../../../../src/we/core/material/standard/colorMaterial";

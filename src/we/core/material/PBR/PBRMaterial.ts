@@ -874,20 +874,20 @@ export class PBRMaterial extends BaseMaterial {
         return groupAndBindingString;
     }
 
-    getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
+    // getFS_TTPF(renderObject: BaseCamera | I_ShadowMapValueOfDC, startBinding: number): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
 
-    formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
-        throw new Error("Method not implemented.");
-    }
+    // formatFS_TTP(renderObject: BaseCamera | I_ShadowMapValueOfDC): I_materialBundleOutput {
+    //     throw new Error("Method not implemented.");
+    // }
 
     updateSelf(clock: Clock): void {
     }
-    saveJSON() {
-        throw new Error("Method not implemented.");
-    }
-    loadJSON(json: any): void {
-        throw new Error("Method not implemented.");
-    }
+    // saveJSON() {
+    //     throw new Error("Method not implemented.");
+    // }
+    // loadJSON(json: any): void {
+    //     throw new Error("Method not implemented.");
+    // }
 }
