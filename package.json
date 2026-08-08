@@ -1,13 +1,44 @@
 {
-  "name": "we",
-  "private": true,
-  "version": "0.0.0",
+  "name": "webgpu-we3d",
+  "private": false,
+  "version": "0.1.0",
   "type": "module",
+  "description": "WE3D - WebGPU Engine 3D rendering engine",
+  "main": "dist/we3d.cjs",
+  "module": "dist/we3d.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/we3d.mjs",
+      "require": "./dist/we3d.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:lib": "rm -rf dist && vite build --config vite.config.lib.ts && tsc -p tsconfig.lib.json",
     "preview": "vite preview",
     "examples:generate": "node scripts/generate-examples-json.mjs"
+  },
+  "keywords": [
+    "webgpu",
+    "3d",
+    "rendering-engine",
+    "pbr",
+    "gltf",
+    "atmosphere",
+    "shadow",
+    "animation"
+  ],
+  "author": "quzongwen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WebgpuEngine/WE3D"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
@@ -30,11 +61,10 @@
     "vite-plugin-wasm": "^3.5.0"
   },
   "dependencies": {
-    "@dimforge/rapier3d": "^0.19.2",
     "@loaders.gl/compression": "4.3.4",
     "@loaders.gl/core": "4.3.4",
-    "@loaders.gl/draco": "./src/@loaders.gl/draco",
-    "@loaders.gl/gltf": "./src/@loaders.gl/gltf",
+    "@loaders.gl/draco": "4.3.4",
+    "@loaders.gl/gltf": "4.3.4",
     "@loaders.gl/json": "4.3.4",
     "@loaders.gl/obj": "4.3.4",
     "@loaders.gl/textures": "4.3.4",

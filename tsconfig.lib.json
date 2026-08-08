@@ -1,0 +1,34 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationDir": "dist",
+    "outDir": "dist",
+    "sourceMap": false,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/we"
+  ],
+  "exclude": [
+    "examples",
+    "node_modules",
+    "dist",
+    "src/we/core/camera/TTP.ts",
+    "src/we/core/ibl/mulitibl.ts",
+    "src/we/core/ibl/ibl copy.ts",
+    "src/we/core/bufferBlock/BOL.ts",
+    "src/we/core/bufferBlock/MBM.ts",
+    "src/we/core/animation/weightMixAnimation.ts",
+    "src/we/core/geometry/capsuleGeometry.ts",
+    "src/we/core/material/standard/shaderMaterial.ts",
+    "src/we/core/texture/cubeArrayTexxture.ts",
+    "src/we/model/gltf/function.ts",
+    "src/we/model/gltf/gltfAtLoaders.ts"
+  ]
+}

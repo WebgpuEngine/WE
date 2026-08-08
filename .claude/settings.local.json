@@ -39,7 +39,23 @@
       "Bash(curl -s \"https://api.github.com/users/quzongwen/repos?per_page=3&sort=updated\")",
       "Bash(git add *)",
       "Bash(git reset *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(grep -v \"\\\\.d\\\\.ts$\")",
+      "Bash(grep -v \"\\\\.map$\")",
+      "Bash(grep -v \"\\\\.mjs$\")",
+      "Bash(grep -v \"\\\\.cjs$\")",
+      "Bash(npm whoami *)",
+      "Bash(npm view *)",
+      "Bash(npm publish *)",
+      "WebFetch(domain:jimeng.blog.csdn.net)",
+      "WebSearch",
+      "Bash(npm profile *)",
+      "Bash(npm config *)"
     ]
   }
 }
