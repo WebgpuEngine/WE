@@ -1,14 +1,20 @@
-[Chinese ](./README.md)  |    [English](./README_english.md)
+[Chinese](./README.md)  |    [English](./README_english.md)
 
 # WE 3D 渲染引擎 webGPU engine 3D
 
 WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发阶段，功能、模块与结构会频繁调整。）
 
-1. 基础引擎部分包括：核心功能、图形学功能、模型功能、物理引擎整合、动画管理五个模块。本项目：[https://github.com/WebgpuEngine/WE3D](https://)
-2. 编辑器部分包括：材质编辑器、动画编辑器、场景编辑器，构建管理器四个模块，以实现可视化工作。（在[https://github.com/WebgpuEngine/editor](https://) 部分，todo）
-3. 演示Demo todo [https://github.com/WebgpuEngine/WE3D_Demo](https://)
-4. 文档 todo [https://github.com/WebgpuEngine/WE3D_DOC](https://)
-5. WE3D后期还会有后端服务，以实现支持服务器端活链接、USD、Nerf工作流、三维重构等以及和期望实现的图形学大模型AI工作流等。
+1. 基础引擎部分包括：核心功能、图形学功能、模型功能、物理引擎整合、动画管理五个模块。
+本项目：[https://github.com/WebgpuEngine/WE3D](https://)
+当前开发版本文档：[https://WebgpuEngine.github.io/WE3D](https://)
+2. npm 包
+    npm 安装： npm i we3d
+    npm发布地址：[https://www.npmjs.com/package/we3d](https://)
+    npm发布版本文档 [https://github.com/WebgpuEngine/doc](https://)
+3. doing ,示例代码   [https://github.com/WebgpuEngine/example](https://)
+4. doing ,演示Demo  [https://github.com/WebgpuEngine/demo](https://)
+5. todo,编辑器部分包括：材质编辑器、动画编辑器、场景编辑器，构建管理器四个模块，以实现可视化工作。在[https://github.com/WebgpuEngine/editor](https://)
+6. todo,WE3D后期还会考虑减少后端服务，以实现支持服务器端活链接、USD、Nerf工作流、三维重构等以及AI适配等。
 
 # 引擎基础说明
 
@@ -48,7 +54,6 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 * todo：粒子系统、SSGI、SSR、SSAO、TAA、
 
 # 简单示例
-
 
 | ReversedZ                                         | material alpha blend                             | pixel level alpha transparent material           |
 | ------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
@@ -92,32 +97,32 @@ WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发
 
 # 资料参考与推荐
 
-* webGPU标准：https://www.w3.org/TR/webgpu/
-* WGSL的标准：https://www.w3.org/TR/wgsl/
-* 非常好示例：https://github.com/webgpu/webgpu-samples
-* google的Dawn：https://github.com/google/dawn
-* Mozilla的wGPU：https://github.com/gfx-rs/wgpu
-* MDN的webGPU文档：https://developer.mozilla.org/zh-CN/docs/Web/API/WebGPU_API
-* 非常好的webGPU教程：https://webgpufundamentals.org/
-* 非常好的webGL2教程：https://webgl2fundamentals.org/
-* 非常好的webGL1教程：https://webglfundamentals.org/
-* dawn 的C示例：https://github.com/samdauwe/webgpu-native-examples
-* 非常实用的JS端的图形学简单数学库，这是目前主要使用的库：https://github.com/greggman/wgpu-matrix
-* 另外一个经典的图形学数学库：https://github.com/toji/gl-matrix
-* webGPU Samples https://webgpu.github.io/webgpu-samples/
-* WebGPU API reference，方便实用：https://gpuweb.github.io/types/index.html
-* webgpu-utils可以参考一下：https://github.com/greggman/webgpu-utils
-* filament可以学习与参考一些：https://github.com/google/filament
-* PBRT书籍，非常好：https://www.pbr-book.org/
-* Ray tracing的书籍：https://raytracing.github.io/
-* nvidia的书籍：https://developer.nvidia.com/gpugems/gpugems/contributors
-* gltf文档 https://registry.khronos.org/glTF/specs/2.0/
-* gltf tutorials  https://github.com/KhronosGroup/glTF-Tutorials
+* webGPU标准：<https://www.w3.org/TR/webgpu/>
+* WGSL的标准：<https://www.w3.org/TR/wgsl/>
+* 非常好示例：<https://github.com/webgpu/webgpu-samples>
+* google的Dawn：<https://github.com/google/dawn>
+* Mozilla的wGPU：<https://github.com/gfx-rs/wgpu>
+* MDN的webGPU文档：<https://developer.mozilla.org/zh-CN/docs/Web/API/WebGPU_API>
+* 非常好的webGPU教程：<https://webgpufundamentals.org/>
+* 非常好的webGL2教程：<https://webgl2fundamentals.org/>
+* 非常好的webGL1教程：<https://webglfundamentals.org/>
+* dawn 的C示例：<https://github.com/samdauwe/webgpu-native-examples>
+* 非常实用的JS端的图形学简单数学库，这是目前主要使用的库：<https://github.com/greggman/wgpu-matrix>
+* 另外一个经典的图形学数学库：<https://github.com/toji/gl-matrix>
+* webGPU Samples <https://webgpu.github.io/webgpu-samples/>
+* WebGPU API reference，方便实用：<https://gpuweb.github.io/types/index.html>
+* webgpu-utils可以参考一下：<https://github.com/greggman/webgpu-utils>
+* filament可以学习与参考一些：<https://github.com/google/filament>
+* PBRT书籍，非常好：<https://www.pbr-book.org/>
+* Ray tracing的书籍：<https://raytracing.github.io/>
+* nvidia的书籍：<https://developer.nvidia.com/gpugems/gpugems/contributors>
+* gltf文档 <https://registry.khronos.org/glTF/specs/2.0/>
+* gltf tutorials  <https://github.com/KhronosGroup/glTF-Tutorials>
 * rapier [Rapier physics engine | Rapier](https://rapier.rs/)
-* [Bullet Real-Time Physics Simulation](https://pybullet.org/wordpress/)  https://pybullet.org/
-* CSS Color Module Level 4 https://www.w3.org/TR/css-color-4/
-* Self Shadow  https://blog.selfshadow.com/
-* bruneton大气层： https://ebruneton.github.io/precomputed_atmospheric_scattering/
-* Hillaire大气层方案的webgpu实现：https://github.com/JolifantoBambla/webgpu-sky-atmosphere
-* Sebastien Hillaire的 Unreal Engine 示例仓库，https://github.com/sebh/UnrealEngineSkyAtmosphere
+* [Bullet Real-Time Physics Simulation](https://pybullet.org/wordpress/)  <https://pybullet.org/>
+* CSS Color Module Level 4 <https://www.w3.org/TR/css-color-4/>
+* Self Shadow  <https://blog.selfshadow.com/>
+* bruneton大气层： <https://ebruneton.github.io/precomputed_atmospheric_scattering/>
+* Hillaire大气层方案的webgpu实现：<https://github.com/JolifantoBambla/webgpu-sky-atmosphere>
+* Sebastien Hillaire的 Unreal Engine 示例仓库，<https://github.com/sebh/UnrealEngineSkyAtmosphere>
 *
