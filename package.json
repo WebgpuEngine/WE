@@ -22,7 +22,8 @@
     "build": "tsc && vite build",
     "build:lib": "rm -rf dist && vite build --config vite.config.lib.ts && tsc -p tsconfig.lib.json",
     "preview": "vite preview",
-    "examples:generate": "node scripts/generate-examples-json.mjs"
+    "examples:generate": "node scripts/generate-examples-json.mjs",
+    "screenshot": "node scripts/screenshot.mjs"
   },
   "keywords": [
     "webgpu",
