@@ -50,6 +50,7 @@
     "hash-wasm": "^4.12.0",
     "lil-gui": "^0.17.0",
     "muigui": "^0.0.22",
+    "playwright": "^1.62.1",
     "rollup": "^4.48.1",
     "seedrandom": "^3.0.5",
     "stats.js": "^0.17.0",
