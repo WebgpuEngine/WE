@@ -29,6 +29,11 @@ export enum E_GBufferNames {
     RMAO = "RMAO",
     albedo = "albedo",
     emissiveIntensity = "emissiveIntensity",
+    /**PBR GBuffer 
+     * 1、取消了worldPosition
+     * 2、将RMAO、albedo、emissive、emissiveIntensity合并为一个通道
+    */
+    pbr = "pbr",
 }
 /**GBuffer的组成描述的集合（最终的集合） */
 export interface I_GBufferName {
@@ -69,7 +74,7 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.normal]: {
-        "format": "rgba16float",
+        "format": "rgb10a2unorm",
         "label": "GBuffer normal",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
@@ -94,43 +99,7 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
 }
-// export var V_ForwardGBufferNames: I_GBufferName = {
-//     [E_GBufferNames.depth]: {
-//         "format": "depth32float",
-//         "label": "GBuffer depth attachment",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-//     [E_GBufferNames.color]: {
-//         "format": V_weLinearFormat,
-//         "label": "GBuffer color",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-//     [E_GBufferNames.id]: {
-//         "format": "r32uint",
-//         "label": "GBuffer id",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-//     [E_GBufferNames.normal]: {
-//         "format": "rgba16float",
-//         "label": "GBuffer normal",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-//     [E_GBufferNames.RMAO]: {
-//         "format": "rgba16float",
-//         "label": "GBuffer RMAO",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-//     [E_GBufferNames.worldPosition]: {
-//         "format": "rgba32float",
-//         "label": "GBuffer worldPosition",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-//     [E_GBufferNames.albedo]: {
-//         "format": "rgba16float",
-//         "label": "GBuffer albedo",
-//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-//     },
-// }
+
 /**
  * 20260810：
  *      1、这个是透明的TTP使用，目前放弃，改用A-Buffer(todo);

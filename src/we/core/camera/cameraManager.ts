@@ -89,8 +89,8 @@ export class CameraManager extends ECSManager<BaseCamera> {
             this.scene.defaultCamera = camera;
         }
         //4、初始化TTP相关GBuffer
-        this.GBufferManager.reInitCommonTransparentGBuffer();
-        // this.cleanValueOfTT();//清除TT的缓存值,并设置TT_Uniform 和TT_Render
+        // this.GBufferManager.reInitCommonTransparentGBuffer();
+        // // this.cleanValueOfTT();//清除TT的缓存值,并设置TT_Uniform 和TT_Render
 
         if (this.deferRender === true) {
             this.deferDCG.add(camera.UUID);
@@ -198,11 +198,11 @@ export class CameraManager extends ECSManager<BaseCamera> {
         }
         // 清除OnePointToTT_DC_A和OnePointToTT_DC_B,并重新初始化GBufferManager的CommonTransparentGBuffer
         {
-            // if (this.onePointToTT_DC_A && this.onePointToTT_DC_A.IsDestroy === false)
-            //     this.onePointToTT_DC_A.destroy();
-            // if (this.onePointToTT_DC_B && this.onePointToTT_DC_B.IsDestroy === false)
-            //     this.onePointToTT_DC_B.destroy();
-            this.GBufferManager.reInitCommonTransparentGBuffer();
+            // // if (this.onePointToTT_DC_A && this.onePointToTT_DC_A.IsDestroy === false)
+            // //     this.onePointToTT_DC_A.destroy();
+            // // if (this.onePointToTT_DC_B && this.onePointToTT_DC_B.IsDestroy === false)
+            // //     this.onePointToTT_DC_B.destroy();
+            // this.GBufferManager.reInitCommonTransparentGBuffer();
         }
         // 更新所有相机的投影矩阵，aspect变化
         for (let camera of this.list) {
