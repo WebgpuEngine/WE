@@ -28,3 +28,4 @@ public/models/gltf/model
 *.njsproj
 *.sln
 *.sw?
+examples/screenshots/
