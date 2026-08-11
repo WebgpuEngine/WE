@@ -144,7 +144,7 @@ export abstract class BaseCamera extends NodeObject {
   projectionMatrix!: Mat4;
   /** MVP的Mat4的数组，[VP,view,projection] 
    * MVP中的M=V*P
-   * V=viewMatrix
+   * V=invViewMatrix（viewMatrix 是相机世界的视图矩阵）
    * P=projectionMatrix
    */
   MVP: Mat4[] = [];
@@ -698,4 +698,11 @@ export abstract class BaseCamera extends NodeObject {
     if (this._lookAt)
       this.updateByPositionDirection(this._position, this._lookAt, false);
   }
+  /////////////////////////////////////////////////////////////////////////////////////////
+  /**获取逆VP矩阵 */
+  getInverseVP(): Mat4 {
+    let invertProjectionMatrix = mat4.invert(this.projectionMatrix);
+    return mat4.multiply(this.viewMatrix, invertProjectionMatrix);
+  }
+
 }

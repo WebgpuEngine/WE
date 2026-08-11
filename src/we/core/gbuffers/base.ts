@@ -22,13 +22,13 @@ export enum E_GBufferNames {
     color = "color",
     id = "id",
     normal = "normal",
-    worldPosition = "worldPosition",
-    // X = "X",
-    // Y = "Y",
-    // Z = "Z",
-    RMAO = "RMAO",
-    albedo = "albedo",
-    emissiveIntensity = "emissiveIntensity",
+    // worldPosition = "worldPosition",
+    // // X = "X",
+    // // Y = "Y",
+    // // Z = "Z",
+    // RMAO = "RMAO",
+    // albedo = "albedo",
+    // emissiveIntensity = "emissiveIntensity",
     /**PBR GBuffer 
      * 1、取消了worldPosition
      * 2、将RMAO、albedo、emissive、emissiveIntensity合并为一个通道
@@ -74,94 +74,79 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.normal]: {
-        "format": "rgb10a2unorm",
+        "format": "rgba16float",
         "label": "GBuffer normal",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
-    [E_GBufferNames.RMAO]: {
-        "format": "rgba8unorm",
-        "label": "GBuffer RMAO",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [E_GBufferNames.worldPosition]: {
-        "format": "rgba32float",
-        "label": "GBuffer worldPosition",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [E_GBufferNames.albedo]: {
-        "format": "rgba8unorm",
-        "label": "GBuffer albedo",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [E_GBufferNames.emissiveIntensity]: {
-        "format": "rgba8unorm",
-        "label": "GBuffer albedo",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-}
-
-/**
- * 20260810：
- *      1、这个是透明的TTP使用，目前放弃，改用A-Buffer(todo);
- * 
- * 预定义的transparent GBuffer变量
- * 注意：这个顺序需要与shader中的“st_transgparentbuffer.fs.wgsl”的约定顺序一致。（depth 除外）
- * 
- */
-export var V_TransparentGBufferNames: I_GBufferName = {
-
-    /**
-     * 调试用的color
-     * 1、不用时，注释掉，	节省8个纹理
-     * 2、若开启，需要在shader多个，cameraMan啊个人，等处同步，参加20251008的开发日志
-     */
-    // "color1": {
-    //     "format": V_weLinearFormat,
-    //     "label": "color 1",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    //     uniformType: " texture_2d<f32>",
-    // },
-    // "color2": {
-    //     "format": V_weLinearFormat,
-    //     "label": "color 2",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    //     uniformType: " texture_2d<f32>",
-    // },
-    // "color3": {
-    //     "format": V_weLinearFormat,
-    //     "label": "color 3",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    //     uniformType: " texture_2d<f32>",
-    // },
-    // "color4": {
-    //     "format": V_weLinearFormat,
-    //     "label": "color 4",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    //     uniformType: " texture_2d<f32>",
-    // },
-    // "depth1": {
-    //     "format": "depth32float",
-    //     "label": "depth 1",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    // },
-    // "depth2": {
-    //     "format": "depth32float",
-    //     "label": "depth 2",
-    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    // },
-    "depth": {
-        "format": "rgba32float",//TTP写4个深度使用
-        "label": "depth",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        uniformType: " texture_2d<f32>",
-    },
-    "id": {
+    [E_GBufferNames.pbr]: {
         "format": "rgba32uint",
-        "label": "id",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        uniformType: " texture_2d<u32>",
-    },
+        "label": "GBuffer pbr",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    }
 }
+
+// /**
+//  * 20260810：
+//  *      1、这个是透明的TTP使用，目前放弃，改用A-Buffer(todo);
+//  * 
+//  * 预定义的transparent GBuffer变量
+//  * 注意：这个顺序需要与shader中的“st_transgparentbuffer.fs.wgsl”的约定顺序一致。（depth 除外）
+//  * 
+//  */
+// export var V_TransparentGBufferNames: I_GBufferName = {
+
+//     /**
+//      * 调试用的color
+//      * 1、不用时，注释掉，	节省8个纹理
+//      * 2、若开启，需要在shader多个，cameraMan啊个人，等处同步，参加20251008的开发日志
+//      */
+//     // "color1": {
+//     //     "format": V_weLinearFormat,
+//     //     "label": "color 1",
+//     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+//     //     uniformType: " texture_2d<f32>",
+//     // },
+//     // "color2": {
+//     //     "format": V_weLinearFormat,
+//     //     "label": "color 2",
+//     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+//     //     uniformType: " texture_2d<f32>",
+//     // },
+//     // "color3": {
+//     //     "format": V_weLinearFormat,
+//     //     "label": "color 3",
+//     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+//     //     uniformType: " texture_2d<f32>",
+//     // },
+//     // "color4": {
+//     //     "format": V_weLinearFormat,
+//     //     "label": "color 4",
+//     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+//     //     uniformType: " texture_2d<f32>",
+//     // },
+//     // "depth1": {
+//     //     "format": "depth32float",
+//     //     "label": "depth 1",
+//     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     // },
+//     // "depth2": {
+//     //     "format": "depth32float",
+//     //     "label": "depth 2",
+//     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+//     // },
+//     "depth": {
+//         "format": "rgba32float",//TTP写4个深度使用
+//         "label": "depth",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+//         uniformType: " texture_2d<f32>",
+//     },
+//     "id": {
+//         "format": "rgba32uint",
+//         "label": "id",
+//         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+//         uniformType: " texture_2d<u32>",
+//     },
+// }
 /**
  * 预定义的GBuffer和RPD的集合
  */

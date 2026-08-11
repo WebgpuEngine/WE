@@ -58,152 +58,152 @@ export class DeferDrawCommandGenerator {
         // });
         // this.dcArray[UUID].push(copyCommand);
 
-        let pipeline: GPURenderPipeline;
-        let uniforms: GPUBindGroup[] = [];
-        {
-            let uniform0 = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(UUID, E_renderForDC.camera);
-            let uniform1_entry: GPUBindGroupEntry[] =
-                [
-                    {
-                        binding: 0,
-                        // resource: this.parent.testTexture.createView(),
-                        // resource: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture.createView(),
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color).createView(),
-                    },
-                    {
-                        binding: 1,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.normal).createView(),
-                    },
-                    {
-                        binding: 2,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.RMAO).createView(),
-                    },
-                    {
-                        binding: 3,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.worldPosition).createView(),
-                    },
-                    {
-                        binding: 4,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
-                    },
-                    {
-                        binding: 5,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.emissiveIntensity).createView(),
-                    },
-                ];//参见deferRender.fs.wgsl
-            let uniform1_entryLayout: GPUBindGroupLayoutEntry[] =
-                [
-                    {
-                        binding: 0,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 1,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 2,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 3,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 4,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 5,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                ];//参见deferRender.fs.wgsl
-
-            let uniform1_bindGroupLayout = this.device.createBindGroupLayout({
-                label: "DeferRender BindGroupLayout 1:" + UUID,
-                entries: uniform1_entryLayout,
-            })
-
-            let bindGroup1 = this.device.createBindGroup({
-                label: "DeferRender BindGroup 1:" + UUID,
-                layout: uniform1_bindGroupLayout,
-                entries: uniform1_entry
-            });
-
-            let pipelineLayout = this.device.createPipelineLayout({
-                label: "DeferRender PipelineLayout :" + UUID,
-                bindGroupLayouts: [uniform0.bindGroupLayout, uniform1_bindGroupLayout],
-            });
-
-            let descriptor: GPURenderPipelineDescriptor = {
-                label: "DeferRender",
-                layout: pipelineLayout,
-                vertex: {
-                    module: this.shaderModule!,
-                    entryPoint: "vs",
-                },
-                fragment: {
-                    module: this.shaderModule!,
-                    entryPoint: "fs",
-                    targets: [{ format: V_weLinearFormat }],
-                },
-                primitive: {
-                    topology: "triangle-strip",
-                },
-            };
-
-            pipeline = this.device.createRenderPipeline(descriptor);
-            uniforms.push(uniform0.bindGroup, bindGroup1);
-        }
-        // let renderPassDescriptor: GPURenderPassDescriptor =
+        // let pipeline: GPURenderPipeline;
+        // let uniforms: GPUBindGroup[] = [];
         // {
-        //     colorAttachments: [
-        //         {
-        //             view: this.parent.GBufferManager.GBuffer[UUID].finalRender.color.createView({ label: "Defer Render :" + UUID }),
-        //             loadOp: 'clear',
-        //             storeOp: 'store',
-        //         }]
+        //     let uniform0 = this.scene.getSystemBindGroupAndBindGroupLayoutForZero(UUID, E_renderForDC.camera);
+        //     let uniform1_entry: GPUBindGroupEntry[] =
+        //         [
+        //             {
+        //                 binding: 0,
+        //                 // resource: this.parent.testTexture.createView(),
+        //                 // resource: this.parent.GBufferManager.GBuffer[UUID].finalRender.toneMappingTexture.createView(),
+        //                 resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.color).createView(),
+        //             },
+        //             {
+        //                 binding: 1,
+        //                 resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.normal).createView(),
+        //             },
+        //             {
+        //                 binding: 2,
+        //                 resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.RMAO).createView(),
+        //             },
+        //             {
+        //                 binding: 3,
+        //                 resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.worldPosition).createView(),
+        //             },
+        //             {
+        //                 binding: 4,
+        //                 resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
+        //             },
+        //             {
+        //                 binding: 5,
+        //                 resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.emissiveIntensity).createView(),
+        //             },
+        //         ];//参见deferRender.fs.wgsl
+        //     let uniform1_entryLayout: GPUBindGroupLayoutEntry[] =
+        //         [
+        //             {
+        //                 binding: 0,
+        //                 texture: {
+        //                     sampleType: "unfilterable-float",
+        //                     viewDimension: "2d",
+        //                 },
+        //                 visibility: GPUShaderStage.FRAGMENT,
+        //             },
+        //             {
+        //                 binding: 1,
+        //                 texture: {
+        //                     sampleType: "unfilterable-float",
+        //                     viewDimension: "2d",
+        //                 },
+        //                 visibility: GPUShaderStage.FRAGMENT,
+        //             },
+        //             {
+        //                 binding: 2,
+        //                 texture: {
+        //                     sampleType: "unfilterable-float",
+        //                     viewDimension: "2d",
+        //                 },
+        //                 visibility: GPUShaderStage.FRAGMENT,
+        //             },
+        //             {
+        //                 binding: 3,
+        //                 texture: {
+        //                     sampleType: "unfilterable-float",
+        //                     viewDimension: "2d",
+        //                 },
+        //                 visibility: GPUShaderStage.FRAGMENT,
+        //             },
+        //             {
+        //                 binding: 4,
+        //                 texture: {
+        //                     sampleType: "unfilterable-float",
+        //                     viewDimension: "2d",
+        //                 },
+        //                 visibility: GPUShaderStage.FRAGMENT,
+        //             },
+        //             {
+        //                 binding: 5,
+        //                 texture: {
+        //                     sampleType: "unfilterable-float",
+        //                     viewDimension: "2d",
+        //                 },
+        //                 visibility: GPUShaderStage.FRAGMENT,
+        //             },
+        //         ];//参见deferRender.fs.wgsl
+
+        //     let uniform1_bindGroupLayout = this.device.createBindGroupLayout({
+        //         label: "DeferRender BindGroupLayout 1:" + UUID,
+        //         entries: uniform1_entryLayout,
+        //     })
+
+        //     let bindGroup1 = this.device.createBindGroup({
+        //         label: "DeferRender BindGroup 1:" + UUID,
+        //         layout: uniform1_bindGroupLayout,
+        //         entries: uniform1_entry
+        //     });
+
+        //     let pipelineLayout = this.device.createPipelineLayout({
+        //         label: "DeferRender PipelineLayout :" + UUID,
+        //         bindGroupLayouts: [uniform0.bindGroupLayout, uniform1_bindGroupLayout],
+        //     });
+
+        //     let descriptor: GPURenderPipelineDescriptor = {
+        //         label: "DeferRender",
+        //         layout: pipelineLayout,
+        //         vertex: {
+        //             module: this.shaderModule!,
+        //             entryPoint: "vs",
+        //         },
+        //         fragment: {
+        //             module: this.shaderModule!,
+        //             entryPoint: "fs",
+        //             targets: [{ format: V_weLinearFormat }],
+        //         },
+        //         primitive: {
+        //             topology: "triangle-strip",
+        //         },
+        //     };
+
+        //     pipeline = this.device.createRenderPipeline(descriptor);
+        //     uniforms.push(uniform0.bindGroup, bindGroup1);
+        // }
+        // // let renderPassDescriptor: GPURenderPassDescriptor =
+        // // {
+        // //     colorAttachments: [
+        // //         {
+        // //             view: this.parent.GBufferManager.GBuffer[UUID].finalRender.color.createView({ label: "Defer Render :" + UUID }),
+        // //             loadOp: 'clear',
+        // //             storeOp: 'store',
+        // //         }]
+        // // };
+        // let renderPassDescriptor = () => {
+        //     return this.parent.getRpdForFinalTarget(UUID)
         // };
-        let renderPassDescriptor = () => {
-            return this.parent.getRpdForFinalTarget(UUID)
-        };
-        let valuesDC: IV_BaseDrawCommand = {
-            device: this.device,
-            drawInfo: {
-                pipeline: pipeline,
-                bindGroups: uniforms,
-                renderPassDescriptor: renderPassDescriptor,
-                drawMode: {
-                    vertexCount: 4
-                },
-            },
-            label: "DeferRender: " + UUID,
-        }
-        this.dcArray[UUID].push(new BaseDrawCommand(valuesDC));
+        // let valuesDC: IV_BaseDrawCommand = {
+        //     device: this.device,
+        //     drawInfo: {
+        //         pipeline: pipeline,
+        //         bindGroups: uniforms,
+        //         renderPassDescriptor: renderPassDescriptor,
+        //         drawMode: {
+        //             vertexCount: 4
+        //         },
+        //     },
+        //     label: "DeferRender: " + UUID,
+        // }
+        // this.dcArray[UUID].push(new BaseDrawCommand(valuesDC));
         if (UUID === this.parent.defaultCamera.UUID) {
             let size = this.scene.surface.size;
             let copyToColorTexture = new CopyCommandT2T(

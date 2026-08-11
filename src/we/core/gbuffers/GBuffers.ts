@@ -323,126 +323,125 @@ export class GBuffers {
     /////////////////////////////////////////////////////////////////////////////////////////////
     // 透明GBuffer
     /////////////////////////////////////////////////////////////////////////////////////////////
+    // /**
+    //  * 重新初始化GBufferByID
+    //  * @param id ：GBuffer的id
+    //  * @param input ：GBuffer的初始化参数
+    //  */
+    // reInitCommonTransparentGBuffer() {
+    //     this.removCommonTransparentGBuffer();
+    //     this.initCommonTransparentGBuffer();
+    // }
 
-    /**
-     * 重新初始化GBufferByID
-     * @param id ：GBuffer的id
-     * @param input ：GBuffer的初始化参数
-     */
-    reInitCommonTransparentGBuffer() {
-        this.removCommonTransparentGBuffer();
-        this.initCommonTransparentGBuffer();
-    }
+    // /**
+    //  * 移除透明GBuffer
+    //  */
+    // removCommonTransparentGBuffer() {
+    //     if (this.commonTransparentGBufferA?.GBuffer) {
+    //         for (let key in this.commonTransparentGBufferA.GBuffer) {
+    //             // console.log("Destroying texture:", this.commonTransparentGBufferA.GBuffer[key].label);
+    //             this.commonTransparentGBufferA.GBuffer[key].destroy();
+    //             // console.log("Destroying texture:",key, this.commonTransparentGBufferA.GBuffer[key].label);
+    //         }
+    //         this.commonTransparentGBufferA = {} as I_TransparentGBufferGroup;
+    //     }
+    //     if (this.commonTransparentGBufferB?.GBuffer) {
+    //         for (let key in this.commonTransparentGBufferB.GBuffer) {
+    //             // console.log("Destroying texture:", this.commonTransparentGBufferB.GBuffer[key].label);
+    //             // console.log("Destroying texture:",key, this.commonTransparentGBufferB.GBuffer[key].label);
 
-    /**
-     * 移除透明GBuffer
-     */
-    removCommonTransparentGBuffer() {
-        if (this.commonTransparentGBufferA?.GBuffer) {
-            for (let key in this.commonTransparentGBufferA.GBuffer) {
-                // console.log("Destroying texture:", this.commonTransparentGBufferA.GBuffer[key].label);
-                this.commonTransparentGBufferA.GBuffer[key].destroy();
-                // console.log("Destroying texture:",key, this.commonTransparentGBufferA.GBuffer[key].label);
-            }
-            this.commonTransparentGBufferA = {} as I_TransparentGBufferGroup;
-        }
-        if (this.commonTransparentGBufferB?.GBuffer) {
-            for (let key in this.commonTransparentGBufferB.GBuffer) {
-                // console.log("Destroying texture:", this.commonTransparentGBufferB.GBuffer[key].label);
-                // console.log("Destroying texture:",key, this.commonTransparentGBufferB.GBuffer[key].label);
+    //             this.commonTransparentGBufferB.GBuffer[key].destroy();
+    //         }
+    //         this.commonTransparentGBufferB = {} as I_TransparentGBufferGroup;
+    //     }
+    // }
 
-                this.commonTransparentGBufferB.GBuffer[key].destroy();
-            }
-            this.commonTransparentGBufferB = {} as I_TransparentGBufferGroup;
-        }
-    }
+    // /**
+    //  * 初始化GBuffer的RenderPassDescriptor
+    //  */
+    // initCommonTransparentGBuffer() {
+    //     let device = this.device;
+    //     let width = this.parent.scene.surface.size.width;
+    //     let height = this.parent.scene.surface.size.height;
+    //     // let premultipliedAlpha = this.parent.defaultCamera.premultipliedAlpha;
+    //     // let backgroudColor = this.parent.defaultCamera.backGroundColor;
+    //     // let depthClearValue = input.depthClearValue;
+    //     let unixTime = new Date().getTime();
+    //     if (width == 0 || height == 0) {
+    //         console.error("透明GBuffer初始化失败，因为场景的大小为0");
+    //         return;
+    //     }
+    //     //A
+    //     {
+    //         let colorAttachments: GPURenderPassColorAttachment[] = [];
+    //         let colorAttachmentTargets: GPUColorTargetState[] = [];
+    //         let gbuffers: I_GBuffer = {};
 
-    /**
-     * 初始化GBuffer的RenderPassDescriptor
-     */
-    initCommonTransparentGBuffer() {
-        let device = this.device;
-        let width = this.parent.scene.surface.size.width;
-        let height = this.parent.scene.surface.size.height;
-        // let premultipliedAlpha = this.parent.defaultCamera.premultipliedAlpha;
-        // let backgroudColor = this.parent.defaultCamera.backGroundColor;
-        // let depthClearValue = input.depthClearValue;
-        let unixTime = new Date().getTime();
-        if (width == 0 || height == 0) {
-            console.error("透明GBuffer初始化失败，因为场景的大小为0");
-            return;
-        }
-        //A
-        {
-            let colorAttachments: GPURenderPassColorAttachment[] = [];
-            let colorAttachmentTargets: GPUColorTargetState[] = [];
-            let gbuffers: I_GBuffer = {};
+    //         for (let key in V_TransparentGBufferNames) {
+    //             let perOneBuffer = V_TransparentGBufferNames[key];
+    //             let texture = device.createTexture({
+    //                 label: "TT A GBuffer " + perOneBuffer.label + " " + unixTime,
+    //                 size: [width, height],
+    //                 format: perOneBuffer.format,
+    //                 usage: perOneBuffer.usage,
+    //             });
+    //             colorAttachments.push({
+    //                 view: texture.createView(),
+    //                 // clearValue: [0.0, 0.0, 0.0, 0.0],
+    //                 // clearValue: this.getBackgroudColor(premultipliedAlpha, backgroudColor),
 
-            for (let key in V_TransparentGBufferNames) {
-                let perOneBuffer = V_TransparentGBufferNames[key];
-                let texture = device.createTexture({
-                    label: "TT A GBuffer " + perOneBuffer.label + " " + unixTime,
-                    size: [width, height],
-                    format: perOneBuffer.format,
-                    usage: perOneBuffer.usage,
-                });
-                colorAttachments.push({
-                    view: texture.createView(),
-                    // clearValue: [0.0, 0.0, 0.0, 0.0],
-                    // clearValue: this.getBackgroudColor(premultipliedAlpha, backgroudColor),
+    //                 loadOp: 'clear',
+    //                 storeOp: 'store',
+    //             });
 
-                    loadOp: 'clear',
-                    storeOp: 'store',
-                });
+    //             colorAttachmentTargets.push({ format: perOneBuffer.format });
+    //             gbuffers[key] = texture;
+    //         }
+    //         // const rpd: GPURenderPassDescriptor = {
+    //         //     colorAttachments: colorAttachments,
+    //         // };
+    //         let rpd = this.initCommonTransparentRPB_ByUUID(this.getUUIDFromGBuffer(), gbuffers);
+    //         this.commonTransparentGBufferA = {
+    //             RPD: rpd,
+    //             colorAttachmentTargets: colorAttachmentTargets,
+    //             GBuffer: gbuffers,
+    //             name: "A",
+    //         };
+    //     }
+    //     //B
+    //     {
+    //         let colorAttachments: GPURenderPassColorAttachment[] = [];
+    //         let colorAttachmentTargets: GPUColorTargetState[] = [];
+    //         let gbuffers: I_GBuffer = {};
 
-                colorAttachmentTargets.push({ format: perOneBuffer.format });
-                gbuffers[key] = texture;
-            }
-            // const rpd: GPURenderPassDescriptor = {
-            //     colorAttachments: colorAttachments,
-            // };
-            let rpd = this.initCommonTransparentRPB_ByUUID(this.getUUIDFromGBuffer(), gbuffers);
-            this.commonTransparentGBufferA = {
-                RPD: rpd,
-                colorAttachmentTargets: colorAttachmentTargets,
-                GBuffer: gbuffers,
-                name: "A",
-            };
-        }
-        //B
-        {
-            let colorAttachments: GPURenderPassColorAttachment[] = [];
-            let colorAttachmentTargets: GPUColorTargetState[] = [];
-            let gbuffers: I_GBuffer = {};
+    //         for (let key in V_TransparentGBufferNames) {
+    //             let perOneBuffer = V_TransparentGBufferNames[key];
+    //             let texture = device.createTexture({
+    //                 label: "TT B GBuffer " + perOneBuffer.label + " " + unixTime,
+    //                 size: [width, height],
+    //                 format: perOneBuffer.format,
+    //                 usage: perOneBuffer.usage,
+    //             });
 
-            for (let key in V_TransparentGBufferNames) {
-                let perOneBuffer = V_TransparentGBufferNames[key];
-                let texture = device.createTexture({
-                    label: "TT B GBuffer " + perOneBuffer.label + " " + unixTime,
-                    size: [width, height],
-                    format: perOneBuffer.format,
-                    usage: perOneBuffer.usage,
-                });
-
-                colorAttachments.push({
-                    view: texture.createView(),
-                    // clearValue: [0.0, 0.0, 0.0, 0.0],
-                    loadOp: 'clear',
-                    storeOp: 'store',
-                });
-                colorAttachmentTargets.push({ format: perOneBuffer.format });
-                gbuffers[key] = texture;
-            }
-            let rpd = this.initCommonTransparentRPB_ByUUID(this.getUUIDFromGBuffer(), gbuffers);
-            this.commonTransparentGBufferB = {
-                RPD: rpd,
-                colorAttachmentTargets: colorAttachmentTargets,
-                GBuffer: gbuffers,
-                name: "B"
-            };
-        }
-        // console.log("init common transparent GBuffer");
-    }
+    //             colorAttachments.push({
+    //                 view: texture.createView(),
+    //                 // clearValue: [0.0, 0.0, 0.0, 0.0],
+    //                 loadOp: 'clear',
+    //                 storeOp: 'store',
+    //             });
+    //             colorAttachmentTargets.push({ format: perOneBuffer.format });
+    //             gbuffers[key] = texture;
+    //         }
+    //         let rpd = this.initCommonTransparentRPB_ByUUID(this.getUUIDFromGBuffer(), gbuffers);
+    //         this.commonTransparentGBufferB = {
+    //             RPD: rpd,
+    //             colorAttachmentTargets: colorAttachmentTargets,
+    //             GBuffer: gbuffers,
+    //             name: "B"
+    //         };
+    //     }
+    //     // console.log("init common transparent GBuffer");
+    // }
     /**
      * 获取GBuffer的UUIDs
      * @returns string[]
