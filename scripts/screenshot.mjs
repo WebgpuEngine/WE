@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,9 +12,13 @@ const FILES_JSON = path.join(EXAMPLES_DIR, 'files.json');
 const INDEX_HTML = path.join(EXAMPLES_DIR, 'index.html');
 
 const BASE_URL = 'http://localhost:5173/examples';
-const SCREENSHOT_WIDTH = 320;
-const SCREENSHOT_HEIGHT = 180;
-const WAIT_TIME = 3000; // Wait for WebGPU rendering
+// Full resolution for rendering
+const RENDER_WIDTH = 1280;
+const RENDER_HEIGHT = 720;
+// Target resolution for output
+const OUTPUT_WIDTH = 640;
+const OUTPUT_HEIGHT = 360;
+const WAIT_TIME = 5000;
 
 async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });
@@ -33,7 +38,6 @@ async function getAllExamples() {
 }
 
 function getScreenshotPath(example) {
-  // Convert "base/00_scene/b1" to "base__00_scene__b1.png"
   const filename = example.replace(/\//g, '__') + '.png';
   return path.join(SCREENSHOTS_DIR, filename);
 }
@@ -49,32 +53,33 @@ async function takeScreenshot(browser, example) {
 
   try {
     console.log(`Screenshotting: ${example}`);
-    await page.setViewportSize({ width: 1280, height: 720 });
+    // Render at full resolution
+    await page.setViewportSize({ width: RENDER_WIDTH, height: RENDER_HEIGHT });
     await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
-    // Wait for canvas to appear (WebGPU rendering)
     await page.waitForSelector('canvas', { timeout: 10000 }).catch(() => {
       console.log(`  No canvas found for ${example}, taking screenshot anyway`);
     });
 
-    // Additional wait for rendering to complete
     await page.waitForTimeout(WAIT_TIME);
 
-    // Take screenshot of the canvas or full page
+    // Take screenshot at full resolution
     const canvas = await page.$('canvas');
     if (canvas) {
-      await canvas.screenshot({
-        path: screenshotPath,
-        clip: { x: 0, y: 0, width: SCREENSHOT_WIDTH, height: SCREENSHOT_HEIGHT }
-      });
+      await canvas.screenshot({ path: screenshotPath });
     } else {
-      await page.screenshot({
-        path: screenshotPath,
-        clip: { x: 0, y: 0, width: SCREENSHOT_WIDTH, height: SCREENSHOT_HEIGHT }
-      });
+      await page.screenshot({ path: screenshotPath });
     }
 
-    console.log(`  Saved: ${screenshotPath}`);
+    // Resize to output resolution
+    await sharp(screenshotPath)
+      .resize(OUTPUT_WIDTH, OUTPUT_HEIGHT, { fit: 'cover' })
+      .toFile(screenshotPath + '.tmp');
+
+    await fs.rename(screenshotPath + '.tmp', screenshotPath);
+
+    const size = (await fs.stat(screenshotPath)).size;
+    console.log(`  Saved: ${screenshotPath} (${(size / 1024).toFixed(1)}KB)`);
     return true;
   } catch (error) {
     console.error(`  Failed to screenshot ${example}:`, error.message);
@@ -87,7 +92,6 @@ async function takeScreenshot(browser, example) {
 async function updateIndexHtml(examples, screenshots) {
   let html = await fs.readFile(INDEX_HTML, 'utf-8');
 
-  // Find the createLink function and modify it to use screenshots
   const createLinkRegex = /function createLink\(file, category, tags\) \{[\s\S]*?return link;\s*\}/;
 
   const newCreateLink = `function createLink(file, category, tags) {
@@ -125,6 +129,9 @@ async function updateIndexHtml(examples, screenshots) {
         return link;
     }`;
 
+  // Remove existing screenshots data if present
+  html = html.replace(/const screenshots = \{[\s\S]*?\};\s*/g, '');
+
   // Add screenshots data before the init function
   const screenshotsData = `const screenshots = ${JSON.stringify(screenshots, null, 2)};`;
   html = html.replace('init();', `${screenshotsData}\n\n    init();`);
@@ -139,20 +146,16 @@ async function updateIndexHtml(examples, screenshots) {
 async function main() {
   console.log('Starting screenshot capture...');
 
-  // Ensure screenshots directory exists
   await ensureDir(SCREENSHOTS_DIR);
 
-  // Get all examples
   const examples = await getAllExamples();
   console.log(`Found ${examples.length} examples`);
 
-  // Launch browser
   const browser = await chromium.launch({
-    headless: true,
-    args: ['--enable-unsafe-webgpu', '--use-gl=swiftshader']
+    headless: false,
+    args: ['--enable-unsafe-webgpu', '--disable-gpu-sandbox', '--window-position=-9999,-9999']
   });
 
-  // Take screenshots
   const screenshots = {};
   let successCount = 0;
 
@@ -166,11 +169,10 @@ async function main() {
 
   await browser.close();
 
-  // Update index.html
   await updateIndexHtml(examples, screenshots);
 
   console.log(`\nDone! Captured ${successCount}/${examples.length} screenshots`);
-  console.log(`Screenshots saved to: ${SCREENSHOTS_DIR}`);
+  console.log(`Render: ${RENDER_WIDTH}x${RENDER_HEIGHT} -> Output: ${OUTPUT_WIDTH}x${OUTPUT_HEIGHT}`);
 }
 
 main().catch(console.error);

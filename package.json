@@ -54,6 +54,7 @@
     "playwright": "^1.62.1",
     "rollup": "^4.48.1",
     "seedrandom": "^3.0.5",
+    "sharp": "^0.35.3",
     "stats.js": "^0.17.0",
     "ts-jest": "^29.4.1",
     "typedoc": "^0.28.11",
