@@ -22,13 +22,21 @@ export enum E_GBufferNames {
     color = "color",
     id = "id",
     normal = "normal",
-    worldPosition = "worldPosition",
-    // X = "X",
-    // Y = "Y",
-    // Z = "Z",
-    RMAO = "RMAO",
-    albedo = "albedo",
-    emissiveIntensity = "emissiveIntensity",
+    // worldPosition = "worldPosition",
+    // // X = "X",
+    // // Y = "Y",
+    // // Z = "Z",
+    // RMAO = "RMAO",
+    // albedo = "albedo",
+    // emissiveIntensity = "emissiveIntensity",
+    /**PBR GBuffer ，20260811
+     * 1、取消了worldPosition
+     * 2、将RMAO、albedo、emissive、emissiveIntensity合并为一个通道(pbr)
+     * 3、光源参数也合并到pbr通道中
+     * 4、材质ID参数也合并到pbr通道中
+     * 问题，无法直接通过texture查看正确性，后期增加GBuffers的可视化debug工具
+    */
+    pbr = "pbr",
 }
 /**GBuffer的组成描述的集合（最终的集合） */
 export interface I_GBufferName {
@@ -132,6 +140,9 @@ export var V_ForwardGBufferNames: I_GBufferName = {
 //     },
 // }
 /**
+ * 20260810：
+ *      1、这个是透明的TTP使用，目前放弃，改用A-Buffer(todo);
+ * 
  * 预定义的transparent GBuffer变量
  * 注意：这个顺序需要与shader中的“st_transgparentbuffer.fs.wgsl”的约定顺序一致。（depth 除外）
  * 
