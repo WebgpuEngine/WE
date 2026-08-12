@@ -37,7 +37,7 @@ override boundingBoxMaxSize : f32 = 1.0;
     worldPosition = skin_mat * vec4f(position, 1.0);
     // worldPosition = vec4f(world_matrix[attributes.instanceIndex] * vec4f(position, 1.0));
     vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
-    vsOutput.position = matrix_z * VP *  vec4f(worldPosition.xyz, 1.0);
+    vsOutput.position =  VP *  vec4f(worldPosition.xyz, 1.0);
   }
   
   return vsOutput;

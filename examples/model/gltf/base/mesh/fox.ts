@@ -1,6 +1,6 @@
 import { vec3 } from "wgpu-matrix";
 import { PerspectiveCamera } from "../../../../../src/we/core/camera/perspectiveCamera";
-import { IV_Scene } from "../../../../../src/we/core/scene/base";
+import { E_ToneMappingType, IV_Scene } from "../../../../../src/we/core/scene/base";
 import { initScene } from "../../../../../src/we/core/scene/fn";
 import { createGLTFModel } from "../../../../../src/we/model/gltf/gltf";
 import { SphereGeometry } from "../../../../../src/we/core/geometry/sphereGeometry";
@@ -18,9 +18,9 @@ declare global {
 let input: IV_Scene = {
   canvas: "render",
   backgroudColor: [0, 0, 0, 0.1],
-  reversedZ: true,
-  toneMapping: "linear",
-  renderMode:"deferRender",
+  // reversedZ: true,
+  toneMapping: E_ToneMappingType.linear,
+  // renderMode:"deferRender",
 
 };
 let scene = await initScene({
