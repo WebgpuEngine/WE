@@ -74,35 +74,35 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [E_GBufferNames.normal]: {
-        "format": "rgba16float",
+        "format": "rgb10a2unorm",
         "label": "GBuffer normal",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     // [E_GBufferNames.normal]: {
-    //     "format": "rgb10a2unorm",
+    //     "format": "rgba16float",
     //     "label": "GBuffer normal",
     //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     // },
-    [E_GBufferNames.RMAO]: {
-        "format": "rgba8unorm",
-        "label": "GBuffer RMAO",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [E_GBufferNames.worldPosition]: {
-        "format": "rgba32float",
-        "label": "GBuffer worldPosition",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [E_GBufferNames.albedo]: {
-        "format": "rgba8unorm",
-        "label": "GBuffer albedo",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [E_GBufferNames.emissiveIntensity]: {
-        "format": "rgba8unorm",
-        "label": "GBuffer albedo",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
+    // [E_GBufferNames.RMAO]: {
+    //     "format": "rgba8unorm",
+    //     "label": "GBuffer RMAO",
+    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    // },
+    // [E_GBufferNames.worldPosition]: {
+    //     "format": "rgba32float",
+    //     "label": "GBuffer worldPosition",
+    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    // },
+    // [E_GBufferNames.albedo]: {
+    //     "format": "rgba8unorm",
+    //     "label": "GBuffer albedo",
+    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    // },
+    // [E_GBufferNames.emissiveIntensity]: {
+    //     "format": "rgba8unorm",
+    //     "label": "GBuffer albedo",
+    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    // },
 
     [E_GBufferNames.pbr]: {
         "format": "rgba32uint",

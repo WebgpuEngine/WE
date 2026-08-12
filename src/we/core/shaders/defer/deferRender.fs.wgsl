@@ -14,10 +14,10 @@ struct st_camera_invertvp_position {
 @group(1) @binding(0) var u_colorTexture: texture_2d<f32>;
 // @group(1) @binding(1) var u_idTexture: texture_2d<f32>;
 @group(1) @binding(1) var u_normalTexture: texture_2d<f32>;
-@group(1) @binding(2) var u_RMAOTexture: texture_2d<f32>;
-@group(1) @binding(3) var u_worldPositionTexture: texture_2d<f32>;
-@group(1) @binding(4) var u_albedoTexture: texture_2d<f32>;
-@group(1) @binding(5) var u_emissiveIntensityTexture: texture_2d<f32>;
+// @group(1) @binding(2) var u_RMAOTexture: texture_2d<f32>;
+// @group(1) @binding(3) var u_worldPositionTexture: texture_2d<f32>;
+// @group(1) @binding(4) var u_albedoTexture: texture_2d<f32>;
+// @group(1) @binding(5) var u_emissiveIntensityTexture: texture_2d<f32>;
 // @group(1) @binding(6) var u_Sampler : sampler; 
 @group(1) @binding(6) var u_depth_texture: texture_depth_2d;
 @group(1) @binding(7) var u_pbr_texture: texture_2d<u32>;
@@ -57,7 +57,7 @@ fn uv_and_depth_to_world_pos(uv: vec2<f32>, depth: f32, inv_vp: mat4x4<f32>) -> 
 
     var  color =textureLoad(u_colorTexture,uv,0);
     let  normal =textureLoad(u_normalTexture,uv,0);
-    let  RMAO =textureLoad(u_RMAOTexture,uv,0);
+    // let  RMAO =textureLoad(u_RMAOTexture,uv,0);
     // let  worldPosition =textureLoad(u_worldPositionTexture,uv,0);
     let depth = textureLoad(u_depth_texture,uv,0);
     let  worldPosition =uv_and_depth_to_world_pos(vec2f(uv)/vec2f(u_camera_VP_position.resolution),depth,u_camera_VP_position.invertvp);
@@ -122,6 +122,7 @@ fn uv_and_depth_to_world_pos(uv: vec2<f32>, depth: f32, inv_vp: mat4x4<f32>) -> 
 
     materialColor = calcLightAndShadow(
             u_camera_VP_position.position, 
+            // defaultCameraPosition,
             worldPosition.rgb,
             normal.rgb,
             // albedo.rgb,

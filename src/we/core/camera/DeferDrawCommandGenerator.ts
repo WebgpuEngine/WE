@@ -78,22 +78,22 @@ export class DeferDrawCommandGenerator {
                         binding: 1,
                         resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.normal).createView(),
                     },
-                    {
-                        binding: 2,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.RMAO).createView(),
-                    },
-                    {
-                        binding: 3,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.worldPosition).createView(),
-                    },
-                    {
-                        binding: 4,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
-                    },
-                    {
-                        binding: 5,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.emissiveIntensity).createView(),
-                    },
+                    // {
+                    //     binding: 2,
+                    //     resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.RMAO).createView(),
+                    // },
+                    // {
+                    //     binding: 3,
+                    //     resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.worldPosition).createView(),
+                    // },
+                    // {
+                    //     binding: 4,
+                    //     resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
+                    // },
+                    // {
+                    //     binding: 5,
+                    //     resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.emissiveIntensity).createView(),
+                    // },
                     {
                         binding: 6,
                         resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.depth).createView(),
@@ -126,38 +126,38 @@ export class DeferDrawCommandGenerator {
                         },
                         visibility: GPUShaderStage.FRAGMENT,
                     },
-                    {
-                        binding: 2,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 3,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 4,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 5,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
+                    // {
+                    //     binding: 2,
+                    //     texture: {
+                    //         sampleType: "unfilterable-float",
+                    //         viewDimension: "2d",
+                    //     },
+                    //     visibility: GPUShaderStage.FRAGMENT,
+                    // },
+                    // {
+                    //     binding: 3,
+                    //     texture: {
+                    //         sampleType: "unfilterable-float",
+                    //         viewDimension: "2d",
+                    //     },
+                    //     visibility: GPUShaderStage.FRAGMENT,
+                    // },
+                    // {
+                    //     binding: 4,
+                    //     texture: {
+                    //         sampleType: "unfilterable-float",
+                    //         viewDimension: "2d",
+                    //     },
+                    //     visibility: GPUShaderStage.FRAGMENT,
+                    // },
+                    // {
+                    //     binding: 5,
+                    //     texture: {
+                    //         sampleType: "unfilterable-float",
+                    //         viewDimension: "2d",
+                    //     },
+                    //     visibility: GPUShaderStage.FRAGMENT,
+                    // },
                     {
                         binding: 6,
                         texture: {

@@ -7,10 +7,10 @@
     // output.normal = vec4f(normal, 1);
     output.normal = vec4f(normal,1);
 
-    output.RMAO = vec4f(RMAO,emissiveRGB.b);
-    output.worldPosition = vec4f(worldPosition,bitcast<f32>(defer_4xU8InF16));
-    output.albedo = vec4f(albedo,emissiveRGB.r);
-    output.emissiveIntensity = vec4f(emissiveIntensity,emissiveRGB.g);
+    // output.RMAO = vec4f(RMAO,emissiveRGB.b);
+    // output.worldPosition = vec4f(worldPosition,bitcast<f32>(defer_4xU8InF16));
+    // output.albedo = vec4f(albedo,emissiveRGB.r);
+    // output.emissiveIntensity = vec4f(emissiveIntensity,emissiveRGB.g);
 
     let r_m_ao_materialkind=encode_vec3f_and_u8_to_u32(vec3f(roughness, metallic, ao), materialKind);
     let albedo_acceptlight=encode_vec3f_and_u8_to_u32(albedo, acceptlight);
