@@ -35,6 +35,16 @@ struct st_camera_invertvp_position {
 #includeFile "math/random.wgsl"
 
 
+fn uv_and_depth_to_world_pos(uv: vec2<f32>, depth: f32, inv_vp: mat4x4<f32>) -> vec3<f32> {
+    // UV[0,1] → NDC[-1,1]
+    let ndc_x = 2.0 * uv.x - 1.0;
+    let ndc_y = 1.0 - 2.0 * uv.y;
+    let ndc = vec4<f32>(ndc_x, ndc_y, depth, 1.0);
+    
+    let world_hom = inv_vp * ndc;
+    // 齐次除法，还原笛卡尔坐标
+    return world_hom.xyz / world_hom.w;
+}
 
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
     init_system_fs();   
@@ -48,7 +58,9 @@ struct st_camera_invertvp_position {
     var  color =textureLoad(u_colorTexture,uv,0);
     let  normal =textureLoad(u_normalTexture,uv,0);
     let  RMAO =textureLoad(u_RMAOTexture,uv,0);
-    let  worldPosition =textureLoad(u_worldPositionTexture,uv,0);
+    // let  worldPosition =textureLoad(u_worldPositionTexture,uv,0);
+    let depth = textureLoad(u_depth_texture,uv,0);
+    let  worldPosition =uv_and_depth_to_world_pos(vec2f(uv)/vec2f(u_camera_VP_position.resolution),depth,u_camera_VP_position.invertvp);
 
     let  roughness:f32 =decode_u8_to_f32(pbr_r.r);
     let  metallic:f32 = decode_u8_to_f32(pbr_r.g);//error

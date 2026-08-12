@@ -77,7 +77,7 @@ export class DirectionalLight extends BaseLight {
 
                 //todo,20250124,四至这里目前先简单的写成固定的sphere
                 //todo，后期改为视锥体中所有boundingbox的聚会的boudingbox或boudingsphere
-                const projectionMatrix = mat4.ortho(
+                let projectionMatrix = mat4.ortho(
                     p0[0] - sphere.radius - this.epsilon,
                     p0[0] + sphere.radius + this.epsilon,
 
@@ -87,7 +87,15 @@ export class DirectionalLight extends BaseLight {
                     p0[2] - sphere.radius - this.epsilon,
                     p0[2] + sphere.radius + this.epsilon
                 );
-
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    projectionMatrix = mat4.multiply(reversedZ, projectionMatrix);
+                }
 
                 //todo,20250114,四至与box3的关系随方向光的vec3而变化，这里目前先简单的写成固定的box3
                 //  const projectionMatrix = mat4.ortho(-10, 10, -10, 10, -10, 10);//ok

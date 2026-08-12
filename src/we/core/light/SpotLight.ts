@@ -155,6 +155,15 @@ export class SpotLight extends BaseLight {
                 //p0 sphere 原点
                 let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
                 projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2.1, 1, 0.25, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 // const MVP = mat4.multiply(projectionMatrix, matrix);
                 return [MVP];

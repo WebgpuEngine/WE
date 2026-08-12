@@ -10,9 +10,9 @@
     var worldPosition = vec4f(world_matrix[attributes.instanceIndex*2+0] * vec4f(position, 1.0));
     vsOutput.worldPosition = worldPosition.xyz / worldPosition.w;
     //instanc，14位，16384
-    vsOutput.entityID = attributes.instanceIndex +  node_id +  stage_id;
+    vsOutput.entityID = attributes.instanceIndex +  node_id +  stage_id;//20260812
     //position , uv,normal,color不一定有,需要的DCG的反射location进行确认与替换
-    vsOutput.position = matrix_z * VP *  vec4f(worldPosition.xyz, 1.0);
+    vsOutput.position =  VP *  vec4f(worldPosition.xyz, 1.0);
     // vsOutput.position = matrix_z * VP *  vec4f(worldPosition.xyz, 1.0);
     //vsOutput.position = matrix_z * projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[attributes.instanceIndex] * vec4f(position, 1.0);
     vsOutput.uv = uv;

@@ -79,8 +79,17 @@ export class PerspectiveCamera extends BaseCamera {
         let aspect = this.scene.aspect;
         this.inpuValues.aspect = aspect;
 
+
         this.projectionMatrix = mat4.perspective(this.inpuValues.fov, aspect, this.inpuValues.near, this.inpuValues.far);
-        // console.log(this.projectionMatrix)
+        if (this.scene.reversedZ.isReversedZ) {
+            let reversedZ = mat4.create(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, -1.0, 0.0,
+                0.0, 0.0, 1.0, 1.0
+            )
+            this.projectionMatrix = mat4.multiply(reversedZ, this.projectionMatrix);
+        }        // console.log(this.projectionMatrix)
         this.updateBoundingBox();
     }
 

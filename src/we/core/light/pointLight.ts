@@ -87,7 +87,7 @@ export class PointLight extends BaseLight {
             }
             let far = this.scene.cameraManager.defaultCamera.inpuValues.far;
             // let far = 0;
-            let near =0.25;//this.epsilon;
+            let near = 0.25;//this.epsilon;
             if (this.inputValues.distance && this.inputValues.distance != 0) {
                 far = this.inputValues.distance!;
             }
@@ -129,6 +129,15 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 // console.log(projectionMatrix)
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
@@ -160,6 +169,15 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -191,6 +209,15 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -221,6 +248,15 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -251,6 +287,15 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -281,6 +326,15 @@ export class PointLight extends BaseLight {
                 vec3.copy(upDir, up);
 
                 const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
+                if (this.scene.reversedZ.isReversedZ) {
+                    let reversedZ = mat4.create(
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, -1.0, 0.0,
+                        0.0, 0.0, 1.0, 1.0
+                    )
+                    mat4.multiply(reversedZ, projectionMatrix, projectionMatrix);
+                }
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }

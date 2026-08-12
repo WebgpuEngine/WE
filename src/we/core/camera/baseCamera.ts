@@ -703,16 +703,7 @@ export abstract class BaseCamera extends NodeObject {
   getInverseVP(): Mat4 {
     let invertProjectionMatrix = mat4.invert(this.projectionMatrix);
     let invertVP = mat4.multiply(this.viewMatrix, invertProjectionMatrix);
-    if (this.scene.reversedZ.isReversedZ) {
-      let reversedZ = mat4.create(
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, -1.0, 1.0,
-        0.0, 0.0, 0.0, 1.0
-      )
-      // reversedZ = mat4.invert(reversedZ);
-      mat4.multiply( reversedZ,invertVP);
-    }
+
     return invertVP;
   }
 

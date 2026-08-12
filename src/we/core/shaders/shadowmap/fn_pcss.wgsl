@@ -76,7 +76,9 @@ fn getShadowBias(c: f32, filterRadiusUV: f32, normal: vec3f, lightDirection: vec
 }
 //计算阴影可见度
 fn shadowMapVisibilityPCSS(onelight:  st_light, shadow_map_index:i32,position: vec3f, normal: vec3f, biasC: f32) -> f32 {
-    var posFromLight =matrix_z* u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
+    // var posFromLight =matrix_z* u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
+    //20260812 移除 matrix_z
+    var posFromLight = u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
      //posFromLight =posFromLight/posFromLight.w;
     if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){      
         //w值为0或过小，不进行除法
@@ -137,7 +139,7 @@ fn shadowMapVisibilityPCSS(onelight:  st_light, shadow_map_index:i32,position: v
 //PCF阴影可见度
 fn shadowMapVisibilityPCF(onelight:  st_light,shadow_map_index:i32, position: vec3f, normal: vec3f, biasC: f32) -> f32 {
     var bias = max(0.005 * (1.0 - dot(normal, onelight.direction)), 0.005);
-    var posFromLight =matrix_z* u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
+    var posFromLight = u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
     if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){       //posFromLight =posFromLight/posFromLight.w;
     }
     else{
@@ -168,7 +170,7 @@ fn shadowMapVisibilityPCF(onelight:  st_light,shadow_map_index:i32, position: ve
 //3x3 PCF阴影可见度
 fn shadowMapVisibilityPCF_3x3(onelight:  st_light,shadow_map_index:i32, position: vec3f, normal: vec3f) -> f32 {
     var bias =0.007;// max(0.05 * (1.0 - dot(normal, onelight.direction)), 0.005);
-    var posFromLight =matrix_z* u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
+    var posFromLight = u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
      if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){
        //posFromLight =posFromLight/posFromLight.w;
     }
@@ -199,7 +201,7 @@ fn shadowMapVisibilityPCF_3x3(onelight:  st_light,shadow_map_index:i32, position
 }
 //硬阴影可见度
 fn shadowMapVisibilityHard(onelight:  st_light,shadow_map_index:i32, position: vec3f, normal: vec3f) -> f32 {
-    var posFromLight =matrix_z* u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
+    var posFromLight = u_shadowmap_matrix[shadow_map_index].VP * vec4(position, 1.0);    //光源视界的位置
     //var posFromLight =matrix_z* u_shadowmap_matrix[onelight.shadow_map_array_index].VP * vec4(position, 1.0);    //光源视界的位置
     if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){     // posFromLight =posFromLight/posFromLight.w;
     }
@@ -246,7 +248,9 @@ fn checkPixelInShadowRangOfPointLight(pixelWorldPosition : vec3f, onelight :  st
     var index = -1;
     for (var i : i32 = 0; i <6; i = i + 1)
     { 
-        var posFromLight = matrix_z * u_shadowmap_matrix[onelight.shadow_map_array_index+i].VP * vec4(pixelWorldPosition, 1.0);  //光源视界的位置
+        //20260812 移除 matrix_z
+        var posFromLight =  u_shadowmap_matrix[onelight.shadow_map_array_index+i].VP * vec4(pixelWorldPosition, 1.0);  //光源视界的位置
+        // var posFromLight = matrix_z * u_shadowmap_matrix[onelight.shadow_map_array_index+i].VP * vec4(pixelWorldPosition, 1.0);  //光源视界的位置
         if(posFromLight.w < 0.000001 && posFromLight.w > -0.000001)
         {           //posFromLight =posFromLight/posFromLight.w;
         }

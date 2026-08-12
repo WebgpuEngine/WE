@@ -47,8 +47,16 @@ export class OrthographicCamera extends BaseCamera {
         // let left = centerX - baseViewW / 2;
         // let near = this.inpuValues.near;
         // let far = this.inpuValues.far;
-
         this.projectionMatrix = mat4.ortho(this.inpuValues.left, this.inpuValues.right, bottom, top, this.inpuValues.near, this.inpuValues.far);
+        if (this.scene.reversedZ.isReversedZ) {
+            let reversedZ = mat4.create(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, -1.0, 0.0,
+                0.0, 0.0, 1.0, 1.0
+            )
+            this.projectionMatrix = mat4.multiply(reversedZ, this.projectionMatrix);
+        }
         // console.log(this.projectionMatrix)
         this.updateBoundingBox();
 
