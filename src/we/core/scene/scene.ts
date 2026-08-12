@@ -156,7 +156,7 @@ export class Scene {
      * 2、有初始化参数可用申请限制，todo；
     */
     webGPULimits: Record<string, number> = {
-        maxColorAttachmentBytesPerSample: 64,
+        maxColorAttachmentBytesPerSample: 128,//64,
     }
     /**
      * depth: 配套finalTarget的深度纹理， 为了在DC中的RAW模式中可以使用深度而设置的

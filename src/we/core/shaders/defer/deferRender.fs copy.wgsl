@@ -5,11 +5,6 @@
 // #includeFile "graphic/ibl/struct_ibl.wgsl"
 #includeFile "graphic/ibl/ibl_fn.wgsl"
 
-struct st_camera_invertvp_position {
-    position:vec3f,
-    invertvp:mat4x4f,
-    resolution:vec2u,
-}
 
 @group(1) @binding(0) var u_colorTexture: texture_2d<f32>;
 // @group(1) @binding(1) var u_idTexture: texture_2d<f32>;
@@ -19,10 +14,6 @@ struct st_camera_invertvp_position {
 @group(1) @binding(4) var u_albedoTexture: texture_2d<f32>;
 @group(1) @binding(5) var u_emissiveIntensityTexture: texture_2d<f32>;
 // @group(1) @binding(6) var u_Sampler : sampler; 
-@group(1) @binding(6) var u_depth_texture: texture_depth_2d;
-@group(1) @binding(7) var u_pbr_texture: texture_2d<u32>;
-@group(1) @binding(8) var<uniform> u_camera_VP_position: st_camera_invertvp_position;
-
 
 #includeFile "system/structOfCamera.wgsl" 
 #includeFile "system/system.wgsl"
@@ -39,49 +30,32 @@ struct st_camera_invertvp_position {
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
     init_system_fs();   
     let uv =vec2i(floor(pos.xy));
-    let pbr_data=textureLoad(u_pbr_texture,uv,0);   
-    let pbr_r:vec4u = decode_u32_to_u8x4(pbr_data.r);
-    let pbr_g:vec4u = decode_u32_to_u8x4(pbr_data.g);
-    let pbr_b:vec4u = decode_u32_to_u8x4(pbr_data.b);
-    let pbr_a:vec4u = decode_u32_to_u8x4(pbr_data.a);
-
     var  color =textureLoad(u_colorTexture,uv,0);
     let  normal =textureLoad(u_normalTexture,uv,0);
     let  RMAO =textureLoad(u_RMAOTexture,uv,0);
     let  worldPosition =textureLoad(u_worldPositionTexture,uv,0);
+    let  albedo =textureLoad(u_albedoTexture,uv,0);
 
-    let  roughness:f32 =decode_u8_to_f32(pbr_r.r);
-    let  metallic:f32 = decode_u8_to_f32(pbr_r.g);//error
-    let  ao:f32 = decode_u8_to_f32(pbr_r.b);
-    let  materialKind:u32=pbr_r.a;
-    // let  roughness = RMAO.r;
-    // let  metallic = RMAO.g;
-    // let  ao = RMAO.b;
-   
-    // let  albedo =textureLoad(u_albedoTexture,uv,0);
-    let albedo_pbr:vec3f= vec3f(decode_u8_to_f32(pbr_g.r), decode_u8_to_f32(pbr_g.g), decode_u8_to_f32(pbr_g.b) );//ok
-    let acceptlight:u32=pbr_g.a;
-
-
-
+    let  roughness = RMAO.r;
+    let  metallic = RMAO.g;
+    let  ao = RMAO.b;
+    let  emissiveIntensity = textureLoad(u_emissiveIntensityTexture,uv,0);
     
-    let acceptShadow:u32=pbr_b.a;
-    let emissiveRGB:vec3f= vec3f(decode_u8_to_f32(pbr_b.r), decode_u8_to_f32(pbr_b.g), decode_u8_to_f32(pbr_b.b) );
-    // var  emissiveRGB = vec3f(0.0);
-    // emissiveRGB.r = albedo.a;
-    // emissiveRGB.g = emissiveIntensity.a;
-    // emissiveRGB.b = RMAO.a;
+    var  emissiveRGB = vec3f(0.0);
+    emissiveRGB.r = albedo.a;
+    emissiveRGB.g = emissiveIntensity.a;
+    emissiveRGB.b = RMAO.a;
 
-    let shadowKind:u32=pbr_a.a;
-    let emissiveIntensity:vec3f= vec3f(decode_u8_to_f32(pbr_a.r), decode_u8_to_f32(pbr_a.g), decode_u8_to_f32(pbr_a.b) );
-    // let  emissiveIntensity = textureLoad(u_emissiveIntensityTexture,uv,0);
-
-    // let defer_u32=bitcast<u32>(worldPosition.a);
-    // let defer_4xU8InF16 = decodeLightAndShadowFromU8bitToU8x4(defer_u32);
-    // let acceptShadow=defer_4xU8InF16.r;
-    // let shadowKind=defer_4xU8InF16.g;
-    // let acceptlight=defer_4xU8InF16.b;
-
+    let defer_u32=bitcast<u32>(worldPosition.a);
+    let defer_4xU8InF16 = decodeLightAndShadowFromU8bitToU8x4(defer_u32);
+    let acceptShadow=defer_4xU8InF16.r;
+    let shadowKind=defer_4xU8InF16.g;
+    let acceptlight=defer_4xU8InF16.b;
+    let materialKind=defer_4xU8InF16.a;
+    // let acceptShadow=0;//defer_4xU8InF16.r;
+    // let shadowKind=0;//defer_4xU8InF16.g;
+    // let acceptlight=1u;//defer_4xU8InF16.b;
+    // let materialKind=1u;//defer_4xU8InF16.a;
 
     var materialColor = vec4f(.0);
     // materialColor = calcLightAndShadowOfPBR(
@@ -109,11 +83,9 @@ struct st_camera_invertvp_position {
     //         );
 
     materialColor = calcLightAndShadow(
-            u_camera_VP_position.position, 
             worldPosition.rgb,
             normal.rgb,
-            // albedo.rgb,
-            albedo_pbr,
+            albedo.rgb,
             metallic,
             roughness,
             ao,
@@ -148,7 +120,6 @@ struct st_camera_invertvp_position {
 }
 
 fn calcLightAndShadow(
-    default_camera_position: vec3f,
     worldPosition : vec3f,
     normal : vec3f,
     albedo : vec3f,
@@ -168,7 +139,7 @@ fn calcLightAndShadow(
 
     //PBR 光照模型
     let F0 = vec3(0.04);
-    let wo = normalize(default_camera_position - worldPosition);
+    let wo = normalize(defaultCameraPosition - worldPosition);
     var Lo = vec3(0.0);
     //计算光照模型
     if(u_lights.lightNumber >0)
@@ -230,15 +201,15 @@ fn calcLightAndShadow(
                 var inPointShadow = false;                      //是否为点光源的阴影
                 if (onelight.kind ==0)
                 {
-                    onelightPhongColor = phongColorOfDirectionalLight(worldPosition, normal, onelight, default_camera_position,inSpecularColor,roughness,shininess,metallic);
+                    onelightPhongColor = phongColorOfDirectionalLight(worldPosition, normal, onelight, defaultCameraPosition,inSpecularColor,roughness,shininess,metallic);
                 }
                 else if (onelight.kind ==1)
                 {
-                    onelightPhongColor = phongColorOfPointLight(worldPosition, normal, onelight, default_camera_position,inSpecularColor,roughness,shininess,metallic);
+                    onelightPhongColor = phongColorOfPointLight(worldPosition, normal, onelight, defaultCameraPosition,inSpecularColor,roughness,shininess,metallic);
                 }
                 else if (onelight.kind ==2)
                 {
-                    onelightPhongColor = phongColorOfSpotLight(worldPosition, normal, onelight, default_camera_position,inSpecularColor,roughness,shininess,metallic);
+                    onelightPhongColor = phongColorOfSpotLight(worldPosition, normal, onelight, defaultCameraPosition,inSpecularColor,roughness,shininess,metallic);
                 }    
                 colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
                 colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];

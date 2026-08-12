@@ -24,7 +24,7 @@
     var acceptShadow:u32 = 1;
     var shadowKind:u32 = 0;
     var acceptlight:u32 = 1;
-    var materialKind:u32 = 2;
+    var materialKind:u32 = 0;
     var defer_4xU8InF16:u32 = 0;
     //displace map
     var depthmap:f32 = 0;

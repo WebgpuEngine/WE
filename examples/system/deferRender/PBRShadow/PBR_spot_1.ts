@@ -93,7 +93,7 @@ let onelight = new SpotLight({
   isLookAt: true,
   position: [0, 0, 0],
   // position: [3, 3, 3],
-  intensity: 25.0,
+  intensity: 35.0,
   // intensity: 55.0,//没有进行tone mapping 之前
   // angle: 25 / 180 * Math.PI,
   // angleOut: 30 / 180 * Math.PI,

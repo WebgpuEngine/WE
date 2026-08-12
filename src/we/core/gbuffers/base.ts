@@ -1,4 +1,4 @@
-import { V_weDepthFormat,  V_weLinearFormat } from "../base/coreDefine"
+import { V_weDepthFormat, V_weLinearFormat } from "../base/coreDefine"
 import { T_uniformGroups } from "../command/base"
 
 /**GBuffer的 GPUTexture集合 
@@ -22,13 +22,13 @@ export enum E_GBufferNames {
     color = "color",
     id = "id",
     normal = "normal",
-    // worldPosition = "worldPosition",
+    worldPosition = "worldPosition",
     // // X = "X",
     // // Y = "Y",
     // // Z = "Z",
-    // RMAO = "RMAO",
-    // albedo = "albedo",
-    // emissiveIntensity = "emissiveIntensity",
+    RMAO = "RMAO",
+    albedo = "albedo",
+    emissiveIntensity = "emissiveIntensity",
     /**PBR GBuffer 
      * 1、取消了worldPosition
      * 2、将RMAO、albedo、emissive、emissiveIntensity合并为一个通道
@@ -78,11 +78,38 @@ export var V_ForwardGBufferNames: I_GBufferName = {
         "label": "GBuffer normal",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
+    // [E_GBufferNames.normal]: {
+    //     "format": "rgb10a2unorm",
+    //     "label": "GBuffer normal",
+    //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    // },
+    [E_GBufferNames.RMAO]: {
+        "format": "rgba8unorm",
+        "label": "GBuffer RMAO",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [E_GBufferNames.worldPosition]: {
+        "format": "rgba32float",
+        "label": "GBuffer worldPosition",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [E_GBufferNames.albedo]: {
+        "format": "rgba8unorm",
+        "label": "GBuffer albedo",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [E_GBufferNames.emissiveIntensity]: {
+        "format": "rgba8unorm",
+        "label": "GBuffer albedo",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+
     [E_GBufferNames.pbr]: {
         "format": "rgba32uint",
         "label": "GBuffer pbr",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    }
+    },
+
 }
 
 // /**

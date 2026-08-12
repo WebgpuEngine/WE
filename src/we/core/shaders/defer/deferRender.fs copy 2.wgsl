@@ -11,17 +11,17 @@ struct st_camera_invertvp_position {
     resolution:vec2u,
 }
 
+
 @group(1) @binding(0) var u_colorTexture: texture_2d<f32>;
 // @group(1) @binding(1) var u_idTexture: texture_2d<f32>;
 @group(1) @binding(1) var u_normalTexture: texture_2d<f32>;
-@group(1) @binding(2) var u_RMAOTexture: texture_2d<f32>;
-@group(1) @binding(3) var u_worldPositionTexture: texture_2d<f32>;
-@group(1) @binding(4) var u_albedoTexture: texture_2d<f32>;
-@group(1) @binding(5) var u_emissiveIntensityTexture: texture_2d<f32>;
-// @group(1) @binding(6) var u_Sampler : sampler; 
-@group(1) @binding(6) var u_depth_texture: texture_depth_2d;
-@group(1) @binding(7) var u_pbr_texture: texture_2d<u32>;
-@group(1) @binding(8) var<uniform> u_camera_VP_position: st_camera_invertvp_position;
+@group(1) @binding(2) var u_depth_texture: texture_depth_2d;
+@group(1) @binding(3) var u_pbr_texture: texture_2d<u32>;
+@group(1) @binding(4) var<uniform> u_camera_VP_position: st_camera_invertvp_position;
+@group(1) @binding(5) var u_worldPositionTexture: texture_2d<f32>;
+@group(1) @binding(6) var u_albedoTexture: texture_2d<f32>;
+@group(1) @binding(7) var u_RMAOTexture: texture_2d<f32>;
+
 
 
 #includeFile "system/structOfCamera.wgsl" 
@@ -34,54 +34,46 @@ struct st_camera_invertvp_position {
 // #includeFile "math/TBN.wgsl"
 #includeFile "math/random.wgsl"
 
+fn uv_and_depth_to_world_pos(uv: vec2<f32>, depth: f32, inv_vp: mat4x4<f32>) -> vec3<f32> {
+    let worldposition = inv_vp * vec4<f32>(vec3<f32>(uv * vec2<f32>(2.0, -2.0) - vec2<f32>(1.0, -1.0), depth), 1.0);
+    return worldposition.xyz / worldposition.w ;
+}
 
 
 @fragment fn fs( @builtin(position) pos : vec4f) ->  @location(0) vec4f {
     init_system_fs();   
     let uv =vec2i(floor(pos.xy));
+    let depth = textureLoad(u_depth_texture,uv,0);
+    var  color =textureLoad(u_colorTexture,uv,0);
+    let  normal =textureLoad(u_normalTexture,uv,0);
+    // let  worldPosition =uv_and_depth_to_world_pos(vec2f(uv)/vec2f(u_camera_VP_position.resolution),depth,u_camera_VP_position.invertvp);
+    let  worldPosition =textureLoad(u_worldPositionTexture,uv,0);
+
     let pbr_data=textureLoad(u_pbr_texture,uv,0);   
     let pbr_r:vec4u = decode_u32_to_u8x4(pbr_data.r);
     let pbr_g:vec4u = decode_u32_to_u8x4(pbr_data.g);
     let pbr_b:vec4u = decode_u32_to_u8x4(pbr_data.b);
     let pbr_a:vec4u = decode_u32_to_u8x4(pbr_data.a);
 
-    var  color =textureLoad(u_colorTexture,uv,0);
-    let  normal =textureLoad(u_normalTexture,uv,0);
-    let  RMAO =textureLoad(u_RMAOTexture,uv,0);
-    let  worldPosition =textureLoad(u_worldPositionTexture,uv,0);
+    // let  RMAO =textureLoad(u_RMAOTexture,uv,0);
+    // let  albedo =textureLoad(u_albedoTexture,uv,0);
 
     let  roughness:f32 =decode_u8_to_f32(pbr_r.r);
-    let  metallic:f32 = decode_u8_to_f32(pbr_r.g);//error
-    let  ao:f32 = decode_u8_to_f32(pbr_r.b);
+    let  metallic:f32 = decode_u8_to_f32(pbr_g.g);
+    let  ao:f32 = decode_u8_to_f32(pbr_b.b);
     let  materialKind:u32=pbr_r.a;
-    // let  roughness = RMAO.r;
-    // let  metallic = RMAO.g;
-    // let  ao = RMAO.b;
-   
+
+    let albedo:vec3f= vec3f(decode_u8_to_f32(pbr_g.r), decode_u8_to_f32(pbr_g.g), decode_u8_to_f32(pbr_g.b) );
     // let  albedo =textureLoad(u_albedoTexture,uv,0);
-    let albedo_pbr:vec3f= vec3f(decode_u8_to_f32(pbr_g.r), decode_u8_to_f32(pbr_g.g), decode_u8_to_f32(pbr_g.b) );//ok
+
     let acceptlight:u32=pbr_g.a;
 
-
-
-    
-    let acceptShadow:u32=pbr_b.a;
     let emissiveRGB:vec3f= vec3f(decode_u8_to_f32(pbr_b.r), decode_u8_to_f32(pbr_b.g), decode_u8_to_f32(pbr_b.b) );
-    // var  emissiveRGB = vec3f(0.0);
-    // emissiveRGB.r = albedo.a;
-    // emissiveRGB.g = emissiveIntensity.a;
-    // emissiveRGB.b = RMAO.a;
+    let acceptShadow:u32=pbr_b.a;
 
-    let shadowKind:u32=pbr_a.a;
+
     let emissiveIntensity:vec3f= vec3f(decode_u8_to_f32(pbr_a.r), decode_u8_to_f32(pbr_a.g), decode_u8_to_f32(pbr_a.b) );
-    // let  emissiveIntensity = textureLoad(u_emissiveIntensityTexture,uv,0);
-
-    // let defer_u32=bitcast<u32>(worldPosition.a);
-    // let defer_4xU8InF16 = decodeLightAndShadowFromU8bitToU8x4(defer_u32);
-    // let acceptShadow=defer_4xU8InF16.r;
-    // let shadowKind=defer_4xU8InF16.g;
-    // let acceptlight=defer_4xU8InF16.b;
-
+    let shadowKind:u32=pbr_a.a;
 
     var materialColor = vec4f(.0);
     // materialColor = calcLightAndShadowOfPBR(
@@ -94,8 +86,6 @@ struct st_camera_invertvp_position {
     //         color,//vec3f(1),albedo的颜色已经在color中，不需要再乘以albedo
     //         emissiveRGB,
     //         emissiveIntensity.rgb);
-
-
     // materialColor = calcLightAndShadowOfPhong(
     //         worldPosition.rgb,
     //         normal.rgb,
@@ -109,11 +99,11 @@ struct st_camera_invertvp_position {
     //         );
 
     materialColor = calcLightAndShadow(
-            u_camera_VP_position.position, 
+        defaultCameraPosition,
+        // u_camera_VP_position.position,  
             worldPosition.rgb,
             normal.rgb,
-            // albedo.rgb,
-            albedo_pbr,
+            albedo.rgb,
             metallic,
             roughness,
             ao,

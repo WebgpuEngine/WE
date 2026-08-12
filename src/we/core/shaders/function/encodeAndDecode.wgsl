@@ -10,20 +10,31 @@ fn encode_vec3f_and_u8_to_u32(rgb: vec3f, u8a: u32) -> u32 {
     let packedU32 = (r << 24u) | (g << 16u) | (b << 8u) | a;
     return packedU32;
 }
-struct Vec3fAndU8 {
+struct st_Vec3fAndU8 {
     rgb: vec3f,
     a: u32}
-fn decode_u32_to_vec3f_and_u8(packedU32: u32) -> Vec3fAndU8 {
+fn decode_u32_to_vec3f_and_u8(packedU32: u32) -> st_Vec3fAndU8 {
     // 步骤1：从 u32 中拆分出四个 8 位通道（通过位运算）
     let r = (packedU32 >> 24u) & 0xFFu;  // 取高8位（r通道）
     let g = (packedU32 >> 16u) & 0xFFu;  // 取次高8位（g通道）
     let b = (packedU32 >> 8u) & 0xFFu;   // 取次低8位（b通道）
     let alpha_val = packedU32 & 0xFFu;   // 取低8位（a通道）
 
-    return Vec3fAndU8(
+    return st_Vec3fAndU8(
         vec3f(f32(r), f32(g), f32(b)) / 255.0,
         alpha_val
     );
+}
+fn decode_u32_to_u8x4(packedU32: u32) -> vec4u {
+    // 步骤1：从 u32 中拆分出四个 8 位通道（通过位运算）
+    let r = (packedU32 >> 24u) & 0xFFu;  // 取高8位（r通道）
+    let g = (packedU32 >> 16u) & 0xFFu;  // 取次高8位（g通道）
+    let b = (packedU32 >> 8u) & 0xFFu;   // 取次低8位（b通道）
+    let alpha_val = packedU32 & 0xFFu;   // 取低8位（a通道）
+    return vec4u(r, g, b, alpha_val);
+}
+fn decode_u8_to_f32(u8: u32) -> f32 {
+    return f32(u8) / 255.0;
 }
 
 //////////////////////////////////////////////////////////////////////////////

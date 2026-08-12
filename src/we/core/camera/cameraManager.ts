@@ -6,6 +6,7 @@ import { Clock } from "../scene/clock";
 import { E_renderPassName } from "../scene/renderManager";
 import { Scene } from "../scene/scene";
 import { BaseCamera } from "./baseCamera";
+import { CameraPositionAndInvertVP } from "./cameraPositionAndinvertVP";
 import { DeferDrawCommandGenerator } from "./DeferDrawCommandGenerator";
 import { OrthographicCamera } from "./orthographicCamera";
 import { PerspectiveCamera } from "./perspectiveCamera";
@@ -20,6 +21,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
     defaultCamera!: BaseCamera;
     /** GBuffer 管理器     */
     GBufferManager: GBuffers;
+    cameraPositionAndinvertVP: CameraPositionAndInvertVP;
 
     MSAA: boolean = false;
     /**      DrawCommandGenerator     */
@@ -36,6 +38,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         super(input.scene);
         this.deferRender = this.scene.renderMode == "deferRender" ? true : false;
         this.MSAA = this.scene.MSAA;
+        this.cameraPositionAndinvertVP = new CameraPositionAndInvertVP(this, this.scene.device);
         this.GBufferManager = new GBuffers(this, this.scene.device);
         // this.DCG = new DrawCommandGenerator({ scene: this.scene, parent: this, });
         this.deferDCG = new DeferDrawCommandGenerator({ scene: this.scene, parent: this, });
@@ -66,6 +69,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
         }
         //1、push到cameras数组
         this.list.push(camera);
+        this.cameraPositionAndinvertVP.add(camera);
         //2、初始化GBuffer
         let gbuffersOption: IV_GBuffer = {
             device: this.device,
@@ -109,6 +113,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
      * @param camera 
      */
     remove(camera: BaseCamera) {
+        this.cameraPositionAndinvertVP.remove(camera);
         let index = this.list.indexOf(camera);
         if (index != -1) {
             this.list.splice(index, 1);
@@ -136,6 +141,7 @@ export class CameraManager extends ECSManager<BaseCamera> {
      */
     async update(clock: Clock) {
         this.checkDestroy();
+        this.cameraPositionAndinvertVP.update();
         for (let camera of this.list) {
             let UUID = camera.UUID;
             for (let perToneMappingCommand of this.toneMappingDCG.dcArray[UUID].toneMapping) {

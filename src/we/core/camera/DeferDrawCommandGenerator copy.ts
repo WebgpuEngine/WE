@@ -80,32 +80,27 @@ export class DeferDrawCommandGenerator {
                     },
                     {
                         binding: 2,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.RMAO).createView(),
-                    },
-                    {
-                        binding: 3,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.worldPosition).createView(),
-                    },
-                    {
-                        binding: 4,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
-                    },
-                    {
-                        binding: 5,
-                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.emissiveIntensity).createView(),
-                    },
-                    {
-                        binding: 6,
                         resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.depth).createView(),
                     },
                     {
-                        binding: 7,
+                        binding: 3,
                         resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.pbr).createView(),
                     },
-
                     {
-                        binding: 8,
+                        binding: 4,
                         resource: cameraPositionAndinvertVPmatrixGPUBuffer,
+                    },
+                    {
+                        binding: 5,
+                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.worldPosition).createView(),
+                    },
+                    {
+                        binding: 6,
+                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.albedo).createView(),
+                    },
+                    {
+                        binding: 7,
+                        resource: this.parent.getGBufferTextureByUUID(UUID, E_GBufferNames.RMAO).createView(),
                     },
                 ];//参见deferRender.fs.wgsl
             let uniform1_entryLayout: GPUBindGroupLayoutEntry[] =
@@ -129,7 +124,7 @@ export class DeferDrawCommandGenerator {
                     {
                         binding: 2,
                         texture: {
-                            sampleType: "unfilterable-float",
+                            sampleType: "depth",
                             viewDimension: "2d",
                         },
                         visibility: GPUShaderStage.FRAGMENT,
@@ -137,16 +132,15 @@ export class DeferDrawCommandGenerator {
                     {
                         binding: 3,
                         texture: {
-                            sampleType: "unfilterable-float",
+                            sampleType: "uint",
                             viewDimension: "2d",
                         },
                         visibility: GPUShaderStage.FRAGMENT,
                     },
                     {
                         binding: 4,
-                        texture: {
-                            sampleType: "unfilterable-float",
-                            viewDimension: "2d",
+                        buffer: {
+                            type: "uniform",
                         },
                         visibility: GPUShaderStage.FRAGMENT,
                     },
@@ -161,7 +155,7 @@ export class DeferDrawCommandGenerator {
                     {
                         binding: 6,
                         texture: {
-                            sampleType: "depth",
+                            sampleType: "unfilterable-float",
                             viewDimension: "2d",
                         },
                         visibility: GPUShaderStage.FRAGMENT,
@@ -169,15 +163,8 @@ export class DeferDrawCommandGenerator {
                     {
                         binding: 7,
                         texture: {
-                            sampleType: "uint",
+                            sampleType: "unfilterable-float",
                             viewDimension: "2d",
-                        },
-                        visibility: GPUShaderStage.FRAGMENT,
-                    },
-                    {
-                        binding: 8,
-                        buffer: {
-                            type: "uniform",
                         },
                         visibility: GPUShaderStage.FRAGMENT,
                     },
