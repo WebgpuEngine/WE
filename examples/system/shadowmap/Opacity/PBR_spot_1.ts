@@ -12,7 +12,7 @@ import { PhongMaterial } from "../../../../src/we/core/material/phong/phongMater
 import { DirectionalLight } from "../../../../src/we/core/light/DirectionalLight";
 import { PlaneGeometry } from "../../../../src/we/core/geometry/planeGeomertry";
 import { SpotLight } from "../../../../src/we/core/light/SpotLight";
-import { IV_PBRMaterial, PBRMaterial } from "../../../../src/we/core/material/PBR/PBRMaterial";
+import { IV_PBRMaterial, PBRMaterial, WePbrMaterial } from "../../../../src/we/core/material/PBR/PBRMaterial";
 
 declare global {
   interface Window {
@@ -128,7 +128,10 @@ let ballPBROption: IV_PBRMaterial = {
     roughness: { texture: { source: "/resource/PBR/marble-speckled-bl/marble-speckled-roughness.png" } },
   }
 }
-let ballpbrMaterial = new PBRMaterial(ballPBROption);
+// let ballpbrMaterial = new PBRMaterial(ballPBROption);
+// await  ballpbrMaterial.init(scene);
+let ballpbrMaterial = await WePbrMaterial(ballPBROption, scene);
+
 let inputMeshsphere: IV_MeshEntity = {
   name: "sphereMesh",
   attributes: {

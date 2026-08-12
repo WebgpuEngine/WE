@@ -1,14 +1,14 @@
 import { E_lifeState, weColor4, weColorToColorOfF32, weHexColor, weHexColorToColor3 } from "../../base/coreDefine";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
-import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
 import { Clock } from "../../scene/clock";
+import { Scene } from "../../scene/scene";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
 import { I_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import {
-  E_MaterialType, E_materialTypeForBindGroup, E_TextureType, I_materialBundleOutput,
+  E_MaterialType, E_materialTypeForBindGroup, E_TextureType, 
   IV_BaseStandardMaterial, materialAddBindGroupLayoutOfMSAA, materialAddBindGroupOfMSAA,
   materialAddGroupBindStringOfMSAA
 } from "../base";
@@ -36,7 +36,31 @@ export interface IV_PhongMaterial extends IV_BaseStandardMaterial {
    */
   roughness?: number,
 }
+/** phong材质初始化函数 
+ * 
+ * 1、材质有三种初始化方式：
+ * 
+ *    A、直接new 新材质；
+ *        new PhongMaterial(param)，然后通过entity进行初始化；(问题：纹理异步问题，如果有多个entity使用同一材质，会加载多个纹理)；
+ * 
+ *    B、 异步初始化材质；
+ *        let material = new PhongMaterial(param); 
+ *        await  material.init(scene);
+ *
+ *    C、使用本函数初始化材质；
+ *        let material = await WePhongMaterial(param, scene);
+ * 
+ * @param param PBR材质 init参数
+ * @param scene 场景
+ * @returns PBR材质
+*/
+export async function WePhongMaterial(param: IV_PhongMaterial, scene: Scene) {
+  let material = new PhongMaterial(param);
+  await material.init(scene);
+  return material;
+}
 
+/** phong材质 */
 export class PhongMaterial extends BaseStandardMaterial {
   updateSelf(clock: Clock): void {
     // throw new Error("Method not implemented.");

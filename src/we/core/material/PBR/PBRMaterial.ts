@@ -15,7 +15,6 @@ import {
     E_materialTypeForBindGroup,
     E_MaterialUniformKind,
     E_TextureType,
-    I_materialBundleOutput,
     I_MaterialUniformTextureBundle,
     IV_BaseMaterial,
     materialAddBindGroupLayoutOfMSAA,
@@ -26,13 +25,13 @@ import { BaseMaterial } from "../baseMaterial";
 import { I_pointerCreateParams } from "../../bufferBlock/pointer";
 import { E_BOLBufferType } from "../../bufferBlock/base";
 import { E_lifeState, weVec4 } from "../../base/coreDefine";
-import { BaseCamera } from "../../camera/baseCamera";
 import { T_uniformEntries } from "../../command/base";
 import { E_resourceKind } from "../../resources/resourcesGPU";
 import { Clock } from "../../scene/clock";
 import { E_TextureChannel, I_BaseTexture, isI_BaseTexture } from "../../texture/base";
 import { Texture } from "../../texture/texture";
 import { E_shaderRegisterAlianName } from "../../SHR/include";
+import { Scene } from "../../scene/scene";
 
 export interface I_TextureForPBR {
     data1?: number,//i32,data2.texCoord,alphaMod...
@@ -61,10 +60,36 @@ export interface IV_PBRMaterial extends IV_BaseMaterial {
         [E_TextureType.envMap]?: boolean,//string | I_EnvMap,
     },
 }
+/** PBR材质初始化函数 
+ * 
+ * 1、材质有三种初始化方式：
+ * 
+ *    A、直接new 新材质；
+ *        new PBRMaterial(param)，然后通过entity进行初始化；(问题：纹理异步问题，如果有多个entity使用同一材质，会加载多个纹理)；
+ * 
+ *    B、 异步初始化材质；
+ *        let material = new PBRMaterial(param); 
+ *        await  material.init(scene);
+ *
+ *    C、使用本函数初始化材质；
+ *        let material = await WePbrMaterial(param, scene);
+ * 
+ * @param param PBR材质 init参数
+ * @param scene 场景
+ * @returns PBR材质
+*/
+export async function WePbrMaterial(param: IV_PBRMaterial, scene: Scene) {
+    let material = new PBRMaterial(param);
+    await material.init(scene);
+    return material;
+}
+
+
 
 /** PBR材质支持的纹理类型，用于for中对于textures的遍历的index 类型定义（TS的keyof问题，JS不需要） */
 type vialidPBRTextureType = keyof IV_PBRMaterial["textures"];
 
+/** PBR材质 */
 export class PBRMaterial extends BaseMaterial {
     _writeUniformCommon(): void {
         // throw new Error("Method not implemented.");
