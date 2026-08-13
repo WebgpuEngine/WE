@@ -26,7 +26,7 @@ struct PBRUniformTexture{
     value: vec4f,//factor uniform value,按需匹配textureChannel适用
 }
 /**所有参数的统一化输入，判断参数来源，以进行统一控制流处理 */
-struct st_pbr_UniformInput{
+struct PBRUniformInput{
     albedo:PBRUniformTexture,   //u_texture_albedo, u_sampler_albedo
     metallic:PBRUniformTexture,  //u_texture_metallic, u_sampler_metallic
     roughness:PBRUniformTexture,  //u_texture_roughness, u_sampler_roughness
@@ -52,50 +52,15 @@ struct st_pbr_UniformInput{
     init_system_fs();   
     //占位符,统一工作流在这里处理
     // $PBR_Uniform
-    
-    // 判断UV使用的通道
     var uv_temp:vec2f=uv;
-    
-    //albedo
-    var albedo_uniform : vec4f = u_pbr_uniform.albedo.value;
-    if(u_pbr_uniform.albedo.kind == 1){//use texture albedo * (uniform albedo as factor)
-        // albedo_uniform *= u_pbr_uniform.albedo.value;
-        if(u_pbr_uniform.albedo.data1 == 1){        uv_temp = uv1;    }    else {        uv_temp = uv;    }
-         albedo_uniform = textureSample(u_texture_albedo,u_sampler_albedo,uv_temp);
-    }    
-    albedo=albedo_uniform.rgb;
-    
-    // 是否有color 设置
-    var color_uniform : vec4f = vec4f(0.0);
-    //判断color 类型
-    if(u_pbr_uniform.alpha.kind == 0){//use texture 
-        var uv_temp:vec2f=uv;
-        if(u_pbr_uniform.color.data1 == 1){        uv_temp = uv1;    }    else {        uv_temp = uv;    }
-         color_uniform = textureSample(u_texture_color, u_sampler_color, uv_temp);
-    }
-    else if(u_pbr_uniform.alpha.kind == 1){//use value data
-        color_uniform = u_pbr_uniform.color.value;
-    }
-    else if(u_pbr_uniform.alpha.kind == 2){//use vs data
-        color_uniform = vec4(fsInput.color,1.0);
-    }
-    // //color
-    // if(u_pbr_uniform.color.kind == 0){
-    //     color_uniform = u_pbr_uniform.color.value;
-    // }
-    // else if(u_pbr_uniform.color.kind == 1){//use texture color * (uniform color as factor)
-    //     // color_uniform *= u_pbr_uniform.color.value;//考虑的过于复杂，取消，直接使用纹理颜色（rgba）；2026058；
-    // }
-    // // else{ //} if(u_pbr_uniform.color.kind !=-1){
-    // //     materialColor = color_uniform;//这时是(0,0,0)
-    // // }
+    if(u_pbr_uniform.albedo.data1 == 1){        uv_temp = uv1;    }    else {        uv_temp = uv;    }
+    var albedo_uniform : vec4f = textureSample(u_texture_albedo,u_sampler_albedo,uv_temp);
+    if(u_pbr_uniform.color.data1 == 1){        uv_temp = uv1;    }    else {        uv_temp = uv;    }
+    var color_uniform : vec4f = textureSample(u_texture_color,u_sampler_color,uv_temp);
 
-
-
-
-    // 判断 alpha discard ,before early Z of hardware
+    // alpha discard ,before early Z of hardware
     if(u_pbr_uniform.alpha.kind == -1){//直接使用纹理（albedo或color）的alpha通道值
-        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data1  ==1){//有单独的color 纹理  ;alpha.data1=1(alphaTest ,MASK)
+        if(u_pbr_uniform.color.kind == 1 &&  u_pbr_uniform.alpha.data1  ==1){//有单独的color 纹理  ;alpha.data1=0(alphaTest ,MASK)
             // alphamap = color_uniform.a; 
             if(color_uniform.a <=  u_pbr_uniform.alpha.data2){
                 discard;
@@ -110,80 +75,27 @@ struct st_pbr_UniformInput{
         }
         // alphamap = 1;
         // alphamap = get_one_channel_value(alpha_uniform,u_pbr_uniform.alpha.texture_channel);//获得alpha通道值
-    }    
-
-    // 是否有alpha 设置
-    var alpha_uniform : vec4f = vec4f(0.0);
-    if(u_pbr_uniform.alpha.kind == 1){//use texture
-        var uv_temp:vec2f=uv;
-        if(u_pbr_uniform.alpha.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }   //20260813，这个应该是错误的   
-         alpha_uniform = textureSample(u_texture_alpha,u_sampler_alpha,uv_temp);
     }
-    else if(u_pbr_uniform.alpha.kind == 0){//use vs data
-        alpha_uniform = u_pbr_uniform.alpha.value;
-    }
-
-    // 是否有metallic 设置
-    var metallic_uniform : vec4f  = u_pbr_uniform.metallic.value;
-    if(u_pbr_uniform.metallic.kind == 1){//use texture metallic * (uniform metallic as factor)
-        if(u_pbr_uniform.metallic.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
-        metallic_uniform  = textureSample(u_texture_metallic,u_sampler_metallic,uv_temp);
-        // metallic_uniform *= u_pbr_uniform.metallic.value;
-    }
-        metallic=get_one_channel_value(metallic_uniform,u_pbr_uniform.metallic.texture_channel);
+    if(u_pbr_uniform.alpha.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
+    var alpha_uniform : vec4f = textureSample(u_texture_alpha,u_sampler_alpha,uv_temp);
 
 
-    //roughness
-    var roughness_uniform : vec4f =  u_pbr_uniform.roughness.value;
-    if(u_pbr_uniform.roughness.kind == 1){//use texture roughness * (uniform roughness as factor)
-        if(u_pbr_uniform.roughness.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
-         roughness_uniform  = textureSample(u_texture_roughness,u_sampler_roughness,uv_temp);
-        // roughness_uniform *= u_pbr_uniform.roughness.value;
-    }
-    roughness=get_one_channel_value(roughness_uniform,u_pbr_uniform.roughness.texture_channel);    
+    if(u_pbr_uniform.metallic.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
+    var metallic_uniform : vec4f = textureSample(u_texture_metallic,u_sampler_metallic,uv_temp);
 
+    if(u_pbr_uniform.roughness.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var roughness_uniform : vec4f = textureSample(u_texture_roughness,u_sampler_roughness,uv_temp);
 
-    //ao    
-    var ao_uniform : vec4f  = u_pbr_uniform.ao.value;
-    if(u_pbr_uniform.ao.kind == 1){//use texture ao * (uniform ao as factor)
-        if(u_pbr_uniform.ao.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
-        ao_uniform = textureSample(u_texture_ao,u_sampler_ao,uv_temp);
-        ao_uniform *= u_pbr_uniform.ao.data2;
-    }
-    else if(u_pbr_uniform.ao.kind == -1){//unuse
-        ao_uniform = vec4f(1);
-    }
-    ao=get_one_channel_value(ao_uniform,u_pbr_uniform.ao.texture_channel);   
+    if(u_pbr_uniform.ao.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var ao_uniform : vec4f = textureSample(u_texture_ao,u_sampler_ao,uv_temp);
 
-
-
-    //normal
-    if(u_pbr_uniform.normal.kind ==1 ){//use texture normal 
-        if(u_pbr_uniform.normal.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
-        var normal_uniform : vec4f = textureSample(u_texture_normal,u_sampler_normal,uv_temp);
-        normal= getNormalFromMap( normal ,normal_uniform.xyz, worldPosition, uv);
-    }
-    else// if(u_pbr_uniform.normal.kind == 2)
-    {//use vs normal
-        normal = normalize(normal);
-    }
-
-    //emissive intensity
-    var emissive_intensity_uniform : vec4f = u_pbr_uniform.emissive_intensity.value;
-    //emissive
-    var emissive_uniform : vec4f =  u_pbr_uniform.emissive.value;
-    if(u_pbr_uniform.emissive.kind == 1){//use texture emissive * (uniform emissive as factor)
-        if(u_pbr_uniform.emissive.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
-        emissive_uniform  = textureSample(u_texture_emissive,u_sampler_emissive,uv_temp);
-        emissive_uniform *= u_pbr_uniform.emissive.value;
-    }
-    if(u_pbr_uniform.emissive.kind !=-1){
-        emissiveRGB = emissive_uniform.rgb;
-        // emissiveRGB.b = 0.0;//20260518 编码错误
-        emissiveIntensity = emissive_intensity_uniform.xyz;
-    }
-
+    if(u_pbr_uniform.normal.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var normal_uniform : vec4f = textureSample(u_texture_normal,u_sampler_normal,uv_temp);
     
+    if(u_pbr_uniform.emissive.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }
+    var emissive_uniform : vec4f = textureSample(u_texture_emissive,u_sampler_emissive,uv_temp);
+    
+    var emissive_intensity_uniform : vec4f = u_pbr_uniform.emissive_intensity.value;
 
     if(u_pbr_uniform.depthmap.data1 == 1){ uv_temp = uv1;  } else {        uv_temp = uv;    }    
     var depthmap_uniform : vec4f = textureSample(u_texture_depthmap,u_sampler_depthmap,uv_temp);
@@ -195,18 +107,78 @@ struct st_pbr_UniformInput{
     ///单通道的使用get_one_channel_value()函数进行获取；
     ///其他情况：设计未使用。TS：E_TextureChannel
     
+    //albedo
+    if(u_pbr_uniform.albedo.kind == 0){//use uniform albedo
+        albedo_uniform = u_pbr_uniform.albedo.value;
+    }
+    else if(u_pbr_uniform.albedo.kind == 1){//use texture albedo * (uniform albedo as factor)
+        // albedo_uniform *= u_pbr_uniform.albedo.value;
+    }    
+    albedo=albedo_uniform.rgb;
 
+    //metallic
+    if(u_pbr_uniform.metallic.kind == 0){
+        metallic_uniform = u_pbr_uniform.metallic.value;
+    }
+    else if(u_pbr_uniform.metallic.kind == 1){//use texture metallic * (uniform metallic as factor)
+        // metallic_uniform *= u_pbr_uniform.metallic.value;
+    }
+    metallic=get_one_channel_value(metallic_uniform,u_pbr_uniform.metallic.texture_channel);
 
+    //roughness
+    if(u_pbr_uniform.roughness.kind == 0){
+        roughness_uniform = u_pbr_uniform.roughness.value;
+    }
+    else if(u_pbr_uniform.roughness.kind == 1){//use texture roughness * (uniform roughness as factor)
+        // roughness_uniform *= u_pbr_uniform.roughness.value;
+    }
+    roughness=get_one_channel_value(roughness_uniform,u_pbr_uniform.roughness.texture_channel);    
 
+    //ao    
+    if(u_pbr_uniform.ao.kind == 0){
+        ao_uniform = u_pbr_uniform.ao.value;
+    }
+    else if(u_pbr_uniform.ao.kind == 1){//use texture ao * (uniform ao as factor)
+        ao_uniform *= u_pbr_uniform.ao.data2;
+    }
+    else if(u_pbr_uniform.ao.kind == -1){//unuse
+        ao_uniform = vec4f(1);
+    }
+    ao=get_one_channel_value(ao_uniform,u_pbr_uniform.ao.texture_channel);   
 
-
-
-
+    //normal
+    if(u_pbr_uniform.normal.kind ==1 ){//use texture normal 
+        normal= getNormalFromMap( normal ,normal_uniform.xyz, worldPosition, uv);
+    }
+    else if(u_pbr_uniform.normal.kind == 2){//use vs normal
+        normal = normalize(normal);
+    }
+    //color
+    if(u_pbr_uniform.color.kind == 0){
+        color_uniform = u_pbr_uniform.color.value;
+    }
+    else if(u_pbr_uniform.color.kind == 1){//use texture color * (uniform color as factor)
+        // color_uniform *= u_pbr_uniform.color.value;//考虑的过于复杂，取消，直接使用纹理颜色（rgba）；2026058；
+    }
+    // else{ //} if(u_pbr_uniform.color.kind !=-1){
+    //     materialColor = color_uniform;//这时是(0,0,0)
+    // }
+    //emissive
+    if(u_pbr_uniform.emissive.kind == 0){
+        emissive_uniform = u_pbr_uniform.emissive.value;
+    }
+    else if(u_pbr_uniform.emissive.kind == 1){//use texture emissive * (uniform emissive as factor)
+        emissive_uniform *= u_pbr_uniform.emissive.value;
+    }
+    if(u_pbr_uniform.emissive.kind !=-1){
+        emissiveRGB = emissive_uniform.rgb;
+        // emissiveRGB.b = 0.0;//20260518 编码错误
+        emissiveIntensity = emissive_intensity_uniform.xyz;
+    }
     //depthmap
     if(u_pbr_uniform.depthmap.kind == 0){
         depthmap_uniform = u_pbr_uniform.depthmap.value;
     }
-    //todo
     else if(u_pbr_uniform.depthmap.kind == 1){//use texture depthmap * (uniform depthmap as factor)
         // depthmap_uniform *= u_pbr_uniform.depthmap.value;
     }

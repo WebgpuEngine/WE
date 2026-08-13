@@ -102,7 +102,7 @@ export class PBRMaterial extends BaseMaterial {
     /** 材质的uniform数据，ArrayBuffer 大小 */
     uniformGPUBufferSize = 352;
     /** 
-     * 材质的uniform数据，ArrayBuffer 视图,完整对应WGSL结构体：struct PBRUniformInput
+     * 材质的uniform数据，ArrayBuffer 视图,完整对应WGSL结构体：struct st_pbr_UniformInput
      * 1、每个属性使用相同的结构体布局
      * 2、kind决定数据类型
      *      kind: i32, //uniform 种类,-1=notUse,0=texture,1=value,2=vs
@@ -881,7 +881,7 @@ export class PBRMaterial extends BaseMaterial {
         let binding: number = 0;
         let groupAndBindingString: string = `
  @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_common_base: st_material_base_info;
- @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_pbr_uniform : PBRUniformInput; 
+ @group(${this.bindGroupNumber}) @binding(${binding++}) var<uniform> u_pbr_uniform : st_pbr_UniformInput; 
 `;
         for (let perTexture of this.insideUniformBundle) {
             let uniformName = perTexture.textureName;
