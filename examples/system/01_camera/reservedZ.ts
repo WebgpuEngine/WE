@@ -7,186 +7,74 @@ import { eventOfScene, type IV_Scene, type userDefineEventCall } from "../../../
 import { initScene } from "../../../src/we/core/scene/fn";
 import { E_renderPassName } from "../../../src/we/core/scene/renderManager";
 import { Scene } from "../../../src/we/core/scene/scene";
+import { PlaneGeometry } from "../../../src/we/core/geometry/planeGeomertry";
+import { IV_MeshEntity, Mesh } from "../../../src/we/core/entity/mesh/mesh";
+import { ColorMaterial } from "../../../src/we/core/material/standard/colorMaterial";
 
-declare global {
-  interface Window {
-    scene: any
-    DC: any
-  }
-}
-let input: IV_Scene = {
-  canvas: "render",
-  backgroudColor: [0, 0, 0, 0.91],
-  reversedZ: true,
-};
 let scene = await initScene({
-  initConfig: input,
+  initConfig: {
+    canvas: "render0",
+    backgroudColor: [0, 0, 0, 1],
+    reversedZ: false,
+  },
 });
-window.scene = scene;
-
-window.scene = scene;
-
-// scene.requestAnimationFrame();
-//这里color输出乘以了0.16,为了区别表现
-let shader = `   
-struct st_system_mvp {
-  model: mat4x4f,
-  view: mat4x4f,
-  projection: mat4x4f,
-  cameraPosition: vec3f,
-  reversedZ: u32,
-};
-
-struct ST_GBuffer{
-    @builtin(frag_depth) depth : f32,
-    @location(0) color : vec4f,
-    @location(1) id : u32,
-    @location(2) normal : vec4f,
-    @location(3) RMAO : vec4f,
-    @location(4) worldPosition : vec4f,
-    @location(5) albedo : vec4f,
-}
- struct OurVertexShaderOutput {
-    @builtin(position) position: vec4f,
-    @location(0) color: vec3f,
- }; 
-
-var<private> weZero = 0.00000001;
-var<private > defaultCameraPosition : vec3f;
-var<private > modelMatrix : mat4x4f;
-var<private > viewMatrix : mat4x4f;
-var<private > projectionMatrix : mat4x4f;
-var<private > MVP : mat4x4f;
-
-var<private> matrix_z : mat4x4f = mat4x4f(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0
-);
-var<private> matrix_z_reversed : mat4x4f = mat4x4f(
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, -1.0, 0.0,
-            0.0, 0.0, 1.0, 1.0
-        );
-
-@group(0) @binding(0) var<uniform> U_MVP : st_system_mvp;    
-
-      @vertex fn vs(
-         @location(0) position : vec3f,
-         @location(1) color : vec3f
-      ) -> OurVertexShaderOutput {
-
-    defaultCameraPosition = U_MVP.cameraPosition;
-    modelMatrix = U_MVP.model;
-    viewMatrix = U_MVP.view;
-    projectionMatrix = U_MVP.projection;
-    MVP = projectionMatrix * viewMatrix * modelMatrix;
-
-  let mo=mat4x4f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13.159801483154297, 0, 7.198585510253906, 1);
-        if(U_MVP.reversedZ==1){
-            matrix_z=matrix_z_reversed;
-        }
-        var vsOutput: OurVertexShaderOutput;
-        vsOutput.position =matrix_z* projectionMatrix* viewMatrix* modelMatrix*vec4f(position, 1.0);//vec4f(position,  1.0);
-        vsOutput.color = color;
-        return vsOutput;
-      }
-
-      @fragment fn fs(in:OurVertexShaderOutput) ->  ST_GBuffer  {
-          
-          var output: ST_GBuffer;
-          output.depth = in.position.z;
-          output.color = vec4f(in.color, 1);
-          output.id = 0;
-          output.normal = vec4f( 1);
-          output.worldPosition = vec4f(1);
-          output.RMAO = vec4f(0,0,0, 1);
-          
-          return output;
-}
-`;
-
-const oneTriangleVertexArray = [
-  0.0, 0.5, 0,
-  -0.5, -0.5, 0,
-  0.5, -0.5, 0,
-];
-const oneTriangleColorArray = [
-  1, 0, 0,
-  0, 1, 0,
-  0, 0, 1,
-];
-const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
-
-
-let inputDC: IV_DrawCommandGenerator = {
-  scene: scene
-}
-let DCManager = new DrawCommandGenerator(inputDC);
-
-
-
-
-let valueDC: IV_DC = {
-  label: "dc1",
-  data: {
-    vertices: {
-      "position": oneTriangleVertexArray,
-      "color": oneTriangleColorArray
-    },
+let scene1 = await initScene({
+  initConfig: {
+    canvas: "render1",
+    backgroudColor: [0, 0, 0, 1],
+    reversedZ: true,
   },
-  render: {
-    vertex: {
-      code: shader,
-      entryPoint: "vs",
-    },
-    fragment: {
-      entryPoint: "fs",
-      // targets: [{ format: scene.colorFormatOfLinearSpace }],
-      aliasName: "test NDC",
+});
 
+async function initReservedZ(scene: Scene) {
+  let radius = 5;
+  let Y = 0;
+  let camera = new PerspectiveCamera({
+    fov: (2 * Math.PI) / 5,
+    aspect: scene.aspect,
+    near: 0.0001,
+    far: 100,
+    position: [0, 0, 5],
+    lookAt: [0, 0, 0],
+    update: (scope: any) => {
+      const now = Date.now() / 1000;
+      scope.Position = vec3.fromValues(Math.sin(now) * radius, Y, Math.cos(now) * radius);
     },
-    drawMode: {
-      vertexCount: 3
-    },
+    // controlType:"orbit"
+  });
+  await scene.add(camera);
+  let geometry = new PlaneGeometry({
+    width: 3,
+    height: 1,
+  });
 
-  },
-  system: {
-    type: E_renderForDC.camera
+  let redMaterial = new ColorMaterial({
+    color: [1, 0, 0, 1]
+  });
+
+  let greenMaterial = new ColorMaterial({
+    color: [0, 1, 0, 1]
+  });
+  let redMeshParams: IV_MeshEntity = {
+    attributes: {
+      geometry: geometry,
+    },
+    material: redMaterial,
+    cullMode: "none",
+    position: [-0.5, 0, -0.0003],
+  };
+
+  let greenMeshParams: IV_MeshEntity = {
+    attributes: {
+      geometry: geometry,
+    },
+    material: greenMaterial,
+    cullMode: "none"
   }
+  let redPlane = new Mesh(redMeshParams);
+  let greenPlane = new Mesh(greenMeshParams);
+  await scene.add(redPlane);
+  await scene.add(greenPlane);
 }
-
-let radius = 5;
-let Y = 0;
-let camera = new PerspectiveCamera({
-  fov: (2 * Math.PI) / 5,
-  aspect: scene.aspect,
-  near: 0.01,
-  far: 100,
-  position: [0, 0, 5],
-  lookAt: [0, 0, 0],
-  update: (scope: any) => {
-    const now = Date.now() / 1000;
-    // console.log(scope.lookAt);
-    scope.Position = vec3.fromValues(Math.sin(now) * radius, Y, Math.cos(now) * radius);
-    // console.log(scope.position);
-  },
-});
-await await scene.add(camera);
-
-
-let dc = DCManager.generateDrawCommand(valueDC);
-
-let oneCall: userDefineEventCall = {
-  call: (scope: Scene) => {
-    // scope.renderManager.clean();
-    scope.renderManager.push(dc, E_renderPassName.forward, camera.UUID)
-    // dc.submit()
-  },
-  name: "",
-  state: true,
-  event: eventOfScene.onBeforeRender
-}
-await scene.addUserDefineEvent(oneCall);
+await initReservedZ(scene);
+await initReservedZ(scene1);  

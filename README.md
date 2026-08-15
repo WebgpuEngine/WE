@@ -5,14 +5,18 @@
 WE3D包括基础引擎和编辑器两大部分。（目前WE3D处于初期开发阶段，功能、模块与结构会频繁调整。）
 
 1. 基础引擎部分包括：核心功能、图形学功能、模型功能、物理引擎整合、动画管理五个模块。
-本项目：[https://github.com/WebgpuEngine/WE3D](https://)
-当前开发版本文档：[https://WebgpuEngine.github.io/WE3D](https://)
+本项目：https://github.com/WebgpuEngine/WE3D
+当前开发版本文档：https://WebgpuEngine.github.io/WE3D
 2. npm 包
-    npm 安装： npm i we3d
-    npm发布地址：[https://www.npmjs.com/package/we3d](https://)
-    npm发布版本文档 [https://webgpuengine.github.io/doc](https://)
-3. doing ,示例代码   [https://github.com/WebgpuEngine/example](https://)
-4. doing ,演示Demo  [https://github.com/WebgpuEngine/demo](https://)
+    npm 安装： 
+         npm i we3d
+         npm i webgpu-we3d
+    npm发布地址：
+        https://www.npmjs.com/package/we3d
+        https://www.npmjs.com/package/webgpu-we3d
+    npm发布版本文档 https://webgpuengine.github.io/doc
+3. doing ,示例代码  https://github.com/WebgpuEngine/example
+4. doing ,演示Demo  https://github.com/WebgpuEngine/demo
 5. todo,编辑器部分包括：材质编辑器、动画编辑器、场景编辑器，构建管理器四个模块，以实现可视化工作。在[https://github.com/WebgpuEngine/editor](https://)
 6. todo,WE3D后期还会考虑减少后端服务，以实现支持服务器端活链接、USD、Nerf工作流、三维重构等以及AI适配等。
 

@@ -122,13 +122,16 @@ export class DrawCommand extends BaseDrawCommand {
                     passEncoder.setVertexBuffer(parseInt(i), verticesBuffer.buffer);//四个参数： slot, buffer, offset, size
             }
         }
-        if (this.viewport) {
-            let minDepth = this.viewport.minDepth == undefined ? 0 : this.viewport.minDepth;
-            let maxDepth = this.viewport.maxDepth == undefined ? 1 : this.viewport.maxDepth;
-
-            passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
+        if (option.mergeID?.includes("__")) {
+            // light ,忽略viewport
         }
+        else if (option.mergeID !== undefined) {
+            let viewport = this.scene.cameraManager.getCameraByUUID(option.mergeID).viewport;
+            let minDepth = viewport.minDepth == undefined ? 0 : viewport.minDepth;
+            let maxDepth = viewport.maxDepth == undefined ? 1 : viewport.maxDepth;
 
+            passEncoder.setViewport(viewport.x, viewport.y, viewport.width, viewport.height, minDepth, maxDepth);
+        }
         // 无值：NDC等
         if (this.traget == undefined) {
             for (let i in this.bindGroups) {

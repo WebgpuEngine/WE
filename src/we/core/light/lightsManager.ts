@@ -32,7 +32,7 @@ import { Scene } from "../scene/scene";
 import { AmbientLight, IV_AmbientLight } from "./ambientLight";
 import { BaseLight, E_lightType, lightStructSize } from "./baseLight";
 import { I_bindGroupAndGroupLayout } from "../command/base";
-import { V_layerOfShadowMapTransparnet, V_shadowMapSize, V_weLinearFormat, V_weShadowMapFormat } from "../base/coreDefine";
+import { V_shadowMapSize, V_weShadowMapFormat } from "../base/coreDefine";
 import { Clock } from "../scene/clock";
 import { ECSManager } from "../organization/manager";
 

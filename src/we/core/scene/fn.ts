@@ -14,10 +14,7 @@ export async function initScene(config: initSceneConfig) {
     // if (config.loadConfig) {
     //     scene.load(config.loadConfig);
     // }
-    if (config.runImmediately === false) {
-
-    }
-    else if (config.runImmediately == undefined
+    if (config.runImmediately === false||config.runImmediately == undefined
         //  || config.loadConfig == undefined
     ) {
         scene.run();

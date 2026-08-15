@@ -158,7 +158,7 @@ export class BaseDrawCommand extends BaseCommand {
             return commandBuffer;
         }
         else {
-             throw new Error("BaseDrawCommand.update: renderPassDescriptor is undefined");
+            throw new Error("BaseDrawCommand.update: renderPassDescriptor is undefined");
         }
     }
 
@@ -203,6 +203,7 @@ export class BaseDrawCommand extends BaseCommand {
 
             passEncoder.setViewport(this.viewport.x, this.viewport.y, this.viewport.width, this.viewport.height, minDepth, maxDepth);
         }
+
 
         for (let i in this.bindGroups) {
             passEncoder.setBindGroup(parseInt(i), this.bindGroups[i]);
